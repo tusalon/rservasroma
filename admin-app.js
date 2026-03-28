@@ -1,7 +1,8 @@
 // admin-app.js - Panel de administración (VERSIÓN GENÉRICA)
+// CON BOTÓN DE NUEVA RESERVA MANUAL, ENVÍO DE WHATSAPP AL CLIENTE Y DÍAS CERRADOS
 // SIN NINGÚN NOMBRE DE CLIENTE HARCODEADO
 
-console.log('🚀 ADMIN-APP.JS - Panel de administración');
+console.log('🚀 ADMIN-APP.JS - Panel de administración con Nueva Reserva Manual y Días Cerrados');
 
 window.addEventListener('error', function(e) {
     console.error('❌ Error detectado, posible versión antigua:', e.message);
@@ -323,8 +324,12 @@ function AdminApp() {
         servicio: '',
         profesional_id: '',
         fecha: '',
-        hora_inicio: ''
+        hora_inicio: '',
+        requiereAnticipo: false
     });
+    
+    // 🔥 STATE PARA DÍAS CERRADOS
+    const [diasCerradosFechas, setDiasCerradosFechas] = React.useState([]);
 
     const [serviciosList, setServiciosList] = React.useState([]);
     const [profesionalesList, setProfesionalesList] = React.useState([]);
@@ -409,6 +414,17 @@ function AdminApp() {
         };
         cargarDiasLaborales();
     }, [nuevaReservaData.profesional_id]);
+
+    // 🔥 CARGAR DÍAS CERRADOS AL ABRIR EL MODAL
+    React.useEffect(() => {
+        if (showNuevaReservaModal) {
+            const cargarDiasCerrados = async () => {
+                const fechas = await window.getDiasCerradosFechas();
+                setDiasCerradosFechas(fechas);
+            };
+            cargarDiasCerrados();
+        }
+    }, [showNuevaReservaModal]);
 
     React.useEffect(() => {
         const cargarHorarios = async () => {
@@ -596,10 +612,17 @@ function AdminApp() {
         return `${y}-${m}-${d}`;
     };
 
+    // 🔥 FUNCIÓN MODIFICADA: Verifica disponibilidad incluyendo días cerrados
     const isDateAvailable = (date) => {
         if (!date || !nuevaReservaData.profesional_id) return false;
         
         const fechaStr = formatDate(date);
+        
+        // Verificar si es día cerrado (usando state precargado)
+        if (diasCerradosFechas.includes(fechaStr)) {
+            return false;
+        }
+        
         const diaSemana = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'][date.getDay()];
         
         if (diasLaborales.length > 0 && !diasLaborales.includes(diaSemana)) {
@@ -616,6 +639,9 @@ function AdminApp() {
         }
     };
 
+    // ============================================
+    // FUNCIÓN CORREGIDA: CREAR RESERVA MANUAL CON OPCIÓN DE ANTICIPO
+    // ============================================
     const handleCrearReservaManual = async () => {
         if (!nuevaReservaData.cliente_nombre || !nuevaReservaData.cliente_whatsapp || 
             !nuevaReservaData.servicio || !nuevaReservaData.profesional_id || 
@@ -639,6 +665,9 @@ function AdminApp() {
             
             const endTime = calculateEndTime(nuevaReservaData.hora_inicio, servicio.duracion);
             
+            const configNegocio = await window.cargarConfiguracionNegocio();
+            const requiereAnticipo = nuevaReservaData.requiereAnticipo;
+            
             const bookingData = {
                 cliente_nombre: nuevaReservaData.cliente_nombre,
                 cliente_whatsapp: `53${nuevaReservaData.cliente_whatsapp.replace(/\D/g, '')}`,
@@ -649,15 +678,41 @@ function AdminApp() {
                 fecha: nuevaReservaData.fecha,
                 hora_inicio: nuevaReservaData.hora_inicio,
                 hora_fin: endTime,
-                estado: "Reservado"
+                estado: requiereAnticipo ? "Pendiente" : "Reservado"
             };
 
-            console.log('📤 Creando reserva manual:', bookingData);
+            console.log('📤 Creando reserva manual. Requiere anticipo:', requiereAnticipo);
+            console.log('📤 Estado:', bookingData.estado);
             
             const result = await createBooking(bookingData);
             
-            if (result.success) {
-                alert('✅ Reserva creada exitosamente');
+            if (result.success && result.data) {
+                alert(`✅ Reserva creada exitosamente como "${result.data.estado}"`);
+                
+                console.log('📱 Enviando mensaje al cliente...');
+                
+                try {
+                    if (requiereAnticipo) {
+                        if (window.enviarMensajePago) {
+                            await window.enviarMensajePago(result.data, configNegocio);
+                            console.log('✅ Mensaje con datos de pago enviado al cliente');
+                        } else {
+                            console.warn('⚠️ window.enviarMensajePago no está disponible');
+                            alert('⚠️ Reserva creada pero no se pudo enviar mensaje de pago.');
+                        }
+                    } else {
+                        if (window.enviarConfirmacionReserva) {
+                            await window.enviarConfirmacionReserva(result.data, configNegocio);
+                            console.log('✅ Confirmación de turno enviada al cliente');
+                        } else {
+                            console.warn('⚠️ window.enviarConfirmacionReserva no está disponible');
+                            alert('⚠️ Reserva creada pero no se pudo enviar confirmación.');
+                        }
+                    }
+                } catch (whatsappError) {
+                    console.error('❌ Error enviando WhatsApp:', whatsappError);
+                    alert('⚠️ Reserva creada, pero hubo un error al enviar el mensaje al cliente.');
+                }
                 
                 setShowNuevaReservaModal(false);
                 setNuevaReservaData({
@@ -666,10 +721,13 @@ function AdminApp() {
                     servicio: '',
                     profesional_id: userRole === 'profesional' ? profesional?.id : '',
                     fecha: '',
-                    hora_inicio: ''
+                    hora_inicio: '',
+                    requiereAnticipo: false
                 });
                 
                 fetchBookings();
+            } else {
+                alert('❌ Error al crear la reserva: ' + (result.error || 'Error desconocido'));
             }
         } catch (error) {
             console.error('Error creando reserva:', error);
@@ -889,7 +947,7 @@ Cualquier cambio, podés cancelarlo desde la app con hasta 1 hora de anticipaci�
             }
             
             alert(`✅ Se borraron todas las reservas canceladas correctamente`);
-            fetchBookings(); // Recargar la lista
+            fetchBookings();
             
         } catch (error) {
             console.error('Error:', error);
@@ -931,7 +989,7 @@ Cualquier cambio, podés cancelarlo desde la app con hasta 1 hora de anticipaci�
             localStorage.removeItem('negocioId');
             
             console.log('🚪 Sesión cerrada, redirigiendo a index.html');
-            window.location.href = 'index.html'; // Cambiado de admin-login.html a index.html
+            window.location.href = 'index.html';
         }
     };
 
@@ -971,9 +1029,14 @@ Cualquier cambio, podés cancelarlo desde la app con hasta 1 hora de anticipaci�
     const canceladasCount = bookings.filter(b => b.estado === 'Cancelado').length;
     const filteredBookings = getFilteredBookings();
 
+    // 🔥 PESTAÑAS CON DÍAS CERRADOS
     const getTabsDisponibles = () => {
         const tabs = [];
         tabs.push({ id: 'reservas', icono: '📅', label: userRole === 'profesional' ? 'Mis Reservas' : 'Reservas' });
+        
+        if (userRole === 'admin' || (userRole === 'profesional' && userNivel >= 3)) {
+            tabs.push({ id: 'diasCerrados', icono: '🚫', label: 'Días Cerrados' });
+        }
         
         if (userRole === 'admin' || (userRole === 'profesional' && userNivel >= 2)) {
             tabs.push({ id: 'configuracion', icono: '⚙️', label: 'Configuración' });
@@ -995,7 +1058,8 @@ Cualquier cambio, podés cancelarlo desde la app con hasta 1 hora de anticipaci�
             servicio: '',
             profesional_id: userRole === 'profesional' ? profesional?.id : '',
             fecha: '',
-            hora_inicio: ''
+            hora_inicio: '',
+            requiereAnticipo: false
         });
         setCurrentDate(new Date());
         setDiasLaborales([]);
@@ -1013,7 +1077,6 @@ Cualquier cambio, podés cancelarlo desde la app con hasta 1 hora de anticipaci�
                 
                 {/* HEADER */}
                 <div className="bg-white p-4 rounded-xl shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-l-4 border-pink-500">
-                    {/* Título y logo */}
                     <div className="flex items-center gap-3">
                         <div className="w-12 h-12 bg-gradient-to-br from-pink-500 to-pink-600 rounded-xl shadow-lg flex items-center justify-center transform rotate-3 hover:rotate-0 transition-transform">
                             <span className="text-2xl text-white">
@@ -1027,8 +1090,15 @@ Cualquier cambio, podés cancelarlo desde la app con hasta 1 hora de anticipaci�
                         </div>
                     </div>
 
-                    {/* Botones de acción */}
                     <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                        <button
+                            onClick={abrirModalNuevaReserva}
+                            className="flex items-center gap-2 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-4 py-2 rounded-lg transition-all transform hover:scale-105 shadow-md border border-green-400 flex-1 sm:flex-none justify-center"
+                        >
+                            <span className="text-lg">📅</span>
+                            <span className="font-medium">Nueva Reserva</span>
+                        </button>
+
                         <button
                             onClick={() => window.location.href = 'editar-negocio.html'}
                             className="flex items-center gap-2 bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white px-4 py-2 rounded-lg transition-all transform hover:scale-105 shadow-md border border-pink-400 flex-1 sm:flex-none justify-center"
@@ -1150,6 +1220,25 @@ Cualquier cambio, podés cancelarlo desde la app con hasta 1 hora de anticipaci�
                                     )}
                                 </div>
 
+                                {/* CHECKBOX PARA ELEGIR SI REQUIERE ANTICIPO */}
+                                {userRole === 'admin' && (
+                                    <div className="flex items-center gap-3 bg-yellow-50 p-3 rounded-lg border border-yellow-200">
+                                        <input
+                                            type="checkbox"
+                                            id="requiereAnticipo"
+                                            checked={nuevaReservaData.requiereAnticipo}
+                                            onChange={(e) => setNuevaReservaData({...nuevaReservaData, requiereAnticipo: e.target.checked})}
+                                            className="w-5 h-5 text-yellow-600 rounded focus:ring-yellow-500"
+                                        />
+                                        <label htmlFor="requiereAnticipo" className="text-sm font-medium text-yellow-800">
+                                            💰 Requerir anticipo al cliente
+                                        </label>
+                                        <div className="text-xs text-yellow-600 ml-auto">
+                                            {nuevaReservaData.requiereAnticipo ? '⚠️ Cliente deberá pagar para confirmar' : '✅ Reserva confirmada automáticamente'}
+                                        </div>
+                                    </div>
+                                )}
+
                                 {nuevaReservaData.profesional_id && (
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-2">Fecha *</label>
@@ -1172,6 +1261,7 @@ Cualquier cambio, podés cancelarlo desde la app con hasta 1 hora de anticipaci�
                                                         const fechaStr = formatDate(date);
                                                         const available = isDateAvailable(date);
                                                         const selected = nuevaReservaData.fecha === fechaStr;
+                                                        const esCerrado = diasCerradosFechas.includes(fechaStr);
                                                         
                                                         let className = "h-10 w-full flex items-center justify-center rounded-lg text-sm font-medium transition-all relative";
                                                         
@@ -1183,20 +1273,38 @@ Cualquier cambio, podés cancelarlo desde la app con hasta 1 hora de anticipaci�
                                                             className += " text-gray-700 hover:bg-pink-50 hover:text-pink-600 hover:scale-105 cursor-pointer";
                                                         }
                                                         
+                                                        let title = "";
+                                                        if (esCerrado) {
+                                                            title = "🚫 Día cerrado (feriado/vacaciones)";
+                                                        } else if (!available) {
+                                                            title = "No disponible (día no laborable o sin horarios)";
+                                                        } else {
+                                                            title = "Disponible";
+                                                        }
+                                                        
                                                         return (
                                                             <button
                                                                 key={idx}
                                                                 onClick={() => handleDateSelect(date)}
                                                                 disabled={!available}
                                                                 className={className}
+                                                                title={title}
                                                             >
                                                                 {date.getDate()}
+                                                                {esCerrado && (
+                                                                    <span className="absolute top-0 right-0 text-[10px] text-red-500">🚫</span>
+                                                                )}
                                                             </button>
                                                         );
                                                     })}
                                                 </div>
                                             </div>
                                         </div>
+                                        {diasCerradosFechas.length > 0 && (
+                                            <p className="text-xs text-red-500 mt-1">
+                                                🚫 {diasCerradosFechas.length} día(s) cerrado(s) este mes
+                                            </p>
+                                        )}
                                     </div>
                                 )}
 
@@ -1256,6 +1364,10 @@ Cualquier cambio, podés cancelarlo desde la app con hasta 1 hora de anticipaci�
                 </div>
 
                 {/* CONTENIDO */}
+                {tabActivo === 'diasCerrados' && (userRole === 'admin' || userNivel >= 3) && (
+                    <DiasCerradosPanel />
+                )}
+
                 {tabActivo === 'configuracion' && (
                     <ConfigPanel 
                         profesionalId={userRole === 'profesional' ? profesional?.id : null}
@@ -1280,7 +1392,6 @@ Cualquier cambio, podés cancelarlo desde la app con hasta 1 hora de anticipaci�
                             </div>
                         )}
 
-                        {/* CLIENTES REGISTRADOS */}
                         <div className="bg-white p-4 rounded-xl shadow-sm border-l-4 border-green-500">
                             <button
                                 onClick={() => {
@@ -1360,7 +1471,6 @@ Cualquier cambio, podés cancelarlo desde la app con hasta 1 hora de anticipaci�
                                 <button onClick={() => setStatusFilter('canceladas')} className={`px-4 py-2 rounded-lg text-sm font-medium ${statusFilter === 'canceladas' ? 'bg-pink-500 text-white' : 'bg-gray-100 text-gray-700'}`}>Canceladas ({canceladasCount})</button>
                                 <button onClick={() => setStatusFilter('todas')} className={`px-4 py-2 rounded-lg text-sm font-medium ${statusFilter === 'todas' ? 'bg-pink-500 text-white' : 'bg-gray-100 text-gray-700'}`}>Todas ({bookings.length})</button>
                                 
-                                {/* 🔥 BOTÓN PARA BORRAR CANCELADAS - SOLO EN PESTAÑA CANCELADAS */}
                                 {statusFilter === 'canceladas' && (
                                     <button
                                         onClick={borrarCanceladas}

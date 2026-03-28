@@ -1,28 +1,42 @@
-// components/Calendar.js - VERSIÓN CORREGIDA (SIN BLOQUEO AUTOMÁTICO DE DOMINGOS)
+// components/Calendar.js - VERSIÓN CON DÍAS CERRADOS
 
 function Calendar({ onDateSelect, selectedDate, profesional }) {
     const [currentDate, setCurrentDate] = React.useState(new Date());
     const [diasLaborales, setDiasLaborales] = React.useState([]);
+    const [diasCerrados, setDiasCerrados] = React.useState([]);
     const [cargandoHorarios, setCargandoHorarios] = React.useState(false);
 
     React.useEffect(() => {
         if (!profesional) return;
         
-        const cargarDiasLaborales = async () => {
+        const cargarDisponibilidad = async () => {
             setCargandoHorarios(true);
             try {
                 const horarios = await window.salonConfig.getHorariosProfesional(profesional.id);
                 console.log(`📅 Días laborales de ${profesional.nombre}:`, horarios.dias);
                 setDiasLaborales(horarios.dias || []);
+                
+                const diasCerradosList = await window.getDiasCerrados();
+                setDiasCerrados(diasCerradosList.map(d => d.fecha));
+                
             } catch (error) {
-                console.error('Error cargando días laborales:', error);
+                console.error('Error cargando disponibilidad:', error);
                 setDiasLaborales([]);
+                setDiasCerrados([]);
             } finally {
                 setCargandoHorarios(false);
             }
         };
         
-        cargarDiasLaborales();
+        cargarDisponibilidad();
+        
+        const handleActualizacion = () => cargarDisponibilidad();
+        window.addEventListener('diasCerradosActualizados', handleActualizacion);
+        
+        return () => {
+            window.removeEventListener('diasCerradosActualizados', handleActualizacion);
+        };
+        
     }, [profesional]);
 
     const formatDate = (date) => {
@@ -64,18 +78,19 @@ function Calendar({ onDateSelect, selectedDate, profesional }) {
         return false;
     };
 
-    // 🔥 ELIMINAMOS la función isSunday que bloqueaba automáticamente
-    // Ahora los domingos se rigen por la configuración del profesional
-
     const profesionalTrabajaEsteDia = (date) => {
         if (!profesional) return true;
         
-        // Si no hay configuración de días, asumimos que trabaja todos los días
         if (diasLaborales.length === 0) return true;
         
         const diasSemana = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
         const diaSemana = diasSemana[date.getDay()];
         return diasLaborales.includes(diaSemana);
+    };
+
+    const esDiaCerrado = (date) => {
+        const fechaStr = formatDate(date);
+        return diasCerrados.includes(fechaStr);
     };
 
     const nextMonth = () => {
@@ -99,12 +114,10 @@ function Calendar({ onDateSelect, selectedDate, profesional }) {
         
         const days = [];
         
-        // Días vacíos para alinear el calendario
         for (let i = 0; i < firstDay.getDay(); i++) {
             days.push(null);
         }
         
-        // Días del mes
         for (let i = 1; i <= lastDay.getDate(); i++) {
             days.push(new Date(year, month, i));
         }
@@ -174,7 +187,6 @@ function Calendar({ onDateSelect, selectedDate, profesional }) {
                 </div>
 
                 <div className="p-4">
-                    {/* Días de la semana */}
                     <div className="grid grid-cols-7 mb-2 text-center">
                         {['D', 'L', 'M', 'M', 'J', 'V', 'S'].map((d, i) => (
                             <div key={i} className={`text-xs font-medium py-1 ${d === 'D' ? 'text-pink-400' : 'text-pink-600'}`}>
@@ -183,7 +195,6 @@ function Calendar({ onDateSelect, selectedDate, profesional }) {
                         ))}
                     </div>
                     
-                    {/* Días del mes */}
                     <div className="grid grid-cols-7 gap-1">
                         {days.map((date, idx) => {
                             if (!date) return <div key={idx} className="h-10" />;
@@ -192,13 +203,10 @@ function Calendar({ onDateSelect, selectedDate, profesional }) {
                             const past = isPastDate(date);
                             const selected = selectedDate === dateStr;
                             
-                            // Verificar si el profesional trabaja este día
                             const profesionalTrabaja = profesionalTrabajaEsteDia(date);
+                            const cerrado = esDiaCerrado(date);
                             
-                            // 🔥 AHORA disponible depende SOLO de:
-                            // - No sea fecha pasada
-                            // - El profesional trabaje este día (según configuración)
-                            const available = !past && profesionalTrabaja;
+                            const available = !past && profesionalTrabaja && !cerrado;
                             
                             let className = "h-10 w-full flex items-center justify-center rounded-lg text-sm font-medium transition-all relative";
                             
@@ -211,12 +219,13 @@ function Calendar({ onDateSelect, selectedDate, profesional }) {
                             }
                             
                             let title = "";
-                            if (past && dateStr === getTodayLocalString()) {
+                            if (cerrado) {
+                                title = "🚫 Día cerrado (feriado/vacaciones)";
+                            } else if (past && dateStr === getTodayLocalString()) {
                                 title = "Hoy ya no hay horarios disponibles";
                             } else if (past) {
                                 title = "Fecha pasada";
                             } else if (!profesionalTrabaja && profesional) {
-                                // Mostrar qué día no trabaja
                                 const diasSemana = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
                                 const diaSemana = diasSemana[date.getDay()];
                                 title = `${profesional.nombre} no trabaja los ${diaSemana}s`;
@@ -233,7 +242,10 @@ function Calendar({ onDateSelect, selectedDate, profesional }) {
                                     title={title}
                                 >
                                     {date.getDate()}
-                                    {available && !selected && (
+                                    {cerrado && (
+                                        <span className="absolute top-0 right-0 text-[10px] text-red-500">🚫</span>
+                                    )}
+                                    {available && !selected && !cerrado && (
                                         <span className="absolute bottom-0.5 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-pink-400 rounded-full"></span>
                                     )}
                                 </button>
@@ -243,7 +255,6 @@ function Calendar({ onDateSelect, selectedDate, profesional }) {
                 </div>
             </div>
 
-            {/* Leyenda de disponibilidad */}
             {profesional && (
                 <div className="text-xs text-pink-600 bg-pink-50 p-3 rounded-lg border border-pink-200">
                     <div className="flex items-center gap-2">
@@ -255,11 +266,22 @@ function Calendar({ onDateSelect, selectedDate, profesional }) {
                                 : 'Todos los días (sin configuración específica)'}
                         </span>
                     </div>
+                    {diasCerrados.length > 0 && (
+                        <div className="flex items-center gap-2 mt-2">
+                            <span className="text-red-400 text-lg">🚫</span>
+                            <span>
+                                <strong>Días cerrados:</strong>{' '}
+                                {diasCerrados.length} día(s) no disponible(s)
+                            </span>
+                        </div>
+                    )}
                     <div className="flex items-center gap-2 mt-2">
                         <span className="w-3 h-3 bg-pink-500 rounded-full"></span>
                         <span>Disponible</span>
                         <span className="w-3 h-3 bg-pink-200 rounded-full ml-3"></span>
                         <span>No disponible</span>
+                        <span className="w-3 h-3 bg-red-300 rounded-full ml-3"></span>
+                        <span>Día cerrado</span>
                     </div>
                 </div>
             )}

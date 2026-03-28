@@ -12,7 +12,7 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="apple-mobile-web-app-title" content="Risell">
+    <meta name="apple-mobile-web-app-title" content="RservasRoma">
     <link rel="apple-touch-icon" href="icons/icon-192x192.png">
     <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192x192.png">
     
@@ -72,6 +72,7 @@
     <script src="utils/servicios.js"></script>
     <script src="utils/profesionales.js"></script>
     <script src="utils/whatsapp-helper.js"></script>
+    <script src="utils/dias-cerrados.js"></script>
 
     <!-- Componentes -->
     <script src="components/Header.js" type="text/babel"></script>
@@ -97,7 +98,7 @@
                 const nombre = await window.getNombreNegocio();
                 if (nombre) {
                     document.title = `${nombre} - Reserva de Turnos`;
-                    document.querySelector('meta[name="apple-mobile-web-app-title"]')?.setAttribute('content', nombre.split(' ')[0] || 'Risell');
+                    document.querySelector('meta[name="apple-mobile-web-app-title"]')?.setAttribute('content', nombre.split(' ')[0] || 'RservasRoma');
                 }
             } catch (error) {
                 console.error('Error cargando título:', error);
