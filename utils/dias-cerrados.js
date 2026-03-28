@@ -10,9 +10,10 @@ function getNegocioId() {
     return localStorage.getItem('negocioId');
 }
 
-let diasCerradosCache = [];
-let ultimaActualizacion = 0;
-const CACHE_DURATION = 10 * 60 * 1000; // 10 minutos
+// Variables con nombres ÚNICOS para evitar conflictos con config.js
+let diasCerradosCacheData = [];
+let ultimaActualizacionDiasCerrados = 0;
+const CACHE_DURATION_DIAS_CERRADOS = 10 * 60 * 1000; // 10 minutos
 
 /**
  * Carga los días cerrados desde Supabase
@@ -40,8 +41,8 @@ async function cargarDiasCerrados() {
         }
         
         const data = await response.json();
-        diasCerradosCache = data;
-        ultimaActualizacion = Date.now();
+        diasCerradosCacheData = data;
+        ultimaActualizacionDiasCerrados = Date.now();
         
         console.log(`✅ ${data.length} días cerrados cargados`);
         return data;
@@ -54,16 +55,14 @@ async function cargarDiasCerrados() {
 
 /**
  * Verifica si una fecha específica está cerrada
- * @param {string} fechaStr - Fecha en formato YYYY-MM-DD
- * @returns {Promise<object|null>} - El día cerrado o null
  */
 window.verificarDiaCerrado = async function(fechaStr) {
     try {
         const negocioId = getNegocioId();
         if (!negocioId) return null;
         
-        if (Date.now() - ultimaActualizacion < CACHE_DURATION && diasCerradosCache.length > 0) {
-            const encontrado = diasCerradosCache.find(d => d.fecha === fechaStr);
+        if (Date.now() - ultimaActualizacionDiasCerrados < CACHE_DURATION_DIAS_CERRADOS && diasCerradosCacheData.length > 0) {
+            const encontrado = diasCerradosCacheData.find(d => d.fecha === fechaStr);
             return encontrado || null;
         }
         
@@ -92,8 +91,8 @@ window.verificarDiaCerrado = async function(fechaStr) {
  * Obtiene todos los días cerrados
  */
 window.getDiasCerrados = async function() {
-    if (Date.now() - ultimaActualizacion < CACHE_DURATION && diasCerradosCache.length > 0) {
-        return [...diasCerradosCache];
+    if (Date.now() - ultimaActualizacionDiasCerrados < CACHE_DURATION_DIAS_CERRADOS && diasCerradosCacheData.length > 0) {
+        return [...diasCerradosCacheData];
     }
     return await cargarDiasCerrados();
 };
