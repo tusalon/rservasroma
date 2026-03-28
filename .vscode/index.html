@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Uñas Mágicas - Reserva de Turnos</title>
+    <meta name="description" content="Reserva tu turno de manicuría fácil y rápido">
+    
+    <!-- PWA -->
+    <link rel="manifest" href="/tuturno/manifest.json">
+    <meta name="theme-color" content="#ec4899">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Uñas Mágicas">
+    <link rel="apple-touch-icon" href="/tuturno/icons/icon-192x192.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/tuturno/icons/icon-192x192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="/tuturno/icons/icon-512x512.png">
+    
+    <script src="https://resource.trickle.so/vendor_lib/unpkg/react@18/umd/react.production.min.js"></script>
+    <script src="https://resource.trickle.so/vendor_lib/unpkg/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://resource.trickle.so/vendor_lib/unpkg/@babel/standalone/babel.min.js"></script>
+   <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link href="https://resource.trickle.so/vendor_lib/unpkg/lucide-static@0.516.0/font/lucide.css" rel="stylesheet">
+    
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .animate-fade-in {
+                animation: fadeIn 0.5s ease-out forwards;
+            }
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+
+    <style>
+        .update-banner, .install-banner {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            color: white;
+            padding: 16px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 9999;
+            animation: slideUp 0.3s ease-out;
+            max-width: 400px;
+            margin: 0 auto;
+            font-family: system-ui, -apple-system, sans-serif;
+        }
+        .update-banner { background: #2563eb; }
+        .install-banner { background: #10b981; }
+        .banner-content {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .banner-icon { font-size: 24px; }
+        .banner-text { flex: 1; }
+        .banner-title {
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+        .banner-subtitle {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        .banner-button {
+            background: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .update-button { color: #2563eb; }
+        .install-button { color: #10b981; }
+        .close-button {
+            background: transparent;
+            color: white;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 0 4px;
+        }
+        @keyframes slideUp {
+            from { transform: translateY(100px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <!-- Scripts de la app -->
+    <script type="text/babel" src="utils/api.js"></script>
+    <script type="text/babel" src="utils/timeLogic.js"></script>
+    <script type="text/babel" src="components/Header.js"></script>
+    <script type="text/babel" src="components/ServiceSelection.js"></script>
+    <script type="text/babel" src="components/Calendar.js"></script>
+    <script type="text/babel" src="components/TimeSlots.js"></script>
+    <script type="text/babel" src="components/BookingForm.js"></script>
+    <script type="text/babel" src="components/Confirmation.js"></script>
+    <script type="text/babel" src="components/WelcomeScreen.js"></script>
+    <script type="text/babel" src="components/WhatsAppButton.js"></script>
+    <script type="text/babel" src="app.js"></script>
+
+    <!-- Service Worker y notificaciones -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            let updateNotificationShown = false;
+
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/tuturno/sw.js')
+                    .then(registration => {
+                        console.log('✅ Service Worker registrado');
+
+                        registration.addEventListener('updatefound', () => {
+                            const newWorker = registration.installing;
+                            console.log('🔄 Nueva versión detectada');
+
+                            newWorker.addEventListener('statechange', () => {
+                                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                    console.log('✅ Nueva versión lista');
+                                    if (!updateNotificationShown) {
+                                        showUpdateNotification(registration);
+                                        updateNotificationShown = true;
+                                    }
+                                }
+                            });
+                        });
+                    })
+                    .catch(error => {
+                        console.log('❌ Error al registrar Service Worker:', error);
+                    });
+            });
+
+            navigator.serviceWorker.addEventListener('message', event => {
+                if (event.data.type === 'NEW_VERSION_AVAILABLE') {
+                    console.log('📢 Nueva versión disponible');
+                }
+            });
+        }
+
+        function showUpdateNotification(registration) {
+            if (document.getElementById('update-notification')) return;
+
+            const notification = document.createElement('div');
+            notification.id = 'update-notification';
+            notification.className = 'update-banner';
+            notification.innerHTML = `
+                <div class="banner-content">
+                    <div class="banner-icon">✨</div>
+                    <div class="banner-text">
+                        <div class="banner-title">¡Nueva versión disponible!</div>
+                        <div class="banner-subtitle">Actualizamos la app con mejoras</div>
+                    </div>
+                    <button onclick="updateApp()" class="banner-button update-button">Actualizar</button>
+                </div>
+            `;
+            document.body.appendChild(notification);
+
+            window.updateApp = () => {
+                notification.remove();
+                if (registration.waiting) {
+                    registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+                }
+                setTimeout(() => window.location.reload(), 500);
+            };
+        }
+
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            
+            setTimeout(() => {
+                if (!window.matchMedia('(display-mode: standalone)').matches) {
+                    showInstallButton();
+                }
+            }, 3000);
+        });
+
+        function showInstallButton() {
+            if (document.getElementById('install-notification')) return;
+
+            const notification = document.createElement('div');
+            notification.id = 'install-notification';
+            notification.className = 'install-banner';
+            notification.innerHTML = `
+                <div class="banner-content">
+                    <div class="banner-icon">📲</div>
+                    <div class="banner-text">
+                        <div class="banner-title">Instalá Uñas Mágicas</div>
+                        <div class="banner-subtitle">Agregala a tu pantalla de inicio</div>
+                    </div>
+                    <button onclick="installApp()" class="banner-button install-button">Instalar</button>
+                    <button onclick="this.parentElement.parentElement.remove()" class="close-button">×</button>
+                </div>
+            `;
+            document.body.appendChild(notification);
+
+            window.installApp = () => {
+                if (deferredPrompt) {
+                    deferredPrompt.prompt();
+                    deferredPrompt.userChoice.then(() => {
+                        deferredPrompt = null;
+                        notification.remove();
+                    });
+                }
+            };
+        }
+    </script>
+</body>
+</html>

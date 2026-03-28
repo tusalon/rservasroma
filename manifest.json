@@ -1,0 +1,22 @@
+{
+  "name": "Risell Salón",
+  "short_name": "Risell",
+  "description": "Uñas y belleza - Tu espacio de cuidado personal",
+  "start_url": "/risellsalon/",
+  "scope": "/risellsalon/",
+  "display": "standalone",
+  "background_color": "#ec4899",
+  "theme_color": "#ec4899",
+  "icons": [
+    {
+      "src": "/risellsalon/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/risellsalon/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
