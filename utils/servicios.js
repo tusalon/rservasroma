@@ -1,4 +1,5 @@
 // utils/servicios.js - Gestión de servicios (CORREGIDO)
+// CON FUNCIONES PARA ASIGNAR PROFESIONALES A SERVICIOS
 
 console.log('💅 servicios.js cargado (modo Supabase)');
 
@@ -113,7 +114,7 @@ window.salonServicios = {
                         descripcion: servicio.descripcion || '',
                         activo: true,
                         imagen: servicio.imagen || null,
-                        horarios_permitidos: servicio.horarios_permitidos || []   // ✅ NUEVO
+                        horarios_permitidos: servicio.horarios_permitidos || []
                     })
                 }
             );
@@ -152,7 +153,7 @@ window.salonServicios = {
             if (cambios.descripcion !== undefined) datosActualizar.descripcion = cambios.descripcion;
             if (cambios.activo !== undefined) datosActualizar.activo = cambios.activo;
             if (cambios.imagen !== undefined) datosActualizar.imagen = cambios.imagen;
-            if (cambios.horarios_permitidos !== undefined) datosActualizar.horarios_permitidos = cambios.horarios_permitidos;   // ✅ NUEVO
+            if (cambios.horarios_permitidos !== undefined) datosActualizar.horarios_permitidos = cambios.horarios_permitidos;
             
             const response = await fetch(
                 `${window.SUPABASE_URL}/rest/v1/servicios?negocio_id=eq.${negocioId}&id=eq.${id}`,
@@ -229,8 +230,189 @@ window.salonServicios = {
     }
 };
 
+// ============================================
+// FUNCIONES PARA ASIGNAR PROFESIONALES A SERVICIOS
+// ============================================
+
+/**
+ * Obtiene los profesionales asignados a un servicio
+ */
+window.getProfesionalesPorServicio = async function(servicioId) {
+    try {
+        const negocioId = getNegocioId();
+        if (!negocioId || !servicioId) return [];
+        
+        const response = await fetch(
+            `${window.SUPABASE_URL}/rest/v1/servicios_profesionales?negocio_id=eq.${negocioId}&servicio_id=eq.${servicioId}&select=profesional_id`,
+            {
+                headers: {
+                    'apikey': window.SUPABASE_ANON_KEY,
+                    'Authorization': `Bearer ${window.SUPABASE_ANON_KEY}`
+                }
+            }
+        );
+        
+        if (!response.ok) return [];
+        
+        const data = await response.json();
+        const ids = data.map(item => item.profesional_id);
+        
+        if (ids.length === 0) return [];
+        
+        const profesionalesResponse = await fetch(
+            `${window.SUPABASE_URL}/rest/v1/profesionales?negocio_id=eq.${negocioId}&id=in.(${ids.join(',')})&activo=eq.true&select=*`,
+            {
+                headers: {
+                    'apikey': window.SUPABASE_ANON_KEY,
+                    'Authorization': `Bearer ${window.SUPABASE_ANON_KEY}`
+                }
+            }
+        );
+        
+        if (!profesionalesResponse.ok) return [];
+        
+        return await profesionalesResponse.json();
+        
+    } catch (error) {
+        console.error('Error obteniendo profesionales por servicio:', error);
+        return [];
+    }
+};
+
+/**
+ * Asigna un profesional a un servicio
+ */
+window.asignarProfesionalAServicio = async function(servicioId, profesionalId) {
+    try {
+        const negocioId = getNegocioId();
+        if (!negocioId || !servicioId || !profesionalId) return false;
+        
+        const checkResponse = await fetch(
+            `${window.SUPABASE_URL}/rest/v1/servicios_profesionales?negocio_id=eq.${negocioId}&servicio_id=eq.${servicioId}&profesional_id=eq.${profesionalId}&select=id`,
+            {
+                headers: {
+                    'apikey': window.SUPABASE_ANON_KEY,
+                    'Authorization': `Bearer ${window.SUPABASE_ANON_KEY}`
+                }
+            }
+        );
+        
+        const existing = await checkResponse.json();
+        if (existing && existing.length > 0) {
+            return true;
+        }
+        
+        const response = await fetch(
+            `${window.SUPABASE_URL}/rest/v1/servicios_profesionales`,
+            {
+                method: 'POST',
+                headers: {
+                    'apikey': window.SUPABASE_ANON_KEY,
+                    'Authorization': `Bearer ${window.SUPABASE_ANON_KEY}`,
+                    'Content-Type': 'application/json',
+                    'Prefer': 'return=representation'
+                },
+                body: JSON.stringify({
+                    negocio_id: negocioId,
+                    servicio_id: servicioId,
+                    profesional_id: profesionalId
+                })
+            }
+        );
+        
+        if (!response.ok) return false;
+        
+        console.log('✅ Profesional asignado al servicio');
+        return true;
+        
+    } catch (error) {
+        console.error('Error asignando profesional:', error);
+        return false;
+    }
+};
+
+/**
+ * Remueve la asignación de un profesional a un servicio
+ */
+window.removerProfesionalDeServicio = async function(servicioId, profesionalId) {
+    try {
+        const negocioId = getNegocioId();
+        if (!negocioId || !servicioId || !profesionalId) return false;
+        
+        const response = await fetch(
+            `${window.SUPABASE_URL}/rest/v1/servicios_profesionales?negocio_id=eq.${negocioId}&servicio_id=eq.${servicioId}&profesional_id=eq.${profesionalId}`,
+            {
+                method: 'DELETE',
+                headers: {
+                    'apikey': window.SUPABASE_ANON_KEY,
+                    'Authorization': `Bearer ${window.SUPABASE_ANON_KEY}`
+                }
+            }
+        );
+        
+        if (!response.ok) return false;
+        
+        console.log('✅ Profesional removido del servicio');
+        return true;
+        
+    } catch (error) {
+        console.error('Error removiendo profesional:', error);
+        return false;
+    }
+};
+
+/**
+ * Obtiene todos los profesionales con sus servicios asignados
+ */
+window.getProfesionalesConServicios = async function() {
+    try {
+        const negocioId = getNegocioId();
+        if (!negocioId) return [];
+        
+        const response = await fetch(
+            `${window.SUPABASE_URL}/rest/v1/profesionales?negocio_id=eq.${negocioId}&activo=eq.true&select=*`,
+            {
+                headers: {
+                    'apikey': window.SUPABASE_ANON_KEY,
+                    'Authorization': `Bearer ${window.SUPABASE_ANON_KEY}`
+                }
+            }
+        );
+        
+        if (!response.ok) return [];
+        
+        const profesionales = await response.json();
+        
+        for (const prof of profesionales) {
+            const serviciosResponse = await fetch(
+                `${window.SUPABASE_URL}/rest/v1/servicios_profesionales?negocio_id=eq.${negocioId}&profesional_id=eq.${prof.id}&select=servicio_id`,
+                {
+                    headers: {
+                        'apikey': window.SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${window.SUPABASE_ANON_KEY}`
+                    }
+                }
+            );
+            
+            if (serviciosResponse.ok) {
+                const serviciosData = await serviciosResponse.json();
+                prof.servicios_ids = serviciosData.map(s => s.servicio_id);
+            } else {
+                prof.servicios_ids = [];
+            }
+        }
+        
+        return profesionales;
+        
+    } catch (error) {
+        console.error('Error obteniendo profesionales con servicios:', error);
+        return [];
+    }
+};
+
 setTimeout(async () => {
     await window.salonServicios.getAll(false);
 }, 1000);
 
 console.log('✅ salonServicios inicializado');
+console.log('✅ Funciones de asignación profesional-servicio agregadas');

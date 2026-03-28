@@ -38,21 +38,18 @@ function ClientApp() {
         const profesionalAuth = localStorage.getItem('profesionalAuth');
         const clienteAuth = localStorage.getItem('clienteAuth');
         
-        // Si es admin, redirigir directamente al panel
         if (adminAuth) {
             console.log('👑 Usuario admin detectado, redirigiendo a admin.html');
             window.location.href = 'admin.html';
             return;
         }
         
-        // Si es profesional, redirigir al panel (allí se maneja su rol)
         if (profesionalAuth) {
             console.log('👤 Usuario profesional detectado, redirigiendo a admin.html');
             window.location.href = 'admin.html';
             return;
         }
         
-        // Si es cliente, restaurar sesión y mostrar welcome
         if (clienteAuth) {
             try {
                 const clienteData = JSON.parse(clienteAuth);
@@ -65,7 +62,6 @@ function ClientApp() {
                 localStorage.removeItem('clienteAuth');
             }
         }
-        // Si no hay nada, se queda en 'auth'
     }, []);
 
     // ============================================
@@ -165,7 +161,6 @@ function ClientApp() {
         setUserRol('cliente');
         setHistory(['auth']);
         setStep('auth');
-        // Redirigir a index (ya estamos en index, pero reiniciamos estado)
         window.location.href = 'index.html';
     };
 
@@ -236,12 +231,13 @@ function ClientApp() {
                                 selectedService={selectedService}
                             />
                             
-                            {/* SECCIÓN 2: PROFESIONALES */}
+                            {/* SECCIÓN 2: PROFESIONALES - CON selectedService */}
                             {selectedService && (
                                 <div id="profesional-section">
                                     <ProfesionalSelector 
                                         onSelect={setSelectedProfesional} 
                                         selectedProfesional={selectedProfesional}
+                                        selectedService={selectedService}
                                     />
                                 </div>
                             )}
