@@ -601,7 +601,7 @@ function AdminApp() {
         }
     };
 
-    // 🔥 FUNCIÓN PARA CARGAR DISPONIBILIDAD DEL MES EN EL MODAL
+    // 🔥 FUNCIÓN PARA CARGAR DISPONIBILIDAD DEL MES EN EL MODAL (CORREGIDA)
     const cargarDisponibilidadDelMes = async (fecha, profesionalId = null) => {
         if (!profesionalId && profesionalesList.length > 0) {
             profesionalId = profesionalesList[0]?.id;
@@ -615,6 +615,7 @@ function AdminApp() {
             
             const horarios = await window.salonConfig.getHorariosProfesional(profesionalId);
             const horasTrabajo = horarios.horas || [];
+            const diasTrabajo = horarios.dias || []; // 👈 Obtenemos los días de trabajo
             
             if (horasTrabajo.length === 0) {
                 setDisponibilidadDias({});
@@ -650,28 +651,36 @@ function AdminApp() {
             
             const disponibilidad = {};
             const diasEnMes = ultimoDia.getDate();
+            const nombresDias = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado']; // 👈 Array auxiliar
             
             for (let d = 1; d <= diasEnMes; d++) {
                 const fechaStr = `${year}-${(month + 1).toString().padStart(2, '0')}-${d.toString().padStart(2, '0')}`;
                 
+                // 👈 Determinamos qué día de la semana es la fecha que estamos evaluando
+                const fechaActual = new Date(year, month, d);
+                const diaSemana = nombresDias[fechaActual.getDay()]; 
+                
                 let tieneDisponibilidad = false;
                 
-                for (const horaIndice of horasTrabajo) {
-                    const slotStr = indiceToHoraLegible(horaIndice);
-                    const [horas, minutos] = slotStr.split(':').map(Number);
-                    const slotStart = horas * 60 + minutos;
-                    const slotEnd = slotStart + 60;
-                    
-                    const reservasDia = reservasPorFecha[fechaStr] || [];
-                    const tieneConflicto = reservasDia.some(reserva => {
-                        const reservaStart = timeToMinutes(reserva.hora_inicio);
-                        const reservaEnd = timeToMinutes(reserva.hora_fin);
-                        return (slotStart < reservaEnd) && (slotEnd > reservaStart);
-                    });
-                    
-                    if (!tieneConflicto) {
-                        tieneDisponibilidad = true;
-                        break;
+                // 👈 Solo buscamos disponibilidad de horas si el profesional TRABAJA ese día
+                if (diasTrabajo.length === 0 || diasTrabajo.includes(diaSemana)) {
+                    for (const horaIndice of horasTrabajo) {
+                        const slotStr = indiceToHoraLegible(horaIndice);
+                        const [horas, minutos] = slotStr.split(':').map(Number);
+                        const slotStart = horas * 60 + minutos;
+                        const slotEnd = slotStart + 60;
+                        
+                        const reservasDia = reservasPorFecha[fechaStr] || [];
+                        const tieneConflicto = reservasDia.some(reserva => {
+                            const reservaStart = timeToMinutes(reserva.hora_inicio);
+                            const reservaEnd = timeToMinutes(reserva.hora_fin);
+                            return (slotStart < reservaEnd) && (slotEnd > reservaStart);
+                        });
+                        
+                        if (!tieneConflicto) {
+                            tieneDisponibilidad = true;
+                            break;
+                        }
                     }
                 }
                 
