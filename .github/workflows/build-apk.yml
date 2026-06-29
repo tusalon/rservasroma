@@ -30,6 +30,11 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
+      - name: Install expect
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y expect
+
       - name: Configure Bubblewrap paths
         run: |
           mkdir -p "$HOME/.bubblewrap"
@@ -80,10 +85,17 @@ jobs:
       - name: Init Bubblewrap project
         working-directory: android
         run: |
-          yes "" | head -n 80 | bubblewrap init \
-            --manifest https://tusalon.github.io/rservasroma/manifest.json \
-            --directory . \
-            --skipPwaValidation
+          expect << 'EOF'
+          set timeout 180
+          spawn bubblewrap init --manifest https://tusalon.github.io/rservasroma/manifest.json --directory . --skipPwaValidation
+          expect {
+            -re "\\? .+" {
+              send "\r"
+              exp_continue
+            }
+            eof
+          }
+          EOF
 
       - name: Build APK
         working-directory: android
