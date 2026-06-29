@@ -1,12 +1,12 @@
 // utils/config-negocio-master.js
-// 🏆 VERSIÓN MAESTRA — un solo repo para todos los salones Rservasroma
+// ðŸ† VERSIÃ“N MAESTRA â€” un solo repo para todos los salones Rservasroma
 // Reemplaza el config-negocio.js hardcodeado de cada cliente.
-// Detecta el slug desde la URL y resuelve el negocio_id automáticamente.
+// Detecta el slug desde la URL y resuelve el negocio_id automÃ¡ticamente.
 
-console.log('🌐 config-negocio-master.js cargado');
+console.log('ðŸŒ config-negocio-master.js cargado');
 
 // ============================================================
-// 1. DETECCIÓN DE SLUG DESDE LA URL
+// 1. DETECCIÃ“N DE SLUG DESDE LA URL
 // ============================================================
 (function() {
     const ADMIN_SEGMENTS = new Set([
@@ -27,7 +27,7 @@ console.log('🌐 config-negocio-master.js cargado');
         const firstPart = parts[0] || '';
         const isAdminRoute = ADMIN_SEGMENTS.has(firstPart) || firstPart.endsWith('.html');
 
-        // Después del redirect de 404.html → /?s=slug
+        // DespuÃ©s del redirect de 404.html â†’ /?s=slug
         // En pantallas admin se ignora ?s= para no cargar otro negocio por accidente.
         const params = new URLSearchParams(window.location.search);
         const s = params.get('s');
@@ -41,28 +41,28 @@ console.log('🌐 config-negocio-master.js cargado');
     }
 
     window._rservasSlugActual = getSlugFromURL();
-    console.log('🔍 Slug detectado:', window._rservasSlugActual || '(ninguno — modo admin o raíz)');
+    console.log('ðŸ” Slug detectado:', window._rservasSlugActual || '(ninguno â€” modo admin o raÃ­z)');
 })();
 
 // ============================================================
-// 2. RESOLUCIÓN SINCRÓNICA DEL NEGOCIO_ID
+// 2. RESOLUCIÃ“N SINCRÃ“NICA DEL NEGOCIO_ID
 //    Admin: lee localStorage (seteado por admin-login.html)
-//    Cliente: lee caché localStorage; si no existe, fetch async
+//    Cliente: lee cachÃ© localStorage; si no existe, fetch async
 // ============================================================
 (function() {
     const slug = window._rservasSlugActual;
 
-    // — Ruta ADMIN: negocioId ya está en localStorage tras el login —
+    // â€” Ruta ADMIN: negocioId ya estÃ¡ en localStorage tras el login â€”
     if (!slug) {
         const storedId = localStorage.getItem('negocioId') || '';
         window.NEGOCIO_ID_POR_DEFECTO = storedId;
         window._negocioIdResuelto = !!storedId;
-        if (storedId) console.log('✅ [admin] negocio_id desde localStorage:', storedId);
-        else console.warn('⚠️ [admin] Sin negocioId en localStorage. Redirigir a login.');
+        if (storedId) console.log('âœ… [admin] negocio_id desde localStorage:', storedId);
+        else console.warn('âš ï¸ [admin] Sin negocioId en localStorage. Redirigir a login.');
         return;
     }
 
-    // — Ruta CLIENTE: buscar en caché de 24 h —
+    // â€” Ruta CLIENTE: buscar en cachÃ© de 24 h â€”
     const CACHE_ID_KEY  = 'rsmid_' + slug; // rservasroma master id
     const CACHE_TTL_KEY = 'rsmttl_' + slug;
     const cachedId  = localStorage.getItem(CACHE_ID_KEY);
@@ -72,14 +72,14 @@ console.log('🌐 config-negocio-master.js cargado');
     if (cachedId && (Date.now() - cachedTTL) < CACHE_MAX_AGE) {
         window.NEGOCIO_ID_POR_DEFECTO = cachedId;
         window._negocioIdResuelto = true;
-        console.log('✅ [cliente] negocio_id desde caché:', cachedId, '(slug:', slug + ')');
-        // Refrescar caché en background cada 24 h
+        console.log('âœ… [cliente] negocio_id desde cachÃ©:', cachedId, '(slug:', slug + ')');
+        // Refrescar cachÃ© en background cada 24 h
         window._negocioSlugCacheRefresh = { slug, CACHE_ID_KEY, CACHE_TTL_KEY };
         return;
     }
 
-    // — Primera visita del cliente: fetch async + señal de "cargando" —
-    console.log('⏳ [cliente] Primer acceso, resolviendo negocio_id para slug:', slug);
+    // â€” Primera visita del cliente: fetch async + seÃ±al de "cargando" â€”
+    console.log('â³ [cliente] Primer acceso, resolviendo negocio_id para slug:', slug);
     window.NEGOCIO_ID_POR_DEFECTO = '';
     window._negocioIdResuelto = false;
     window._negocioSlugPendiente = { slug, CACHE_ID_KEY, CACHE_TTL_KEY };
@@ -98,7 +98,7 @@ console.log('🌐 config-negocio-master.js cargado');
             const data = await res.json();
             const negocio = data[0];
             if (!negocio) {
-                console.error('❌ Slug no encontrado en Supabase:', slug);
+                console.error('âŒ Slug no encontrado en Supabase:', slug);
                 return null;
             }
             const id = negocio.id;
@@ -107,11 +107,11 @@ console.log('🌐 config-negocio-master.js cargado');
             localStorage.setItem('negocioSlug', negocio.slug);
             window.NEGOCIO_ID_POR_DEFECTO = id;
             window._negocioIdResuelto = true;
-            console.log('✅ [cliente] negocio_id resuelto:', id, '—', negocio.nombre);
+            console.log('âœ… [cliente] negocio_id resuelto:', id, 'â€”', negocio.nombre);
             window.dispatchEvent(new CustomEvent('negocio-id-ready', { detail: { id, slug: negocio.slug, nombre: negocio.nombre } }));
             return id;
         } catch (err) {
-            console.error('❌ Error resolviendo negocio por slug:', err);
+            console.error('âŒ Error resolviendo negocio por slug:', err);
             return null;
         }
     })();
@@ -129,7 +129,7 @@ window.getNegocioIdFromConfig = function() {
 };
 
 // ============================================================
-// 4. UTILIDADES DE COLOR (idénticas al original)
+// 4. UTILIDADES DE COLOR (idÃ©nticas al original)
 // ============================================================
 function hexToRgbParts(hex, fallback = '236 72 153') {
     const limpio = String(hex || '').replace('#', '').trim();
@@ -165,7 +165,7 @@ function asegurarColorVisible(hex, fallback = '#c0266f') {
 }
 
 // ============================================================
-// 5. TEMA (idéntico al original)
+// 5. TEMA (idÃ©ntico al original)
 // ============================================================
 function aplicarTemaNegocio(config = {}) {
     const primarioOriginal  = normalizarHexColor(config.color_primario,   '#ec4899');
@@ -210,32 +210,32 @@ window.getPreferenciasWhatsAppNegocio = function(config = null) {
 };
 
 // ============================================================
-// 7. CARGA DE CONFIGURACIÓN DEL NEGOCIO
-//    Espera a que el negocio_id esté disponible si es primera visita
+// 7. CARGA DE CONFIGURACIÃ“N DEL NEGOCIO
+//    Espera a que el negocio_id estÃ© disponible si es primera visita
 // ============================================================
 window.cargarConfiguracionNegocio = async function(forceRefresh = false) {
-    // Si el ID no está resuelto aún, esperar la promesa async
+    // Si el ID no estÃ¡ resuelto aÃºn, esperar la promesa async
     if (!window._negocioIdResuelto && window._negocioResolvePromise) {
-        console.log('⏳ Esperando resolución del negocio_id...');
+        console.log('â³ Esperando resoluciÃ³n del negocio_id...');
         await window._negocioResolvePromise;
     }
 
     const negocioId = window.NEGOCIO_ID_POR_DEFECTO;
     if (!negocioId) {
-        console.error('❌ No hay negocio_id disponible');
+        console.error('âŒ No hay negocio_id disponible');
         return null;
     }
 
-    // Caché de configuración
+    // CachÃ© de configuraciÃ³n
     if (!forceRefresh && configCache && (Date.now() - ultimaActualizacion) < CACHE_DURATION) {
-        console.log('📦 Usando caché de configuración');
+        console.log('ðŸ“¦ Usando cachÃ© de configuraciÃ³n');
         aplicarTemaNegocio(configCache);
         window.actualizarManifestPWA(configCache);
         return configCache;
     }
 
     try {
-        console.log('🌐 Cargando configuración del negocio desde Supabase...', negocioId);
+        console.log('ðŸŒ Cargando configuraciÃ³n del negocio desde Supabase...', negocioId);
         const url = `${window.SUPABASE_URL}/rest/v1/negocios?id=eq.${negocioId}&select=*`;
         const response = await fetch(url, {
             headers: {
@@ -247,7 +247,7 @@ window.cargarConfiguracionNegocio = async function(forceRefresh = false) {
         });
 
         if (!response.ok) {
-            console.error('❌ Error HTTP:', response.status, await response.text());
+            console.error('âŒ Error HTTP:', response.status, await response.text());
             return null;
         }
 
@@ -264,7 +264,7 @@ window.cargarConfiguracionNegocio = async function(forceRefresh = false) {
             }
             aplicarTemaNegocio(configCache);
             window.actualizarManifestPWA(configCache);
-            console.log('✅ Config cargada:', configCache.nombre);
+            console.log('âœ… Config cargada:', configCache.nombre);
             // Actualizar localStorage del admin con el ID confirmado
             if (!localStorage.getItem('negocioId')) {
                 localStorage.setItem('negocioId', negocioId);
@@ -272,13 +272,13 @@ window.cargarConfiguracionNegocio = async function(forceRefresh = false) {
         }
         return configCache;
     } catch (error) {
-        console.error('❌ Error cargando configuración:', error);
+        console.error('âŒ Error cargando configuraciÃ³n:', error);
         return null;
     }
 };
 
 // ============================================================
-// 8. HELPERS DE DATOS (idénticos al original)
+// 8. HELPERS DE DATOS (idÃ©nticos al original)
 // ============================================================
 window.getNombreNegocio = async function() {
     const c = await window.cargarConfiguracionNegocio();
@@ -310,11 +310,11 @@ window.getHorarioAtencion = async function() {
 };
 window.getMensajeBienvenida = async function() {
     const c = await window.cargarConfiguracionNegocio();
-    return c?.mensaje_bienvenida || '¡Bienvenida!';
+    return c?.mensaje_bienvenida || 'Â¡Bienvenida!';
 };
 window.getMensajeConfirmacion = async function() {
     const c = await window.cargarConfiguracionNegocio();
-    return c?.mensaje_confirmacion || 'Tu turno ha sido reservado con éxito';
+    return c?.mensaje_confirmacion || 'Tu turno ha sido reservado con Ã©xito';
 };
 window.getNtfyTopic = async function() {
     const c = await window.cargarConfiguracionNegocio();
@@ -330,13 +330,13 @@ window.negocioConfigurado = async function() {
 };
 
 // ============================================================
-// 9. PRECARGA AUTOMÁTICA
+// 9. PRECARGA AUTOMÃTICA
 // ============================================================
 setTimeout(async () => {
-    console.log('🔄 Precargando configuración automática...');
+    console.log('ðŸ”„ Precargando configuraciÃ³n automÃ¡tica...');
     await window.cargarConfiguracionNegocio();
 
-    // Refrescar caché de slug en background si fue hit en caché
+    // Refrescar cachÃ© de slug en background si fue hit en cachÃ©
     if (window._negocioSlugCacheRefresh) {
         const { slug, CACHE_ID_KEY, CACHE_TTL_KEY } = window._negocioSlugCacheRefresh;
         try {
@@ -361,10 +361,10 @@ setTimeout(async () => {
 window.actualizarManifestPWA = function(config) {
     if (!config || !window._rservasSlugActual) return;
 
-    const slug = window._rservasSlugActual;
-    const nombre = config.nombre || 'Mi Salón';
+    const slug     = window._rservasSlugActual;
+    const nombre   = config.nombre || 'Mi Salón';
     const shortName = nombre.split(' ').slice(0, 2).join(' ');
-    const color = config.color_primario || '#ec4899';
+    const color    = config.color_primario || '#ec4899';
     const startUrl = window.location.origin + window.location.pathname + '?s=' + slug;
 
     const manifestData = {
@@ -392,23 +392,18 @@ window.actualizarManifestPWA = function(config) {
 
     try {
         const blob = new Blob([JSON.stringify(manifestData)], { type: 'application/manifest+json' });
-        const url = URL.createObjectURL(blob);
-        let link = document.querySelector('link[rel="manifest"]');
+        const url  = URL.createObjectURL(blob);
+        let link   = document.querySelector('link[rel="manifest"]');
         if (!link) {
-            link = document.createElement('link');
+            link     = document.createElement('link');
             link.rel = 'manifest';
             document.head.appendChild(link);
         }
         link.href = url;
-
-        // Actualizar theme-color del meta tag
         const themeMeta = document.querySelector('meta[name="theme-color"]');
         if (themeMeta) themeMeta.setAttribute('content', color);
-
-        // Actualizar título
         if (nombre) document.title = nombre + ' - Reserva de Turnos';
-
-        console.log('📱 Manifest PWA actualizado para:', nombre, '| start_url:', startUrl);
+        console.log('📱 Manifest PWA actualizado para:', nombre);
     } catch (e) {
         console.warn('⚠️ No se pudo actualizar el manifest:', e);
     }
