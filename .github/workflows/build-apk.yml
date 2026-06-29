@@ -89,11 +89,29 @@ jobs:
           set timeout 180
           spawn bubblewrap init --manifest https://tusalon.github.io/rservasroma/manifest.json --directory . --skipPwaValidation
           expect {
-            -re "\\? .+" {
+            -re "Domain:" {
               send "\r"
               exp_continue
             }
-            eof
+            -re "URL path:" {
+              send "\r"
+              exp_continue
+            }
+            -re "\\(Y/n\\)" {
+              send "\r"
+              exp_continue
+            }
+            -re ": " {
+              send "\r"
+              exp_continue
+            }
+            timeout {
+              exit 1
+            }
+            eof {
+              catch wait result
+              exit [lindex $result 3]
+            }
           }
           EOF
 
@@ -104,22 +122,36 @@ jobs:
           BUBBLEWRAP_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
           expect << 'EOF'
-          set timeout 300
+          set timeout 900
           spawn bubblewrap build --skipPwaValidation
           expect {
-            -re "\\? .+" {
+            -re "\\(Y/n\\)" {
               send "\r"
               exp_continue
             }
-            eof
+            -re ": " {
+              send "\r"
+              exp_continue
+            }
+            timeout {
+              exit 1
+            }
+            eof {
+              catch wait result
+              exit [lindex $result 3]
+            }
           }
           EOF
+
+      - name: List generated APK files
+        run: |
+          find android -name "*.apk" -type f -print
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: rservasroma-admin-apk-v${{ github.run_number }}
-          path: android/app-release-signed.apk
+          path: android/**/*.apk
           retention-days: 90
 
       - name: Show download link
