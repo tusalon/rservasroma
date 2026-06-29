@@ -85,9 +85,27 @@ jobs:
       - name: Init Bubblewrap project
         working-directory: android
         run: |
-          python3 - << 'PY' | timeout 10m bubblewrap init --manifest https://tusalon.github.io/rservasroma/manifest.json --directory . --skipPwaValidation
-          print("\n" * 120)
-          PY
+          expect << 'EOF'
+          set timeout 600
+          spawn bubblewrap init --manifest https://tusalon.github.io/rservasroma/manifest.json --directory . --skipPwaValidation
+          expect {
+            -re "Domain|URL path|Application name|Short name|Application ID|Version code|Display mode|Orientation|Status bar color|Splash screen background color|Icon URL|Maskable icon URL|Monochrome icon URL|Include app shortcuts|Play Billing|Location Delegation|Signing key path|Signing key alias" {
+              send "\r"
+              exp_continue
+            }
+            -re "\\(Y/n\\)|\\(y/N\\)" {
+              send "\r"
+              exp_continue
+            }
+            timeout {
+              exit 1
+            }
+            eof {
+              catch wait result
+              exit [lindex $result 3]
+            }
+          }
+          EOF
 
       - name: Build APK
         working-directory: android
@@ -95,9 +113,23 @@ jobs:
           BUBBLEWRAP_KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           BUBBLEWRAP_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
-          python3 - << 'PY' | timeout 20m bubblewrap build --skipPwaValidation
-          print("\n" * 40)
-          PY
+          expect << 'EOF'
+          set timeout 900
+          spawn bubblewrap build --skipPwaValidation
+          expect {
+            -re "\\(Y/n\\)|\\(y/N\\)|password|Password|: " {
+              send "\r"
+              exp_continue
+            }
+            timeout {
+              exit 1
+            }
+            eof {
+              catch wait result
+              exit [lindex $result 3]
+            }
+          }
+          EOF
 
       - name: List generated APK files
         run: |
