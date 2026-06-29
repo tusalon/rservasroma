@@ -263,7 +263,7 @@
         mensaje.textContent = '✅ Bienvenida, ' + negocio.nombre + '...';
 
         setTimeout(function() {
-          window.location.href = negocio.configurado ? 'admin.html' : 'setup-wizard.html';
+          window.location.href = negocio.configurado ? 'admin.html?s=' + negocio.slug : 'setup-wizard.html?s=' + negocio.slug;
         }, 900);
 
       } catch (error) {

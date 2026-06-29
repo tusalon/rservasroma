@@ -57,6 +57,7 @@ console.log('ðŸŒ config-negocio-master.js cargado');
         const storedId = localStorage.getItem('negocioId') || '';
         window.NEGOCIO_ID_POR_DEFECTO = storedId;
         window._negocioIdResuelto = !!storedId;
+        window._rservasSlugActual = localStorage.getItem('negocioSlug') || '';
         if (storedId) console.log('âœ… [admin] negocio_id desde localStorage:', storedId);
         else console.warn('âš ï¸ [admin] Sin negocioId en localStorage. Redirigir a login.');
         return;
