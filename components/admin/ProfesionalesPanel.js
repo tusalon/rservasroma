@@ -184,7 +184,7 @@ function ProfesionalesPanel() {
 }
 
 function ProfesionalForm({ profesional, onGuardar, onCancelar }) {
-    const [form, setForm] = React.useState(profesional || {
+    const [form, setForm] = React.useState(profesional ? { ...profesional, password: '' } : {
         nombre: '',
         especialidad: '',
         telefono: '',
@@ -212,7 +212,20 @@ function ProfesionalForm({ profesional, onGuardar, onCancelar }) {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        onGuardar(form);
+        if (!form.telefono || form.telefono.length < 8) {
+            alert('Ingresá un teléfono válido para el acceso del profesional');
+            return;
+        }
+        if (!profesional && !String(form.password || '').trim()) {
+            alert('Ingresá una contraseña para el acceso del profesional');
+            return;
+        }
+
+        const payload = { ...form };
+        if (!String(payload.password || '').trim()) {
+            delete payload.password;
+        }
+        onGuardar(payload);
     };
 
     return (
@@ -264,20 +277,22 @@ function ProfesionalForm({ profesional, onGuardar, onCancelar }) {
                     </label>
                     <div className="flex">
                         <span className="inline-flex items-center px-3 rounded-l-lg border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm">
-                            +53
+                            {window.getPhoneCountryConfig ? window.getPhoneCountryConfig().bandera : '🇨🇺'} +{window.getPhoneCountryConfig ? window.getPhoneCountryConfig().codigo : '53'}
                         </span>
                         <input
                             type="tel"
                             value={form.telefono}
                             onChange={(e) => {
-                                const value = e.target.value.replace(/\D/g, '');
+                                const value = window.normalizarTelefonoLocal
+                                    ? window.normalizarTelefonoLocal(e.target.value)
+                                    : e.target.value.replace(/\D/g, '');
                                 setForm({...form, telefono: value});
                             }}
                             className="w-full px-4 py-2 rounded-r-lg border border-gray-300"
-                            placeholder="55002272"
+                            placeholder={window.getPhoneCountryConfig ? window.getPhoneCountryConfig().ejemplo : '55002272'}
                         />
                     </div>
-                    <p className="text-xs text-gray-400 mt-1">8 dígitos después del +53</p>
+                    <p className="text-xs text-gray-400 mt-1">Numero local despues del codigo de pais.</p>
                 </div>
                 
                 <div>
@@ -289,7 +304,8 @@ function ProfesionalForm({ profesional, onGuardar, onCancelar }) {
                         value={form.password}
                         onChange={(e) => setForm({...form, password: e.target.value})}
                         className="w-full border rounded-lg px-3 py-2"
-                        placeholder="********"
+                        placeholder={profesional ? 'Dejar vacío para mantener la actual' : 'Contraseña de acceso'}
+                        required={!profesional}
                     />
                 </div>
                 

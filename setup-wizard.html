@@ -1,14 +1,15 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Configura tu negocio - Rservas.Roma</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://resource.trickle.so/vendor_lib/unpkg/react@18/umd/react.production.min.js"></script>
-    <script src="https://resource.trickle.so/vendor_lib/unpkg/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://resource.trickle.so/vendor_lib/unpkg/@babel/standalone/babel.min.js"></script>
-    <link href="https://resource.trickle.so/vendor_lib/unpkg/lucide-static@0.516.0/font/lucide.css" rel="stylesheet">
+    <script src="vendor/tailwind-browser.js"></script>
+    <script src="vendor/react.production.min.js"></script>
+    <script src="vendor/react-dom.production.min.js"></script>
+    <script src="vendor/babel.min.js"></script>
+    <link href="vendor/lucide/lucide.css" rel="stylesheet">
+    <link href="utils/legacy-ios-fallback.css?v=20260619-ios15" rel="stylesheet">
     <style>
         .step-active { @apply bg-amber-600 text-white; }
         .step-completed { @apply bg-green-500 text-white; }
@@ -27,18 +28,19 @@
 
     <!-- Scripts -->
     <script src="utils/supabase-config.js"></script>
+    <script src="utils/hero-backgrounds.js?v=20260522-fondos-lashes-peluqueria"></script>
     <script src="utils/storage.js"></script>
-    <script src="utils/config-negocio.js"></script>
+    <script src="utils/config-negocio-master.js"></script>
     
     <!-- Componente del wizard -->
-    <script type="text/babel" src="components/admin/SetupWizard.js"></script>
+    <script type="text/babel" src="components/admin/SetupWizard.js?v=20260521-fondos-clientes"></script>
 
     <script>
         // Verificar que hay negocioId en localStorage
         (function() {
             const negocioId = localStorage.getItem('negocioId');
             if (!negocioId) {
-                console.log('🚫 No hay negocioId, redirigiendo a login');
+                console.log('ðŸš« No hay negocioId, redirigiendo a login');
                 window.location.href = 'admin-login.html';
             }
         })();

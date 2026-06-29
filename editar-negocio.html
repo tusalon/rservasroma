@@ -1,14 +1,15 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Editar Negocio</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://resource.trickle.so/vendor_lib/unpkg/react@18/umd/react.production.min.js"></script>
-    <script src="https://resource.trickle.so/vendor_lib/unpkg/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://resource.trickle.so/vendor_lib/unpkg/@babel/standalone/babel.min.js"></script>
-    <link href="https://resource.trickle.so/vendor_lib/unpkg/lucide-static@0.516.0/font/lucide.css" rel="stylesheet">
+    <script src="vendor/tailwind-browser.js"></script>
+    <script src="vendor/react.production.min.js"></script>
+    <script src="vendor/react-dom.production.min.js"></script>
+    <script src="vendor/babel.min.js"></script>
+    <link href="vendor/lucide/lucide.css" rel="stylesheet">
+    <link href="utils/legacy-ios-fallback.css?v=20260619-ios15" rel="stylesheet">
     <style>
         .animate-fade-in {
             animation: fadeIn 0.5s ease-out forwards;
@@ -24,20 +25,32 @@
 
     <!-- Scripts necesarios -->
     <script src="utils/supabase-config.js"></script>
+    <script src="utils/hero-backgrounds.js?v=20260522-fondos-lashes-peluqueria"></script>
     <script src="utils/storage.js"></script>
-    <script src="utils/config-negocio.js"></script>
+    <script src="utils/config-negocio-master.js"></script>
+    <script src="utils/phone-utils.js?v=20260616-preservar-cero-v2"></script>
     
-    <!-- Componente de edición -->
-    <script type="text/babel" src="components/admin/EditarNegocio.js"></script>
+    <!-- Componente de ediciÃ³n -->
+    <script type="text/babel" src="components/admin/EditarNegocio.js?v=20260626-anticipos-servicio"></script>
 
     <script>
-        // Verificar autenticación
+        // Verificar autenticaciÃ³n
         (function() {
             const negocioId = localStorage.getItem('negocioId');
             const adminAuth = localStorage.getItem('adminAuth') === 'true';
+            const profesionalAuthRaw = localStorage.getItem('profesionalAuth');
+            const profesionalLoginTime = localStorage.getItem('profesionalLoginTime');
+            let profesionalNivel = 0;
+            try {
+                profesionalNivel = profesionalAuthRaw ? (JSON.parse(profesionalAuthRaw).nivel || 1) : 0;
+            } catch (e) {
+                profesionalNivel = 0;
+            }
+            const profesionalAvanzado = profesionalAuthRaw && profesionalNivel >= 3 && profesionalLoginTime &&
+                (Date.now() - parseInt(profesionalLoginTime)) < 8 * 60 * 60 * 1000;
             
-            if (!negocioId || !adminAuth) {
-                console.log('🚫 No hay sesión, redirigiendo a login');
+            if (!negocioId || (!adminAuth && !profesionalAvanzado)) {
+                console.log('ðŸš« No hay sesiÃ³n, redirigiendo a login');
                 window.location.href = 'admin-login.html';
             }
         })();

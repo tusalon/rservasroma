@@ -17,6 +17,119 @@ let serviciosCache = [];
 let ultimaActualizacionServicios = 0;
 const CACHE_DURATION_SERVICIOS = 5 * 60 * 1000;
 
+function parsePrecioServicio(valor, fallback = 0) {
+    const normalizado = String(valor ?? '').replace(',', '.').replace(/[^0-9.]/g, '');
+    const partes = normalizado.split('.');
+    const limpio = partes.length > 2 ? `${partes[0]}.${partes.slice(1).join('')}` : normalizado;
+    const numero = parseFloat(limpio);
+    return Number.isFinite(numero) ? numero : fallback;
+}
+
+function formatearMontoServicio(valor) {
+    const numero = parsePrecioServicio(valor, 0);
+    return numero % 1 === 0 ? numero.toFixed(0) : numero.toFixed(2);
+}
+
+function getMonedaServicio(servicio = {}) {
+    const moneda = String(servicio.precio_moneda || servicio.moneda || 'CUP').toUpperCase();
+    return ['CUP', 'USD'].includes(moneda) ? moneda : 'CUP';
+}
+
+function getPrecioServicioBase(servicio = {}) {
+    return parsePrecioServicio(
+        servicio.precio_desde ?? servicio.precio_min ?? servicio.precio,
+        parsePrecioServicio(servicio.precio, 0)
+    );
+}
+
+function getPrecioServicioHasta(servicio = {}) {
+    const hasta = parsePrecioServicio(servicio.precio_hasta ?? servicio.precio_max, NaN);
+    return Number.isFinite(hasta) && hasta > 0 ? hasta : null;
+}
+
+function formatearPrecioServicio(servicio = {}, opciones = {}) {
+    const moneda = getMonedaServicio(servicio);
+    const desde = getPrecioServicioBase(servicio);
+    const hasta = getPrecioServicioHasta(servicio);
+    const prefijo = opciones.sinDesde ? '' : 'Desde ';
+
+    if (hasta && hasta > desde) {
+        return `${prefijo}${formatearMontoServicio(desde)} - ${formatearMontoServicio(hasta)} ${moneda}`;
+    }
+
+    return `${formatearMontoServicio(desde)} ${moneda}`;
+}
+
+function getAnticipoServicio(servicio = {}, configNegocio = {}) {
+    if (!configNegocio?.requiere_anticipo) return 0;
+    if (!configNegocio?.anticipos_por_servicio) {
+        const valorGlobal = parsePrecioServicio(configNegocio.valor_anticipo, 0);
+        if (configNegocio.tipo_anticipo === 'fijo') return valorGlobal;
+        return getPrecioServicioBase(servicio) * (valorGlobal / 100);
+    }
+
+    if (servicio.requiere_anticipo !== true) return 0;
+    const valor = parsePrecioServicio(servicio.valor_anticipo, 0);
+    if (valor <= 0) return 0;
+    return servicio.tipo_anticipo === 'porcentaje'
+        ? getPrecioServicioBase(servicio) * (valor / 100)
+        : valor;
+}
+
+function calcularMontoAnticipoReservaSync(configNegocio = {}, servicioSeleccionado = {}) {
+    if (!configNegocio?.requiere_anticipo) return 0;
+    const servicios = servicioSeleccionado?.esMultiple && Array.isArray(servicioSeleccionado.servicios)
+        ? servicioSeleccionado.servicios
+        : [servicioSeleccionado].filter(Boolean);
+
+    const total = servicios.reduce((suma, servicio) => suma + getAnticipoServicio(servicio, configNegocio), 0);
+    const moneda = String(configNegocio?.whatsapp_moneda || 'CUP').toUpperCase();
+    return moneda === 'USD' ? Math.round(total * 100) / 100 : Math.round(total);
+}
+
+window.parsePrecioServicio = parsePrecioServicio;
+window.formatearPrecioServicio = formatearPrecioServicio;
+window.getPrecioServicioBase = getPrecioServicioBase;
+window.getPrecioServicioHasta = getPrecioServicioHasta;
+window.getMonedaServicio = getMonedaServicio;
+window.getAnticipoServicio = getAnticipoServicio;
+window.calcularMontoAnticipoReservaSync = calcularMontoAnticipoReservaSync;
+
+function extraerColumnaFaltante(errorTexto) {
+    const texto = String(errorTexto || '');
+    const match = texto.match(/Could not find the '([^']+)' column/i);
+    return match ? match[1] : null;
+}
+
+async function fetchServicioConCompatibilidad(url, options, payloadOriginal) {
+    const payload = { ...payloadOriginal };
+
+    for (let intento = 0; intento < 6; intento++) {
+        const response = await fetch(url, {
+            ...options,
+            body: JSON.stringify(payload)
+        });
+
+        if (response.ok) return response;
+
+        const error = await response.text();
+        const columnaFaltante = extraerColumnaFaltante(error);
+
+        if (columnaFaltante && Object.prototype.hasOwnProperty.call(payload, columnaFaltante)) {
+            console.warn(`La columna ${columnaFaltante} no existe en servicios. Reintentando sin esa columna.`);
+            delete payload[columnaFaltante];
+            continue;
+        }
+
+        response.errorText = error;
+        return response;
+    }
+
+    const response = new Response(null, { status: 400, statusText: 'Payload incompatible' });
+    response.errorText = 'No se pudo crear/actualizar el servicio porque varias columnas no existen en el esquema.';
+    return response;
+}
+
 async function cargarServiciosDesdeDB() {
     try {
         const negocioId = getNegocioId();
@@ -96,7 +209,25 @@ window.salonServicios = {
             const negocioId = getNegocioId();
             console.log('➕ Creando servicio para negocio:', negocioId);
             
-            const response = await fetch(
+            const payloadCrearServicio = {
+                negocio_id: negocioId,
+                nombre: servicio.nombre,
+                categoria: servicio.categoria || null,
+                duracion: servicio.duracion,
+                precio: servicio.precio,
+                precio_desde: servicio.precio_desde,
+                precio_hasta: servicio.precio_hasta,
+                precio_moneda: servicio.precio_moneda || 'CUP',
+                requiere_anticipo: servicio.requiere_anticipo === true,
+                tipo_anticipo: servicio.tipo_anticipo || 'fijo',
+                valor_anticipo: servicio.valor_anticipo,
+                descripcion: servicio.descripcion || '',
+                activo: true,
+                imagen: servicio.imagen || null,
+                horarios_permitidos: servicio.horarios_permitidos || []
+            };
+
+            let response = await fetchServicioConCompatibilidad(
                 `${window.SUPABASE_URL}/rest/v1/servicios`,
                 {
                     method: 'POST',
@@ -105,22 +236,36 @@ window.salonServicios = {
                         'Authorization': `Bearer ${window.SUPABASE_ANON_KEY}`,
                         'Content-Type': 'application/json',
                         'Prefer': 'return=representation'
-                    },
-                    body: JSON.stringify({
-                        negocio_id: negocioId,
-                        nombre: servicio.nombre,
-                        duracion: servicio.duracion,
-                        precio: servicio.precio,
-                        descripcion: servicio.descripcion || '',
-                        activo: true,
-                        imagen: servicio.imagen || null,
-                        horarios_permitidos: servicio.horarios_permitidos || []
-                    })
-                }
+                    }
+                },
+                payloadCrearServicio
             );
             
             if (!response.ok) {
-                const error = await response.text();
+                const error = response.errorText || await response.text();
+                if (payloadCrearServicio.categoria && error.toLowerCase().includes('categoria')) {
+                    console.warn('La columna categoria no existe en servicios. Reintentando sin categoria. Ejecuta sql-servicios-categorias.sql para guardarla.');
+                    delete payloadCrearServicio.categoria;
+                    response = await fetchServicioConCompatibilidad(
+                        `${window.SUPABASE_URL}/rest/v1/servicios`,
+                        {
+                            method: 'POST',
+                            headers: {
+                                'apikey': window.SUPABASE_ANON_KEY,
+                                'Authorization': `Bearer ${window.SUPABASE_ANON_KEY}`,
+                                'Content-Type': 'application/json',
+                                'Prefer': 'return=representation'
+                            }
+                        },
+                        payloadCrearServicio
+                    );
+                    if (response.ok) {
+                        const nuevoSinCategoria = await response.json();
+                        serviciosCache = await cargarServiciosDesdeDB() || serviciosCache;
+                        if (window.dispatchEvent) window.dispatchEvent(new Event('serviciosActualizados'));
+                        return nuevoSinCategoria[0];
+                    }
+                }
                 console.error('Error al crear servicio:', error);
                 return null;
             }
@@ -148,14 +293,21 @@ window.salonServicios = {
             
             const datosActualizar = {};
             if (cambios.nombre !== undefined) datosActualizar.nombre = cambios.nombre;
+            if (cambios.categoria !== undefined) datosActualizar.categoria = cambios.categoria;
             if (cambios.duracion !== undefined) datosActualizar.duracion = cambios.duracion;
             if (cambios.precio !== undefined) datosActualizar.precio = cambios.precio;
+            if (cambios.precio_desde !== undefined) datosActualizar.precio_desde = cambios.precio_desde;
+            if (cambios.precio_hasta !== undefined) datosActualizar.precio_hasta = cambios.precio_hasta;
+            if (cambios.precio_moneda !== undefined) datosActualizar.precio_moneda = cambios.precio_moneda;
+            if (cambios.requiere_anticipo !== undefined) datosActualizar.requiere_anticipo = cambios.requiere_anticipo;
+            if (cambios.tipo_anticipo !== undefined) datosActualizar.tipo_anticipo = cambios.tipo_anticipo;
+            if (cambios.valor_anticipo !== undefined) datosActualizar.valor_anticipo = cambios.valor_anticipo;
             if (cambios.descripcion !== undefined) datosActualizar.descripcion = cambios.descripcion;
             if (cambios.activo !== undefined) datosActualizar.activo = cambios.activo;
             if (cambios.imagen !== undefined) datosActualizar.imagen = cambios.imagen;
             if (cambios.horarios_permitidos !== undefined) datosActualizar.horarios_permitidos = cambios.horarios_permitidos;
             
-            const response = await fetch(
+            let response = await fetchServicioConCompatibilidad(
                 `${window.SUPABASE_URL}/rest/v1/servicios?negocio_id=eq.${negocioId}&id=eq.${id}`,
                 {
                     method: 'PATCH',
@@ -164,13 +316,36 @@ window.salonServicios = {
                         'Authorization': `Bearer ${window.SUPABASE_ANON_KEY}`,
                         'Content-Type': 'application/json',
                         'Prefer': 'return=representation'
-                    },
-                    body: JSON.stringify(datosActualizar)
-                }
+                    }
+                },
+                datosActualizar
             );
             
             if (!response.ok) {
-                const error = await response.text();
+                const error = response.errorText || await response.text();
+                if (datosActualizar.categoria && error.toLowerCase().includes('categoria')) {
+                    console.warn('La columna categoria no existe en servicios. Reintentando sin categoria. Ejecuta sql-servicios-categorias.sql para guardarla.');
+                    delete datosActualizar.categoria;
+                    response = await fetchServicioConCompatibilidad(
+                        `${window.SUPABASE_URL}/rest/v1/servicios?negocio_id=eq.${negocioId}&id=eq.${id}`,
+                        {
+                            method: 'PATCH',
+                            headers: {
+                                'apikey': window.SUPABASE_ANON_KEY,
+                                'Authorization': `Bearer ${window.SUPABASE_ANON_KEY}`,
+                                'Content-Type': 'application/json',
+                                'Prefer': 'return=representation'
+                            }
+                        },
+                        datosActualizar
+                    );
+                    if (response.ok) {
+                        const actualizadoSinCategoria = await response.json();
+                        serviciosCache = await cargarServiciosDesdeDB() || serviciosCache;
+                        if (window.dispatchEvent) window.dispatchEvent(new Event('serviciosActualizados'));
+                        return actualizadoSinCategoria[0];
+                    }
+                }
                 console.error('Error al actualizar servicio:', error);
                 return null;
             }
@@ -225,6 +400,202 @@ window.salonServicios = {
             return true;
         } catch (error) {
             console.error('Error en eliminar:', error);
+            return false;
+        }
+    }
+};
+
+const CATEGORIAS_SERVICIOS_DEFAULT = [
+    { id: 'manicura', nombre: 'Manicura', icono: '💅', orden: 1, activo: true },
+    { id: 'pedicura', nombre: 'Pedicura', icono: '🦶', orden: 2, activo: true },
+    { id: 'faciales', nombre: 'Faciales', icono: '✨', orden: 3, activo: true },
+    { id: 'barberia', nombre: 'Barbería', icono: '💈', orden: 4, activo: true },
+    { id: 'cejas', nombre: 'Cejas', icono: '👁️', orden: 5, activo: true },
+    { id: 'combos', nombre: 'Combos', icono: '🎁', orden: 6, activo: true },
+    { id: 'otros', nombre: 'Otros', icono: '⭐', orden: 99, activo: true }
+];
+
+function slugCategoriaServicio(nombre) {
+    return String(nombre || 'categoria')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '') || 'categoria';
+}
+
+let categoriasServiciosCache = [];
+let ultimaActualizacionCategorias = 0;
+const CACHE_DURATION_CATEGORIAS = 5 * 60 * 1000;
+
+async function cargarCategoriasServiciosDesdeDB() {
+    try {
+        const negocioId = getNegocioId();
+        const response = await fetch(
+            `${window.SUPABASE_URL}/rest/v1/categorias_servicios?negocio_id=eq.${negocioId}&select=*&order=orden.asc,nombre.asc`,
+            {
+                headers: {
+                    'apikey': window.SUPABASE_ANON_KEY,
+                    'Authorization': `Bearer ${window.SUPABASE_ANON_KEY}`,
+                    'Content-Type': 'application/json'
+                }
+            }
+        );
+
+        if (!response.ok) {
+            console.warn('No se pudieron cargar categorias_servicios. Usando categorias por defecto:', await response.text());
+            categoriasServiciosCache = CATEGORIAS_SERVICIOS_DEFAULT;
+            ultimaActualizacionCategorias = Date.now();
+            return categoriasServiciosCache;
+        }
+
+        const data = await response.json();
+        categoriasServiciosCache = Array.isArray(data) && data.length > 0 ? data : CATEGORIAS_SERVICIOS_DEFAULT;
+        ultimaActualizacionCategorias = Date.now();
+        return categoriasServiciosCache;
+    } catch (error) {
+        console.warn('Error cargando categorias de servicios. Usando categorias por defecto:', error);
+        categoriasServiciosCache = CATEGORIAS_SERVICIOS_DEFAULT;
+        ultimaActualizacionCategorias = Date.now();
+        return categoriasServiciosCache;
+    }
+}
+
+window.salonCategoriasServicios = {
+    defaults: CATEGORIAS_SERVICIOS_DEFAULT,
+
+    getAll: async function(activos = true) {
+        if (Date.now() - ultimaActualizacionCategorias < CACHE_DURATION_CATEGORIAS && categoriasServiciosCache.length > 0) {
+            return activos ? categoriasServiciosCache.filter(c => c.activo !== false) : [...categoriasServiciosCache];
+        }
+
+        const categorias = await cargarCategoriasServiciosDesdeDB();
+        return activos ? categorias.filter(c => c.activo !== false) : categorias;
+    },
+
+    crear: async function(categoria) {
+        try {
+            const negocioId = getNegocioId();
+            const payload = {
+                negocio_id: negocioId,
+                nombre: categoria.nombre,
+                slug: categoria.slug || slugCategoriaServicio(categoria.nombre),
+                icono: categoria.icono || '⭐',
+                orden: categoria.orden || 99,
+                activo: categoria.activo !== false
+            };
+
+            const response = await fetch(`${window.SUPABASE_URL}/rest/v1/categorias_servicios`, {
+                method: 'POST',
+                headers: {
+                    'apikey': window.SUPABASE_ANON_KEY,
+                    'Authorization': `Bearer ${window.SUPABASE_ANON_KEY}`,
+                    'Content-Type': 'application/json',
+                    'Prefer': 'return=representation'
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                const error = await response.text();
+                if (response.status === 409 || error.includes('duplicate key') || error.includes('23505')) {
+                    const existenteResponse = await fetch(
+                        `${window.SUPABASE_URL}/rest/v1/categorias_servicios?negocio_id=eq.${negocioId}&slug=eq.${payload.slug}&select=*&limit=1`,
+                        {
+                            headers: {
+                                'apikey': window.SUPABASE_ANON_KEY,
+                                'Authorization': `Bearer ${window.SUPABASE_ANON_KEY}`,
+                                'Content-Type': 'application/json'
+                            }
+                        }
+                    );
+
+                    if (existenteResponse.ok) {
+                        const existentes = await existenteResponse.json();
+                        if (existentes[0]) {
+                            console.warn('La categoria ya existia. Usando la categoria existente:', existentes[0]);
+                            return existentes[0];
+                        }
+                    }
+                }
+
+                console.error('Error creando categoria:', error);
+                return null;
+            }
+
+            const creada = await response.json();
+            categoriasServiciosCache = await cargarCategoriasServiciosDesdeDB();
+            window.dispatchEvent?.(new Event('categoriasServiciosActualizadas'));
+            return creada[0];
+        } catch (error) {
+            console.error('Error en crear categoria:', error);
+            return null;
+        }
+    },
+
+    actualizar: async function(id, cambios) {
+        try {
+            const negocioId = getNegocioId();
+            const datos = {};
+            if (cambios.nombre !== undefined) datos.nombre = cambios.nombre;
+            if (cambios.slug !== undefined) datos.slug = cambios.slug || slugCategoriaServicio(cambios.nombre);
+            if (cambios.icono !== undefined) datos.icono = cambios.icono;
+            if (cambios.orden !== undefined) datos.orden = cambios.orden;
+            if (cambios.activo !== undefined) datos.activo = cambios.activo;
+
+            const response = await fetch(
+                `${window.SUPABASE_URL}/rest/v1/categorias_servicios?negocio_id=eq.${negocioId}&id=eq.${id}`,
+                {
+                    method: 'PATCH',
+                    headers: {
+                        'apikey': window.SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${window.SUPABASE_ANON_KEY}`,
+                        'Content-Type': 'application/json',
+                        'Prefer': 'return=representation'
+                    },
+                    body: JSON.stringify(datos)
+                }
+            );
+
+            if (!response.ok) {
+                console.error('Error actualizando categoria:', await response.text());
+                return null;
+            }
+
+            const actualizada = await response.json();
+            categoriasServiciosCache = await cargarCategoriasServiciosDesdeDB();
+            window.dispatchEvent?.(new Event('categoriasServiciosActualizadas'));
+            return actualizada[0];
+        } catch (error) {
+            console.error('Error en actualizar categoria:', error);
+            return null;
+        }
+    },
+
+    eliminar: async function(id) {
+        try {
+            const negocioId = getNegocioId();
+            const response = await fetch(
+                `${window.SUPABASE_URL}/rest/v1/categorias_servicios?negocio_id=eq.${negocioId}&id=eq.${id}`,
+                {
+                    method: 'DELETE',
+                    headers: {
+                        'apikey': window.SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${window.SUPABASE_ANON_KEY}`
+                    }
+                }
+            );
+
+            if (!response.ok) {
+                console.error('Error eliminando categoria:', await response.text());
+                return false;
+            }
+
+            categoriasServiciosCache = await cargarCategoriasServiciosDesdeDB();
+            window.dispatchEvent?.(new Event('categoriasServiciosActualizadas'));
+            return true;
+        } catch (error) {
+            console.error('Error en eliminar categoria:', error);
             return false;
         }
     }

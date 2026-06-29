@@ -24,7 +24,9 @@ let configuracionGlobal = {
     duracion_turnos: 60,
     intervalo_entre_turnos: 0,
     modo_24h: false,
-    max_antelacion_dias: 30
+    max_antelacion_dias: 30,
+    min_antelacion_horas: 2,
+    min_cancelacion_horas: 1
 };
 
 let horariosProfesionales = {};
@@ -104,6 +106,7 @@ async function cargarHorariosProfesionales() {
         (data || []).forEach(item => {
             horarios[item.profesional_id] = {
                 horariosPorDia: item.horarios_por_dia || {},
+                descansosPorDia: item.descansos_por_dia || {},
                 horas: item.horas || [],
                 dias: item.dias || []
             };
@@ -136,7 +139,9 @@ window.salonConfig = {
                 duracion_turnos: nuevaConfig.duracion_turnos || 60,
                 intervalo_entre_turnos: nuevaConfig.intervalo_entre_turnos || 0,
                 modo_24h: nuevaConfig.modo_24h || false,
-                max_antelacion_dias: nuevaConfig.max_antelacion_dias || 30
+                max_antelacion_dias: nuevaConfig.max_antelacion_dias ?? 30,
+                min_antelacion_horas: nuevaConfig.min_antelacion_horas ?? 2,
+                min_cancelacion_horas: nuevaConfig.min_cancelacion_horas ?? 1
             };
             
             console.log('📤 Datos a enviar:', datosAGuardar);
@@ -231,8 +236,31 @@ window.salonConfig = {
             return {};
         }
     },
+
+    getDescansosPorDia: async function(profesionalId) {
+        try {
+            const negocioId = getNegocioId();
+            const response = await fetch(
+                `${window.SUPABASE_URL}/rest/v1/horarios_profesionales?negocio_id=eq.${negocioId}&profesional_id=eq.${profesionalId}&select=descansos_por_dia`,
+                {
+                    headers: {
+                        'apikey': window.SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${window.SUPABASE_ANON_KEY}`
+                    }
+                }
+            );
+
+            if (!response.ok) return {};
+
+            const data = await response.json();
+            return data[0]?.descansos_por_dia || {};
+        } catch (error) {
+            console.error('Error cargando descansos:', error);
+            return {};
+        }
+    },
     
-    guardarHorariosPorDia: async function(profesionalId, horariosPorDia) {
+    guardarHorariosPorDia: async function(profesionalId, horariosPorDia, descansosPorDia = null) {
         try {
             const negocioId = getNegocioId();
             console.log(`💾 Guardando horarios por día para profesional ${profesionalId} (negocio: ${negocioId}):`, horariosPorDia);
@@ -268,6 +296,7 @@ window.salonConfig = {
                 method = 'PATCH';
                 body = JSON.stringify({
                     horarios_por_dia: horariosPorDia,
+                    ...(descansosPorDia ? { descansos_por_dia: descansosPorDia } : {}),
                     horas: horasArray,
                     dias: diasQueTrabajan
                 });
@@ -279,6 +308,7 @@ window.salonConfig = {
                     negocio_id: negocioId,
                     profesional_id: profesionalId,
                     horarios_por_dia: horariosPorDia,
+                    ...(descansosPorDia ? { descansos_por_dia: descansosPorDia } : {}),
                     horas: horasArray,
                     dias: diasQueTrabajan
                 });
@@ -307,6 +337,7 @@ window.salonConfig = {
             
             horariosProfesionales[profesionalId] = {
                 horariosPorDia: horariosPorDia,
+                descansosPorDia: descansosPorDia || horariosProfesionales[profesionalId]?.descansosPorDia || {},
                 horas: horasArray,
                 dias: diasQueTrabajan
             };
@@ -345,13 +376,147 @@ window.salonConfig = {
                 return {
                     horas: data[0].horas || [],
                     dias: data[0].dias || [],
-                    horariosPorDia: data[0].horarios_por_dia || {}
+                    horariosPorDia: data[0].horarios_por_dia || {},
+                    descansosPorDia: data[0].descansos_por_dia || {}
                 };
             }
-            return { horas: [], dias: [], horariosPorDia: {} };
+            return { horas: [], dias: [], horariosPorDia: {}, descansosPorDia: {} };
         } catch (error) {
-            return { horas: [], dias: [], horariosPorDia: {} };
+            return { horas: [], dias: [], horariosPorDia: {}, descansosPorDia: {} };
         }
+    },
+
+    getExcepcionesProfesional: async function(profesionalId) {
+        try {
+            const negocioId = getNegocioId();
+            const response = await fetch(
+                `${window.SUPABASE_URL}/rest/v1/horarios_excepciones_profesionales?negocio_id=eq.${negocioId}&profesional_id=eq.${profesionalId}&select=*&order=fecha_inicio.asc`,
+                {
+                    headers: {
+                        'apikey': window.SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${window.SUPABASE_ANON_KEY}`
+                    }
+                }
+            );
+
+            if (!response.ok) {
+                console.warn('No se pudieron cargar excepciones de horarios:', await response.text());
+                return [];
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('Error cargando excepciones de horarios:', error);
+            return [];
+        }
+    },
+
+    guardarExcepcion: async function(profesionalId, excepcion) {
+        const negocioId = getNegocioId();
+        const fechaInicio = excepcion?.fechaInicio;
+        const fechaFin = excepcion?.fechaFin;
+
+        if (!fechaInicio || !fechaFin) {
+            throw new Error('Selecciona fecha de inicio y fecha de fin.');
+        }
+        if (fechaFin < fechaInicio) {
+            throw new Error('La fecha final no puede ser anterior a la fecha inicial.');
+        }
+
+        const existentes = await this.getExcepcionesProfesional(profesionalId);
+        const solapada = (existentes || []).find(item => {
+            if (excepcion.id && item.id === excepcion.id) return false;
+            return fechaInicio <= item.fecha_fin && fechaFin >= item.fecha_inicio;
+        });
+
+        if (solapada) {
+            throw new Error(`Ya existe una excepción del ${solapada.fecha_inicio} al ${solapada.fecha_fin}. Ajusta el rango para que no se solape.`);
+        }
+
+        const payload = {
+            negocio_id: negocioId,
+            profesional_id: profesionalId,
+            fecha_inicio: fechaInicio,
+            fecha_fin: fechaFin,
+            horarios_por_dia: excepcion.horariosPorDia || {},
+            descansos_por_dia: excepcion.descansosPorDia || {}
+        };
+
+        const esEdicion = Boolean(excepcion.id);
+        const response = await fetch(
+            esEdicion
+                ? `${window.SUPABASE_URL}/rest/v1/horarios_excepciones_profesionales?negocio_id=eq.${negocioId}&id=eq.${excepcion.id}`
+                : `${window.SUPABASE_URL}/rest/v1/horarios_excepciones_profesionales`,
+            {
+                method: esEdicion ? 'PATCH' : 'POST',
+                headers: {
+                    'apikey': window.SUPABASE_ANON_KEY,
+                    'Authorization': `Bearer ${window.SUPABASE_ANON_KEY}`,
+                    'Content-Type': 'application/json',
+                    'Prefer': 'return=representation'
+                },
+                body: JSON.stringify(payload)
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error(await response.text());
+        }
+
+        const data = await response.json();
+        return Array.isArray(data) ? data[0] : data;
+    },
+
+    eliminarExcepcion: async function(id) {
+        const negocioId = getNegocioId();
+        const response = await fetch(
+            `${window.SUPABASE_URL}/rest/v1/horarios_excepciones_profesionales?negocio_id=eq.${negocioId}&id=eq.${id}`,
+            {
+                method: 'DELETE',
+                headers: {
+                    'apikey': window.SUPABASE_ANON_KEY,
+                    'Authorization': `Bearer ${window.SUPABASE_ANON_KEY}`
+                }
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error(await response.text());
+        }
+
+        return true;
+    },
+
+    getHorariosProfesionalParaFecha: async function(profesionalId, fecha) {
+        if (!fecha) return this.getHorariosProfesional(profesionalId);
+
+        try {
+            const excepciones = await this.getExcepcionesProfesional(profesionalId);
+            const excepcion = (excepciones || []).find(item =>
+                item.fecha_inicio <= fecha && fecha <= item.fecha_fin
+            );
+
+            if (excepcion) {
+                const horariosPorDia = excepcion.horarios_por_dia || {};
+                const descansosPorDia = excepcion.descansos_por_dia || {};
+                const todasLasHoras = new Set();
+                Object.values(horariosPorDia).forEach(horasArray => {
+                    (horasArray || []).forEach(indice => todasLasHoras.add(indice));
+                });
+
+                return {
+                    horariosPorDia,
+                    descansosPorDia,
+                    horas: Array.from(todasLasHoras).sort((a, b) => a - b),
+                    dias: Object.keys(horariosPorDia).filter(dia => (horariosPorDia[dia] || []).length > 0),
+                    excepcion
+                };
+            }
+        } catch (error) {
+            console.error('Error cargando horario por fecha:', error);
+        }
+
+        return this.getHorariosProfesional(profesionalId);
     },
     
     guardarHorariosProfesional: async function(profesionalId, horarios) {

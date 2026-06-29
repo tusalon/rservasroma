@@ -4,6 +4,76 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol }) {
     const [config, setConfig] = React.useState(null);
     const [cargando, setCargando] = React.useState(true);
     const [imagenCargada, setImagenCargada] = React.useState(false);
+    const [pushEstado, setPushEstado] = React.useState('');
+    const [activandoPush, setActivandoPush] = React.useState(false);
+    const [pushMensaje, setPushMensaje] = React.useState('');
+
+    React.useEffect(() => {
+        if (!('Notification' in window)) { setPushEstado('unsupported'); return; }
+        const permiso = Notification.permission;
+        setPushEstado(permiso);
+        // Si tiene permiso y whatsapp disponible, actualizar suscripción para vincular el numero
+        if (permiso === 'granted' && cliente?.whatsapp) {
+            // APK nativa: usa push nativo de Capacitor
+            if (typeof window.solicitarNativePushRservasRoma === 'function' && window.Capacitor?.isNativePlatform?.()) {
+                window.solicitarNativePushRservasRoma({ defaultRole: 'cliente' }).catch(() => {});
+            }
+            // Web/PWA: usa web push VAPID
+            if (typeof window.solicitarPushRservasRoma === 'function') {
+                window.solicitarPushRservasRoma({ permission: 'granted', defaultRole: 'cliente', clienteWhatsapp: cliente.whatsapp })
+                    .catch(() => {});
+            }
+        }
+    }, []);
+
+    const activarNotificaciones = () => {
+        if (!('Notification' in window)) { setPushEstado('unsupported'); return; }
+        setActivandoPush(true);
+        setPushMensaje('');
+
+        pedirPermisoYSuscribir();
+
+        function pedirPermisoYSuscribir() {
+            const permissionPromise = Notification.permission === 'default'
+                ? Notification.requestPermission()
+                : Promise.resolve(Notification.permission);
+
+            permissionPromise.then(permiso => {
+                setPushEstado(permiso);
+                if (permiso !== 'granted') {
+                    setPushMensaje(permiso === 'denied' ? 'Permiso bloqueado en el navegador' : 'Permiso no concedido');
+                    setActivandoPush(false);
+                    return;
+                }
+                if (typeof window.solicitarPushRservasRoma !== 'function') {
+                    setPushEstado('granted');
+                    setActivandoPush(false);
+                    return;
+                }
+                window.solicitarPushRservasRoma({ permission: permiso, defaultRole: 'cliente', clienteWhatsapp: cliente?.whatsapp })
+                    .then(res => {
+                        if (res?.ok) {
+                            setPushMensaje('');
+                        } else {
+                            const msg = res?.error || 'error';
+                            console.warn('Push resultado:', msg);
+                            if (msg === 'sw_not_ready') {
+                                setPushMensaje('Instala la app en tu pantalla de inicio para recibir avisos');
+                            } else if (msg.includes('applicationServerKey') || msg.includes('VAPID') || msg.includes('key')) {
+                                setPushMensaje('Recarga la app y vuelve a intentarlo');
+                            } else {
+                                setPushMensaje('No se pudo activar: ' + msg.substring(0, 60));
+                            }
+                        }
+                    })
+                    .catch(err => {
+                        console.warn('Push error:', err);
+                        setPushMensaje('Error: ' + String(err).substring(0, 60));
+                    })
+                    .finally(() => setActivandoPush(false));
+            }).catch(() => setActivandoPush(false));
+        }
+    };
 
     React.useEffect(() => {
         const cargarDatos = async () => {
@@ -11,13 +81,17 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol }) {
             console.log('📱 WelcomeScreen - Config cargada:', configData);
             setConfig(configData);
             setCargando(false);
+
+            const fondo = window.getHeroBackgroundOption
+                ? window.getHeroBackgroundOption(configData?.imagen_fondo_tipo)
+                : { image: 'https://images.unsplash.com/photo-1604654894610-df63bc536371?q=80&w=2071&auto=format&fit=crop' };
+            const img = new Image();
+            img.src = fondo.image;
+            img.onload = () => setImagenCargada(true);
+            img.onerror = () => setImagenCargada(true);
         };
         cargarDatos();
 
-        // Precargar la imagen de fondo
-        const img = new Image();
-        img.src = 'https://images.unsplash.com/photo-1604654894610-df63bc536371?q=80&w=2071&auto=format&fit=crop';
-        img.onload = () => setImagenCargada(true);
     }, []);
 
     if (cargando || !imagenCargada) {
@@ -29,8 +103,20 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol }) {
     }
 
     const colorPrimario = config?.color_primario || '#ec4899';
-    const sticker = config?.especialidad?.toLowerCase().includes('uñas') ? '💅' : 
-                    config?.especialidad?.toLowerCase().includes('pelo') ? '💇‍♀️' : 
+    const colorSecundario = config?.color_secundario || '#f9a8d4';
+    const hexToRgba = (hex, alpha = 1) => {
+        const limpio = String(hex || '').replace('#', '');
+        if (limpio.length !== 6) return `rgba(236, 72, 153, ${alpha})`;
+        const r = parseInt(limpio.slice(0, 2), 16);
+        const g = parseInt(limpio.slice(2, 4), 16);
+        const b = parseInt(limpio.slice(4, 6), 16);
+        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    };
+    const fondoPortada = window.getHeroBackgroundOption
+        ? window.getHeroBackgroundOption(config?.imagen_fondo_tipo)
+        : { image: 'https://images.unsplash.com/photo-1604654894610-df63bc536371?q=80&w=2071&auto=format&fit=crop', label: 'Fondo de salon' };
+    const sticker = config?.especialidad?.toLowerCase().includes('uñas') ? '💅' :
+                    config?.especialidad?.toLowerCase().includes('pelo') ? '💇‍♀️' :
                     config?.especialidad?.toLowerCase().includes('belleza') ? '🌸' : '💖';
 
     // ============================================
@@ -43,11 +129,13 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol }) {
             return;
         }
         
-        const telefonoLimpio = config.telefono.replace(/\D/g, '');
+        const telefonoWhatsApp = window.normalizarTelefonoInternacional
+            ? window.normalizarTelefonoInternacional(config.telefono, config.codigo_pais)
+            : config.telefono.replace(/\D/g, '');
         const mensaje = encodeURIComponent(`Hola! Quiero consultar sobre turnos en ${config?.nombre || 'el salón'}`);
         
         // Abrir WhatsApp
-        window.open(`https://wa.me/${telefonoLimpio}?text=${mensaje}`, '_blank');
+        window.open(`https://wa.me/${telefonoWhatsApp}?text=${mensaje}`, '_blank');
     };
 
     const abrirInstagram = () => {
@@ -105,138 +193,144 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol }) {
 
     return (
         <div 
-            className="relative min-h-screen w-full overflow-y-auto"
+            className="client-welcome-screen relative min-h-screen w-full overflow-y-auto"
         >
             {/* Imagen de fondo fija */}
-            <div className="fixed inset-0 z-0">
+            <div className="client-welcome-background fixed inset-0 z-0">
                 <img 
-                    src="https://images.unsplash.com/photo-1604654894610-df63bc536371?q=80&w=2071&auto=format&fit=crop"
+                    src={fondoPortada.image}
                     alt="Fondo de salón" 
-                    className="w-full h-full object-cover"
+                    className="client-welcome-background-image w-full h-full object-cover"
                 />
-                <div className="absolute inset-0 bg-black/40"></div>
+                <div className="client-welcome-overlay absolute inset-0 bg-black/40"></div>
             </div>
 
             {/* Botón volver - fijo en la parte superior */}
             {onGoBack && (
                 <button
                     onClick={onGoBack}
-                    className="fixed top-4 left-4 z-20 w-10 h-10 bg-pink-500/80 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-pink-600 transition-colors border border-pink-300"
+                    className="client-welcome-back fixed top-4 left-4 z-20 w-10 h-10 backdrop-blur-sm rounded-full flex items-center justify-center transition-colors border"
+                    style={{
+                        backgroundColor: hexToRgba(colorPrimario, 0.86),
+                        borderColor: hexToRgba(colorSecundario, 0.75)
+                    }}
                     title="Volver"
                 >
                     <i className="icon-arrow-left text-white text-xl"></i>
                 </button>
             )}
 
-            {/* Contenido scrolleable */}
-            <div className="relative z-10 min-h-screen flex items-start justify-center py-16 px-4">
-                <div className="w-full max-w-2xl bg-white/20 backdrop-blur-md p-6 sm:p-10 rounded-3xl shadow-2xl border border-pink-300/50 my-auto">
-                    <div className="text-center space-y-6">
+            {/* Contenido — altura fija, todo visible sin scroll */}
+            <div className="client-welcome-content relative z-10 flex flex-col items-center justify-center px-4"
+                style={{ minHeight: '100svh', paddingTop: 'max(56px, env(safe-area-inset-top))', paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}>
+                <div
+                    className="client-welcome-card w-full max-w-sm bg-black/15 backdrop-blur-[1px] p-4 rounded-2xl shadow-2xl border"
+                    style={{
+                        borderColor: hexToRgba(colorSecundario, 0.42),
+                        boxShadow: `0 16px 48px ${hexToRgba(colorPrimario, 0.22)}`
+                    }}
+                >
+                    <div className="text-center space-y-3">
+
                         {/* Logo o sticker */}
                         {config?.logo_url ? (
-                            <img 
-                                src={config.logo_url} 
-                                alt={config.nombre} 
-                                className="w-20 h-20 sm:w-24 sm:h-24 object-contain mx-auto rounded-2xl shadow-2xl ring-4 ring-pink-300/50"
-                            />
+                            <img src={config.logo_url} alt={config.nombre}
+                                className="w-14 h-14 object-contain mx-auto rounded-xl shadow-lg ring-2"
+                                style={{ '--tw-ring-color': hexToRgba(colorSecundario, 0.45) }} />
                         ) : (
-                            <div 
-                                className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl mx-auto flex items-center justify-center shadow-2xl ring-4 ring-pink-300/50"
-                                style={{ backgroundColor: colorPrimario }}
-                            >
-                                <span className="text-4xl sm:text-5xl">{sticker}</span>
+                            <div className="w-14 h-14 rounded-xl mx-auto flex items-center justify-center shadow-lg ring-2"
+                                style={{ background: `linear-gradient(135deg, ${colorPrimario}, ${colorSecundario})`, '--tw-ring-color': hexToRgba(colorSecundario, 0.45) }}>
+                                <span className="text-3xl">{sticker}</span>
                             </div>
                         )}
-                        
-                        {/* 🔥 TÍTULO CORREGIDO - SIN DESBORDAMIENTO */}
-                        <div className="space-y-2">
-                            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white leading-tight drop-shadow-lg">
-                                Bienvenida a
-                            </h1>
-                            <div className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-pink-300 break-words px-2">
+
+                        {/* Título */}
+                        <div>
+                            <p className="text-sm font-medium text-white/80">Bienvenida a</p>
+                            <div className="text-xl font-bold break-words leading-tight"
+                                style={{ color: colorSecundario, textShadow: `0 2px 12px ${hexToRgba(colorPrimario, 0.45)}` }}>
                                 {config?.nombre || 'Mi Salón'}
                             </div>
                         </div>
-                        
+
+                        {/* Nombre cliente */}
                         {cliente && (
-                            <p className="text-white/90 text-base sm:text-lg bg-black/20 inline-block px-4 py-1 rounded-full">
+                            <p className="text-white/90 text-sm bg-black/20 inline-block px-3 py-0.5 rounded-full">
                                 ✨ {cliente.nombre} ✨
                             </p>
                         )}
-                        
-                        <p className="text-white/90 text-base sm:text-lg md:text-xl max-w-lg mx-auto px-2">
+
+                                        {/* Mensaje bienvenida */}
+                        <p className="text-white/80 text-xs max-w-xs mx-auto leading-snug">
                             {config?.mensaje_bienvenida || '¡Bienvenida a nuestro salón!'}
                         </p>
 
-                        {/* BOTONES DE REDES SOCIALES */}
+                        {/* Redes sociales */}
                         {tieneRedes && (
-                            <div className="flex justify-center gap-3 sm:gap-4 pt-4 flex-wrap">
+                            <div className="flex justify-center gap-3">
                                 {tieneWhatsApp && (
-                                    <button
-                                        onClick={abrirWhatsApp}
-                                        className="w-12 h-12 sm:w-14 sm:h-14 bg-[#25D366] rounded-full flex items-center justify-center hover:scale-110 transition-all transform hover:shadow-xl border-2 border-white/50 group relative"
-                                        title="Contactar por WhatsApp"
-                                    >
-                                        <i className="icon-message-circle text-white text-xl sm:text-2xl"></i>
-                                        <span className="absolute -top-8 bg-gray-900 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition whitespace-nowrap">
-                                            WhatsApp
-                                        </span>
+                                    <button onClick={abrirWhatsApp} title="WhatsApp"
+                                        className="w-10 h-10 bg-[#25D366] rounded-full flex items-center justify-center border border-white/30 hover:scale-105 transition-transform">
+                                        <i className="icon-message-circle text-white text-lg"></i>
                                     </button>
                                 )}
-                                
                                 {tieneInstagram && (
-                                    <button
-                                        onClick={abrirInstagram}
-                                        className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-purple-600 via-pink-500 to-orange-400 rounded-full flex items-center justify-center hover:scale-110 transition-all transform hover:shadow-xl border-2 border-white/50 group relative"
-                                        title="Instagram"
-                                    >
-                                        <i className="icon-instagram text-white text-xl sm:text-2xl"></i>
-                                        <span className="absolute -top-8 bg-gray-900 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition whitespace-nowrap">
-                                            Instagram
-                                        </span>
+                                    <button onClick={abrirInstagram} title="Instagram"
+                                        className="w-10 h-10 bg-gradient-to-br from-purple-600 via-pink-500 to-orange-400 rounded-full flex items-center justify-center border border-white/30 hover:scale-105 transition-transform">
+                                        <i className="icon-instagram text-white text-lg"></i>
                                     </button>
                                 )}
-                                
                                 {tieneFacebook && (
-                                    <button
-                                        onClick={abrirFacebook}
-                                        className="w-12 h-12 sm:w-14 sm:h-14 bg-[#1877F2] rounded-full flex items-center justify-center hover:scale-110 transition-all transform hover:shadow-xl border-2 border-white/50 group relative"
-                                        title="Facebook"
-                                    >
-                                        <i className="icon-facebook text-white text-xl sm:text-2xl"></i>
-                                        <span className="absolute -top-8 bg-gray-900 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition whitespace-nowrap">
-                                            Facebook
-                                        </span>
+                                    <button onClick={abrirFacebook} title="Facebook"
+                                        className="w-10 h-10 bg-[#1877F2] rounded-full flex items-center justify-center border border-white/30 hover:scale-105 transition-transform">
+                                        <i className="icon-facebook text-white text-lg"></i>
                                     </button>
                                 )}
                             </div>
                         )}
 
-                        <div className="pt-4 sm:pt-6">
-                            <button 
-                                onClick={onStart}
-                                className="text-white text-base sm:text-lg font-bold py-3 sm:py-4 px-8 sm:px-10 rounded-full shadow-2xl transition-all transform hover:scale-110 active:scale-95 flex items-center justify-center gap-2 mx-auto border-2 border-pink-300 w-full sm:w-auto"
-                                style={{ backgroundColor: colorPrimario }}
-                            >
-                                <span className="text-lg sm:text-xl">💖</span>
-                                <span>Reservar Turno</span>
-                                <span className="text-lg sm:text-xl">✨</span>
-                            </button>
-                        </div>
-
-                        {/* Horario de atención si está configurado */}
-                        {config?.horario_atencion && (
-                            <div className="text-xs sm:text-sm text-white/80 bg-black/20 p-3 rounded-lg mt-4">
-                                <span className="font-semibold">🕐 Horario:</span> {config.horario_atencion}
+                        {/* Botón notificaciones */}
+                        {pushEstado === 'denied' && (
+                            <p className="text-white/50 text-xs text-center">🔔 Notificaciones bloqueadas — actívalas en Ajustes del teléfono</p>
+                        )}
+                        {pushEstado !== 'unsupported' && pushEstado !== 'denied' && (
+                            <div className="space-y-1">
+                                {pushEstado === 'granted' ? (
+                                    <p className="text-white/60 text-xs flex items-center justify-center gap-1">🔔 Recordatorios activados</p>
+                                ) : (
+                                    <button onClick={activarNotificaciones} disabled={activandoPush}
+                                        className="text-white/80 text-xs border border-white/30 rounded-full px-4 py-1.5 hover:bg-white/10 transition flex items-center gap-1.5 mx-auto disabled:opacity-50">
+                                        🔔 {activandoPush ? 'Activando...' : 'Activar recordatorios'}
+                                    </button>
+                                )}
+                                {pushMensaje && (
+                                    <p className="text-yellow-300/80 text-xs text-center">{pushMensaje}</p>
+                                )}
                             </div>
+                        )}
+
+                        {/* Botón principal */}
+                        <button onClick={onStart}
+                            className="w-full text-white font-bold py-3 rounded-full shadow-lg transition-all active:scale-[0.98] flex items-center justify-center gap-2 border"
+                            style={{
+                                background: `linear-gradient(135deg, ${colorPrimario}, ${colorSecundario})`,
+                                borderColor: hexToRgba(colorSecundario, 0.7),
+                                boxShadow: `0 10px 28px ${hexToRgba(colorPrimario, 0.35)}`
+                            }}>
+                            <span>💖</span>
+                            <span>Reservar Turno</span>
+                            <span>✨</span>
+                        </button>
+
+                        {/* Horario */}
+                        {config?.horario_atencion && (
+                            <p className="text-xs text-white/70">
+                                🕐 {config.horario_atencion}
+                            </p>
                         )}
                     </div>
                 </div>
             </div>
-
-            {/* Stickers flotantes decorativos (fijos) */}
-            <div className="fixed bottom-4 left-4 text-3xl sm:text-4xl opacity-30 rotate-12 select-none pointer-events-none">💅</div>
-            <div className="fixed top-20 right-4 text-3xl sm:text-4xl opacity-30 -rotate-12 select-none pointer-events-none">🌸</div>
         </div>
     );
 }

@@ -1,20 +1,20 @@
 {
-  "name": "RservasRoma",
-  "short_name": "RservasRoma",
+  "name": "Exotic Nails by Yuly",
+  "short_name": "Exotic",
   "description": "Uñas y belleza - Tu espacio de cuidado personal",
-  "start_url": "/rservasroma/",
-  "scope": "/rservasroma/",
+  "start_url": "/exoticnailsbyyuly/",
+  "scope": "/exoticnailsbyyuly/",
   "display": "standalone",
   "background_color": "#ec4899",
   "theme_color": "#ec4899",
   "icons": [
     {
-      "src": "/rservasroma/icons/icon-192x192.png",
+      "src": "/exoticnailsbyyuly/icons/icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "/rservasroma/icons/icon-512x512.png",
+      "src": "/exoticnailsbyyuly/icons/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png"
     }

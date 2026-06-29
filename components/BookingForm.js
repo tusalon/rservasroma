@@ -5,6 +5,7 @@
 
 function BookingForm({ service, profesional, date, time, onSubmit, onCancel, cliente }) {
     const [submitting, setSubmitting] = React.useState(false);
+    const submittingRef = React.useRef(false);
     const [error, setError] = React.useState(null);
 
     // ============================================
@@ -39,6 +40,69 @@ function BookingForm({ service, profesional, date, time, onSubmit, onCancel, cli
             return v.toString(16);
         });
     }
+
+    const indiceToHoraLegible = (indice) => {
+        const horas = Math.floor(indice / 2);
+        const minutos = indice % 2 === 0 ? '00' : '30';
+        return `${horas.toString().padStart(2, '0')}:${minutos}`;
+    };
+
+    const variantesHorarioPermitido = (timeStr) => {
+        const partes = String(timeStr || '').trim().split(':');
+        if (partes.length < 2) return [];
+        const hours = parseInt(partes[0], 10);
+        const minutes = parseInt(partes[1], 10);
+        if (Number.isNaN(hours) || Number.isNaN(minutes)) return [];
+
+        const normal = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+        const variantes = [normal];
+        if (hours >= 1 && hours <= 7) {
+            variantes.push(`${String(hours + 12).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`);
+        }
+        return variantes;
+    };
+
+    const servicioPermiteHorario = (servicio, slot) => {
+        const permitidos = servicio?.horarios_permitidos || [];
+        if (!permitidos.length) return true;
+        const normalizados = new Set(permitidos.flatMap(variantesHorarioPermitido));
+        return normalizados.has(slot);
+    };
+
+    const slotTieneDescanso = (slotStart, slotEnd, descansosDelDia = []) => {
+        return descansosDelDia.some(descanso => {
+            if (!descanso?.inicio || !descanso?.fin) return false;
+            const descansoStart = timeToMinutes(descanso.inicio);
+            const descansoEnd = timeToMinutes(descanso.fin);
+            return (slotStart < descansoEnd) && (slotEnd > descansoStart);
+        });
+    };
+
+    const estaDentroBloqueTrabajo = (inicio, fin, indicesDelDia = [], duracionTurno = 60, intervaloTurnos = 0) => {
+        if (!indicesDelDia.length) return false;
+        const minutosTrabajo = indicesDelDia
+            .map(indice => timeToMinutes(indiceToHoraLegible(indice)))
+            .sort((a, b) => a - b);
+        const bloquesBase = minutosTrabajo.map((minuto, index) => {
+            const siguiente = minutosTrabajo[index + 1];
+            const anterior = minutosTrabajo[index - 1];
+            return {
+                inicio: minuto,
+                fin: siguiente ? Math.max(siguiente, minuto + duracionTurno) : 24 * 60,
+                conectaAnterior: anterior !== undefined && minuto - anterior <= duracionTurno + intervaloTurnos
+            };
+        });
+        const bloques = [];
+        bloquesBase.forEach(bloque => {
+            const ultimo = bloques[bloques.length - 1];
+            if (ultimo && bloque.conectaAnterior) {
+                ultimo.fin = Math.max(ultimo.fin, bloque.fin);
+            } else {
+                bloques.push({ inicio: bloque.inicio, fin: bloque.fin });
+            }
+        });
+        return bloques.some(bloque => inicio >= bloque.inicio && fin <= bloque.fin);
+    };
 
     // ============================================
     // FORMATEAR FECHA LOCAL (NO UTC)
@@ -106,10 +170,10 @@ function BookingForm({ service, profesional, date, time, onSubmit, onCancel, cli
         
         const linea1 = `Appointment Details`;
         const linea2 = `When: ${fechaInicioStr} - ${fechaFinStr} (CST)`;
-        const linea3 = `Service: ${bookingData.servicio}`;
-        const linea4 = `Provider Name: ${bookingData.profesional_nombre}`;
-        const linea5 = `Client: ${bookingData.cliente_nombre}`;
-        const linea6 = `WhatsApp: +53 ${bookingData.cliente_whatsapp}`;
+        const linea3 = `Servicio: ${bookingData.servicio}`;
+        const linea4 = `Profesional: ${bookingData.profesional_nombre}`;
+        const linea5 = `Cliente: ${bookingData.cliente_nombre}`;
+        const linea6 = `WhatsApp: ${window.formatearTelefono ? window.formatearTelefono(bookingData.cliente_whatsapp) : `+${bookingData.cliente_whatsapp}`}`;
         const linea7 = ``;
         const linea8 = nombreNegocio;
         
@@ -182,7 +246,7 @@ END:VCALENDAR`;
             link.click();
             document.body.removeChild(link);
             window.URL.revokeObjectURL(url);
-            console.log('✅ Archivo descargado');
+            console.log(' ✅ Archivo descargado');
             return true;
         } catch (error) {
             console.error('Error:', error);
@@ -195,10 +259,110 @@ END:VCALENDAR`;
     // ============================================
     const handleSubmit = async (e) => {
         e.preventDefault();
+        if (submittingRef.current) return;
+
+        submittingRef.current = true;
         setSubmitting(true);
         setError(null);
 
         try {
+            if (service.esMultiple && profesional.esMultiple) {
+                const configNegocio = await window.cargarConfiguracionNegocio();
+                const configGlobal = window.salonConfig ? await window.salonConfig.get() : {};
+                const minAntelacionHoras = configGlobal?.min_antelacion_horas ?? 2;
+                const montoAnticipoReserva = window.calcularMontoAnticipoReservaSync
+                    ? window.calcularMontoAnticipoReservaSync(configNegocio, service)
+                    : 0;
+                const requiereAnticipo = configNegocio?.requiere_anticipo === true && (!configNegocio?.anticipos_por_servicio || montoAnticipoReserva > 0);
+
+                const [year, month, day] = date.split('-').map(Number);
+                const [hours, minutes] = time.split(':').map(Number);
+                const fechaTurno = new Date(year, month - 1, day, hours, minutes, 0);
+                const minFechaPermitida = new Date(Date.now() + (minAntelacionHoras * 60 * 60 * 1000));
+                const diasSemana = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
+                const diaSemana = diasSemana[new Date(year, month - 1, day).getDay()];
+
+                if (fechaTurno < minFechaPermitida) {
+                    setError(`Solo se puede reservar con al menos ${minAntelacionHoras} hora(s) de anticipación.`);
+                    setSubmitting(false);
+                    return;
+                }
+
+                let cursor = time;
+                const creadas = [];
+
+                for (let index = 0; index < profesional.asignaciones.length; index++) {
+                    const item = profesional.asignaciones[index];
+                    const servicioItem = item.servicio;
+                    const profesionalItem = item.profesional;
+                    const bookings = await getBookingsByDateAndProfesional(date, profesionalItem.id);
+                    const horarioFecha = await window.salonConfig.getHorariosProfesionalParaFecha(profesionalItem.id, date);
+                    const horariosPorDia = horarioFecha.horariosPorDia || {};
+                    const descansosPorDia = horarioFecha.descansosPorDia || {};
+                    const inicioMin = timeToMinutes(cursor);
+                    const finMin = inicioMin + (parseInt(servicioItem.duracion, 10) || 60);
+                    const trabajaEseDia = (horariosPorDia[diaSemana] || []).length > 0;
+                    const tocaDescanso = slotTieneDescanso(inicioMin, finMin, descansosPorDia[diaSemana] || []);
+                    const tieneConflicto = bookings.some(booking => {
+                        const bookingStart = timeToMinutes(booking.hora_inicio);
+                        const bookingEnd = timeToMinutes(booking.hora_fin);
+                        return (inicioMin < bookingEnd) && (finMin > bookingStart);
+                    });
+                    const horarioPermitido = index > 0 || servicioPermiteHorario(servicioItem, cursor);
+
+                    if (!trabajaEseDia || tocaDescanso || tieneConflicto || !horarioPermitido) {
+                        setError(`El horario de ${servicioItem.nombre} con ${profesionalItem.nombre} ya no está disponible.`);
+                        setSubmitting(false);
+                        return;
+                    }
+
+                    const endTime = calculateEndTime(cursor, servicioItem.duracion);
+                    const bookingData = {
+                        cliente_nombre: cliente.nombre,
+                        cliente_whatsapp: cliente.whatsapp,
+                        servicio: servicioItem.nombre,
+                        duracion: servicioItem.duracion,
+                        profesional_id: profesionalItem.id,
+                        profesional_nombre: profesionalItem.nombre,
+                        fecha: date,
+                        hora_inicio: cursor,
+                        hora_fin: endTime,
+                        estado: requiereAnticipo ? "Pendiente" : "Reservado"
+                    };
+
+                    const result = await createBooking(bookingData);
+                    if (!result.success || !result.data) throw new Error('No se pudo crear una de las reservas');
+                    creadas.push(result.data);
+                    cursor = endTime;
+                }
+
+                const bookingResumen = {
+                    ...creadas[0],
+                    servicio: service.nombre,
+                    duracion: service.duracion,
+                    profesional_nombre: profesional.asignaciones.map(item => `${item.servicio.nombre}: ${item.profesional.nombre}`).join(' | '),
+                    hora_inicio: time,
+                    hora_fin: cursor,
+                    reservas_relacionadas: creadas
+                };
+
+                const nombreNegocio = configNegocio?.nombre || 'Mi Salón';
+                if (requiereAnticipo) {
+                    if (window.notificarReservaPendiente) await window.notificarReservaPendiente(bookingResumen);
+                } else {
+                    if (window.notificarNuevaReserva) await window.notificarNuevaReserva(bookingResumen);
+                }
+
+                const icsContent = generarArchivoCalendario(bookingResumen, nombreNegocio);
+                const fechaSegura = bookingResumen.fecha.replace(/-/g, '');
+                const horaSegura = bookingResumen.hora_inicio.replace(':', '');
+                const nombreSeguro = bookingResumen.cliente_nombre.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+                descargarArchivoICS(icsContent, `turno-${fechaSegura}-${horaSegura}-${nombreSeguro}.ics`);
+
+                onSubmit(bookingResumen);
+                return;
+            }
+
             const bookings = await getBookingsByDateAndProfesional(date, profesional.id);
             const baseSlots = [time];
             const available = filterAvailableSlots(baseSlots, service.duracion, bookings);
@@ -212,7 +376,23 @@ END:VCALENDAR`;
             const endTime = calculateEndTime(time, service.duracion);
             
             const configNegocio = await window.cargarConfiguracionNegocio();
-            const requiereAnticipo = configNegocio?.requiere_anticipo === true;
+            const configGlobal = window.salonConfig ? await window.salonConfig.get() : {};
+            const minAntelacionHoras = configGlobal?.min_antelacion_horas ?? 2;
+            const montoAnticipoReserva = window.calcularMontoAnticipoReservaSync
+                ? window.calcularMontoAnticipoReservaSync(configNegocio, service)
+                : 0;
+            const requiereAnticipo = configNegocio?.requiere_anticipo === true && (!configNegocio?.anticipos_por_servicio || montoAnticipoReserva > 0);
+
+            const [year, month, day] = date.split('-').map(Number);
+            const [hours, minutes] = time.split(':').map(Number);
+            const fechaTurno = new Date(year, month - 1, day, hours, minutes, 0);
+            const minFechaPermitida = new Date(Date.now() + (minAntelacionHoras * 60 * 60 * 1000));
+
+            if (fechaTurno < minFechaPermitida) {
+                setError(`Solo se puede reservar con al menos ${minAntelacionHoras} hora(s) de anticipación.`);
+                setSubmitting(false);
+                return;
+            }
 
             const bookingData = {
                 cliente_nombre: cliente.nombre,
@@ -230,28 +410,28 @@ END:VCALENDAR`;
             const result = await createBooking(bookingData);
             
             if (result.success && result.data) {
-                console.log(`✅ Reserva creada en estado ${result.data.estado}`);
+                console.log(` ✅ Reserva creada en estado ${result.data.estado}`);
                 
                 const nombreNegocio = configNegocio?.nombre || 'Mi Salón';
                 
-                // ❌ ELIMINADO: No enviar WhatsApp al cliente
+                //  ELIMINADO: No enviar WhatsApp al cliente
                 // if (requiereAnticipo && window.enviarMensajePago) {
                 //     await window.enviarMensajePago(result.data, configNegocio);
                 // } else if (!requiereAnticipo && window.enviarConfirmacionReserva) {
                 //     await window.enviarConfirmacionReserva(result.data, configNegocio);
                 // }
                 
-                // ✅ SOLO notificar a la dueña
+                //  SOLO notificar a la dueña
                 if (requiereAnticipo) {
                     if (window.notificarReservaPendiente) {
                         await window.notificarReservaPendiente(result.data);
                     }
-                    console.log('📱 Dueña notificada: RESERVA PENDIENTE DE PAGO (con datos + push)');
+                    console.log(' 📱 Dueña notificada: RESERVA PENDIENTE DE PAGO (con datos + push)');
                 } else {
                     if (window.notificarNuevaReserva) {
                         await window.notificarNuevaReserva(result.data);
                     }
-                    console.log('📱 Dueña notificada: NUEVO TURNO AGENDADO (con push)');
+                    console.log(' 📱 Dueña notificada: NUEVO TURNO AGENDADO (con push)');
                 }
                 
                 // Generar y descargar archivo ICS
@@ -274,6 +454,7 @@ END:VCALENDAR`;
             console.error('Error:', err);
             setError("Ocurrió un error al guardar la reserva.");
         } finally {
+            submittingRef.current = false;
             setSubmitting(false);
         }
     };
@@ -283,10 +464,10 @@ END:VCALENDAR`;
     // ============================================
     return (
         <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 p-4 animate-fade-in">
-            <div className="bg-white/95 backdrop-blur-md w-full max-w-md rounded-t-2xl sm:rounded-2xl p-6 shadow-xl space-y-6 border-2 border-pink-300">
+            <div className="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-6 shadow-xl space-y-6 border-2 border-pink-300">
                 <div className="flex justify-between items-center border-b border-pink-200 pb-4">
                     <h3 className="text-xl font-bold text-pink-800 flex items-center gap-2">
-                        <span>💖</span>
+                        <span></span>
                         Confirmar Reserva
                     </h3>
                     <button onClick={onCancel} className="text-pink-400 hover:text-pink-600">
@@ -298,25 +479,25 @@ END:VCALENDAR`;
                     <div className="bg-gradient-to-r from-pink-50 to-pink-100 p-4 rounded-xl border border-pink-200 space-y-2">
                         <div className="flex items-center gap-3 text-pink-700">
                             <span className="text-2xl">
-                                {service.nombre.toLowerCase().includes('corte') ? '✂️' : 
-                                 service.nombre.toLowerCase().includes('uña') ? '💅' :
-                                 service.nombre.toLowerCase().includes('peinado') ? '💇‍♀️' :
-                                 service.nombre.toLowerCase().includes('maquillaje') ? '💄' : '✨'}
+                                {service.nombre.toLowerCase().includes('corte') ? '' : 
+                                 service.nombre.toLowerCase().includes('una') ? '' :
+                                 service.nombre.toLowerCase().includes('peinado') ? '' :
+                                 service.nombre.toLowerCase().includes('maquillaje') ? '' : ''}
                             </span>
                             <span className="font-medium">{service.nombre}</span>
                         </div>
                         
                         <div className="flex items-center gap-3 text-pink-700">
-                            <span className="text-2xl">👩‍🎨</span>
+                            <span className="text-2xl"></span>
                             <span>Con: <strong>{profesional.nombre}</strong></span>
                         </div>
                         
                         <div className="flex items-center gap-3 text-pink-700">
-                            <span className="text-2xl">📅</span>
+                            <span className="text-2xl"></span>
                             <span>{window.formatFechaCompleta ? window.formatFechaCompleta(date) : date}</span>
                         </div>
                         <div className="flex items-center gap-3 text-pink-700">
-                            <span className="text-2xl">⏰</span>
+                            <span className="text-2xl"></span>
                             <span>{window.formatTo12Hour ? window.formatTo12Hour(time) : time} ({service.duracion} min)</span>
                         </div>
                     </div>
@@ -330,7 +511,7 @@ END:VCALENDAR`;
 
                         {error && (
                             <div className="text-pink-600 text-sm bg-pink-100 p-3 rounded-lg flex items-start gap-2 border border-pink-300">
-                                <span className="text-pink-500">⚠️</span>
+                                <span className="text-pink-500"></span>
                                 {error}
                             </div>
                         )}
@@ -338,7 +519,16 @@ END:VCALENDAR`;
                         <button
                             type="submit"
                             disabled={submitting}
-                            className="w-full bg-gradient-to-r from-pink-500 to-pink-600 text-white py-3.5 rounded-xl font-bold hover:from-pink-600 hover:to-pink-700 transition-colors disabled:opacity-70 disabled:cursor-not-allowed flex justify-center items-center gap-2 shadow-lg"
+                            className="w-full py-3.5 rounded-xl font-bold transition-colors disabled:cursor-not-allowed flex justify-center items-center gap-2 shadow-lg"
+                            style={{
+                                background: submitting
+                                    ? 'linear-gradient(135deg, #5b21b6, #7c3aed)'
+                                    : 'linear-gradient(135deg, #5b21b6, #db2777)',
+                                color: '#fff',
+                                WebkitTextFillColor: '#fff',
+                                border: '1px solid rgba(91, 33, 182, 0.35)',
+                                opacity: 1
+                            }}
                         >
                             {submitting ? (
                                 <>
@@ -347,9 +537,9 @@ END:VCALENDAR`;
                                 </>
                             ) : (
                                 <>
-                                    <span>💖</span>
+                                    <span></span>
                                     Confirmar Reserva
-                                    <span>✨</span>
+                                    <span></span>
                                 </>
                             )}
                         </button>

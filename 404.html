@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rservasroma</title>
+    <style>
+        body {
+            margin: 0;
+            background: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+        .loader {
+            text-align: center;
+            color: #6b7280;
+        }
+        .spinner {
+            width: 36px;
+            height: 36px;
+            border: 3px solid #f3f4f6;
+            border-top-color: #e83387;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 12px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div class="loader">
+        <div class="spinner"></div>
+        <p>Cargando salón...</p>
+    </div>
+
+    <script>
+        (function() {
+            // Extraer el slug del primer segmento de la ruta
+            // Ej: /lecisnails         → slug = "lecisnails"
+            // Ej: /lecisnails/admin   → slug = "lecisnails", resto = /admin
+            var pathname = window.location.pathname;
+            var parts    = pathname.replace(/^\//, '').split('/').filter(Boolean);
+
+            // Páginas que NO son slugs de salón
+            var SKIP = { 'admin': 1, 'admin.html': 1, 'admin-login': 1, 'admin-login.html': 1,
+                         'setup-wizard': 1, 'setup-wizard.html': 1, 'calendar': 1,
+                         'offline-panel': 1, 'editar-negocio': 1, 'editar-negocio.html': 1 };
+
+            var slug = (parts.length > 0 && !SKIP[parts[0]] && parts[0].indexOf('.') === -1)
+                        ? parts[0] : null;
+
+            var resto = parts.slice(slug ? 1 : 0).join('/');
+
+            if (slug) {
+                // Redirigir a /?s=slug&p=/resto
+                var dest = '/?s=' + encodeURIComponent(slug);
+                if (resto) dest += '&p=' + encodeURIComponent('/' + resto);
+                // Conservar hash si existe
+                if (window.location.hash) dest += window.location.hash;
+                window.location.replace(dest);
+            } else {
+                // No es una ruta de salón, ir al inicio
+                window.location.replace('/');
+            }
+        })();
+    </script>
+</body>
+</html>

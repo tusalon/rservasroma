@@ -2,9 +2,12 @@
 
 function HorariosPorDiaPanel({ profesionalId, profesionalNombre, onGuardar, onCancelar }) {
     const [horariosPorDia, setHorariosPorDia] = React.useState({});
+    const [descansosPorDia, setDescansosPorDia] = React.useState({});
     const [cargando, setCargando] = React.useState(true);
     const [diaSeleccionado, setDiaSeleccionado] = React.useState('lunes');
     const [horasDisponibles, setHorasDisponibles] = React.useState([]);
+    const [nuevoDescanso, setNuevoDescanso] = React.useState({ inicio: '13:00', fin: '14:00' });
+    const formatearHora = (hora) => window.formatTo12Hour ? window.formatTo12Hour(hora) : hora;
 
     const dias = [
         { id: 'lunes', nombre: 'Lunes' },
@@ -25,7 +28,7 @@ function HorariosPorDiaPanel({ profesionalId, profesionalNombre, onGuardar, onCa
             horas.push({
                 indice: i,
                 legible: `${hora.toString().padStart(2, '0')}:${minutos}`,
-                label: `${hora.toString().padStart(2, '0')}:${minutos}`
+                label: formatearHora(`${hora.toString().padStart(2, '0')}:${minutos}`)
             });
         }
         return horas;
@@ -41,15 +44,21 @@ function HorariosPorDiaPanel({ profesionalId, profesionalNombre, onGuardar, onCa
         setCargando(true);
         try {
             const horarios = await window.salonConfig.getHorariosPorDia(profesionalId);
+            const descansos = window.salonConfig.getDescansosPorDia ?
+                await window.salonConfig.getDescansosPorDia(profesionalId) :
+                {};
             console.log('📋 Horarios cargados por día:', horarios);
             
             // Inicializar todos los días con array vacío si no existen
             const horariosInicializados = {};
+            const descansosInicializados = {};
             dias.forEach(dia => {
                 horariosInicializados[dia.id] = horarios[dia.id] || [];
+                descansosInicializados[dia.id] = descansos[dia.id] || [];
             });
             
             setHorariosPorDia(horariosInicializados);
+            setDescansosPorDia(descansosInicializados);
             
             // Actualizar horas disponibles para el día seleccionado
             setHorasDisponibles(horariosInicializados[diaSeleccionado] || []);
@@ -131,9 +140,31 @@ function HorariosPorDiaPanel({ profesionalId, profesionalNombre, onGuardar, onCa
         setHorasDisponibles([]);
     };
 
+    const agregarDescanso = () => {
+        if (!nuevoDescanso.inicio || !nuevoDescanso.fin) return;
+        if (nuevoDescanso.inicio >= nuevoDescanso.fin) {
+            alert('La hora de inicio del descanso debe ser menor que la hora final.');
+            return;
+        }
+
+        const descansosActuales = descansosPorDia[diaSeleccionado] || [];
+        setDescansosPorDia({
+            ...descansosPorDia,
+            [diaSeleccionado]: [...descansosActuales, { ...nuevoDescanso }]
+        });
+    };
+
+    const eliminarDescanso = (index) => {
+        const descansosActuales = descansosPorDia[diaSeleccionado] || [];
+        setDescansosPorDia({
+            ...descansosPorDia,
+            [diaSeleccionado]: descansosActuales.filter((_, i) => i !== index)
+        });
+    };
+
     const handleGuardar = async () => {
         try {
-            await window.salonConfig.guardarHorariosPorDia(profesionalId, horariosPorDia);
+            await window.salonConfig.guardarHorariosPorDia(profesionalId, horariosPorDia, descansosPorDia);
             onGuardar(horariosPorDia);
         } catch (error) {
             console.error('Error guardando:', error);
@@ -237,6 +268,51 @@ function HorariosPorDiaPanel({ profesionalId, profesionalNombre, onGuardar, onCa
                             }
                         </select>
                     </div>
+
+                    {/* Descansos / almuerzo */}
+                    <div className="mb-4 p-3 bg-amber-50 rounded-lg border border-amber-200">
+                        <h5 className="font-medium text-amber-800 mb-3">Descansos / almuerzo</h5>
+                        <div className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-2 mb-3">
+                            <input
+                                type="time"
+                                value={nuevoDescanso.inicio}
+                                onChange={(e) => setNuevoDescanso({ ...nuevoDescanso, inicio: e.target.value })}
+                                className="border rounded-lg px-3 py-2 text-sm"
+                            />
+                            <input
+                                type="time"
+                                value={nuevoDescanso.fin}
+                                onChange={(e) => setNuevoDescanso({ ...nuevoDescanso, fin: e.target.value })}
+                                className="border rounded-lg px-3 py-2 text-sm"
+                            />
+                            <button
+                                type="button"
+                                onClick={agregarDescanso}
+                                className="bg-amber-600 text-white px-3 py-2 rounded-lg text-sm hover:bg-amber-700"
+                            >
+                                Agregar
+                            </button>
+                        </div>
+
+                        <div className="space-y-2">
+                            {(descansosPorDia[diaSeleccionado] || []).length === 0 ? (
+                                <p className="text-xs text-amber-700">Sin descansos para este dia.</p>
+                            ) : (
+                                (descansosPorDia[diaSeleccionado] || []).map((descanso, index) => (
+                                    <div key={`${descanso.inicio}-${descanso.fin}-${index}`} className="flex justify-between items-center bg-white border border-amber-100 rounded-lg px-3 py-2 text-sm">
+                                        <span className="text-gray-700">{formatearHora(descanso.inicio)} - {formatearHora(descanso.fin)}</span>
+                                        <button
+                                            type="button"
+                                            onClick={() => eliminarDescanso(index)}
+                                            className="text-red-600 hover:text-red-800"
+                                        >
+                                            Quitar
+                                        </button>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
                     
                     {/* Grilla de horas */}
                     <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2 max-h-96 overflow-y-auto p-2 border rounded-lg">
@@ -253,7 +329,7 @@ function HorariosPorDiaPanel({ profesionalId, profesionalNombre, onGuardar, onCa
                                             : 'bg-white border border-gray-300 text-gray-700 hover:border-amber-400 hover:bg-amber-50'}
                                     `}
                                 >
-                                    {hora.legible}
+                                    {hora.label}
                                 </button>
                             );
                         })}
