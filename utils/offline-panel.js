@@ -133,7 +133,7 @@
         if (!negocioId || !window.SUPABASE_URL || !window.SUPABASE_ANON_KEY) return null;
         if (!(await isOnline())) return null;
 
-        const url = `${window.SUPABASE_URL}/rest/v1/reservas?negocio_id=eq.${negocioId}&fecha=gte.${todayKey()}&fecha=lte.${maxDateKey()}&select=cliente_nombre,fecha,hora_inicio,hora_fin,servicio,profesional_nombre,trabajador_nombre,barbero_nombre&order=fecha.asc,hora_inicio.asc`;
+        const url = `${window.SUPABASE_URL}/rest/v1/reservas?negocio_id=eq.${negocioId}&fecha=gte.${todayKey()}&fecha=lte.${maxDateKey()}&select=cliente_nombre,fecha,hora_inicio,hora_fin,servicio,profesional_nombre&order=fecha.asc,hora_inicio.asc`;
         const response = await fetch(url, {
             cache: 'no-store',
             headers: {
