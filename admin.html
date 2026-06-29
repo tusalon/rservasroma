@@ -4,6 +4,31 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="manifest" href="manifest.json">
+    <script>
+      (function() {
+        try {
+          var nombre = localStorage.getItem('negocioNombre') || '';
+          var slug   = localStorage.getItem('negocioSlug')   || '';
+          if (!nombre || !slug) return;
+          var m = {
+            name:             nombre,
+            short_name:       nombre.split(/\s+/).slice(0,2).join(' '),
+            start_url:        'admin.html?s=' + slug,
+            scope:            './',
+            display:          'standalone',
+            theme_color:      '#FF1493',
+            background_color: '#1A1A1A',
+            icons: [
+              { src: 'icons/icon-192x192.png', sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
+              { src: 'icons/icon-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' }
+            ]
+          };
+          var blob = new Blob([JSON.stringify(m)], { type: 'application/json' });
+          var link = document.querySelector('link[rel="manifest"]');
+          if (link) link.href = URL.createObjectURL(blob);
+        } catch(e) {}
+      })();
+    </script>
     <meta name="theme-color" content="#ec4899">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
