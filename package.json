@@ -1,7 +1,7 @@
 {
-  "name": "exoticnailsbyyuli",
+  "name": "rservasroma",
   "version": "1.0.0",
-  "description": "APK Android para Exotic Nails by Yuly",
+  "description": "APK Android para Rservasroma Admin",
   "main": "admin-app.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
@@ -15,16 +15,16 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/tusalon/exoticnailsbyyuly.git"
+    "url": "git+https://github.com/tusalon/rservasroma.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "bugs": {
-    "url": "https://github.com/tusalon/exoticnailsbyyuly/issues"
+    "url": "https://github.com/tusalon/rservasroma/issues"
   },
-  "homepage": "https://github.com/tusalon/exoticnailsbyyuly#readme",
+  "homepage": "https://github.com/tusalon/rservasroma#readme",
   "devDependencies": {
     "@babel/standalone": "^7.29.7",
     "@capacitor/android": "^8.3.4",

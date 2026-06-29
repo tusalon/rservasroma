@@ -16,6 +16,7 @@ $files = @(
     "editar-negocio.html",
     "setup-wizard.html",
     "calendar.html",
+    "offline-panel.html",
     "manifest.json",
     "sw.js",
     "app.js",

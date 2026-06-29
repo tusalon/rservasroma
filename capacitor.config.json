@@ -1,9 +1,12 @@
 {
   "appId": "com.rservasroma.admin",
   "appName": "Rservasroma Admin",
-  "webDir": ".",
+  "webDir": "www",
+  "bundledWebRuntime": false,
   "server": {
-    "url": "https://tusalon.github.io/rservasroma/admin-login.html",
-    "cleartext": false
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": true
   }
 }
