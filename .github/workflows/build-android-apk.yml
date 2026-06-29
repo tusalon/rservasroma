@@ -1,95 +1,12 @@
-# DESHABILITADO — usaba Capacitor sin android/ ni package.json. Usar build-apk.yml (bubblewrap/TWA)
+# DESHABILITADO — reemplazado por build-apk.yml (bubblewrap/TWA)
 name: Build Android APK (DISABLED)
 
 on:
   workflow_dispatch:
-    inputs:
-      disabled:
-        description: 'Este workflow está deshabilitado. Usar build-apk.yml'
-        required: false
 
 jobs:
   skip:
     runs-on: ubuntu-latest
-    if: false
     steps:
-      - run: echo "Disabled"
-
-# ORIGINAL TRIGGERS (deshabilitados):
-# on_original:
-  workflow_dispatch:
-  push:
-    branches:
-      - main
-    paths:
-      - "android/**"
-      - "components/**"
-      - "icons/**"
-      - "images/**"
-      - "scripts/**"
-      - "utils/**"
-      - "*.html"
-      - "*.js"
-      - "capacitor.config.json"
-      - "package.json"
-      - "package-lock.json"
-
-jobs:
-  build-debug-apk:
-    runs-on: windows-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: "npm"
-
-      - name: Setup Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: "temurin"
-          java-version: "21"
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Restore Firebase config
-        shell: powershell
-        env:
-          ANDROID_GOOGLE_SERVICES_JSON: ${{ secrets.ANDROID_GOOGLE_SERVICES_JSON }}
-        run: |
-          if ($env:ANDROID_GOOGLE_SERVICES_JSON) {
-            $env:ANDROID_GOOGLE_SERVICES_JSON | Set-Content -Path android/app/google-services.json -Encoding UTF8
-            Write-Host "google-services.json restaurado desde GitHub Secrets"
-          } else {
-            Write-Host "ANDROID_GOOGLE_SERVICES_JSON no configurado; la APK compila sin Firebase push nativo"
-          }
-
-      - name: Sync Capacitor Android
-        run: npm run android:sync
-
-      - name: Build debug APK
-        working-directory: android
-        run: .\gradlew.bat assembleDebug
-
-      - name: Rename APK
-        shell: powershell
-        run: |
-          New-Item -ItemType Directory -Force -Path apk-output
-          $apk = Get-ChildItem -Path android/app/build/outputs/apk -Recurse -Filter "*.apk" | Select-Object -First 1
-          if (-not $apk) {
-            Get-ChildItem -Path android/app/build -Recurse | Select-Object FullName
-            throw "No se encontro ningun APK generado"
-          }
-          Write-Host "APK encontrado: $($apk.FullName)"
-          Copy-Item $apk.FullName apk-output/exoticnailsbyyuli-debug.apk
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: exoticnailsbyyuli-debug-apk
-          path: apk-output/exoticnailsbyyuli-debug.apk
+      - name: Disabled
+        run: echo "Este workflow está deshabilitado. Usar build-apk.yml"
