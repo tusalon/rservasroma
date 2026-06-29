@@ -5,6 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cargando...</title>
     <meta name="description" content="Reservá tu turno online">
+
+    <!-- MASTER APP: sin slug → login de admin -->
+    <script>
+        (function() {
+            var params = new URLSearchParams(window.location.search);
+            var slug = params.get('s');
+            if (!slug || slug.trim() === '') {
+                window.location.replace('admin-login.html');
+            }
+        })();
+    </script>
     
     <!-- PWA Meta Tags -->
     <link rel="manifest" href="manifest.json">
