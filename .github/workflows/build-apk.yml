@@ -1,0 +1,96 @@
+name: Build Rservasroma Admin APK
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Bubblewrap CLI
+        run: npm install -g @bubblewrap/cli
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Create android/ directory
+        run: mkdir -p android
+
+      - name: Write twa-manifest.json
+        run: |
+          cat > android/twa-manifest.json << 'EOF'
+          {
+            "packageId": "com.rservasroma.admin",
+            "host": "tusalon.github.io",
+            "name": "Rservasroma Admin",
+            "launcherName": "Rservasroma",
+            "display": "standalone",
+            "orientation": "default",
+            "themeColor": "#FF1493",
+            "themeColorDark": "#1A1A1A",
+            "backgroundColor": "#1A1A1A",
+            "enableNotifications": false,
+            "startUrl": "/rservasroma/admin-login.html",
+            "iconUrl": "https://tusalon.github.io/rservasroma/icons/icon-512x512.png",
+            "maskableIconUrl": "https://tusalon.github.io/rservasroma/icons/icon-512x512.png",
+            "appVersion": "1.0.0",
+            "appVersionCode": ${{ github.run_number }},
+            "signingKey": {
+              "path": "rservasroma.keystore",
+              "alias": "rservasroma"
+            },
+            "splashScreenFadeOutDuration": 300,
+            "enableSiteSettingsShortcut": true,
+            "isChromeOSOnly": false,
+            "fallbackType": "customtabs"
+          }
+          EOF
+
+      - name: Decode keystore from secret
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/rservasroma.keystore
+
+      - name: Init Bubblewrap project
+        working-directory: android
+        run: |
+          bubblewrap init \
+            --manifest https://tusalon.github.io/rservasroma/manifest.json \
+            --directory . \
+            --skipPwaValidation
+
+      - name: Build APK
+        working-directory: android
+        run: |
+          bubblewrap build \
+            --skipPwaValidation \
+            --signingKeyPassword "${{ secrets.KEY_PASSWORD }}" \
+            --signingKeyStorePassword "${{ secrets.KEYSTORE_PASSWORD }}"
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: rservasroma-admin-apk-v${{ github.run_number }}
+          path: android/app-release-signed.apk
+          retention-days: 90
+
+      - name: Show download link
+        run: |
+          echo "✅ APK disponible en:"
+          echo "   GitHub → Actions → Build Rservasroma Admin APK → Artifacts"
