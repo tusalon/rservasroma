@@ -1,10 +1,10 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cargando...</title>
-    <meta name="description" content="ReservÃ¡ tu turno online">
+    <meta name="description" content="Reservá tu turno online">
     
     <!-- PWA Meta Tags -->
     <link rel="manifest" href="manifest.json">
@@ -16,7 +16,7 @@
     <link rel="apple-touch-icon" href="icons/icon-192x192.png">
     <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192x192.png">
     
-    <!-- Service Worker + detecciÃ³n de actualizaciones -->
+    <!-- Service Worker + detección de actualizaciones -->
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
@@ -340,7 +340,7 @@
 </head>
 <body>
 
-    <!-- Toast de actualizaciÃ³n disponible -->
+    <!-- Toast de actualización disponible -->
     <div id="toast-update" style="
         position:fixed; bottom:20px; left:50%;
         transform:translateX(-50%) translateY(120px);
@@ -350,9 +350,9 @@
         opacity:0; transition:transform 0.35s ease, opacity 0.35s ease;
         min-width:260px; max-width:90vw; pointer-events:none;
     ">
-        <span style="font-size:20px">âœ¨</span>
+        <span style="font-size:20px">✨</span>
         <span style="color:#e2e2f0;font-size:14px;font-family:system-ui,sans-serif;flex:1">
-            Hay una versiÃ³n nueva disponible
+            Hay una versión nueva disponible
         </span>
         <button id="btn-actualizar" style="
             background:#a855f7;color:#fff;border:none;border-radius:8px;
@@ -411,7 +411,7 @@
     <script src="client-app.js?v=20260529-lista-espera" type="text/babel"></script>
     
     <script>
-        // Actualizar tÃ­tulo dinÃ¡mico desde la base de datos
+        // Actualizar título dinámico desde la base de datos
         (async function() {
             try {
                 const nombre = await window.getNombreNegocio();
@@ -420,7 +420,7 @@
                     document.querySelector('meta[name="apple-mobile-web-app-title"]')?.setAttribute('content', nombre.split(' ')[0] || 'Exotic');
                 }
             } catch (error) {
-                console.error('Error cargando tÃ­tulo:', error);
+                console.error('Error cargando título:', error);
             }
         })();
     </script>
