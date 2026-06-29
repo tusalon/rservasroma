@@ -3717,8 +3717,10 @@ Cualquier cambio, podÃ©s cancelarlo desde la app con hasta 1 hora de anticipaciÃ
 
                     {(() => {
                         const slug = localStorage.getItem('negocioSlug') || '';
-                        const base = window.location.origin + window.location.pathname.replace(/\/?$/, '');
-                        const urlCliente = slug ? base + '?s=' + slug : '';
+                        const basePath = window.location.pathname.includes('/rservasroma/')
+                            ? '/rservasroma/'
+                            : '/';
+                        const urlCliente = slug ? window.location.origin + basePath + '?s=' + slug : '';
                         return urlCliente ? (
                             <div style={{
                                 marginTop: '8px',

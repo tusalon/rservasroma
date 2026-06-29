@@ -20,15 +20,22 @@ console.log('🌐 config-negocio-master.js cargado');
     ]);
 
     function getSlugFromURL() {
+        // GitHub Pages sirve este master bajo /rservasroma/.
+        // Ese segmento no es un negocio, es la carpeta del repo.
+        const rawParts = window.location.pathname.replace(/^\//, '').split('/').filter(Boolean);
+        const parts = rawParts[0] === 'rservasroma' ? rawParts.slice(1) : rawParts;
+        const firstPart = parts[0] || '';
+        const isAdminRoute = ADMIN_SEGMENTS.has(firstPart) || firstPart.endsWith('.html');
+
         // Después del redirect de 404.html → /?s=slug
+        // En pantallas admin se ignora ?s= para no cargar otro negocio por accidente.
         const params = new URLSearchParams(window.location.search);
         const s = params.get('s');
-        if (s && s.length > 0) return s.toLowerCase().trim();
+        if (!isAdminRoute && s && s.length > 0) return s.toLowerCase().trim();
 
         // Ruta directa: app.rservasroma.com/lecisnails/...
-        const parts = window.location.pathname.replace(/^\//, '').split('/').filter(Boolean);
-        if (parts.length > 0 && !ADMIN_SEGMENTS.has(parts[0]) && !parts[0].includes('.')) {
-            return parts[0].toLowerCase().trim();
+        if (parts.length > 0 && !isAdminRoute && !firstPart.includes('.')) {
+            return firstPart.toLowerCase().trim();
         }
         return null;
     }
