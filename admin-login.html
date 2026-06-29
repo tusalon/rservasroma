@@ -1,184 +1,278 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Acceso al Panel</title>
-    
-    <!-- Tailwind desde CDN -->
-    <script src="vendor/tailwind-browser.js"></script>
-    
-    <!-- bcryptjs con asignación explícita -->
-    <script src="vendor/bcrypt.min.js"></script>
-    <script>
-        // Forzar la asignación global si es necesario
-        window.addEventListener('load', function() {
-            if (typeof bcrypt === 'undefined') {
-                if (typeof dcodeIO !== 'undefined' && dcodeIO.bcrypt) {
-                    window.bcrypt = dcodeIO.bcrypt;
-                    console.log('✅ bcrypt asignado desde dcodeIO');
-                } else {
-                    console.error('❌ No se pudo cargar bcrypt');
-                    // Crear un polyfill simple para pruebas (NO USAR EN PRODUCCIÓN)
-                    window.bcrypt = {
-                        compareSync: function(password, hash) {
-                            console.warn('⚠️ Usando comparación SIMULADA - SOLO PRUEBAS');
-                            return password === 'Bennet2026';
-                        }
-                    };
-                }
-            }
-            console.log('✅ bcrypt disponible:', typeof bcrypt !== 'undefined');
-        });
-    </script>
-    
-    <link href="vendor/lucide/lucide.css" rel="stylesheet">
-    <link href="utils/legacy-ios-fallback.css?v=20260619-ios15" rel="stylesheet">
-    <style>
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rservasroma — Acceso</title>
+
+  <script src="vendor/bcrypt.min.js"></script>
+  <script>
+    window.addEventListener('load', function() {
+      if (typeof bcrypt === 'undefined') {
+        if (typeof dcodeIO !== 'undefined' && dcodeIO.bcrypt) {
+          window.bcrypt = dcodeIO.bcrypt;
         }
-        .animate-fade-in {
-            animation: fadeIn 0.5s ease-out forwards;
-        }
-    </style>
+      }
+    });
+  </script>
+
+  <link href="vendor/lucide/lucide.css" rel="stylesheet">
+  <link href="utils/legacy-ios-fallback.css?v=20260619-ios15" rel="stylesheet">
+
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      background: #1A1A1A;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 16px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+
+    .card {
+      background: #242424;
+      border-radius: 24px;
+      padding: 36px 32px;
+      width: 100%;
+      max-width: 400px;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.5);
+      animation: fadeIn 0.4s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .logo-wrap {
+      width: 88px;
+      height: 88px;
+      border-radius: 22px;
+      overflow: hidden;
+      margin: 0 auto 20px;
+      box-shadow: 0 8px 32px rgba(255,20,147,0.35);
+      border: 2px solid rgba(255,20,147,0.4);
+    }
+
+    .logo-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .title {
+      text-align: center;
+      font-size: 28px;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -0.5px;
+    }
+
+    .subtitle {
+      text-align: center;
+      font-size: 14px;
+      color: rgba(255,255,255,0.45);
+      margin-top: 6px;
+      margin-bottom: 32px;
+    }
+
+    .field { margin-bottom: 18px; }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: #FF1493;
+      margin-bottom: 8px;
+    }
+
+    .input-wrap { position: relative; }
+
+    input {
+      width: 100%;
+      background: rgba(255,255,255,0.06);
+      border: 1.5px solid rgba(255,255,255,0.10);
+      border-radius: 12px;
+      padding: 14px 16px;
+      font-size: 15px;
+      color: #fff;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    input:focus { border-color: #FF1493; }
+    input::placeholder { color: rgba(255,255,255,0.25); }
+
+    .toggle-eye {
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: rgba(255,255,255,0.35);
+      font-size: 18px;
+      padding: 4px;
+      line-height: 1;
+    }
+
+    .toggle-eye:hover { color: #FF1493; }
+
+    #mensaje {
+      text-align: center;
+      font-size: 13px;
+      color: rgba(255,255,255,0.6);
+      margin-bottom: 16px;
+      min-height: 18px;
+    }
+
+    .btn-login {
+      width: 100%;
+      background: #FF1493;
+      color: #fff;
+      border: none;
+      border-radius: 9999px;
+      padding: 15px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.15s;
+      margin-top: 8px;
+    }
+
+    .btn-login:hover { background: #C71585; transform: scale(1.02); }
+    .btn-login:active { transform: scale(0.98); }
+    .btn-login:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+    #errorMsg {
+      text-align: center;
+      font-size: 13px;
+      color: #FF4444;
+      margin-top: 14px;
+      min-height: 18px;
+    }
+
+    .hidden { display: none !important; }
+  </style>
 </head>
-<body class="bg-gradient-to-br from-gray-900 to-amber-900 min-h-screen flex items-center justify-center p-4">
-    
-    <div class="bg-gray-800 rounded-2xl shadow-xl max-w-md w-full p-8 animate-fade-in border border-amber-700">
-        <div class="text-center mb-8">
-            <div class="flex justify-center mb-4">
-                <div class="w-20 h-20 bg-gradient-to-br from-amber-500 to-amber-700 rounded-2xl shadow-xl flex items-center justify-center">
-                    <i class="icon-calendar text-4xl text-white"></i>
-                </div>
-            </div>
-            <h1 class="text-3xl font-bold text-white">Acceso al Panel</h1>
-            <p class="text-amber-400">Ingresá con tu usuario</p>
-        </div>
-        
-        <div id="mensaje" class="mb-4 text-sm text-center hidden"></div>
-        
-        <form id="loginForm" class="space-y-6">
-            <div>
-                <label class="block text-sm font-medium text-amber-400 mb-2">Usuario</label>
-                <input type="text" id="username" required
-                       class="w-full px-4 py-3 rounded-lg border border-gray-600 bg-gray-700 text-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition"
-                       placeholder="bennetsalon">
-            </div>
-            
-            <div>
-                <label class="block text-sm font-medium text-amber-400 mb-2">Contraseña</label>
-                <input type="password" id="password" required
-                       class="w-full px-4 py-3 rounded-lg border border-gray-600 bg-gray-700 text-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition"
-                       placeholder="••••••••">
-            </div>
-            
-            <button type="submit" 
-                    class="w-full bg-gradient-to-r from-amber-600 to-amber-700 text-white py-3 rounded-lg font-semibold hover:from-amber-700 hover:to-amber-800 transition transform hover:scale-105">
-                Entrar
-            </button>
-        </form>
-        
-        <div id="errorMsg" class="mt-4 text-red-500 text-sm text-center hidden"></div>
+
+<body>
+  <div class="card">
+
+    <div class="logo-wrap">
+      <img src="icons/icon-192x192.png" alt="Rservasroma">
     </div>
 
-    <script src="utils/supabase-config.js"></script>
-    <script src="utils/offline-panel.js?v=20260626-offline-panel-live"></script>
-    <script>
-        (async function() {
-            const offline = await window.RservasOffline?.redirectIfOffline?.();
-            if (!offline) window.RservasOffline?.syncFromSupabase?.();
-        })();
-    </script>
+    <h1 class="title">Rservasroma</h1>
+    <p class="subtitle">Panel de administración</p>
 
-    <script>
-        document.getElementById('loginForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const username = document.getElementById('username').value.trim().toLowerCase();
-            const password = document.getElementById('password').value.trim();
-            const errorMsg = document.getElementById('errorMsg');
-            const mensaje = document.getElementById('mensaje');
-            
-            errorMsg.classList.add('hidden');
-            mensaje.classList.add('hidden');
-            
-            mensaje.textContent = 'Verificando...';
-            mensaje.classList.remove('hidden');
-            
-            try {
-                // Verificar que bcrypt está disponible
-                if (typeof bcrypt === 'undefined') {
-                    throw new Error('bcrypt no está cargado');
-                }
+    <div id="mensaje" class="hidden"></div>
 
-                const response = await fetch(
-                    `${window.SUPABASE_URL}/rest/v1/negocios?slug=eq.${username}&select=*`,
-                    {
-                        headers: {
-                            'apikey': window.SUPABASE_ANON_KEY,
-                            'Authorization': `Bearer ${window.SUPABASE_ANON_KEY}`
-                        }
-                    }
-                );
-                
-                if (!response.ok) {
-                    throw new Error('Error en la consulta');
-                }
-                
-                const negocios = await response.json();
-                
-                if (!negocios || negocios.length === 0) {
-                    errorMsg.textContent = 'Usuario no encontrado';
-                    errorMsg.classList.remove('hidden');
-                    mensaje.classList.add('hidden');
-                    return;
-                }
-                
-                const negocio = negocios[0];
-                
-                // Verificar contraseña con bcrypt
-                try {
-                    const passwordValida = bcrypt.compareSync(password, negocio.password_hash);
-                    
-                    if (!passwordValida) {
-                        errorMsg.textContent = 'Contraseña incorrecta';
-                        errorMsg.classList.remove('hidden');
-                        mensaje.classList.add('hidden');
-                        return;
-                    }
-                } catch (bcryptError) {
-                    console.error('Error en bcrypt:', bcryptError);
-                    errorMsg.textContent = 'Error al verificar contraseña';
-                    errorMsg.classList.remove('hidden');
-                    mensaje.classList.add('hidden');
-                    return;
-                }
-                
-                console.log('✅ Login exitoso:', negocio.nombre);
-                
-                localStorage.setItem('negocioId', negocio.id);
-                localStorage.setItem('negocioSlug', negocio.slug);
-                localStorage.setItem('negocioNombre', negocio.nombre);
-                localStorage.setItem('adminAuth', 'true');
-                localStorage.setItem('adminLoginTime', Date.now());
-                
-                if (!negocio.configurado) {
-                    console.log('🔄 Primera vez, redirigiendo al wizard');
-                    window.location.href = 'setup-wizard.html';
-                } else {
-                    console.log('➡️ Negocio ya configurado, yendo al panel');
-                    window.location.href = 'admin.html';
-                }
-                
-            } catch (error) {
-                console.error('❌ Error:', error);
-                errorMsg.textContent = error.message || 'Error al conectar. Intentá de nuevo.';
-                errorMsg.classList.remove('hidden');
-                mensaje.classList.add('hidden');
-            }
-        });
-    </script>
+    <form id="loginForm" autocomplete="off">
+      <div class="field">
+        <label for="username">Usuario del salón</label>
+        <input type="text" id="username" placeholder="lecisnails" required autocomplete="username">
+      </div>
+
+      <div class="field">
+        <label for="password">Contraseña</label>
+        <div class="input-wrap">
+          <input type="password" id="password" placeholder="••••••••" required autocomplete="current-password">
+          <button type="button" class="toggle-eye" id="togglePwd" title="Mostrar contraseña">👁</button>
+        </div>
+      </div>
+
+      <button type="submit" class="btn-login" id="btnEntrar">Entrar →</button>
+    </form>
+
+    <div id="errorMsg" class="hidden"></div>
+
+  </div>
+
+  <script src="utils/supabase-config.js"></script>
+  <script src="utils/offline-panel.js?v=20260626-offline-panel-live"></script>
+  <script>
+    (async function() {
+      const offline = await window.RservasOffline?.redirectIfOffline?.();
+      if (!offline) window.RservasOffline?.syncFromSupabase?.();
+    })();
+  </script>
+
+  <script>
+    document.getElementById('togglePwd').addEventListener('click', function() {
+      var input = document.getElementById('password');
+      input.type = input.type === 'password' ? 'text' : 'password';
+    });
+
+    document.getElementById('loginForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+
+      var username = document.getElementById('username').value.trim().toLowerCase();
+      var password = document.getElementById('password').value.trim();
+      var errorMsg = document.getElementById('errorMsg');
+      var mensaje  = document.getElementById('mensaje');
+      var btn      = document.getElementById('btnEntrar');
+
+      errorMsg.classList.add('hidden');
+      errorMsg.textContent = '';
+      mensaje.classList.remove('hidden');
+      mensaje.textContent = 'Verificando...';
+      btn.disabled = true;
+
+      try {
+        if (typeof bcrypt === 'undefined') throw new Error('Error interno. Recarga la página.');
+
+        var response = await fetch(
+          window.SUPABASE_URL + '/rest/v1/negocios?slug=eq.' + encodeURIComponent(username) + '&select=*',
+          { headers: { 'apikey': window.SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + window.SUPABASE_ANON_KEY } }
+        );
+
+        if (!response.ok) throw new Error('Error de conexión. Intentá de nuevo.');
+
+        var negocios = await response.json();
+
+        if (!negocios || negocios.length === 0) {
+          errorMsg.textContent = 'Usuario no encontrado';
+          errorMsg.classList.remove('hidden');
+          mensaje.classList.add('hidden');
+          btn.disabled = false;
+          return;
+        }
+
+        var negocio = negocios[0];
+        var passwordValida = bcrypt.compareSync(password, negocio.password_hash);
+
+        if (!passwordValida) {
+          errorMsg.textContent = 'Contraseña incorrecta';
+          errorMsg.classList.remove('hidden');
+          mensaje.classList.add('hidden');
+          btn.disabled = false;
+          return;
+        }
+
+        localStorage.setItem('negocioId',      negocio.id);
+        localStorage.setItem('negocioSlug',    negocio.slug);
+        localStorage.setItem('negocioNombre',  negocio.nombre);
+        localStorage.setItem('adminAuth',      'true');
+        localStorage.setItem('adminLoginTime', Date.now());
+
+        mensaje.textContent = '✅ Bienvenida, ' + negocio.nombre + '...';
+
+        setTimeout(function() {
+          window.location.href = negocio.configurado ? 'admin.html' : 'setup-wizard.html';
+        }, 900);
+
+      } catch (error) {
+        errorMsg.textContent = error.message || 'Error al conectar. Intentá de nuevo.';
+        errorMsg.classList.remove('hidden');
+        mensaje.classList.add('hidden');
+        btn.disabled = false;
+      }
+    });
+  </script>
 </body>
 </html>
