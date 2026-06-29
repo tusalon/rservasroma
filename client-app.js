@@ -35,17 +35,20 @@ function ClientApp() {
     // DETECTAR SESIÓN AL INICIAR Y REDIRIGIR SEGÚN ROL
     // ============================================
     React.useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const slugCliente = params.get('s');
+        const esEntradaClienteMaster = Boolean(slugCliente && slugCliente.trim());
         const adminAuth = localStorage.getItem('adminAuth') === 'true';
         const profesionalAuth = localStorage.getItem('profesionalAuth');
         const clienteAuth = localStorage.getItem('clienteAuth');
         
-        if (adminAuth) {
+        if (!esEntradaClienteMaster && adminAuth) {
             console.log('👑 Usuario admin detectado, redirigiendo a admin.html');
             window.location.href = 'admin.html';
             return;
         }
         
-        if (profesionalAuth) {
+        if (!esEntradaClienteMaster && profesionalAuth) {
             console.log('👤 Usuario profesional detectado, redirigiendo a admin.html');
             window.location.href = 'admin.html';
             return;
