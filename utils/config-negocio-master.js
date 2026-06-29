@@ -230,6 +230,7 @@ window.cargarConfiguracionNegocio = async function(forceRefresh = false) {
     if (!forceRefresh && configCache && (Date.now() - ultimaActualizacion) < CACHE_DURATION) {
         console.log('📦 Usando caché de configuración');
         aplicarTemaNegocio(configCache);
+        window.actualizarManifestPWA(configCache);
         return configCache;
     }
 
@@ -262,6 +263,7 @@ window.cargarConfiguracionNegocio = async function(forceRefresh = false) {
                 window.setCodigoPaisTelefono(configCache.codigo_pais || configCache.codigo_pais_telefono || '53');
             }
             aplicarTemaNegocio(configCache);
+            window.actualizarManifestPWA(configCache);
             console.log('✅ Config cargada:', configCache.nombre);
             // Actualizar localStorage del admin con el ID confirmado
             if (!localStorage.getItem('negocioId')) {
@@ -352,5 +354,64 @@ setTimeout(async () => {
         } catch (e) { /* silencioso */ }
     }
 }, 500);
+
+// ============================================================
+// 10. MANIFEST DINÁMICO POR SALÓN (PWA)
+// ============================================================
+window.actualizarManifestPWA = function(config) {
+    if (!config || !window._rservasSlugActual) return;
+
+    const slug = window._rservasSlugActual;
+    const nombre = config.nombre || 'Mi Salón';
+    const shortName = nombre.split(' ').slice(0, 2).join(' ');
+    const color = config.color_primario || '#ec4899';
+    const startUrl = window.location.origin + window.location.pathname + '?s=' + slug;
+
+    const manifestData = {
+        name: nombre,
+        short_name: shortName,
+        description: 'Reserva tu turno en ' + nombre,
+        start_url: startUrl,
+        scope: window.location.origin + window.location.pathname,
+        display: 'standalone',
+        orientation: 'portrait',
+        background_color: '#ffffff',
+        theme_color: color,
+        lang: 'es',
+        icons: [
+            { src: 'icons/icon-72x72.png',   sizes: '72x72',   type: 'image/png' },
+            { src: 'icons/icon-96x96.png',   sizes: '96x96',   type: 'image/png' },
+            { src: 'icons/icon-128x128.png', sizes: '128x128', type: 'image/png' },
+            { src: 'icons/icon-144x144.png', sizes: '144x144', type: 'image/png' },
+            { src: 'icons/icon-152x152.png', sizes: '152x152', type: 'image/png' },
+            { src: 'icons/icon-192x192.png', sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
+            { src: 'icons/icon-384x384.png', sizes: '384x384', type: 'image/png' },
+            { src: 'icons/icon-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' }
+        ]
+    };
+
+    try {
+        const blob = new Blob([JSON.stringify(manifestData)], { type: 'application/manifest+json' });
+        const url = URL.createObjectURL(blob);
+        let link = document.querySelector('link[rel="manifest"]');
+        if (!link) {
+            link = document.createElement('link');
+            link.rel = 'manifest';
+            document.head.appendChild(link);
+        }
+        link.href = url;
+
+        // Actualizar theme-color del meta tag
+        const themeMeta = document.querySelector('meta[name="theme-color"]');
+        if (themeMeta) themeMeta.setAttribute('content', color);
+
+        // Actualizar título
+        if (nombre) document.title = nombre + ' - Reserva de Turnos';
+
+        console.log('📱 Manifest PWA actualizado para:', nombre, '| start_url:', startUrl);
+    } catch (e) {
+        console.warn('⚠️ No se pudo actualizar el manifest:', e);
+    }
+};
 
 console.log('✅ config-negocio-master.js listo');
