@@ -50,7 +50,7 @@ jobs:
 
       - name: Write twa-manifest.json
         run: |
-          cat > android/twa-manifest.json << 'EOF'
+          cat > android/twa-manifest.json << EOF
           {
             "packageId": "com.rservasroma.admin",
             "host": "tusalon.github.io",

@@ -1,6 +1,22 @@
-name: Build Android APK
+# DESHABILITADO — usaba Capacitor sin android/ ni package.json. Usar build-apk.yml (bubblewrap/TWA)
+name: Build Android APK (DISABLED)
 
 on:
+  workflow_dispatch:
+    inputs:
+      disabled:
+        description: 'Este workflow está deshabilitado. Usar build-apk.yml'
+        required: false
+
+jobs:
+  skip:
+    runs-on: ubuntu-latest
+    if: false
+    steps:
+      - run: echo "Disabled"
+
+# ORIGINAL TRIGGERS (deshabilitados):
+# on_original:
   workflow_dispatch:
   push:
     branches:

@@ -1,12 +1,9 @@
 {
-  "appId": "com.tusalon.exoticnailsbyyuli",
-  "appName": "Exotic Nails by Yuly",
-  "webDir": "www",
-  "bundledWebRuntime": false,
+  "appId": "com.rservasroma.admin",
+  "appName": "Rservasroma Admin",
+  "webDir": ".",
   "server": {
-    "androidScheme": "https"
-  },
-  "android": {
-    "allowMixedContent": true
+    "url": "https://tusalon.github.io/rservasroma/admin-login.html",
+    "cleartext": false
   }
 }

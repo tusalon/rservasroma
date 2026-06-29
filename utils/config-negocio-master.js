@@ -1,12 +1,12 @@
 // utils/config-negocio-master.js
-// ðŸ† VERSIÃ“N MAESTRA â€” un solo repo para todos los salones Rservasroma
+// 🏆 VERSIÓN MAESTRA — un solo repo para todos los salones Rservasroma
 // Reemplaza el config-negocio.js hardcodeado de cada cliente.
-// Detecta el slug desde la URL y resuelve el negocio_id automÃ¡ticamente.
+// Detecta el slug desde la URL y resuelve el negocio_id automáticamente.
 
-console.log('ðŸŒ config-negocio-master.js cargado');
+console.log('🌐 config-negocio-master.js cargado');
 
 // ============================================================
-// 1. DETECCIÃ“N DE SLUG DESDE LA URL
+// 1. DETECCIÓN DE SLUG DESDE LA URL
 // ============================================================
 (function() {
     const ADMIN_SEGMENTS = new Set([
@@ -20,50 +20,42 @@ console.log('ðŸŒ config-negocio-master.js cargado');
     ]);
 
     function getSlugFromURL() {
-        // GitHub Pages sirve este master bajo /rservasroma/.
-        // Ese segmento no es un negocio, es la carpeta del repo.
-        const rawParts = window.location.pathname.replace(/^\//, '').split('/').filter(Boolean);
-        const parts = rawParts[0] === 'rservasroma' ? rawParts.slice(1) : rawParts;
-        const firstPart = parts[0] || '';
-        const isAdminRoute = ADMIN_SEGMENTS.has(firstPart) || firstPart.endsWith('.html');
-
-        // DespuÃ©s del redirect de 404.html â†’ /?s=slug
-        // En pantallas admin se ignora ?s= para no cargar otro negocio por accidente.
+        // Después del redirect de 404.html → /?s=slug
         const params = new URLSearchParams(window.location.search);
         const s = params.get('s');
-        if (!isAdminRoute && s && s.length > 0) return s.toLowerCase().trim();
+        if (s && s.length > 0) return s.toLowerCase().trim();
 
         // Ruta directa: app.rservasroma.com/lecisnails/...
-        if (parts.length > 0 && !isAdminRoute && !firstPart.includes('.')) {
-            return firstPart.toLowerCase().trim();
+        const parts = window.location.pathname.replace(/^\//, '').split('/').filter(Boolean);
+        if (parts.length > 0 && !ADMIN_SEGMENTS.has(parts[0]) && !parts[0].includes('.')) {
+            return parts[0].toLowerCase().trim();
         }
         return null;
     }
 
     window._rservasSlugActual = getSlugFromURL();
-    console.log('ðŸ” Slug detectado:', window._rservasSlugActual || '(ninguno â€” modo admin o raÃ­z)');
+    console.log('🔍 Slug detectado:', window._rservasSlugActual || '(ninguno — modo admin o raíz)');
 })();
 
 // ============================================================
-// 2. RESOLUCIÃ“N SINCRÃ“NICA DEL NEGOCIO_ID
+// 2. RESOLUCIÓN SINCRÓNICA DEL NEGOCIO_ID
 //    Admin: lee localStorage (seteado por admin-login.html)
-//    Cliente: lee cachÃ© localStorage; si no existe, fetch async
+//    Cliente: lee caché localStorage; si no existe, fetch async
 // ============================================================
 (function() {
     const slug = window._rservasSlugActual;
 
-    // â€” Ruta ADMIN: negocioId ya estÃ¡ en localStorage tras el login â€”
+    // — Ruta ADMIN: negocioId ya está en localStorage tras el login —
     if (!slug) {
         const storedId = localStorage.getItem('negocioId') || '';
         window.NEGOCIO_ID_POR_DEFECTO = storedId;
         window._negocioIdResuelto = !!storedId;
-        window._rservasSlugActual = localStorage.getItem('negocioSlug') || '';
-        if (storedId) console.log('âœ… [admin] negocio_id desde localStorage:', storedId);
-        else console.warn('âš ï¸ [admin] Sin negocioId en localStorage. Redirigir a login.');
+        if (storedId) console.log('✅ [admin] negocio_id desde localStorage:', storedId);
+        else console.warn('⚠️ [admin] Sin negocioId en localStorage. Redirigir a login.');
         return;
     }
 
-    // â€” Ruta CLIENTE: buscar en cachÃ© de 24 h â€”
+    // — Ruta CLIENTE: buscar en caché de 24 h —
     const CACHE_ID_KEY  = 'rsmid_' + slug; // rservasroma master id
     const CACHE_TTL_KEY = 'rsmttl_' + slug;
     const cachedId  = localStorage.getItem(CACHE_ID_KEY);
@@ -73,14 +65,14 @@ console.log('ðŸŒ config-negocio-master.js cargado');
     if (cachedId && (Date.now() - cachedTTL) < CACHE_MAX_AGE) {
         window.NEGOCIO_ID_POR_DEFECTO = cachedId;
         window._negocioIdResuelto = true;
-        console.log('âœ… [cliente] negocio_id desde cachÃ©:', cachedId, '(slug:', slug + ')');
-        // Refrescar cachÃ© en background cada 24 h
+        console.log('✅ [cliente] negocio_id desde caché:', cachedId, '(slug:', slug + ')');
+        // Refrescar caché en background cada 24 h
         window._negocioSlugCacheRefresh = { slug, CACHE_ID_KEY, CACHE_TTL_KEY };
         return;
     }
 
-    // â€” Primera visita del cliente: fetch async + seÃ±al de "cargando" â€”
-    console.log('â³ [cliente] Primer acceso, resolviendo negocio_id para slug:', slug);
+    // — Primera visita del cliente: fetch async + señal de "cargando" —
+    console.log('⏳ [cliente] Primer acceso, resolviendo negocio_id para slug:', slug);
     window.NEGOCIO_ID_POR_DEFECTO = '';
     window._negocioIdResuelto = false;
     window._negocioSlugPendiente = { slug, CACHE_ID_KEY, CACHE_TTL_KEY };
@@ -99,7 +91,7 @@ console.log('ðŸŒ config-negocio-master.js cargado');
             const data = await res.json();
             const negocio = data[0];
             if (!negocio) {
-                console.error('âŒ Slug no encontrado en Supabase:', slug);
+                console.error('❌ Slug no encontrado en Supabase:', slug);
                 return null;
             }
             const id = negocio.id;
@@ -108,11 +100,11 @@ console.log('ðŸŒ config-negocio-master.js cargado');
             localStorage.setItem('negocioSlug', negocio.slug);
             window.NEGOCIO_ID_POR_DEFECTO = id;
             window._negocioIdResuelto = true;
-            console.log('âœ… [cliente] negocio_id resuelto:', id, 'â€”', negocio.nombre);
+            console.log('✅ [cliente] negocio_id resuelto:', id, '—', negocio.nombre);
             window.dispatchEvent(new CustomEvent('negocio-id-ready', { detail: { id, slug: negocio.slug, nombre: negocio.nombre } }));
             return id;
         } catch (err) {
-            console.error('âŒ Error resolviendo negocio por slug:', err);
+            console.error('❌ Error resolviendo negocio por slug:', err);
             return null;
         }
     })();
@@ -130,7 +122,7 @@ window.getNegocioIdFromConfig = function() {
 };
 
 // ============================================================
-// 4. UTILIDADES DE COLOR (idÃ©nticas al original)
+// 4. UTILIDADES DE COLOR (idénticas al original)
 // ============================================================
 function hexToRgbParts(hex, fallback = '236 72 153') {
     const limpio = String(hex || '').replace('#', '').trim();
@@ -166,7 +158,7 @@ function asegurarColorVisible(hex, fallback = '#c0266f') {
 }
 
 // ============================================================
-// 5. TEMA (idÃ©ntico al original)
+// 5. TEMA (idéntico al original)
 // ============================================================
 function aplicarTemaNegocio(config = {}) {
     const primarioOriginal  = normalizarHexColor(config.color_primario,   '#ec4899');
@@ -211,32 +203,31 @@ window.getPreferenciasWhatsAppNegocio = function(config = null) {
 };
 
 // ============================================================
-// 7. CARGA DE CONFIGURACIÃ“N DEL NEGOCIO
-//    Espera a que el negocio_id estÃ© disponible si es primera visita
+// 7. CARGA DE CONFIGURACIÓN DEL NEGOCIO
+//    Espera a que el negocio_id esté disponible si es primera visita
 // ============================================================
 window.cargarConfiguracionNegocio = async function(forceRefresh = false) {
-    // Si el ID no estÃ¡ resuelto aÃºn, esperar la promesa async
+    // Si el ID no está resuelto aún, esperar la promesa async
     if (!window._negocioIdResuelto && window._negocioResolvePromise) {
-        console.log('â³ Esperando resoluciÃ³n del negocio_id...');
+        console.log('⏳ Esperando resolución del negocio_id...');
         await window._negocioResolvePromise;
     }
 
     const negocioId = window.NEGOCIO_ID_POR_DEFECTO;
     if (!negocioId) {
-        console.error('âŒ No hay negocio_id disponible');
+        console.error('❌ No hay negocio_id disponible');
         return null;
     }
 
-    // CachÃ© de configuraciÃ³n
+    // Caché de configuración
     if (!forceRefresh && configCache && (Date.now() - ultimaActualizacion) < CACHE_DURATION) {
-        console.log('ðŸ“¦ Usando cachÃ© de configuraciÃ³n');
+        console.log('📦 Usando caché de configuración');
         aplicarTemaNegocio(configCache);
-        window.actualizarManifestPWA(configCache);
         return configCache;
     }
 
     try {
-        console.log('ðŸŒ Cargando configuraciÃ³n del negocio desde Supabase...', negocioId);
+        console.log('🌐 Cargando configuración del negocio desde Supabase...', negocioId);
         const url = `${window.SUPABASE_URL}/rest/v1/negocios?id=eq.${negocioId}&select=*`;
         const response = await fetch(url, {
             headers: {
@@ -248,7 +239,7 @@ window.cargarConfiguracionNegocio = async function(forceRefresh = false) {
         });
 
         if (!response.ok) {
-            console.error('âŒ Error HTTP:', response.status, await response.text());
+            console.error('❌ Error HTTP:', response.status, await response.text());
             return null;
         }
 
@@ -264,8 +255,7 @@ window.cargarConfiguracionNegocio = async function(forceRefresh = false) {
                 window.setCodigoPaisTelefono(configCache.codigo_pais || configCache.codigo_pais_telefono || '53');
             }
             aplicarTemaNegocio(configCache);
-            window.actualizarManifestPWA(configCache);
-            console.log('âœ… Config cargada:', configCache.nombre);
+            console.log('✅ Config cargada:', configCache.nombre);
             // Actualizar localStorage del admin con el ID confirmado
             if (!localStorage.getItem('negocioId')) {
                 localStorage.setItem('negocioId', negocioId);
@@ -273,13 +263,13 @@ window.cargarConfiguracionNegocio = async function(forceRefresh = false) {
         }
         return configCache;
     } catch (error) {
-        console.error('âŒ Error cargando configuraciÃ³n:', error);
+        console.error('❌ Error cargando configuración:', error);
         return null;
     }
 };
 
 // ============================================================
-// 8. HELPERS DE DATOS (idÃ©nticos al original)
+// 8. HELPERS DE DATOS (idénticos al original)
 // ============================================================
 window.getNombreNegocio = async function() {
     const c = await window.cargarConfiguracionNegocio();
@@ -311,11 +301,11 @@ window.getHorarioAtencion = async function() {
 };
 window.getMensajeBienvenida = async function() {
     const c = await window.cargarConfiguracionNegocio();
-    return c?.mensaje_bienvenida || 'Â¡Bienvenida!';
+    return c?.mensaje_bienvenida || '¡Bienvenida!';
 };
 window.getMensajeConfirmacion = async function() {
     const c = await window.cargarConfiguracionNegocio();
-    return c?.mensaje_confirmacion || 'Tu turno ha sido reservado con Ã©xito';
+    return c?.mensaje_confirmacion || 'Tu turno ha sido reservado con éxito';
 };
 window.getNtfyTopic = async function() {
     const c = await window.cargarConfiguracionNegocio();
@@ -331,13 +321,13 @@ window.negocioConfigurado = async function() {
 };
 
 // ============================================================
-// 9. PRECARGA AUTOMÃTICA
+// 9. PRECARGA AUTOMÁTICA
 // ============================================================
 setTimeout(async () => {
-    console.log('ðŸ”„ Precargando configuraciÃ³n automÃ¡tica...');
+    console.log('🔄 Precargando configuración automática...');
     await window.cargarConfiguracionNegocio();
 
-    // Refrescar cachÃ© de slug en background si fue hit en cachÃ©
+    // Refrescar caché de slug en background si fue hit en caché
     if (window._negocioSlugCacheRefresh) {
         const { slug, CACHE_ID_KEY, CACHE_TTL_KEY } = window._negocioSlugCacheRefresh;
         try {
@@ -355,6 +345,7 @@ setTimeout(async () => {
         } catch (e) { /* silencioso */ }
     }
 }, 500);
+
 
 // ============================================================
 // 10. MANIFEST DINÁMICO POR SALÓN (PWA)
