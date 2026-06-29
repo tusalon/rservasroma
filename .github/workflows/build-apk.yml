@@ -30,6 +30,10 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
+      - name: Configure Bubblewrap paths
+        run: |
+          bubblewrap updateConfig --jdkPath "$JAVA_HOME" --androidSdkPath "$ANDROID_HOME"
+
       - name: Create android/ directory
         run: mkdir -p android
 
@@ -70,7 +74,7 @@ jobs:
       - name: Init Bubblewrap project
         working-directory: android
         run: |
-          printf 'n\n%s\n' "$JAVA_HOME" | bubblewrap init \
+          bubblewrap init \
             --manifest https://tusalon.github.io/rservasroma/manifest.json \
             --directory . \
             --skipPwaValidation
