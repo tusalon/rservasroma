@@ -382,8 +382,12 @@ function AdminApp() {
     const [userRole, setUserRole] = React.useState(profesionalInicial ? 'profesional' : 'admin');
     const [userNivel, setUserNivel] = React.useState(profesionalInicial?.nivel || 3);
     const [profesional, setProfesional] = React.useState(profesionalInicial);
-    const [nombreNegocio, setNombreNegocio] = React.useState('Mi Negocio');
-    const [logoNegocio, setLogoNegocio] = React.useState(null);
+    const [nombreNegocio, setNombreNegocio] = React.useState(
+        localStorage.getItem('negocioNombre') || 'Mi Negocio'
+    );
+    const [logoNegocio, setLogoNegocio] = React.useState(
+        localStorage.getItem('negocioLogo') || null
+    );
     
     const [config, setConfig] = React.useState(null);
     const [configVersion, setConfigVersion] = React.useState(0);
@@ -657,6 +661,7 @@ function AdminApp() {
             }
             if (configData?.logo_url) {
                 setLogoNegocio(configData.logo_url);
+                localStorage.setItem('negocioLogo', configData.logo_url);
             }
         } catch (error) {
             console.error('Error cargando config:', error);
@@ -3709,6 +3714,54 @@ Cualquier cambio, podés cancelarlo desde la app con hasta 1 hora de anticipaci�
                             <i className="icon-log-out text-pink-600"></i>
                         </button>
                     </div>
+
+                    {(() => {
+                        const slug = localStorage.getItem('negocioSlug') || '';
+                        const base = window.location.origin + window.location.pathname.replace(/\/?$/, '');
+                        const urlCliente = slug ? base + '?s=' + slug : '';
+                        return urlCliente ? (
+                            <div style={{
+                                marginTop: '8px',
+                                background: 'rgba(236,72,153,0.07)',
+                                border: '1px solid rgba(236,72,153,0.2)',
+                                borderRadius: '10px',
+                                padding: '8px 14px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '10px',
+                                flexWrap: 'wrap',
+                                width: '100%'
+                            }}>
+                                <span style={{ fontSize: '12px', color: '#9d174d', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                                    🔗 Enlace de clientes:
+                                </span>
+                                <span style={{ fontSize: '12px', color: '#be185d', wordBreak: 'break-all', flex: 1 }}>
+                                    {urlCliente}
+                                </span>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        navigator.clipboard.writeText(urlCliente).then(() => {
+                                            const btn = document.getElementById('btn-copiar-url');
+                                            if (btn) { btn.textContent = '✅'; setTimeout(() => { btn.textContent = '📋'; }, 1500); }
+                                        });
+                                    }}
+                                    id="btn-copiar-url"
+                                    style={{
+                                        background: '#ec4899',
+                                        color: 'white',
+                                        border: 'none',
+                                        borderRadius: '6px',
+                                        padding: '4px 10px',
+                                        fontSize: '14px',
+                                        cursor: 'pointer',
+                                        flexShrink: 0
+                                    }}
+                                    title="Copiar enlace"
+                                >📋</button>
+                            </div>
+                        ) : null;
+                    })()}
                 </div>
 
                 {/* MODAL NUEVA RESERVA */}
