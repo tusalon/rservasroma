@@ -315,6 +315,12 @@ window.getRequiereAnticipo = async function() {
     const c = await window.cargarConfiguracionNegocio();
     return c?.requiere_anticipo || false;
 };
+window.getUrlClientes = async function() {
+    const c = await window.cargarConfiguracionNegocio();
+    const slug = window._rservasSlugActual || localStorage.getItem('negocioSlug') || '';
+    return c?.url_clientes ||
+           (slug ? 'https://tusalon.github.io/' + slug + '/' : '');
+};
 window.negocioConfigurado = async function() {
     const c = await window.cargarConfiguracionNegocio();
     return c?.configurado || false;

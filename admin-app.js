@@ -388,6 +388,9 @@ function AdminApp() {
     const [logoNegocio, setLogoNegocio] = React.useState(
         localStorage.getItem('negocioLogo') || null
     );
+    const [urlCliente, setUrlCliente] = React.useState(
+        localStorage.getItem('negocioUrlClientes') || ''
+    );
     
     const [config, setConfig] = React.useState(null);
     const [configVersion, setConfigVersion] = React.useState(0);
@@ -652,6 +655,15 @@ function AdminApp() {
         cargarConfiguracion();
     }, [configVersion]);
 
+    React.useEffect(() => {
+        window.getUrlClientes?.().then(url => {
+            if (url) {
+                setUrlCliente(url);
+                localStorage.setItem('negocioUrlClientes', url);
+            }
+        });
+    }, []);
+
     const cargarConfiguracion = async () => {
         try {
             const configData = await window.cargarConfiguracionNegocio(true);
@@ -662,6 +674,10 @@ function AdminApp() {
             if (configData?.logo_url) {
                 setLogoNegocio(configData.logo_url);
                 localStorage.setItem('negocioLogo', configData.logo_url);
+            }
+            if (configData?.url_clientes) {
+                setUrlCliente(configData.url_clientes);
+                localStorage.setItem('negocioUrlClientes', configData.url_clientes);
             }
         } catch (error) {
             console.error('Error cargando config:', error);
@@ -3716,11 +3732,6 @@ Cualquier cambio, pod√©s cancelarlo desde la app con hasta 1 hora de anticipaci√
                     </div>
 
                     {(() => {
-                        const slug = localStorage.getItem('negocioSlug') || '';
-                        const basePath = window.location.pathname.includes('/rservasroma/')
-                            ? '/rservasroma/'
-                            : '/';
-                        const urlCliente = slug ? window.location.origin + basePath + '?s=' + slug : '';
                         return urlCliente ? (
                             <div style={{
                                 marginTop: '8px',
