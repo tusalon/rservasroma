@@ -70,7 +70,7 @@ jobs:
       - name: Init Bubblewrap project
         working-directory: android
         run: |
-          printf 'n\n' | bubblewrap init \
+          printf 'n\n%s\n' "$JAVA_HOME" | bubblewrap init \
             --manifest https://tusalon.github.io/rservasroma/manifest.json \
             --directory . \
             --skipPwaValidation
