@@ -119,6 +119,23 @@ jobs:
           }
           EOF
 
+      - name: Normalize generated TWA manifest
+        run: |
+          node - << 'EOF'
+          const fs = require('fs');
+          const file = 'android/twa-manifest.json';
+          const manifest = JSON.parse(fs.readFileSync(file, 'utf8'));
+          manifest.packageId = 'com.rservasroma.admin';
+          manifest.host = 'tusalon.github.io';
+          manifest.startUrl = '/rservasroma/admin-login.html';
+          manifest.signingKey = {
+            path: 'rservasroma.keystore',
+            alias: 'rservasroma'
+          };
+          fs.writeFileSync(file, JSON.stringify(manifest, null, 2));
+          console.log('TWA manifest normalizado para build firmado.');
+          EOF
+
       - name: Build APK
         working-directory: android
         env:
