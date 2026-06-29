@@ -89,7 +89,19 @@ jobs:
           set timeout 600
           spawn bubblewrap init --manifest https://tusalon.github.io/rservasroma/manifest.json --directory . --skipPwaValidation
           expect {
-            -re "Domain|URL path|Application name|Short name|Application ID|Version code|Display mode|Orientation|Status bar color|Splash screen background color|Icon URL|Maskable icon URL|Monochrome icon URL|Include app shortcuts|Play Billing|Location Delegation|Signing key path|Signing key alias" {
+            -re "Application ID:" {
+              send "com.rservasroma.admin\r"
+              exp_continue
+            }
+            -re "Key store location:" {
+              send "rservasroma.keystore\r"
+              exp_continue
+            }
+            -re "Key name:" {
+              send "rservasroma\r"
+              exp_continue
+            }
+            -re "Domain|URL path|Application name|Short name|Starting version code|Display mode|Orientation|Status bar color|Splash screen color|Icon URL|Maskable icon URL|Monochrome icon URL|Include app shortcuts|Play Billing|Request geolocation permission" {
               send "\r"
               exp_continue
             }
