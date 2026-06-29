@@ -80,7 +80,7 @@ jobs:
       - name: Init Bubblewrap project
         working-directory: android
         run: |
-          bubblewrap init \
+          yes "" | head -n 80 | bubblewrap init \
             --manifest https://tusalon.github.io/rservasroma/manifest.json \
             --directory . \
             --skipPwaValidation
