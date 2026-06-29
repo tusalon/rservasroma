@@ -85,35 +85,9 @@ jobs:
       - name: Init Bubblewrap project
         working-directory: android
         run: |
-          expect << 'EOF'
-          set timeout 180
-          spawn bubblewrap init --manifest https://tusalon.github.io/rservasroma/manifest.json --directory . --skipPwaValidation
-          expect {
-            -re "Domain:" {
-              send "\r"
-              exp_continue
-            }
-            -re "URL path:" {
-              send "\r"
-              exp_continue
-            }
-            -re "\\(Y/n\\)" {
-              send "\r"
-              exp_continue
-            }
-            -re ": " {
-              send "\r"
-              exp_continue
-            }
-            timeout {
-              exit 1
-            }
-            eof {
-              catch wait result
-              exit [lindex $result 3]
-            }
-          }
-          EOF
+          python3 - << 'PY' | timeout 10m bubblewrap init --manifest https://tusalon.github.io/rservasroma/manifest.json --directory . --skipPwaValidation
+          print("\n" * 120)
+          PY
 
       - name: Build APK
         working-directory: android
@@ -121,27 +95,9 @@ jobs:
           BUBBLEWRAP_KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           BUBBLEWRAP_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
-          expect << 'EOF'
-          set timeout 900
-          spawn bubblewrap build --skipPwaValidation
-          expect {
-            -re "\\(Y/n\\)" {
-              send "\r"
-              exp_continue
-            }
-            -re ": " {
-              send "\r"
-              exp_continue
-            }
-            timeout {
-              exit 1
-            }
-            eof {
-              catch wait result
-              exit [lindex $result 3]
-            }
-          }
-          EOF
+          python3 - << 'PY' | timeout 20m bubblewrap build --skipPwaValidation
+          print("\n" * 40)
+          PY
 
       - name: List generated APK files
         run: |
