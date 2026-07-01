@@ -1,0 +1,16 @@
+# Normalizar line endings automáticamente
+* text=auto
+
+# Archivos Windows que deben conservar CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Archivos que deben ser LF siempre
+*.js text eol=lf
+*.html text eol=lf
+*.css text eol=lf
+*.json text eol=lf
+*.ts text eol=lf
+*.md text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf

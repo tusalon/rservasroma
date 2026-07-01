@@ -374,29 +374,19 @@ function _crearCardBase() {
     return card;
 }
 
-function _botonCerrarCard(card) {
-    const btn = document.createElement('button');
-    btn.textContent = '✕';
-    btn.style.cssText = [
-        'position:absolute', 'top:12px', 'right:14px',
-        'background:none', 'border:none', 'color:#6b7280',
-        'font-size:16px', 'cursor:pointer', 'padding:4px', 'line-height:1'
-    ].join(';');
-    btn.onclick = () => {
-        card.style.transform = 'translateX(-50%) translateY(120px)';
-        setTimeout(() => card.remove(), 400);
-        localStorage.setItem('rservasPushCardDismissed', 'true');
-    };
-    card.style.position = 'fixed';
-    card.appendChild(btn);
-    return btn;
+const CERRAR_BTN_STYLE = 'position:absolute;top:12px;right:14px;background:none;border:none;color:#6b7280;font-size:16px;cursor:pointer;padding:4px;line-height:1';
+
+function _cerrarCard(card) {
+    card.style.transform = 'translateX(-50%) translateY(120px)';
+    setTimeout(() => card.remove(), 400);
+    localStorage.setItem('rservasPushCardDismissed', 'true');
 }
 
 function _mostrarCardPermisoNormal() {
     const card = _crearCardBase();
-    _botonCerrarCard(card);
-
-    card.innerHTML += `
+    // innerHTML completo de una vez — nunca usar innerHTML += después de attachar listeners
+    card.innerHTML = `
+        <button id="rservas-push-cerrar" style="${CERRAR_BTN_STYLE}">✕</button>
         <div style="font-size:28px;flex-shrink:0;line-height:1">🔔</div>
         <div style="flex:1;min-width:0">
             <div style="color:#fff;font-size:15px;font-weight:700;margin-bottom:4px">
@@ -412,7 +402,7 @@ function _mostrarCardPermisoNormal() {
             ">Activar notificaciones</button>
         </div>
     `;
-
+    document.getElementById('rservas-push-cerrar').onclick = () => _cerrarCard(card);
     document.getElementById('rservas-push-activar').addEventListener('click', async function() {
         this.disabled = true;
         this.textContent = 'Activando...';
@@ -435,8 +425,8 @@ function _mostrarCardPermisoNormal() {
 
 function _mostrarCardBloqueado() {
     const card = _crearCardBase();
-    _botonCerrarCard(card);
-    card.innerHTML += `
+    card.innerHTML = `
+        <button id="rservas-push-cerrar" style="${CERRAR_BTN_STYLE}">✕</button>
         <div style="font-size:28px;flex-shrink:0;line-height:1">🚫</div>
         <div style="flex:1;min-width:0">
             <div style="color:#fff;font-size:15px;font-weight:700;margin-bottom:4px">
@@ -448,12 +438,13 @@ function _mostrarCardBloqueado() {
             </div>
         </div>
     `;
+    document.getElementById('rservas-push-cerrar').onclick = () => _cerrarCard(card);
 }
 
 function _mostrarCardIOSInstrucciones() {
     const card = _crearCardBase();
-    _botonCerrarCard(card);
-    card.innerHTML += `
+    card.innerHTML = `
+        <button id="rservas-push-cerrar" style="${CERRAR_BTN_STYLE}">✕</button>
         <div style="font-size:28px;flex-shrink:0;line-height:1">📲</div>
         <div style="flex:1;min-width:0">
             <div style="color:#fff;font-size:15px;font-weight:700;margin-bottom:4px">
@@ -466,6 +457,7 @@ function _mostrarCardIOSInstrucciones() {
             </div>
         </div>
     `;
+    document.getElementById('rservas-push-cerrar').onclick = () => _cerrarCard(card);
 }
 
 window.addEventListener('load', () => {
