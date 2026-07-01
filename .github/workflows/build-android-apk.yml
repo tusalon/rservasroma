@@ -85,13 +85,17 @@ jobs:
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: |
           $version = "1.0.${{ github.run_number }}"
-          $headers = @{
-            "apikey"        = $env:SUPABASE_SERVICE_KEY
-            "Authorization" = "Bearer $env:SUPABASE_SERVICE_KEY"
-            "Content-Type"  = "application/json"
-            "Prefer"        = "resolution=merge-duplicates"
+          $body = '[{"clave":"admin_version","valor":"' + $version + '","descripcion":"Ultima version disponible del APK admin"}]'
+          Write-Host "Publicando version $version en Supabase..."
+          $statusCode = curl.exe -s -o NUL -w "%{http_code}" `
+            -X POST "$env:SUPABASE_URL/rest/v1/config_global" `
+            -H "apikey: $env:SUPABASE_SERVICE_KEY" `
+            -H "Authorization: Bearer $env:SUPABASE_SERVICE_KEY" `
+            -H "Content-Type: application/json" `
+            -H "Prefer: resolution=merge-duplicates" `
+            -d $body
+          Write-Host "HTTP status: $statusCode"
+          if ($statusCode -notmatch "^2") {
+            throw "Fallo al actualizar Supabase. HTTP: $statusCode"
           }
-          $item = @{ clave = "admin_version"; valor = $version; descripcion = "Ultima version disponible del APK admin" }
-          $body = "[" + (ConvertTo-Json $item -Compress) + "]"
-          $response = Invoke-RestMethod -Uri "$env:SUPABASE_URL/rest/v1/config_global" -Method POST -Headers $headers -Body $body
-          Write-Host "Version $version publicada en Supabase"
+          Write-Host "Version $version publicada correctamente"
