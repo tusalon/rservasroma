@@ -68,31 +68,35 @@ async function guardarTokenNativePush(token, role) {
     return true;
 }
 
+function mostrarToastNativo(mensaje, tipo = 'ok') {
+    if (window.mostrarToastPush) { window.mostrarToastPush(mensaje, tipo); return; }
+    const color = tipo === 'ok' ? '#16a34a' : tipo === 'error' ? '#dc2626' : '#0f766e';
+    const t = document.createElement('div');
+    t.style.cssText = `position:fixed;top:20px;left:50%;transform:translateX(-50%);background:${color};color:#fff;padding:12px 20px;border-radius:12px;font-size:14px;font-weight:600;z-index:99999;box-shadow:0 8px 24px rgba(0,0,0,.35);font-family:system-ui,sans-serif;max-width:90vw;text-align:center;transition:opacity 0.4s`;
+    t.textContent = mensaje;
+    document.body.appendChild(t);
+    setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 400); }, 3500);
+}
+
 window.solicitarNativePushRservasRoma = async function(options = {}) {
     const role = options.role || getRolNativePush(options.defaultRole || 'admin');
     const PushNotifications = getNativePushPlugin();
 
-    if (!isRservasNativeApp()) {
-        return false;
-    }
+    if (!isRservasNativeApp()) return false;
 
     if (!PushNotifications) {
-        alert('Esta APK todavia no tiene el plugin nativo de notificaciones. Compila una APK nueva.');
+        mostrarToastNativo('Esta APK aún no tiene push nativo. Descarga la versión actualizada.', 'error');
         return false;
     }
 
     return new Promise(async (resolve) => {
         let finished = false;
-        const finish = (ok) => {
-            if (finished) return;
-            finished = true;
-            resolve(ok);
-        };
+        const finish = (ok) => { if (finished) return; finished = true; resolve(ok); };
 
         try {
             const permission = await PushNotifications.requestPermissions();
             if (permission.receive !== 'granted') {
-                alert('Android no concedio el permiso de notificaciones para esta app.');
+                mostrarToastNativo('Permiso de notificaciones denegado por Android.', 'error');
                 finish(false);
                 return;
             }
@@ -102,18 +106,18 @@ window.solicitarNativePushRservasRoma = async function(options = {}) {
             await PushNotifications.addListener('registration', async (token) => {
                 try {
                     await guardarTokenNativePush(token.value, role);
-                    alert('Notificaciones activadas para esta APK.');
+                    mostrarToastNativo('✅ Notificaciones activadas');
                     finish(true);
                 } catch (error) {
                     console.error('No se pudo guardar token nativo:', error);
-                    alert(error.message || 'No se pudo guardar el token de notificaciones.');
+                    mostrarToastNativo(error.message || 'No se pudo guardar el token.', 'error');
                     finish(false);
                 }
             });
 
             await PushNotifications.addListener('registrationError', (error) => {
                 console.error('Error registrando push nativo:', error);
-                alert('No se pudo activar el push nativo. Si falta Firebase, agrega google-services.json y recompila la APK.');
+                mostrarToastNativo('Firebase no configurado en esta APK. Descarga la versión actualizada.', 'error');
                 finish(false);
             });
 
@@ -121,59 +125,61 @@ window.solicitarNativePushRservasRoma = async function(options = {}) {
 
             setTimeout(() => {
                 if (!finished) {
-                    alert('No se recibio token de Android. Revisa que la APK tenga Firebase/google-services.json configurado.');
+                    mostrarToastNativo('No se recibió token. Verifica que Firebase esté configurado.', 'error');
                     finish(false);
                 }
             }, 12000);
         } catch (error) {
             console.error('Error solicitando push nativo:', error);
-            alert(error.message || 'No se pudo solicitar el permiso nativo de notificaciones.');
+            mostrarToastNativo(error.message || 'No se pudo activar las notificaciones.', 'error');
             finish(false);
         }
     });
 };
 
+// La card de push nativo se muestra desde push-notifications.js (instalarCardPushAdmin)
+// porque detecta isNative y delega a solicitarNativePushRservasRoma.
+// Este botón solo se instala como fallback si la card web no está disponible.
 function instalarBotonNativePushAdmin() {
     if (!isRservasNativeApp()) return;
     if (document.getElementById('rservas-native-push-button')) return;
+    if (document.getElementById('rservas-push-card')) return; // la card web ya está
     if (!localStorage.getItem('adminAuth') && !localStorage.getItem('profesionalAuth')) return;
     if (localStorage.getItem('rservasNativePushActivo') === 'true') return;
 
     const button = document.createElement('button');
     button.id = 'rservas-native-push-button';
     button.type = 'button';
-    button.textContent = 'Activar notificaciones APK';
+    button.textContent = '🔔 Activar notificaciones';
     button.style.cssText = [
         'position:fixed',
-        'left:16px',
-        'bottom:72px',
+        'bottom:24px', 'left:50%',
+        'transform:translateX(-50%)',
         'z-index:9998',
         'border:0',
-        'border-radius:999px',
-        'padding:12px 16px',
-        'background:#0f766e',
+        'border-radius:14px',
+        'padding:14px 24px',
+        'background:#FF1493',
         'color:#fff',
         'font-weight:700',
-        'box-shadow:0 10px 30px rgba(0,0,0,.22)',
-        'cursor:pointer'
+        'font-size:14px',
+        'box-shadow:0 10px 30px rgba(255,20,147,.35)',
+        'cursor:pointer',
+        'font-family:system-ui,sans-serif',
+        'white-space:nowrap'
     ].join(';');
 
     button.addEventListener('click', async () => {
         button.disabled = true;
-        button.textContent = 'Activando APK...';
+        button.textContent = 'Activando...';
         const ok = await window.solicitarNativePushRservasRoma({ defaultRole: 'admin' }).catch((error) => {
             console.error('Error activando push APK:', error);
-            alert(error.message || 'No se pudo activar push APK.');
+            mostrarToastNativo(error.message || 'No se pudo activar.', 'error');
             return false;
         });
-
-        if (ok) {
-            button.remove();
-            return;
-        }
-
+        if (ok) { button.remove(); return; }
         button.disabled = false;
-        button.textContent = 'Activar notificaciones APK';
+        button.textContent = '🔔 Activar notificaciones';
     });
 
     document.body.appendChild(button);

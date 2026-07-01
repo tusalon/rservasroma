@@ -1,7 +1,7 @@
-// sw.js - Service Worker para Exotic Nails by Yuly
+// sw.js - Service Worker para Rservasroma
 
-const CACHE_NAME = 'exoticnailsbyyuly-v72';
-const BASE = '/exoticnailsbyyuly';
+const CACHE_NAME = 'rservasroma-v1';
+const BASE = '/rservasroma';
 
 const urlsToCache = [
   `${BASE}/`,
@@ -29,6 +29,7 @@ const urlsToCache = [
   `${BASE}/utils/hero-backgrounds.js`,
   `${BASE}/utils/native-push-notifications.js`,
   `${BASE}/utils/offline-panel.js`,
+  `${BASE}/utils/config-negocio-master.js`,
   `${BASE}/utils/phone-utils.js`,
   `${BASE}/utils/profesionales.js`,
   `${BASE}/utils/push-config.js?v=20260621`,
@@ -182,7 +183,7 @@ self.addEventListener('push', event => {
     icon: `${BASE}/icons/icon-192x192.png`,
     badge: `${BASE}/icons/badge.svg`,
     tag: payload.tag || 'rservasroma',
-    data: { url: payload.url || `${BASE}/admin.html`, ...(payload.data || {}) },
+    data: { url: payload.url || `https://tusalon.github.io${BASE}/admin.html`, ...(payload.data || {}) },
   }));
 });
 

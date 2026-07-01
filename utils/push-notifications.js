@@ -283,59 +283,191 @@ window.enviarWebPushRservasRoma = async function({ title, body, url = '', role =
     }
 };
 
-function instalarBotonPushAdmin() {
-    if (document.getElementById('rservas-push-button')) return;
-    if (!pushKeyConfigurada()) return;
-    if (!('Notification' in window) || Notification.permission === 'granted') return;
-    if (!localStorage.getItem('adminAuth') && !localStorage.getItem('profesionalAuth')) return;
+// ─── Alias para compatibilidad con admin-app.js ───────────────────────────────
+// admin-app.js llama window.enviarNotificacionPush; la función real es enviarWebPushRservasRoma
+window.enviarNotificacionPush = function(title, body, tags, role) {
+    return window.enviarWebPushRservasRoma({ title, body, tags: tags || 'bell', role: role || 'admin' });
+};
 
-    const button = document.createElement('button');
-    button.id = 'rservas-push-button';
-    button.type = 'button';
-    button.textContent = Notification.permission === 'denied' ? 'Push bloqueado' : 'Activar notificaciones';
-    button.style.cssText = [
-        'position:fixed',
-        'left:16px',
-        'bottom:16px',
-        'z-index:9998',
-        'border:0',
-        'border-radius:999px',
-        'padding:12px 16px',
-        'background:#111827',
-        'color:#fff',
-        'font-weight:700',
-        'box-shadow:0 10px 30px rgba(0,0,0,.22)',
-        'cursor:pointer'
+// ─── Detección de contexto para mostrar la card correcta ─────────────────────
+function getPushContext() {
+    const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+    const isNative = Boolean(window.Capacitor?.isNativePlatform?.());
+    const permiso = 'Notification' in window ? Notification.permission : 'unsupported';
+    const suscritoWeb = localStorage.getItem('rservasPushActivo') === 'true';
+    const suscritoNativo = localStorage.getItem('rservasNativePushActivo') === 'true';
+    return { isIOS, isStandalone, isNative, permiso, suscritoWeb, suscritoNativo };
+}
+
+function mostrarToastPush(mensaje, tipo = 'ok') {
+    const existing = document.getElementById('rservas-push-toast');
+    if (existing) existing.remove();
+    const toast = document.createElement('div');
+    toast.id = 'rservas-push-toast';
+    const color = tipo === 'ok' ? '#16a34a' : tipo === 'error' ? '#dc2626' : '#0f766e';
+    toast.style.cssText = [
+        'position:fixed', 'top:20px', 'left:50%',
+        'transform:translateX(-50%)',
+        `background:${color}`, 'color:#fff',
+        'padding:12px 20px', 'border-radius:12px',
+        'font-size:14px', 'font-weight:600',
+        'z-index:99999', 'box-shadow:0 8px 24px rgba(0,0,0,.35)',
+        'font-family:system-ui,sans-serif',
+        'transition:opacity 0.4s ease',
+        'max-width:90vw', 'text-align:center'
     ].join(';');
+    toast.textContent = mensaje;
+    document.body.appendChild(toast);
+    setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 400); }, 3500);
+}
 
-    button.addEventListener('click', () => {
-        // En Chrome Android conviene pedir el permiso como primera accion exacta del toque.
-        const permissionPromise = pedirPermisoNotificacionesPush();
-        button.disabled = true;
-        button.textContent = 'Activando...';
+function instalarCardPushAdmin() {
+    if (document.getElementById('rservas-push-card')) return;
+    if (!pushKeyConfigurada()) return;
+    if (!localStorage.getItem('adminAuth') && !localStorage.getItem('profesionalAuth')) return;
+    if (localStorage.getItem('rservasPushCardDismissed') === 'true') return;
 
-        permissionPromise
-            .then((permission) => window.solicitarPushRservasRoma({ defaultRole: 'admin', permission }))
-            .then((ok) => {
-                if (ok) {
-                    button.remove();
-                    return;
-                }
+    const ctx = getPushContext();
 
-                button.disabled = false;
-                button.textContent = Notification.permission === 'denied' ? 'Push bloqueado' : 'Activar notificaciones';
-            })
-            .catch((error) => {
-                console.error('Error activando Web Push:', error);
-                window.diagnosticarPushRservasRoma(error);
-                button.disabled = false;
-                button.textContent = Notification.permission === 'denied' ? 'Push bloqueado' : 'Activar notificaciones';
-            });
+    // Ya suscrito correctamente → no mostrar nada
+    if (ctx.isNative && ctx.suscritoNativo) return;
+    if (!ctx.isNative && ctx.suscritoWeb && ctx.permiso === 'granted') return;
+
+    // iOS sin standalone → mostrar instrucciones de "Añadir a inicio"
+    if (ctx.isIOS && !ctx.isStandalone) {
+        _mostrarCardIOSInstrucciones();
+        return;
+    }
+
+    // Push bloqueado por el usuario → mostrar mensaje de ayuda
+    if (ctx.permiso === 'denied') {
+        _mostrarCardBloqueado();
+        return;
+    }
+
+    // Caso normal: pedir permiso
+    _mostrarCardPermisoNormal();
+}
+
+function _crearCardBase() {
+    const card = document.createElement('div');
+    card.id = 'rservas-push-card';
+    card.style.cssText = [
+        'position:fixed', 'bottom:24px', 'left:50%',
+        'transform:translateX(-50%) translateY(120px)',
+        'background:#1C1C1E',
+        'border:1px solid rgba(255,255,255,0.10)',
+        'border-radius:20px',
+        'padding:18px 20px',
+        'width:calc(100% - 40px)', 'max-width:400px',
+        'z-index:9998',
+        'box-shadow:0 20px 60px rgba(0,0,0,.55)',
+        'font-family:system-ui,-apple-system,sans-serif',
+        'transition:transform 0.4s cubic-bezier(0.34,1.56,0.64,1)',
+        'display:flex', 'align-items:flex-start', 'gap:14px'
+    ].join(';');
+    document.body.appendChild(card);
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => { card.style.transform = 'translateX(-50%) translateY(0)'; });
     });
+    return card;
+}
 
-    document.body.appendChild(button);
+function _botonCerrarCard(card) {
+    const btn = document.createElement('button');
+    btn.textContent = '✕';
+    btn.style.cssText = [
+        'position:absolute', 'top:12px', 'right:14px',
+        'background:none', 'border:none', 'color:#6b7280',
+        'font-size:16px', 'cursor:pointer', 'padding:4px', 'line-height:1'
+    ].join(';');
+    btn.onclick = () => {
+        card.style.transform = 'translateX(-50%) translateY(120px)';
+        setTimeout(() => card.remove(), 400);
+        localStorage.setItem('rservasPushCardDismissed', 'true');
+    };
+    card.style.position = 'fixed';
+    card.appendChild(btn);
+    return btn;
+}
+
+function _mostrarCardPermisoNormal() {
+    const card = _crearCardBase();
+    _botonCerrarCard(card);
+
+    card.innerHTML += `
+        <div style="font-size:28px;flex-shrink:0;line-height:1">🔔</div>
+        <div style="flex:1;min-width:0">
+            <div style="color:#fff;font-size:15px;font-weight:700;margin-bottom:4px">
+                Activa las notificaciones
+            </div>
+            <div style="color:#9ca3af;font-size:13px;line-height:1.4;margin-bottom:14px">
+                Recibe avisos de nuevas reservas, cancelaciones y pagos al instante.
+            </div>
+            <button id="rservas-push-activar" style="
+                background:#FF1493;color:#fff;border:none;border-radius:10px;
+                padding:10px 18px;font-size:13px;font-weight:700;cursor:pointer;
+                width:100%;font-family:inherit
+            ">Activar notificaciones</button>
+        </div>
+    `;
+
+    document.getElementById('rservas-push-activar').addEventListener('click', async function() {
+        this.disabled = true;
+        this.textContent = 'Activando...';
+        const permission = await pedirPermisoNotificacionesPush();
+        const result = await window.solicitarPushRservasRoma({ defaultRole: getRolPush(), permission });
+        if (result?.ok) {
+            card.style.transform = 'translateX(-50%) translateY(120px)';
+            setTimeout(() => card.remove(), 400);
+            mostrarToastPush('✅ Notificaciones activadas');
+        } else if (Notification.permission === 'denied') {
+            card.remove();
+            _mostrarCardBloqueado();
+        } else {
+            this.disabled = false;
+            this.textContent = 'Activar notificaciones';
+            mostrarToastPush('No se pudo activar. Intenta de nuevo.', 'error');
+        }
+    });
+}
+
+function _mostrarCardBloqueado() {
+    const card = _crearCardBase();
+    _botonCerrarCard(card);
+    card.innerHTML += `
+        <div style="font-size:28px;flex-shrink:0;line-height:1">🚫</div>
+        <div style="flex:1;min-width:0">
+            <div style="color:#fff;font-size:15px;font-weight:700;margin-bottom:4px">
+                Notificaciones bloqueadas
+            </div>
+            <div style="color:#9ca3af;font-size:13px;line-height:1.5">
+                Actívalas manualmente:<br>
+                <strong style="color:#d1d5db">Chrome → ⋮ → Configuración → Notificaciones del sitio</strong>
+            </div>
+        </div>
+    `;
+}
+
+function _mostrarCardIOSInstrucciones() {
+    const card = _crearCardBase();
+    _botonCerrarCard(card);
+    card.innerHTML += `
+        <div style="font-size:28px;flex-shrink:0;line-height:1">📲</div>
+        <div style="flex:1;min-width:0">
+            <div style="color:#fff;font-size:15px;font-weight:700;margin-bottom:4px">
+                Instala la app para recibir notificaciones
+            </div>
+            <div style="color:#9ca3af;font-size:13px;line-height:1.5">
+                En iPhone, toca <strong style="color:#d1d5db">Compartir</strong> →
+                <strong style="color:#d1d5db">Agregar a pantalla de inicio</strong>.
+                Luego abre la app desde ahí y activa las notificaciones.
+            </div>
+        </div>
+    `;
 }
 
 window.addEventListener('load', () => {
-    setTimeout(instalarBotonPushAdmin, 1500);
+    setTimeout(instalarCardPushAdmin, 2000);
 });

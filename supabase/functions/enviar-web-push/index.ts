@@ -186,7 +186,7 @@ Deno.serve(async (req) => {
     title: payload.title,
     body: payload.body,
     tag: payload.tags || "rservasroma",
-    url: payload.url || "/admin.html",
+    url: payload.url || "https://tusalon.github.io/rservasroma/admin.html",
     data: payload.data || {},
   });
 
@@ -213,7 +213,7 @@ Deno.serve(async (req) => {
         token: String(row.subscription.token || ""),
         title: payload.title,
         body: payload.body,
-        url: payload.url || "/admin.html",
+        url: payload.url || "https://tusalon.github.io/rservasroma/admin.html",
         tags: payload.tags || "rservasroma",
         data: payload.data || {},
       }))
