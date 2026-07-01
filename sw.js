@@ -1,6 +1,6 @@
 // sw.js - Service Worker para Rservasroma
 
-const CACHE_NAME = 'rservasroma-v2';
+const CACHE_NAME = 'rservasroma-v3';
 const BASE = '/rservasroma';
 
 const urlsToCache = [
@@ -136,6 +136,31 @@ self.addEventListener('fetch', event => {
   if (!event.request.url.startsWith('http')) return;
   if (BYPASS.some(b => event.request.url.includes(b))) return;
   if (event.request.method !== 'GET') return;
+
+  // Manifest dinámico por salón — sin blob URLs
+  const reqUrl = new URL(event.request.url);
+  if (reqUrl.pathname === `${BASE}/manifest.json` && reqUrl.searchParams.has('s')) {
+    const slug   = reqUrl.searchParams.get('s') || '';
+    const nombre = reqUrl.searchParams.get('n') || slug;
+    const BASE_URL = 'https://tusalon.github.io' + BASE;
+    const manifest = {
+      name: nombre,
+      short_name: nombre.split(/\s+/).slice(0, 2).join(' '),
+      start_url: BASE_URL + '/?s=' + encodeURIComponent(slug),
+      scope: BASE_URL + '/',
+      display: 'standalone',
+      theme_color: '#FF1493',
+      background_color: '#1A1A1A',
+      icons: [
+        { src: BASE_URL + '/icons/icon-192x192.png', sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
+        { src: BASE_URL + '/icons/icon-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' }
+      ]
+    };
+    event.respondWith(new Response(JSON.stringify(manifest), {
+      headers: { 'Content-Type': 'application/manifest+json', 'Cache-Control': 'no-cache' }
+    }));
+    return;
+  }
 
   event.respondWith(
     caches.match(event.request).then(cached => {
