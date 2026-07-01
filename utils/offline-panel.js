@@ -79,34 +79,52 @@
         }
     }
 
-    async function isOnline() {
-        if (!navigator.onLine) return false;
+    // Intenta conectar con Supabase. Timeout generoso (8s) para Cuba.
+    // Reintenta hasta maxAttempts veces antes de declarar offline.
+    async function isOnline(maxAttempts = 2, timeoutMs = 8000) {
         if (!window.SUPABASE_URL || !window.SUPABASE_ANON_KEY) return true;
 
-        const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), 3000);
-        try {
-            const response = await fetch(`${window.SUPABASE_URL}/rest/v1/negocios?select=id&limit=1`, {
-                method: 'GET',
-                cache: 'no-store',
-                signal: controller.signal,
-                headers: {
-                    apikey: window.SUPABASE_ANON_KEY,
-                    Authorization: `Bearer ${window.SUPABASE_ANON_KEY}`
-                }
-            });
-            return response.ok;
-        } catch {
-            return false;
-        } finally {
-            clearTimeout(timer);
+        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), timeoutMs);
+            try {
+                const response = await fetch(
+                    `${window.SUPABASE_URL}/rest/v1/negocios?select=id&limit=1`,
+                    {
+                        method: 'GET',
+                        cache: 'no-store',
+                        signal: controller.signal,
+                        headers: {
+                            apikey: window.SUPABASE_ANON_KEY,
+                            Authorization: `Bearer ${window.SUPABASE_ANON_KEY}`
+                        }
+                    }
+                );
+                clearTimeout(timer);
+                if (response.ok) return true;
+                // respuesta HTTP de error (4xx/5xx) → servidor llegó pero hay otro problema
+                // no tratar como offline
+                if (response.status >= 400 && response.status < 500) return true;
+            } catch {
+                clearTimeout(timer);
+            }
+            // Esperar antes de reintentar (solo si no es el último intento)
+            if (attempt < maxAttempts) {
+                await new Promise(r => setTimeout(r, 2500));
+            }
         }
+        return false;
     }
 
     async function redirectIfOffline() {
-        const online = await isOnline();
         const alreadyOfflinePanel = /offline-panel\.html$/i.test(window.location.pathname);
-        if (!online && !alreadyOfflinePanel) {
+        if (alreadyOfflinePanel) return false;
+
+        // Esperar que la red se estabilice antes de verificar
+        await new Promise(r => setTimeout(r, 1500));
+
+        const online = await isOnline();
+        if (!online) {
             goToOfflinePanel();
             return true;
         }
@@ -119,13 +137,24 @@
     }
 
     function enableAutoRedirect() {
-        window.addEventListener('offline', goToOfflinePanel);
-        document.addEventListener('visibilitychange', () => {
-            if (!document.hidden && !navigator.onLine) goToOfflinePanel();
+        // Evento 'offline' del browser: esperar 3s por si la conexión vuelve rápido
+        window.addEventListener('offline', function() {
+            setTimeout(async function() {
+                if (!(await isOnline(1, 5000))) goToOfflinePanel();
+            }, 3000);
         });
-        window.addEventListener('pageshow', () => {
-            if (!navigator.onLine) goToOfflinePanel();
+
+        // Al volver al app desde segundo plano: verificar solo si navigator.onLine ya lo sabe
+        // pero con fetch real para evitar falsos positivos
+        document.addEventListener('visibilitychange', function() {
+            if (!document.hidden && !navigator.onLine) {
+                setTimeout(async function() {
+                    if (!(await isOnline(1, 6000))) goToOfflinePanel();
+                }, 2000);
+            }
         });
+
+        // pageshow eliminado: era la causa principal de falsos positivos al cargar la página
     }
 
     async function syncFromSupabase() {
