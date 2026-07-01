@@ -479,6 +479,8 @@ function _mostrarCardIOSInstrucciones() {
     document.getElementById('rservas-push-cerrar').onclick = () => _cerrarCard(card);
 }
 
-window.addEventListener('load', () => {
-    setTimeout(instalarCardPushAdmin, 2000);
-});
+// Card de push deshabilitada hasta que FCM esté configurado en Supabase Edge Function
+// Reactivar cuando FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY estén en los secrets
+// window.addEventListener('load', () => {
+//     setTimeout(instalarCardPushAdmin, 2000);
+// });
