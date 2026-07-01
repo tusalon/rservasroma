@@ -86,16 +86,16 @@ jobs:
         run: |
           $version = "1.0.${{ github.run_number }}"
           $body = '[{"clave":"admin_version","valor":"' + $version + '","descripcion":"Ultima version disponible del APK admin"}]'
+          [System.IO.File]::WriteAllText("body.json", $body, [System.Text.Encoding]::UTF8)
           Write-Host "Publicando version $version en Supabase..."
-          $statusCode = curl.exe -s -o NUL -w "%{http_code}" `
+          $statusCode = curl.exe -s -o "resp.txt" -w "%{http_code}" `
             -X POST "$env:SUPABASE_URL/rest/v1/config_global" `
             -H "apikey: $env:SUPABASE_SERVICE_KEY" `
             -H "Authorization: Bearer $env:SUPABASE_SERVICE_KEY" `
             -H "Content-Type: application/json" `
             -H "Prefer: resolution=merge-duplicates" `
-            -d $body
-          Write-Host "HTTP status: $statusCode"
-          if ($statusCode -notmatch "^2") {
-            throw "Fallo al actualizar Supabase. HTTP: $statusCode"
-          }
+            --data-binary "@body.json"
+          $resp = if (Test-Path resp.txt) { Get-Content resp.txt -Raw } else { "" }
+          Write-Host "HTTP: $statusCode | Response: $resp"
+          if ($statusCode -notmatch "^2") { throw "Fallo HTTP $statusCode" }
           Write-Host "Version $version publicada correctamente"
