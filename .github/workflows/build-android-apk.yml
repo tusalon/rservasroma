@@ -77,3 +77,22 @@ jobs:
         with:
           name: rservasroma-admin-debug-apk
           path: apk-output/rservasroma-admin-debug.apk
+
+      - name: Actualizar version en Supabase
+        shell: powershell
+        env:
+          SUPABASE_URL: https://zorhclhvykikaachfrmp.supabase.co
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          $version = "1.0.${{ github.run_number }}"
+          $headers = @{
+            "apikey"        = $env:SUPABASE_SERVICE_KEY
+            "Authorization" = "Bearer $env:SUPABASE_SERVICE_KEY"
+            "Content-Type"  = "application/json"
+            "Prefer"        = "resolution=merge-duplicates"
+          }
+          $body = @(
+            @{ clave = "admin_version"; valor = $version; descripcion = "Ultima version disponible del APK admin" }
+          ) | ConvertTo-Json -AsArray
+          $response = Invoke-RestMethod -Uri "$env:SUPABASE_URL/rest/v1/config_global" -Method POST -Headers $headers -Body $body
+          Write-Host "Version $version publicada en Supabase"
