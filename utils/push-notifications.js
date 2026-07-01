@@ -127,6 +127,25 @@ async function guardarSuscripcionPush(subscription, role, clienteWhatsapp) {
     console.log('[Push] guardarSuscripcionPush - negocioId:', negocioId, 'role:', role, 'cliente:', clienteWhatsapp || 'sin whatsapp');
     if (!negocioId) throw new Error('No hay negocio_id para guardar la suscripcion push.');
 
+    // CRÍTICO: eliminar cualquier suscripción previa del mismo endpoint en OTRO negocio.
+    // Sin esto, un mismo dispositivo queda suscrito a múltiples salones y recibe
+    // notificaciones de salones ajenos.
+    try {
+        const endpointEncoded = encodeURIComponent(subscription.endpoint);
+        await fetch(
+            `${window.SUPABASE_URL}/rest/v1/push_suscripciones?endpoint=eq.${endpointEncoded}&negocio_id=neq.${negocioId}`,
+            {
+                method: 'DELETE',
+                headers: {
+                    apikey: window.SUPABASE_ANON_KEY,
+                    Authorization: `Bearer ${window.SUPABASE_ANON_KEY}`
+                }
+            }
+        );
+    } catch (e) {
+        console.warn('[Push] No se pudo limpiar suscripciones anteriores:', e.message);
+    }
+
     const payload = {
         negocio_id: negocioId,
         role,
