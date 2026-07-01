@@ -79,23 +79,43 @@ jobs:
           path: apk-output/rservasroma-admin-debug.apk
 
       - name: Actualizar version en Supabase
-        shell: powershell
+        shell: pwsh
         env:
           SUPABASE_URL: https://zorhclhvykikaachfrmp.supabase.co
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          BUILD_NUMBER: ${{ github.run_number }}
         run: |
-          $version = "1.0.${{ github.run_number }}"
-          $body = '[{"clave":"admin_version","valor":"' + $version + '","descripcion":"Ultima version disponible del APK admin"}]'
-          [System.IO.File]::WriteAllText("body.json", $body, [System.Text.Encoding]::UTF8)
-          Write-Host "Publicando version $version en Supabase..."
-          $statusCode = curl.exe -s -o "resp.txt" -w "%{http_code}" `
-            -X POST "$env:SUPABASE_URL/rest/v1/config_global" `
-            -H "apikey: $env:SUPABASE_SERVICE_KEY" `
-            -H "Authorization: Bearer $env:SUPABASE_SERVICE_KEY" `
-            -H "Content-Type: application/json" `
-            -H "Prefer: resolution=merge-duplicates" `
-            --data-binary "@body.json"
-          $resp = if (Test-Path resp.txt) { Get-Content resp.txt -Raw } else { "" }
-          Write-Host "HTTP: $statusCode | Response: $resp"
-          if ($statusCode -notmatch "^2") { throw "Fallo HTTP $statusCode" }
-          Write-Host "Version $version publicada correctamente"
+          $script = @'
+          const https = require("https");
+          const version = "1.0." + process.env.BUILD_NUMBER;
+          const key = process.env.SUPABASE_SERVICE_KEY;
+          const payload = JSON.stringify({ valor: version });
+          const u = new URL(
+            process.env.SUPABASE_URL +
+            "/rest/v1/config_global?clave=eq.admin_version"
+          );
+          const req = https.request({
+            hostname: u.hostname,
+            path: u.pathname + u.search,
+            method: "PATCH",
+            headers: {
+              "apikey": key,
+              "Authorization": "Bearer " + key,
+              "Content-Type": "application/json",
+              "Content-Length": Buffer.byteLength(payload)
+            }
+          }, res => {
+            let d = "";
+            res.on("data", c => d += c);
+            res.on("end", () => {
+              console.log("HTTP " + res.statusCode + ": " + (d || "(sin body)"));
+              if (res.statusCode >= 400) process.exit(1);
+              console.log("Version " + version + " publicada correctamente");
+            });
+          });
+          req.on("error", e => { console.error(e.message); process.exit(1); });
+          req.write(payload);
+          req.end();
+          '@
+          $script | Out-File -FilePath "update-version.js" -Encoding utf8NoBOM
+          node update-version.js
