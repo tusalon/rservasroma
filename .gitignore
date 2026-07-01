@@ -8,3 +8,4 @@ android/build/
 *.aab
 *.keystore
 *.jks
+android/app/google-services.json
