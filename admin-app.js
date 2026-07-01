@@ -1,6 +1,71 @@
 // admin-app.js - Panel de administración (VERSIÓN CORREGIDA CON HORARIOS POR DÍA)
 // CON BOTÓN DE NUEVA RESERVA MANUAL, CALENDARIO DE DISPONIBILIDAD
 
+// ─── VERSIÓN DEL APK ADMIN ────────────────────────────────────────────────────
+const APP_VERSION = '1.0.0';
+
+(async function checkAppVersion() {
+    try {
+        const headers = { 'apikey': window.SUPABASE_ANON_KEY, 'Authorization': `Bearer ${window.SUPABASE_ANON_KEY}` };
+        const base = window.SUPABASE_URL + '/rest/v1/config_global?select=clave,valor&clave=in.(admin_version,admin_version_minima,admin_apk_url)';
+        const rows = await fetch(base, { headers }).then(r => r.json());
+        if (!Array.isArray(rows) || !rows.length) return;
+
+        const get = k => rows.find(r => r.clave === k)?.valor || '';
+        const latest = get('admin_version')         || APP_VERSION;
+        const minima = get('admin_version_minima')  || APP_VERSION;
+        const apkUrl = get('admin_apk_url');
+
+        const parseV = v => v.split('.').map(Number);
+        const gt = (a, b) => {
+            const [a0,a1,a2] = parseV(a), [b0,b1,b2] = parseV(b);
+            return a0 > b0 || (a0 === b0 && a1 > b1) || (a0 === b0 && a1 === b1 && a2 > b2);
+        };
+
+        if (gt(minima, APP_VERSION)) {
+            document.body.insertAdjacentHTML('afterbegin', `
+                <div id="modal-version-critica" style="
+                    position:fixed;inset:0;background:rgba(0,0,0,0.92);
+                    display:flex;align-items:center;justify-content:center;
+                    z-index:999999;font-family:system-ui,sans-serif;padding:24px;box-sizing:border-box;">
+                    <div style="background:#1A1A1A;border:1px solid #FF1493;border-radius:20px;
+                        padding:32px 24px;max-width:340px;width:100%;text-align:center;">
+                        <div style="font-size:48px;margin-bottom:16px;">🔄</div>
+                        <h2 style="color:#fff;font-size:20px;margin:0 0 10px;">Actualización requerida</h2>
+                        <p style="color:#999;font-size:14px;margin:0 0 24px;line-height:1.5;">
+                            Esta versión ya no es compatible. Instala la versión <strong style="color:#FF1493">${latest}</strong> para continuar.
+                        </p>
+                        ${apkUrl ? `<a href="${apkUrl}" style="
+                            display:block;background:#FF1493;color:#fff;text-decoration:none;
+                            border-radius:12px;padding:14px;font-size:15px;font-weight:700;">
+                            Descargar actualización
+                        </a>` : '<p style="color:#666;font-size:13px;">Contacta a tu administrador de Rservasroma.</p>'}
+                    </div>
+                </div>`);
+        } else if (gt(latest, APP_VERSION)) {
+            document.body.insertAdjacentHTML('afterbegin', `
+                <div id="banner-update" style="
+                    position:fixed;top:0;left:0;right:0;
+                    background:linear-gradient(135deg,#FF1493,#c01070);
+                    padding:10px 16px;display:flex;align-items:center;gap:12px;
+                    z-index:99997;font-family:system-ui,sans-serif;">
+                    <span style="color:#fff;font-size:13px;flex:1;">
+                        ✨ Nueva versión disponible (${latest})
+                    </span>
+                    ${apkUrl ? `<a href="${apkUrl}" style="
+                        background:#fff;color:#FF1493;text-decoration:none;
+                        border-radius:8px;padding:6px 14px;font-size:13px;font-weight:700;white-space:nowrap;">
+                        Actualizar
+                    </a>` : ''}
+                    <button onclick="document.getElementById('banner-update').remove()" style="
+                        background:transparent;border:none;color:rgba(255,255,255,0.8);
+                        font-size:20px;cursor:pointer;padding:0 4px;line-height:1;">✕</button>
+                </div>`);
+        }
+    } catch(e) { /* sin internet o tabla inexistente — silencioso */ }
+})();
+// ─────────────────────────────────────────────────────────────────────────────
+
 window.addEventListener('error', function(e) {
     console.error('❌ Error detectado, posible versión antigua:', e.message);
     
