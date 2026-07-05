@@ -306,29 +306,31 @@ async function marcarTurnosCompletados() {
         });
         
         const turnosACompletar = [...turnosPasados, ...turnosHoyTerminados];
-        
+
         if (turnosACompletar.length > 0) {
-            
-            for (const turno of turnosACompletar) {
-                
-                await fetch(
-                    `${window.SUPABASE_URL}/rest/v1/reservas?negocio_id=eq.${negocioId}&id=eq.${turno.id}`,
-                    {
-                        method: 'PATCH',
-                        headers: {
-                            'apikey': window.SUPABASE_ANON_KEY,
-                            'Authorization': `Bearer ${window.SUPABASE_ANON_KEY}`,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({ estado: 'Completado' })
-                    }
-                );
-            }
-        } else {
+            const ids = turnosACompletar.map(turno => turno.id);
+
+            await fetch(
+                `${window.SUPABASE_URL}/rest/v1/reservas?negocio_id=eq.${negocioId}&id=in.(${ids.join(',')})`,
+                {
+                    method: 'PATCH',
+                    headers: {
+                        'apikey': window.SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${window.SUPABASE_ANON_KEY}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ estado: 'Completado' })
+                }
+            );
+
+            return ids;
         }
-        
+
+        return [];
+
     } catch (error) {
         console.error('Error marcando turnos completados:', error);
+        return [];
     }
 }
 const timeToMinutes = (time) => {
@@ -2373,17 +2375,13 @@ function AdminApp() {
             if (Array.isArray(data)) {
                 data = filtrarReservasDelProfesional(data);
                 data.sort((a, b) => a.fecha.localeCompare(b.fecha) || a.hora_inicio.localeCompare(b.hora_inicio));
-                
-                await marcarTurnosCompletados();
-                
-                if (userRole === 'profesional' && profesional) {
-                    data = await window.getReservasPorProfesional?.(profesional.id, false) || [];
-                } else {
-                    data = await getAllBookings();
+
+                const idsCompletados = await marcarTurnosCompletados() || [];
+                if (idsCompletados.length > 0) {
+                    const setCompletados = new Set(idsCompletados);
+                    data = data.map(b => setCompletados.has(b.id) ? { ...b, estado: 'Completado' } : b);
                 }
 
-                data = filtrarReservasDelProfesional(data);
-                
                 const reservasActualizadas = Array.isArray(data) ? data : [];
                 setBookings(reservasActualizadas);
 

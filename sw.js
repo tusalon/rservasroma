@@ -15,7 +15,6 @@ const urlsToCache = [
   `${BASE}/manifest.json`,
 
   // App principal
-  `${BASE}/app.js`,
   `${BASE}/client-app.js`,
   `${BASE}/admin-app.js`,
 
@@ -23,7 +22,6 @@ const urlsToCache = [
   `${BASE}/utils/api.js`,
   `${BASE}/utils/auth-clients.js`,
   `${BASE}/utils/auth-profesionales.js`,
-  `${BASE}/utils/config-negocio.js`,
   `${BASE}/utils/config.js`,
   `${BASE}/utils/dias-cerrados.js`,
   `${BASE}/utils/hero-backgrounds.js`,
@@ -52,9 +50,7 @@ const urlsToCache = [
   `${BASE}/components/MultiTimeSlots.js`,
   `${BASE}/components/MyBookings.js`,
   `${BASE}/components/ProfesionalSelector.js`,
-  `${BASE}/components/ServiceSelection.js`,
   `${BASE}/components/ServiceSelectionCategorias.js`,
-  `${BASE}/components/ServiceSelectionTabs.js`,
   `${BASE}/components/TimeSlots.js`,
   `${BASE}/components/WelcomeScreen.js`,
   `${BASE}/components/WhatsAppButton.js`,
@@ -65,9 +61,7 @@ const urlsToCache = [
   `${BASE}/components/admin/HorariosExcepcionPanel.js`,
   `${BASE}/components/admin/HorariosPorDiaPanel.js`,
   `${BASE}/components/admin/ProfesionalesPanel.js`,
-  `${BASE}/components/admin/ServiciosPanel.js`,
   `${BASE}/components/admin/ServiciosPanelCategorias.js`,
-  `${BASE}/components/admin/ServiciosPanelPro.js`,
   `${BASE}/components/admin/SetupWizard.js`,
 
   // Vendors
