@@ -12,7 +12,7 @@
         { id: 'CO', nombre: 'Colombia',   bandera: '\uD83C\uDDE8\uD83C\uDDF4', codigo: '57',  ejemplo: '3001234567',  localLength: 10 },
         { id: 'GY', nombre: 'Guyana',     bandera: '\uD83C\uDDEC\uD83C\uDDFE', codigo: '592', ejemplo: '6123456',     localLength: 7  },
         { id: 'VN', nombre: 'Vietnam',    bandera: '\uD83C\uDDFB\uD83C\uDDF3', codigo: '84',  ejemplo: '912345678',   localLength: 9  },
-        { id: 'AR', nombre: 'Argentina',  bandera: '\uD83C\uDDE6\uD83C\uDDF7', codigo: '54',  ejemplo: '91123456789', localLength: 10 },
+        { id: 'AR', nombre: 'Argentina',  bandera: '\uD83C\uDDE6\uD83C\uDDF7', codigo: '54',  ejemplo: '91123456789', localLength: 11 },
         { id: 'PE', nombre: 'Peru',       bandera: '\uD83C\uDDF5\uD83C\uDDEA', codigo: '51',  ejemplo: '912345678',   localLength: 9  },
         { id: 'CL', nombre: 'Chile',      bandera: '\uD83C\uDDE8\uD83C\uDDF1', codigo: '56',  ejemplo: '912345678',   localLength: 9  },
         { id: 'EC', nombre: 'Ecuador',    bandera: '\uD83C\uDDEA\uD83C\uDDE8', codigo: '593', ejemplo: '991234567',   localLength: 9  },

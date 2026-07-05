@@ -17,6 +17,7 @@ function HorariosExcepcionPanel({ profesionalId, profesionalNombre, onCerrar }) 
     const [editando, setEditando] = React.useState(null);
     const [error, setError] = React.useState('');
     const [reservasAviso, setReservasAviso] = React.useState([]);
+    const [reservasAvisoError, setReservasAvisoError] = React.useState(false);
     const [diaSeleccionado, setDiaSeleccionado] = React.useState('lunes');
     const [form, setForm] = React.useState({
         fechaInicio: '',
@@ -98,11 +99,17 @@ function HorariosExcepcionPanel({ profesionalId, profesionalNombre, onCerrar }) 
         setModoFormulario(true);
     };
 
+    const cargarReservasEnRangoRef = React.useRef(0);
+
     const cargarReservasEnRango = async () => {
+        setReservasAvisoError(false);
+
         if (!form.fechaInicio || !form.fechaFin || form.fechaFin < form.fechaInicio || !profesionalId) {
             setReservasAviso([]);
             return;
         }
+
+        const peticionId = ++cargarReservasEnRangoRef.current;
 
         try {
             const negocioId = window.getNegocioIdFromConfig ? window.getNegocioIdFromConfig() : localStorage.getItem('negocioId');
@@ -113,13 +120,17 @@ function HorariosExcepcionPanel({ profesionalId, profesionalNombre, onCerrar }) 
                     'Authorization': `Bearer ${window.SUPABASE_ANON_KEY}`
                 }
             });
+            if (peticionId !== cargarReservasEnRangoRef.current) return;
             if (!response.ok) {
                 setReservasAviso([]);
+                setReservasAvisoError(true);
                 return;
             }
             setReservasAviso(await response.json());
         } catch {
+            if (peticionId !== cargarReservasEnRangoRef.current) return;
             setReservasAviso([]);
+            setReservasAvisoError(true);
         }
     };
 
@@ -263,6 +274,12 @@ function HorariosExcepcionPanel({ profesionalId, profesionalNombre, onCerrar }) 
                         <input type="date" value={form.fechaFin} onChange={(e) => setForm({ ...form, fechaFin: e.target.value })} className="w-full border rounded-lg px-3 py-2 mt-1" />
                     </label>
                 </div>
+
+                {reservasAvisoError && (
+                    <div className="bg-red-50 border border-red-300 rounded-lg p-3 mb-4 text-sm text-red-900">
+                        <p className="font-bold">No se pudo verificar si hay reservas en este rango. Revísalo manualmente antes de guardar.</p>
+                    </div>
+                )}
 
                 {reservasAviso.length > 0 && (
                     <div className="bg-yellow-50 border border-yellow-300 rounded-lg p-3 mb-4 text-sm text-yellow-900">

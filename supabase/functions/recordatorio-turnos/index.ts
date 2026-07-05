@@ -15,10 +15,12 @@ function jsonResponse(body: unknown, status = 200) {
 }
 
 function fechaHoy(): string {
-  // Hora Cuba (UTC-4)
-  const now = new Date();
-  now.setHours(now.getHours() - 4);
-  return now.toISOString().slice(0, 10);
+  // Hora Cuba real (America/Havana), respeta horario de verano
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Havana",
+    year: "numeric", month: "2-digit", day: "2-digit",
+  });
+  return formatter.format(new Date());
 }
 
 Deno.serve(async (req) => {

@@ -75,10 +75,16 @@ Deno.serve(async (req) => {
     const ahora = new Date();
     const desde = new Date(ahora.getTime() + 50 * 60000);
     const hasta = new Date(ahora.getTime() + 90 * 60000);
-    const fecha = getCubaDate(0);
+    const fechaDesde = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Havana", year: "numeric", month: "2-digit", day: "2-digit" }).format(desde);
+    const fechaHasta = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Havana", year: "numeric", month: "2-digit", day: "2-digit" }).format(hasta);
     const horaDesde = desde.toLocaleTimeString("en-GB", { timeZone: "America/Havana", hour: "2-digit", minute: "2-digit" });
     const horaHasta = hasta.toLocaleTimeString("en-GB", { timeZone: "America/Havana", hour: "2-digit", minute: "2-digit" });
-    reservasUrl = `${supabaseUrl}/rest/v1/reservas?fecha=eq.${fecha}&estado=neq.Cancelado&push_recordatorio_hora_enviado=eq.false&hora_inicio=gte.${horaDesde}&hora_inicio=lte.${horaHasta}&select=id,negocio_id,cliente_nombre,cliente_whatsapp,servicio,hora_inicio`;
+    // La ventana de 40 min puede cruzar medianoche (hora Cuba): si desde/hasta caen en fechas
+    // distintas, se usa un OR de PostgREST en vez de un solo fecha=eq. + rango de hora_inicio,
+    // que fallaría (ej. horaDesde="23:50" > horaHasta="00:30" al comparar como texto).
+    reservasUrl = fechaDesde === fechaHasta
+      ? `${supabaseUrl}/rest/v1/reservas?fecha=eq.${fechaDesde}&estado=neq.Cancelado&push_recordatorio_hora_enviado=eq.false&hora_inicio=gte.${horaDesde}&hora_inicio=lte.${horaHasta}&select=id,negocio_id,cliente_nombre,cliente_whatsapp,servicio,hora_inicio`
+      : `${supabaseUrl}/rest/v1/reservas?estado=neq.Cancelado&push_recordatorio_hora_enviado=eq.false&or=(and(fecha.eq.${fechaDesde},hora_inicio.gte.${horaDesde}),and(fecha.eq.${fechaHasta},hora_inicio.lte.${horaHasta}))&select=id,negocio_id,cliente_nombre,cliente_whatsapp,servicio,hora_inicio`;
     buildMensaje = (r, neg) => ({
       title: `⏰ Tu cita es en 1 hora — ${neg}`,
       body: `${r.cliente_nombre}, tienes ${r.servicio} a las ${hora12(r.hora_inicio)}. ¡Nos vemos pronto!`,
