@@ -2,13 +2,8 @@
 
 console.log('📅 dias-cerrados.js cargado');
 
-// Helper para obtener negocio_id
-function getNegocioId() {
-    if (typeof window.getNegocioIdFromConfig !== 'undefined') {
-        return window.getNegocioIdFromConfig();
-    }
-    return localStorage.getItem('negocioId');
-}
+// getNegocioId() la define utils/config-negocio-master.js (window.getNegocioId),
+// cargado antes que este archivo en todas las paginas que lo usan.
 
 // Variables con nombres ÚNICOS para evitar conflictos con config.js
 let diasCerradosCacheData = [];

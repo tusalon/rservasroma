@@ -2,15 +2,8 @@
 
 console.log('👥 profesionales.js cargado');
 
-// Helper para obtener negocio_id - SIN RECURSIÓN
-function getNegocioId() {
-    // Usar la función global de config-negocio.js si existe
-    if (typeof window.getNegocioIdFromConfig !== 'undefined') {
-        return window.getNegocioIdFromConfig();
-    }
-    // Fallback a localStorage
-    return localStorage.getItem('negocioId');
-}
+// getNegocioId() la define utils/config-negocio-master.js (window.getNegocioId),
+// cargado antes que este archivo en todas las paginas que lo usan.
 
 let profesionalesCache = [];
 let ultimaActualizacionProfesionales = 0;

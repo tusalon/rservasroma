@@ -10,15 +10,8 @@ const TABLE_NAME = window.TABLE_NAME;
 
 const normalizeTimeKey = (value) => String(value || '').slice(0, 5);
 
-// Helper para obtener negocio_id - SIN RECURSIÓN
-function getNegocioId() {
-    // Usar la función global de config-negocio.js si existe
-    if (typeof window.getNegocioIdFromConfig !== 'undefined') {
-        return window.getNegocioIdFromConfig();
-    }
-    // Fallback a localStorage
-    return localStorage.getItem('negocioId');
-}
+// getNegocioId() la define utils/config-negocio-master.js (window.getNegocioId),
+// cargado antes que este archivo en todas las paginas que lo usan.
 
 /**
  * Fetch all bookings for a specific date

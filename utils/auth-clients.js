@@ -3,15 +3,8 @@
 
 console.log('🚀 auth-clients.js CARGADO - MODO REGISTRO AUTOMÁTICO');
 
-// Helper para obtener negocio_id
-function getNegocioId() {
-    if (typeof window.getNegocioIdFromConfig !== 'undefined') {
-        return window.getNegocioIdFromConfig();
-    }
-    return localStorage.getItem('negocioId');
-}
-
-
+// getNegocioId() la define utils/config-negocio-master.js (window.getNegocioId),
+// cargado antes que este archivo en todas las paginas que lo usan.
 
 function normalizarWhatsappCliente(whatsapp) {
     if (window.normalizarTelefonoInternacional) {

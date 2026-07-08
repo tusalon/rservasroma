@@ -10,15 +10,8 @@ if (window.__CONFIG_CARGADO) {
 
 console.log('⚙️ config.js cargado');
 
-// Helper para obtener negocio_id - SIN RECURSIÓN
-function getNegocioId() {
-    // Usar la función global de config-negocio.js si existe
-    if (typeof window.getNegocioIdFromConfig !== 'undefined') {
-        return window.getNegocioIdFromConfig();
-    }
-    // Fallback a localStorage
-    return localStorage.getItem('negocioId');
-}
+// getNegocioId() la define utils/config-negocio-master.js (window.getNegocioId),
+// cargado antes que este archivo en todas las paginas que lo usan.
 
 let configuracionGlobal = {
     duracion_turnos: 60,
@@ -518,7 +511,53 @@ window.salonConfig = {
 
         return this.getHorariosProfesional(profesionalId);
     },
-    
+
+    // Variante en lote de getHorariosProfesionalParaFecha: pide excepciones y horario base
+    // UNA sola vez (en paralelo) y resuelve cada fecha del array localmente, en vez de un
+    // fetch de excepciones (y a veces otro de horario base) por cada fecha individual.
+    getHorariosProfesionalParaFechas: async function(profesionalId, fechas) {
+        const resultadoPorFecha = {};
+        if (!Array.isArray(fechas) || fechas.length === 0) return resultadoPorFecha;
+
+        let excepciones = [];
+        let horarioBase = { horas: [], dias: [], horariosPorDia: {}, descansosPorDia: {} };
+        try {
+            [excepciones, horarioBase] = await Promise.all([
+                this.getExcepcionesProfesional(profesionalId),
+                this.getHorariosProfesional(profesionalId)
+            ]);
+        } catch (error) {
+            console.error('Error cargando horarios en lote:', error);
+        }
+
+        for (const fecha of fechas) {
+            const excepcion = (excepciones || []).find(item =>
+                item.fecha_inicio <= fecha && fecha <= item.fecha_fin
+            );
+
+            if (excepcion) {
+                const horariosPorDia = excepcion.horarios_por_dia || {};
+                const descansosPorDia = excepcion.descansos_por_dia || {};
+                const todasLasHoras = new Set();
+                Object.values(horariosPorDia).forEach(horasArray => {
+                    (horasArray || []).forEach(indice => todasLasHoras.add(indice));
+                });
+
+                resultadoPorFecha[fecha] = {
+                    horariosPorDia,
+                    descansosPorDia,
+                    horas: Array.from(todasLasHoras).sort((a, b) => a - b),
+                    dias: Object.keys(horariosPorDia).filter(dia => (horariosPorDia[dia] || []).length > 0),
+                    excepcion
+                };
+            } else {
+                resultadoPorFecha[fecha] = horarioBase;
+            }
+        }
+
+        return resultadoPorFecha;
+    },
+
     guardarHorariosProfesional: async function(profesionalId, horarios) {
         if (horarios.horariosPorDia) {
             return this.guardarHorariosPorDia(profesionalId, horarios.horariosPorDia);

@@ -80,24 +80,8 @@ window.addEventListener('error', function(e) {
         }
     }
 });
-function getNegocioId() {
-    const localId = localStorage.getItem('negocioId');
-    if (localId) {
-        return localId;
-    }
-    
-    if (window.NEGOCIO_ID_POR_DEFECTO) {
-        return window.NEGOCIO_ID_POR_DEFECTO;
-    }
-    
-    if (typeof window.getNegocioId === 'function') {
-        const id = window.getNegocioId();
-        return id;
-    }
-    
-    console.error('a No se pudo obtener negocioId');
-    return null;
-}
+// getNegocioId() la define utils/config-negocio-master.js (window.getNegocioId),
+// cargado antes que admin-app.js en admin.html.
 
 async function getAllBookings() {
     try {
@@ -1051,12 +1035,15 @@ function AdminApp() {
             const hoy = new Date();
             hoy.setHours(0, 0, 0, 0);
             const minFechaPermitida = new Date(Date.now() + (minAntelacionHoras * 60 * 60 * 1000));
-            
+
+            const fechasDelMes = Array.from({ length: diasEnMes }, (_, i) => `${year}-${(month + 1).toString().padStart(2, '0')}-${(i + 1).toString().padStart(2, '0')}`);
+            const horariosPorFecha = await window.salonConfig.getHorariosProfesionalParaFechas(profesionalId, fechasDelMes);
+
             for (let d = 1; d <= diasEnMes; d++) {
                 const fechaStr = `${year}-${(month + 1).toString().padStart(2, '0')}-${d.toString().padStart(2, '0')}`;
                 const fechaActual = new Date(year, month, d);
                 const diaSemana = nombresDias[fechaActual.getDay()];
-                const horarios = await window.salonConfig.getHorariosProfesionalParaFecha(profesionalId, fechaStr);
+                const horarios = horariosPorFecha[fechaStr] || {};
                 const horasTrabajo = horarios.horas || [];
                 const diasTrabajo = horarios.dias || [];
                 const horariosPorDia = horarios.horariosPorDia || {};
@@ -1175,19 +1162,22 @@ function AdminApp() {
             const conteosDisponibles = {};
             const diasEnMes = ultimoDia.getDate();
             const nombresDias = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
-            
+
+            const fechasDelMes = Array.from({ length: diasEnMes }, (_, i) => `${year}-${(month + 1).toString().padStart(2, '0')}-${(i + 1).toString().padStart(2, '0')}`);
+            const horariosPorFecha = await window.salonConfig.getHorariosProfesionalParaFechas(profesionalId, fechasDelMes);
+
             for (let d = 1; d <= diasEnMes; d++) {
                 const fechaStr = `${year}-${(month + 1).toString().padStart(2, '0')}-${d.toString().padStart(2, '0')}`;
-                
+
                 if (fechasLibresPersonales.includes(fechaStr)) {
                     disponibilidad[fechaStr] = false;
                     conteosDisponibles[fechaStr] = 0;
                     continue;
                 }
-                
+
                 const fechaActual = new Date(year, month, d);
                 const diaSemana = nombresDias[fechaActual.getDay()];
-                const horarios = await window.salonConfig.getHorariosProfesionalParaFecha(profesionalId, fechaStr);
+                const horarios = horariosPorFecha[fechaStr] || {};
                 const horasTrabajo = horarios.horas || [];
                 const diasTrabajo = horarios.dias || [];
                 const horariosPorDia = horarios.horariosPorDia || {};
@@ -1302,10 +1292,13 @@ function AdminApp() {
                 reservasPorFecha[r.fecha].push(r);
             });
 
-            const semana = await Promise.all(diasSemanaVista.map(async dia => {
+            const fechasSemana = diasSemanaVista.map(formatDate);
+            const horariosPorFecha = await window.salonConfig.getHorariosProfesionalParaFechas(profesionalId, fechasSemana);
+
+            const semana = diasSemanaVista.map(dia => {
                 const fechaStr = formatDate(dia);
                 const diaSemana = nombresDias[dia.getDay()];
-                const horarios = await window.salonConfig.getHorariosProfesionalParaFecha(profesionalId, fechaStr);
+                const horarios = horariosPorFecha[fechaStr] || {};
                 const horasTrabajo = horarios.horas || [];
                 const diasTrabajo = horarios.dias || [];
                 const horariosPorDia = horarios.horariosPorDia || {};
@@ -1348,7 +1341,7 @@ function AdminApp() {
                     turnos,
                     libres: turnos.filter(t => t.estado === 'Disponible').length
                 };
-            }));
+            });
 
             setDisponibilidadSemanal(semana);
         } catch (error) {

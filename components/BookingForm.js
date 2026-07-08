@@ -47,6 +47,11 @@ function BookingForm({ service, profesional, date, time, onSubmit, onCancel, cli
         return `${horas.toString().padStart(2, '0')}:${minutos}`;
     };
 
+    const timeToMinutes = (timeStr) => {
+        const [hours, minutes] = timeStr.split(':').map(Number);
+        return hours * 60 + minutes;
+    };
+
     const variantesHorarioPermitido = (timeStr) => {
         const partes = String(timeStr || '').trim().split(':');
         if (partes.length < 2) return [];
