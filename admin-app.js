@@ -2767,38 +2767,31 @@ Cualquier cambio, podÃ©s cancelarlo desde la app con hasta 1 hora de anticipaciÃ
             window.location.href = 'index.html';
         }
     };
-    const getFilteredBookings = () => {
-        const bookingsVisibles = filtrarReservasDelProfesional(bookings);
-        
-        let filtradas = filterDate
-            ? bookingsVisibles.filter(b => b.fecha === filterDate)
-            : [...bookingsVisibles];
-        
-        let resultado;
-        if (statusFilter === 'activas') {
-            resultado = filtradas.filter(b => b.estado === 'Reservado');
-        } else if (statusFilter === 'pendientes') {
-            resultado = filtradas.filter(b => b.estado === 'Pendiente');
-        } else if (statusFilter === 'completadas') {
-            resultado = filtradas.filter(b => b.estado === 'Completado');
-        } else if (statusFilter === 'ausentes') {
-            resultado = filtradas.filter(b => b.estado === 'Ausente');
-        } else if (statusFilter === 'canceladas') {
-            resultado = filtradas.filter(b => b.estado === 'Cancelado');
-        } else {
-            resultado = filtradas;
-        }
-        
-        return resultado;
-    };
-
-    const bookingsVisiblesPorRol = filtrarReservasDelProfesional(bookings);
+    // Memoizado: solo se recalcula cuando cambian bookings/userRole/profesional, en vez de
+    // en cada render de todo el componente AdminApp. Dependencias trazadas a mano hasta el
+    // final de la cadena (filtrarReservasDelProfesional -> esProfesionalPanel/esReservaDelProfesional
+    // -> userRole/profesional), sin dependencias ocultas adicionales.
+    const bookingsVisiblesPorRol = React.useMemo(
+        () => filtrarReservasDelProfesional(bookings),
+        [bookings, userRole, profesional]
+    );
     const activasCount = bookingsVisiblesPorRol.filter(b => b.estado === 'Reservado').length;
     const pendientesCount = bookingsVisiblesPorRol.filter(b => b.estado === 'Pendiente').length;
     const completadasCount = bookingsVisiblesPorRol.filter(b => b.estado === 'Completado').length;
     const ausentesCount = bookingsVisiblesPorRol.filter(b => b.estado === 'Ausente').length;
     const canceladasCount = bookingsVisiblesPorRol.filter(b => b.estado === 'Cancelado').length;
-    const filteredBookings = getFilteredBookings();
+    const filteredBookings = React.useMemo(() => {
+        const filtradas = filterDate
+            ? bookingsVisiblesPorRol.filter(b => b.fecha === filterDate)
+            : bookingsVisiblesPorRol;
+
+        if (statusFilter === 'activas') return filtradas.filter(b => b.estado === 'Reservado');
+        if (statusFilter === 'pendientes') return filtradas.filter(b => b.estado === 'Pendiente');
+        if (statusFilter === 'completadas') return filtradas.filter(b => b.estado === 'Completado');
+        if (statusFilter === 'ausentes') return filtradas.filter(b => b.estado === 'Ausente');
+        if (statusFilter === 'canceladas') return filtradas.filter(b => b.estado === 'Cancelado');
+        return filtradas;
+    }, [bookingsVisiblesPorRol, filterDate, statusFilter]);
 
     const construirResumenGrupoVisual = (grupo) => {
         if (grupo.length <= 1) return grupo[0];
