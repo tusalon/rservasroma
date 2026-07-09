@@ -123,6 +123,13 @@ async function createBooking(bookingData) {
         if (!response.ok) {
             const errorText = await response.text();
             console.error('❌ Error response:', errorText);
+            // 23P01 = exclusion (solape de horario), 23505 = unique (duplicado exacto).
+            // Los genera la proteccion anti doble-reserva de la base (sql-anti-doble-reserva.sql).
+            if (response.status === 409 || errorText.includes('23P01') || errorText.includes('23505')) {
+                const conflicto = new Error('Ese horario acaba de ser tomado por otra persona. Elige otro horario.');
+                conflicto.code = 'HORARIO_OCUPADO';
+                throw conflicto;
+            }
             throw new Error('Error creating booking');
         }
         

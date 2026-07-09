@@ -393,7 +393,12 @@ END:VCALENDAR`;
             }
         } catch (err) {
             console.error('Error:', err);
-            setError("Ocurrió un error al guardar la reserva.");
+            // HORARIO_OCUPADO y CLIENTE_BLOQUEADO traen mensajes pensados para la clienta.
+            if (err && (err.code === 'HORARIO_OCUPADO' || err.code === 'CLIENTE_BLOQUEADO')) {
+                setError(err.message);
+            } else {
+                setError("Ocurrió un error al guardar la reserva.");
+            }
         } finally {
             submittingRef.current = false;
             setSubmitting(false);
