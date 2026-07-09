@@ -3,4 +3,6 @@
   "target": {
     "namespace": "android_app",
     "package_name": "com.rservasroma.clientes",
-    "sha256_cert_fingerprints": ["85:5C:AA:AD:45:DF:59:B4:55:63:4D:4B:E4:58:CF
+    "sha256_cert_fingerprints": ["85:5C:AA:AD:45:DF:59:B4:55:63:4D:4B:E4:58:CF:F0:56:15:4D:94:EC:5B:2B:CD:DE:AD:0A:CC:B9:05:7B:45"]
+  }
+}]
