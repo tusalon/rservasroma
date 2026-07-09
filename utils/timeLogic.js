@@ -6,6 +6,47 @@ function timeToMinutes(timeStr) {
     return hours * 60 + minutes;
 }
 
+// Convertir indice de slot (0-47, bloques de 30 min) a "HH:mm"
+function indiceToHoraLegible(indice) {
+    const horas = Math.floor(indice / 2);
+    const minutos = indice % 2 === 0 ? '00' : '30';
+    return `${horas.toString().padStart(2, '0')}:${minutos}`;
+}
+
+// Variantes AM/PM de un horario_permitido guardado (compatibilidad con datos ambiguos)
+function variantesHorarioPermitido(timeStr) {
+    const partes = String(timeStr || '').trim().split(':');
+    if (partes.length < 2) return [];
+    const hours = parseInt(partes[0], 10);
+    const minutes = parseInt(partes[1], 10);
+    if (Number.isNaN(hours) || Number.isNaN(minutes)) return [];
+
+    const normal = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+    const variantes = [normal];
+    if (hours >= 1 && hours <= 7) {
+        variantes.push(`${String(hours + 12).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`);
+    }
+    return variantes;
+}
+
+// Si el servicio restringe horarios, valida que el slot esté permitido
+function servicioPermiteHorario(servicio, slot) {
+    const permitidos = servicio?.horarios_permitidos || [];
+    if (!permitidos.length) return true;
+    const normalizados = new Set(permitidos.flatMap(variantesHorarioPermitido));
+    return normalizados.has(slot);
+}
+
+// Si el rango [slotStart, slotEnd) se solapa con algún descanso del día
+function slotTieneDescanso(slotStart, slotEnd, descansosDelDia = []) {
+    return descansosDelDia.some(descanso => {
+        if (!descanso?.inicio || !descanso?.fin) return false;
+        const descansoStart = timeToMinutes(descanso.inicio);
+        const descansoEnd = timeToMinutes(descanso.fin);
+        return (slotStart < descansoEnd) && (slotEnd > descansoStart);
+    });
+}
+
 // Helper to convert minutes since midnight to "HH:mm" (formato 24h para BD)
 function minutesToTime(totalMinutes) {
     const hours = Math.floor(totalMinutes / 60);

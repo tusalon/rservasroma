@@ -97,27 +97,14 @@ function MyBookings({ cliente, onVolver }) {
         return `${y}-${m}-${d}`;
     };
 
+    // indiceToHoraLegible, variantesHorarioPermitido, servicioPermiteHorario y
+    // slotTieneDescanso viven en utils/timeLogic.js (cargado antes que este componente).
+    // timeToMinutes se mantiene local: esta versión tolera t undefined, a diferencia
+    // de la global.
     const getTodayLocalString = () => formatDateInput(new Date());
     const timeToMinutes = (t) => { const [h, m] = String(t || '0:0').split(':').map(Number); return h * 60 + m; };
     const minutesToTime = (m) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
-    const indiceToHoraLegible = (i) => `${String(Math.floor(i / 2)).padStart(2, '0')}:${i % 2 === 0 ? '00' : '30'}`;
     const calcularHoraFin = (inicio, dur) => minutesToTime(timeToMinutes(inicio) + (parseInt(dur, 10) || 60));
-
-    const variantesHorarioPermitido = (timeStr) => {
-        const [h, m] = String(timeStr || '').trim().split(':').map(s => parseInt(s, 10));
-        if (isNaN(h) || isNaN(m)) return [];
-        const normal = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-        return h >= 1 && h <= 7 ? [normal, `${String(h + 12).padStart(2, '0')}:${String(m).padStart(2, '0')}`] : [normal];
-    };
-
-    const servicioPermiteHorario = (servicio, slot) => {
-        const permitidos = servicio?.horarios_permitidos || [];
-        if (!permitidos.length) return true;
-        return new Set(permitidos.flatMap(variantesHorarioPermitido)).has(slot);
-    };
-
-    const slotTieneDescanso = (slotStart, slotEnd, descansos = []) =>
-        descansos.some(d => d?.inicio && d?.fin && slotStart < timeToMinutes(d.fin) && slotEnd > timeToMinutes(d.inicio));
 
     const obtenerServicioReserva = async (booking) => {
         try {

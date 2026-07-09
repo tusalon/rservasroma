@@ -317,71 +317,9 @@ async function marcarTurnosCompletados() {
         return [];
     }
 }
-const timeToMinutes = (time) => {
-    const [hours, minutes] = time.split(':').map(Number);
-    return hours * 60 + minutes;
-};
-
-const variantesHorarioPermitido = (timeStr) => {
-    const partes = String(timeStr || '').trim().split(':');
-    if (partes.length < 2) return [];
-    const hours = parseInt(partes[0], 10);
-    const minutes = parseInt(partes[1], 10);
-    if (Number.isNaN(hours) || Number.isNaN(minutes)) return [];
-
-    const normal = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
-    const variantes = [normal];
-    if (hours >= 1 && hours <= 7) {
-        variantes.push(`${String(hours + 12).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`);
-    }
-    return variantes;
-};
-
-const servicioPermiteHorario = (servicio, slot) => {
-    const permitidos = servicio?.horarios_permitidos || [];
-    if (!permitidos.length) return true;
-    const normalizados = new Set(permitidos.flatMap(variantesHorarioPermitido));
-    return normalizados.has(slot);
-};
-
-const slotTieneDescanso = (slotStart, slotEnd, descansosDelDia = []) => {
-    return descansosDelDia.some(descanso => {
-        if (!descanso?.inicio || !descanso?.fin) return false;
-        const descansoStart = timeToMinutes(descanso.inicio);
-        const descansoEnd = timeToMinutes(descanso.fin);
-        return (slotStart < descansoEnd) && (slotEnd > descansoStart);
-    });
-};
-
-const estaDentroBloqueTrabajo = (inicio, fin, indicesDelDia = [], duracionTurno = 60, intervaloTurnos = 0) => {
-    if (!indicesDelDia.length) return false;
-
-    const minutosTrabajo = indicesDelDia
-        .map(indice => timeToMinutes(indiceToHoraLegible(indice)))
-        .sort((a, b) => a - b);
-
-    const bloquesBase = minutosTrabajo.map((minuto, index) => {
-        const siguiente = minutosTrabajo[index + 1];
-        const anterior = minutosTrabajo[index - 1];
-        return {
-            inicio: minuto,
-            fin: siguiente ? Math.max(siguiente, minuto + duracionTurno) : 24 * 60,
-            conectaAnterior: anterior !== undefined && minuto - anterior <= duracionTurno + intervaloTurnos
-        };
-    });
-
-    const bloques = [];
-    bloquesBase.forEach(bloque => {
-        const ultimo = bloques[bloques.length - 1];
-        if (ultimo && bloque.conectaAnterior) {
-            ultimo.fin = Math.max(ultimo.fin, bloque.fin);
-        } else {
-            bloques.push({ inicio: bloque.inicio, fin: bloque.fin });
-        }
-    });
-
-    return bloques.some(bloque => inicio >= bloque.inicio && fin <= bloque.fin);
-};
+// timeToMinutes, indiceToHoraLegible, variantesHorarioPermitido, servicioPermiteHorario
+// y slotTieneDescanso viven en utils/timeLogic.js (cargado antes que admin-app.js).
+// estaDentroBloqueTrabajo se eliminó: no tenía ningún sitio de llamada en el archivo (código muerto).
 
 const formatTo12Hour = (time) => {
     const [hours, minutes] = time.split(':');
@@ -410,12 +348,6 @@ const getCurrentLocalDate = () => {
 const getCurrentLocalMinutes = () => {
     const ahora = new Date();
     return ahora.getHours() * 60 + ahora.getMinutes();
-};
-
-const indiceToHoraLegible = (indice) => {
-    const horas = Math.floor(indice / 2);
-    const minutos = indice % 2 === 0 ? '00' : '30';
-    return `${horas.toString().padStart(2, '0')}:${minutos}`;
 };
 
 const minutesToHoraLegible = (minutosTotales) => {
