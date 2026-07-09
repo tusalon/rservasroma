@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rservasroma</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #1A1A1A;
+      color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      text-align: center;
+    }
+    .logo {
+      width: 96px; height: 96px;
+      border-radius: 24px;
+      margin-bottom: 24px;
+    }
+    h1 { font-size: 22px; margin-bottom: 12px; }
+    p  { color: #999; font-size: 15px; line-height: 1.5; max-width: 280px; }
+  </style>
+</head>
+<body>
+  <script>
+    // Si mientras tanto ya hay un salón guardado (p. ej. la clienta tocó su
+    // enlace en otra pestaña de la app), volver a la app del salón.
+    try {
+      var slugGuardado = localStorage.getItem('negocioSlug');
+      if (slugGuardado) {
+        window.location.replace('./?s=' + encodeURIComponent(slugGuardado));
+      }
+    } catch (e) {}
+  </script>
+  <img class="logo" src="icons/icon-192x192.png" alt="Rservasroma">
+  <h1>Rservasroma</h1>
+  <p>Pide a tu salón el enlace de reservas y ábrelo desde WhatsApp para ver tu perfil aquí.</p>
+</body>
+</html>

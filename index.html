@@ -13,13 +13,28 @@
     <meta name="twitter:title" content="Rservasroma · Panel Admin">
     <meta name="twitter:description" content="Accede al panel de administración de tu salón de belleza.">
 
-    <!-- MASTER APP: sin slug → login de admin -->
+    <!-- MASTER APP: sin slug → login de admin.
+         Excepción: dentro del APK de clientes se restaura el último salón visitado,
+         para que abrir la app desde el lanzador no termine en el login de admin.
+         El APK de clientes es el único caso con window.Capacitor Y origen remoto
+         (tusalon.github.io); el APK admin corre Capacitor pero sirve assets locales
+         (localhost), y el navegador no tiene window.Capacitor — ambos siguen yendo
+         al login como siempre. -->
     <script>
         (function() {
             var params = new URLSearchParams(window.location.search);
             var slug = params.get('s');
             if (!slug || slug.trim() === '') {
-                window.location.replace('admin-login.html');
+                var guardado = '';
+                try { guardado = localStorage.getItem('negocioSlug') || ''; } catch (e) {}
+                var esApkClientes = !!window.Capacitor && window.location.hostname === 'tusalon.github.io';
+                if (esApkClientes) {
+                    window.location.replace(guardado
+                        ? '?s=' + encodeURIComponent(guardado)
+                        : 'app-clientes.html');
+                } else {
+                    window.location.replace('admin-login.html');
+                }
             }
         })();
     </script>

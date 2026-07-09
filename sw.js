@@ -1,11 +1,12 @@
 // sw.js - Service Worker para Rservasroma
 
-const CACHE_NAME = 'rservasroma-v3';
+const CACHE_NAME = 'rservasroma-v4';
 const BASE = '/rservasroma';
 
 const urlsToCache = [
   `${BASE}/`,
   `${BASE}/index.html`,
+  `${BASE}/app-clientes.html`,
   `${BASE}/admin.html`,
   `${BASE}/admin-login.html`,
   `${BASE}/offline-panel.html`,
