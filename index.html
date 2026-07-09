@@ -27,7 +27,15 @@
             if (!slug || slug.trim() === '') {
                 var guardado = '';
                 try { guardado = localStorage.getItem('negocioSlug') || ''; } catch (e) {}
-                var esApkClientes = !!window.Capacitor && window.location.hostname === 'tusalon.github.io';
+                // El APK de clientes es el único que carga este sitio dentro de un
+                // WebView Android: se detecta por el marcador propio del UA
+                // (appendUserAgent en capacitor.config), por el token "wv" del
+                // WebView, o por el bridge de Capacitor. No se puede depender solo
+                // de window.Capacitor: cuando la página la sirve el service worker,
+                // la inyección del bridge puede no ocurrir.
+                var ua = navigator.userAgent || '';
+                var esApkClientes = window.location.hostname === 'tusalon.github.io' &&
+                    (ua.indexOf('RservasromaClientes') !== -1 || /\bwv\b/.test(ua) || !!window.Capacitor);
                 if (esApkClientes) {
                     window.location.replace(guardado
                         ? '?s=' + encodeURIComponent(guardado)
