@@ -3,15 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rservasroma · Gestión de reservas para salones</title>
-    <meta name="description" content="Panel de administración y reservas online para salones de belleza. Powered by Rservasroma.">
-    <meta property="og:title" content="Rservasroma · Panel Admin">
-    <meta property="og:description" content="Accede al panel de administración de tu salón de belleza.">
+    <title>Reserva tu turno online · Rservasroma</title>
+    <meta name="description" content="Reserva tu cita en tu salón de belleza favorito: elige servicio, profesional y horario en segundos. Powered by Rservasroma.">
+    <meta property="og:title" content="Reserva tu turno online 💅">
+    <meta property="og:description" content="Elige servicio, profesional y horario en segundos. Tu salón te espera.">
     <meta property="og:image" content="https://tusalon.github.io/rservasroma/icons/icon-512x512.png">
     <meta property="og:type" content="website">
     <meta name="twitter:card" content="summary">
-    <meta name="twitter:title" content="Rservasroma · Panel Admin">
-    <meta name="twitter:description" content="Accede al panel de administración de tu salón de belleza.">
+    <meta name="twitter:title" content="Reserva tu turno online 💅">
+    <meta name="twitter:description" content="Elige servicio, profesional y horario en segundos. Tu salón te espera.">
 
     <!-- MASTER APP: sin slug → login de admin.
          Excepción: dentro del APK de clientes se restaura el último salón visitado,
@@ -542,29 +542,29 @@
     <script src="utils/config.js"></script>
     <script src="utils/servicios.js?v=20260626-anticipos-servicio"></script>
     <script src="utils/profesionales.js"></script>
-    <script src="utils/whatsapp-helper.js?v=20260709-ux-fase-c"></script>
+    <script src="utils/whatsapp-helper.js?v=20260709-ux-fase-d"></script>
     <script src="utils/push-config.js?v=20260621"></script>
     <script src="utils/push-notifications.js?v=20260621c"></script>
      <script src="utils/dias-cerrados.js"></script>
 
     <!-- Componentes -->
     <script src="components/Header.js?v=20260709-ux-fase-c" type="text/babel"></script>
-    <script src="components/ServiceSelectionCategorias.js?v=20260626-tarjetas-servicios" type="text/babel"></script>
-    <script src="components/ProfesionalSelector.js" type="text/babel"></script>
-    <script src="components/MultiProfesionalSelector.js" type="text/babel"></script>
+    <script src="components/ServiceSelectionCategorias.js?v=20260709-ux-fase-d" type="text/babel"></script>
+    <script src="components/ProfesionalSelector.js?v=20260709-ux-fase-d" type="text/babel"></script>
+    <script src="components/MultiProfesionalSelector.js?v=20260709-ux-fase-d" type="text/babel"></script>
     <script src="components/Calendar.js?v=20260709-ux-fase-b" type="text/babel"></script>
     <script src="components/TimeSlots.js?v=20260709-ux-fase-c" type="text/babel"></script>
     <script src="components/MultiTimeSlots.js?v=20260709-ux-fase-b" type="text/babel"></script>
     <script src="components/BookingForm.js?v=20260709-ux-fase-c" type="text/babel"></script>
-    <script src="components/Confirmation.js?v=20260709-ux-fase-c" type="text/babel"></script>
+    <script src="components/Confirmation.js?v=20260709-ux-fase-d" type="text/babel"></script>
     <script src="components/WelcomeScreen.js?v=20260709-ux-fase-a" type="text/babel"></script>
     <script src="components/WhatsAppButton.js?v=20260709-ux-fase-c" type="text/babel"></script>
     <script src="components/ClientAuthScreen.js?v=20260709-ux-fase-b" type="text/babel"></script>
-    <script src="components/MyBookings.js?v=20260709-ux-fase-c" type="text/babel"></script>
+    <script src="components/MyBookings.js?v=20260709-ux-fase-d" type="text/babel"></script>
     <script src="components/InstallButton.js" type="text/babel"></script>
     
     <!-- App de clientes -->
-    <script src="client-app.js?v=20260709-ux-fase-a" type="text/babel"></script>
+    <script src="client-app.js?v=20260709-ux-fase-d" type="text/babel"></script>
     
     <script>
         // Actualizar título dinámico desde la base de datos
@@ -573,7 +573,7 @@
                 const nombre = await window.getNombreNegocio();
                 if (nombre) {
                     document.title = `${nombre} - Reserva de Turnos`;
-                    document.querySelector('meta[name="apple-mobile-web-app-title"]')?.setAttribute('content', nombre.split(' ')[0] || 'Exotic');
+                    document.querySelector('meta[name="apple-mobile-web-app-title"]')?.setAttribute('content', nombre.split(' ')[0] || 'Rservasroma');
                 }
             } catch (error) {
                 console.error('Error cargando título:', error);

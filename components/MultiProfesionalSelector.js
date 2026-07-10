@@ -86,9 +86,16 @@ function MultiProfesionalSelector({ selectedService, selectedProfesional, onSele
                             </div>
 
                             {profesionales.length === 0 ? (
-                                <p className="text-sm text-red-500 bg-red-50 border border-red-100 rounded-lg p-3">
-                                    No hay profesionales asignados a este servicio.
-                                </p>
+                                <div className="text-sm bg-pink-50 border border-pink-200 rounded-lg p-3 space-y-2">
+                                    <p className="text-pink-700">"{servicio.nombre}" aún no tiene turnos online.</p>
+                                    <button
+                                        type="button"
+                                        onClick={() => window.contactarSalonWhatsApp?.(`Hola! Quiero reservar "${servicio.nombre}" pero no aparece disponible en la app 💅`)}
+                                        className="bg-green-500 hover:bg-green-600 text-white font-bold px-4 py-2 rounded-lg transition-colors"
+                                    >
+                                        💬 Reservar por WhatsApp
+                                    </button>
+                                </div>
                             ) : (
                                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
                                     {profesionales.map(prof => (

@@ -152,8 +152,8 @@ function Confirmation({ booking, onReset }) {
             <div className="w-full max-w-sm mb-4 bg-white/90 backdrop-blur-sm p-5 rounded-2xl border-2 border-pink-200 shadow-sm text-center">
                 {!valoracionEnviada ? (
                     <>
-                        <p className="font-semibold text-pink-800 mb-1">¿Cómo fue tu experiencia?</p>
-                        <p className="text-xs text-pink-500 mb-3">Tu opinión nos ayuda a mejorar</p>
+                        <p className="font-semibold text-pink-800 mb-1">¿Qué te pareció reservar con nosotras?</p>
+                        <p className="text-xs text-pink-500 mb-3">Califica la experiencia de agendar tu turno</p>
                         <div className="flex justify-center gap-2">
                             {[1,2,3,4,5].map(n => (
                                 <button key={n}

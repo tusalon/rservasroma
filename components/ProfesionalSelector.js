@@ -92,13 +92,25 @@ function ProfesionalSelector({ onSelect, selectedProfesional, selectedService })
             </h2>
 
             {selectedService && profesionales.length === 0 ? (
-                <div className="text-center p-8 bg-pink-50 rounded-xl border border-pink-200">
-                    <p className="text-pink-700 font-medium">No hay profesionales disponibles para "{selectedService.nombre}"</p>
-                    <p className="text-sm text-pink-600 mt-1">El administrador debe asignar profesionales que puedan realizar esta selección</p>
+                <div className="text-center p-8 bg-pink-50 rounded-xl border border-pink-200 space-y-3">
+                    <p className="text-pink-700 font-medium">"{selectedService.nombre}" aún no tiene turnos online</p>
+                    <p className="text-sm text-pink-600">Escríbenos y te lo coordinamos directamente 💖</p>
+                    <button
+                        onClick={() => window.contactarSalonWhatsApp?.(`Hola! Quiero reservar "${selectedService.nombre}" pero no aparece disponible en la app 💅`)}
+                        className="bg-green-500 hover:bg-green-600 text-white font-bold px-5 py-3 rounded-xl shadow-sm transition-colors"
+                    >
+                        💬 Reservar por WhatsApp
+                    </button>
                 </div>
             ) : profesionales.length === 0 ? (
-                <div className="text-center p-8 bg-white/80 backdrop-blur-sm rounded-xl border border-pink-200">
-                    <p className="text-pink-500">No hay profesionales disponibles</p>
+                <div className="text-center p-8 bg-white/80 backdrop-blur-sm rounded-xl border border-pink-200 space-y-3">
+                    <p className="text-pink-600 font-medium">Aún no hay profesionales con turnos online</p>
+                    <button
+                        onClick={() => window.contactarSalonWhatsApp?.()}
+                        className="bg-green-500 hover:bg-green-600 text-white font-bold px-5 py-3 rounded-xl shadow-sm transition-colors"
+                    >
+                        💬 Reservar por WhatsApp
+                    </button>
                 </div>
             ) : (
                 <>

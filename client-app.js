@@ -181,18 +181,34 @@ function ClientApp() {
         setSelectedTime('');
         setHorariosPorDia({});
 
-        // Si solo hay 1 profesional activo, auto-seleccionarlo y saltar al calendario
+        // Si solo hay 1 profesional activo QUE REALICE este servicio, auto-seleccionarlo
+        // y saltar al calendario. Antes no se validaba el servicio y el selector lo
+        // anulaba un instante después (flash del calendario). Los combos no se
+        // auto-seleccionan: MultiProfesionalSelector arma sus propias asignaciones.
         try {
-            const profesionales = await window.salonProfesionales?.getAll?.();
-            const activos = (profesionales || []).filter(p => p.activo !== false);
-            if (activos.length === 1) {
-                setSelectedProfesional(activos[0]);
-                setTimeout(() => {
-                    document.getElementById('calendar-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }, 150);
-                return;
+            if (!service?.esMultiple) {
+                const profesionales = await window.salonProfesionales?.getAll?.();
+                let candidatos = (profesionales || []).filter(p => p.activo !== false);
+
+                if (window.getProfesionalesPorServicio && service?.id) {
+                    const asignados = await window.getProfesionalesPorServicio(service.id);
+                    const idsAsignados = (asignados || []).map(p => p.id);
+                    if (idsAsignados.length > 0) {
+                        candidatos = candidatos.filter(p => idsAsignados.includes(p.id));
+                    }
+                }
+
+                if (candidatos.length === 1) {
+                    setSelectedProfesional(candidatos[0]);
+                    setTimeout(() => {
+                        document.getElementById('calendar-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }, 150);
+                    return;
+                }
             }
-        } catch {}
+        } catch (e) {
+            console.error('Error auto-seleccionando profesional:', e);
+        }
 
         setTimeout(() => {
             document.getElementById('profesional-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -355,6 +371,14 @@ function ClientApp() {
                                     cliente={cliente}
                                     onSubmit={(booking) => {
                                         setBookingConfirmed(booking);
+                                        // Recordar el último servicio reservado (por negocio)
+                                        // para ofrecer el atajo "Repetir tu último turno".
+                                        try {
+                                            const negocioId = window.getNegocioId?.() || '';
+                                            if (negocioId && booking?.servicio) {
+                                                localStorage.setItem('ultimoServicio:' + negocioId, booking.servicio);
+                                            }
+                                        } catch (e) {}
                                         // Limpiar la selección: si vuelve atrás desde la
                                         // confirmación, el formulario no debe reaparecer
                                         // relleno (riesgo de reservar duplicado).

@@ -295,6 +295,20 @@ window.enviarWhatsApp = function(telefono, mensaje) {
     }
 };
 
+// Contactar al salón por WhatsApp desde estados vacíos de la app de clientas
+// (servicio sin profesionales, sin servicios cargados, etc.): convierte un
+// callejón sin salida en una reserva coordinada a mano.
+window.contactarSalonWhatsApp = async function(mensaje) {
+    try {
+        const config = await window.cargarConfiguracionNegocio();
+        if (!config?.telefono) return false;
+        return window.enviarWhatsApp(config.telefono, mensaje || `Hola! Quiero reservar un turno en ${config?.nombre || 'el salón'} 💅`);
+    } catch (error) {
+        console.error('Error contactando al salón:', error);
+        return false;
+    }
+};
+
 function sanitizeNtfyHeader(value, fallback = '') {
     const cleanValue = String(value || fallback)
         .normalize('NFD')

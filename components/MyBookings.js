@@ -3,7 +3,9 @@
 function MyBookings({ cliente, onVolver }) {
     const [bookings, setBookings] = React.useState([]);
     const [loading, setLoading] = React.useState(true);
-    const [cancelando, setCancelando] = React.useState(false);
+    // Guarda el ID de la reserva en proceso de cancelación (no un booleano
+    // global: si no, TODOS los botones de cancelar mostraban "Cancelando...").
+    const [cancelando, setCancelando] = React.useState(null);
     const [filtro, setFiltro] = React.useState('proximas');
     const [mensajeError, setMensajeError] = React.useState('');
     const [negocioId, setNegocioId] = React.useState(null);
@@ -195,7 +197,7 @@ function MyBookings({ cliente, onVolver }) {
     const confirmarCancelacion = async () => {
         const booking = confirmandoCancelacion;
         setConfirmandoCancelacion(null);
-        setCancelando(true);
+        setCancelando(booking.id);
         try {
             const res = await fetch(
                 `${window.SUPABASE_URL}/rest/v1/reservas?negocio_id=eq.${negocioId}&id=eq.${booking.id}`,
@@ -210,7 +212,7 @@ function MyBookings({ cliente, onVolver }) {
         } catch {
             mostrarToast('error', 'Error al cancelar el turno. Intenta de nuevo.');
         } finally {
-            setCancelando(false);
+            setCancelando(null);
         }
     };
 
@@ -505,11 +507,11 @@ function MyBookings({ cliente, onVolver }) {
 
                                         {booking.estado !== 'Cancelado' && (
                                             <button onClick={() => handleCancelarReserva(booking)}
-                                                disabled={cancelando || !puedeCancelarBooking}
+                                                disabled={cancelando !== null || !puedeCancelarBooking}
                                                 className={`w-full py-2 rounded-lg font-medium transition flex items-center justify-center gap-2
                                                     ${puedeCancelarBooking ? 'bg-pink-100 hover:bg-pink-200 text-pink-700' : 'bg-pink-50 text-pink-400 cursor-not-allowed'}
                                                     disabled:opacity-50 disabled:cursor-not-allowed`}>
-                                                {cancelando ? (
+                                                {cancelando === booking.id ? (
                                                     <><div className="animate-spin h-4 w-4 border-2 border-pink-600 border-t-transparent rounded-full"></div>Cancelando...</>
                                                 ) : (
                                                     <><span>❌</span>{puedeCancelarBooking ? 'Cancelar turno' : 'No se puede cancelar aún'}</>

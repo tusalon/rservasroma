@@ -134,6 +134,26 @@ function ServiceSelection({ onSelect, selectedService }) {
         });
     };
 
+    // Atajo "Repetir tu último turno": las clientas de salón casi siempre repiten
+    // el mismo servicio; esto les ahorra buscarlo en la lista.
+    const servicioUltimoTurno = React.useMemo(() => {
+        try {
+            const negocioId = window.getNegocioId?.() || '';
+            if (!negocioId) return null;
+            const nombreGuardado = localStorage.getItem('ultimoServicio:' + negocioId);
+            if (!nombreGuardado) return null;
+            return services.find(s => s.nombre === nombreGuardado) || null;
+        } catch (e) {
+            return null;
+        }
+    }, [services]);
+
+    const repetirUltimoTurno = () => {
+        if (!servicioUltimoTurno) return;
+        setServiciosSeleccionados([servicioUltimoTurno]);
+        onSelect(servicioUltimoTurno);
+    };
+
     const combinarHorariosPermitidos = (seleccionados) => {
         const listas = seleccionados
             .map(servicio => Array.isArray(servicio.horarios_permitidos) ? servicio.horarios_permitidos : [])
@@ -188,12 +208,30 @@ function ServiceSelection({ onSelect, selectedService }) {
             </h2>
 
             {services.length === 0 ? (
-                <div className="text-center p-8 bg-white/80 backdrop-blur-sm rounded-xl border border-pink-200">
-                    <p className="text-pink-500">No hay servicios disponibles</p>
-                    <p className="text-xs text-pink-400 mt-2">La administradora debe cargar servicios primero</p>
+                <div className="text-center p-8 bg-white/80 backdrop-blur-sm rounded-xl border border-pink-200 space-y-3">
+                    <p className="text-pink-600 font-medium">Los turnos online aún no están listos</p>
+                    <p className="text-sm text-pink-500">Escríbenos por WhatsApp y coordinamos tu cita 💖</p>
+                    <button
+                        onClick={() => window.contactarSalonWhatsApp?.()}
+                        className="bg-green-500 hover:bg-green-600 text-white font-bold px-5 py-3 rounded-xl shadow-sm transition-colors"
+                    >
+                        💬 Reservar por WhatsApp
+                    </button>
                 </div>
             ) : (
                 <>
+                    {servicioUltimoTurno && serviciosSeleccionados.length === 0 && !selectedService && (
+                        <button
+                            onClick={repetirUltimoTurno}
+                            className="w-full flex items-center justify-between gap-3 bg-gradient-to-r from-pink-500 to-pink-600 text-white p-4 rounded-xl shadow-md hover:from-pink-600 hover:to-pink-700 transition-all"
+                        >
+                            <span className="text-left">
+                                <span className="block text-xs opacity-90">💖 ¿Repetir tu último turno?</span>
+                                <span className="block font-bold">{servicioUltimoTurno.nombre}</span>
+                            </span>
+                            <span className="text-2xl">→</span>
+                        </button>
+                    )}
                     {services.length > 5 && (
                         <div className="flex items-center border border-pink-200 rounded-xl bg-white/80 focus-within:ring-2 focus-within:ring-pink-400">
                             <span className="pl-3 text-base flex-shrink-0">🔍</span>
