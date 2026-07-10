@@ -163,13 +163,87 @@
                 grid-template-columns: 1fr;
             }
         }
+
+        .offline-acciones {
+            position: sticky;
+            bottom: 0;
+            display: flex;
+            gap: 10px;
+            padding: 12px 0 max(12px, env(safe-area-inset-bottom));
+            background: linear-gradient(180deg, transparent, #fff1f7 40%);
+        }
+
+        .offline-acciones button {
+            flex: 1;
+            padding: 14px;
+            border: none;
+            border-radius: 14px;
+            background: var(--brand-primary);
+            color: #fff;
+            font-size: 15px;
+            font-weight: 800;
+            cursor: pointer;
+        }
+
+        .offline-acciones button:disabled {
+            opacity: 0.6;
+        }
     </style>
 </head>
 <body>
     <div id="offline-root"></div>
+    <div class="offline-shell">
+        <div class="offline-acciones">
+            <button id="btn-reintentar" type="button">🔄 Reintentar conexión</button>
+        </div>
+    </div>
     <script src="utils/offline-panel.js?v=20260626-offline-panel"></script>
     <script>
         window.RservasOffline.renderOfflinePanel();
+
+        // Salida del modo offline: reintento manual + vuelta automática
+        // en cuanto el sistema detecta que regresó la conexión.
+        (function() {
+            var btn = document.getElementById('btn-reintentar');
+
+            function volverALaApp() {
+                var slug = '';
+                try { slug = localStorage.getItem('negocioSlug') || ''; } catch (e) {}
+                var esStaff = false;
+                try {
+                    esStaff = localStorage.getItem('adminAuth') === 'true' || !!localStorage.getItem('profesionalAuth');
+                } catch (e) {}
+                if (esStaff) {
+                    window.location.href = 'admin.html';
+                } else {
+                    window.location.href = slug ? 'index.html?s=' + encodeURIComponent(slug) : 'index.html';
+                }
+            }
+
+            btn.addEventListener('click', function() {
+                btn.disabled = true;
+                btn.textContent = 'Verificando conexión...';
+                var verificar = window.RservasOffline && window.RservasOffline.isOnline
+                    ? window.RservasOffline.isOnline(1, 6000)
+                    : Promise.resolve(navigator.onLine);
+                verificar.then(function(online) {
+                    if (online) {
+                        volverALaApp();
+                    } else {
+                        btn.disabled = false;
+                        btn.textContent = '🔄 Reintentar conexión';
+                        alert('Todavía no hay conexión. Intenta de nuevo en un momento.');
+                    }
+                }).catch(function() {
+                    btn.disabled = false;
+                    btn.textContent = '🔄 Reintentar conexión';
+                });
+            });
+
+            window.addEventListener('online', function() {
+                volverALaApp();
+            });
+        })();
     </script>
 </body>
 </html>

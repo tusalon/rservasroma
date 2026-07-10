@@ -306,23 +306,18 @@ END:VCALENDAR`;
                     _montoAnticipo: requiereAnticipo ? montoAnticipoReserva : 0
                 };
 
-                // Los pasos posteriores (avisar al salón, archivo de calendario) no
-                // deben ocultar una reserva ya creada si fallan.
+                // Avisar al salón no debe ocultar una reserva ya creada si falla.
+                // (La descarga automática del .ics se quitó: estorbaba en móvil y
+                // tenía la zona horaria de La Habana fija; la pantalla de éxito
+                // tiene el botón "Agregar al calendario".)
                 try {
-                    const nombreNegocio = configNegocio?.nombre || 'Mi Salón';
                     if (requiereAnticipo) {
                         if (window.notificarReservaPendiente) await window.notificarReservaPendiente(bookingResumen);
                     } else {
                         if (window.notificarNuevaReserva) await window.notificarNuevaReserva(bookingResumen);
                     }
-
-                    const icsContent = generarArchivoCalendario(bookingResumen, nombreNegocio);
-                    const fechaSegura = bookingResumen.fecha.replace(/-/g, '');
-                    const horaSegura = bookingResumen.hora_inicio.replace(':', '');
-                    const nombreSeguro = bookingResumen.cliente_nombre.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-                    descargarArchivoICS(icsContent, `turno-${fechaSegura}-${horaSegura}-${nombreSeguro}.ics`);
                 } catch (errPosterior) {
-                    console.error('Reserva creada; falló un paso posterior (notificación/calendario):', errPosterior);
+                    console.error('Reserva creada; falló la notificación al salón:', errPosterior);
                 }
 
                 onSubmit(bookingResumen);
@@ -378,11 +373,11 @@ END:VCALENDAR`;
             if (result.success && result.data) {
                 console.log(` ✅ Reserva creada en estado ${result.data.estado}`);
 
-                // Los pasos posteriores (avisar al salón, archivo de calendario) no
-                // deben ocultar una reserva ya creada si fallan.
+                // Avisar al salón no debe ocultar una reserva ya creada si falla.
+                // (La descarga automática del .ics se quitó: estorbaba en móvil y
+                // tenía la zona horaria de La Habana fija; la pantalla de éxito
+                // tiene el botón "Agregar al calendario".)
                 try {
-                    const nombreNegocio = configNegocio?.nombre || 'Mi Salón';
-
                     //  SOLO notificar a la dueña
                     if (requiereAnticipo) {
                         if (window.notificarReservaPendiente) {
@@ -395,20 +390,8 @@ END:VCALENDAR`;
                         }
                         console.log(' 📱 Dueña notificada: NUEVO TURNO AGENDADO (con push)');
                     }
-
-                    // Generar y descargar archivo ICS
-                    const icsContent = generarArchivoCalendario(result.data, nombreNegocio);
-
-                    const fechaSegura = result.data.fecha.replace(/-/g, '');
-                    const horaSegura = result.data.hora_inicio.replace(':', '');
-                    const nombreSeguro = result.data.cliente_nombre
-                        .toLowerCase()
-                        .replace(/\s+/g, '-')
-                        .replace(/[^a-z0-9-]/g, '');
-
-                    descargarArchivoICS(icsContent, `turno-${fechaSegura}-${horaSegura}-${nombreSeguro}.ics`);
                 } catch (errPosterior) {
-                    console.error('Reserva creada; falló un paso posterior (notificación/calendario):', errPosterior);
+                    console.error('Reserva creada; falló la notificación al salón:', errPosterior);
                 }
 
                 onSubmit({ ...result.data, _montoAnticipo: requiereAnticipo ? montoAnticipoReserva : 0 });

@@ -103,9 +103,9 @@ function MultiTimeSlots({ service, date, profesional, onTimeSelect, selectedTime
 
                 const slotsDisponibles = disponibles.sort();
                 setSlots(slotsDisponibles);
-                if (slotsDisponibles.length === 0 && onNoAvailability) {
-                    onNoAvailability();
-                }
+                // Antes: con 0 horarios se llamaba onNoAvailability(), que borraba
+                // la fecha en el padre y desmontaba esta sección — la clienta veía
+                // desaparecer todo sin explicación. Ahora se muestra el mensaje.
             } catch (err) {
                 console.error('Error calculando horarios multiservicio:', err);
                 setError('Error al cargar horarios');
@@ -139,7 +139,11 @@ function MultiTimeSlots({ service, date, profesional, onTimeSelect, selectedTime
             ) : error ? (
                 <div className="p-4 bg-pink-50 text-pink-600 rounded-lg text-sm border border-pink-200">{error}</div>
             ) : slots.length === 0 ? (
-                null
+                <div className="p-6 bg-white/90 rounded-xl border-2 border-pink-200 text-center">
+                    <span className="text-3xl block mb-2">😔</span>
+                    <p className="text-pink-700 font-semibold">No hay horarios seguidos para estos servicios ese día.</p>
+                    <p className="text-pink-500 text-sm mt-1">Prueba con otra fecha en el calendario de arriba.</p>
+                </div>
             ) : (
                 <>
                     <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 mt-4">

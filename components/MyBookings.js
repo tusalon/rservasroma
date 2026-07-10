@@ -307,7 +307,9 @@ function MyBookings({ cliente, onVolver }) {
         }
     };
 
-    const hoy = new Date().toISOString().slice(0, 10);
+    // Fecha LOCAL, no UTC: con toISOString(), en Cuba (UTC-4) a partir de las
+    // 8pm "hoy" ya era mañana y las citas de esta noche desaparecían de Próximas.
+    const hoy = formatDateInput(new Date());
     const esPasado = (b) => b.fecha < hoy || b.estado === 'Completado' || b.estado === 'Ausente';
     const esProximo = (b) => !esPasado(b) && b.estado !== 'Cancelado';
 

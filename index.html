@@ -446,9 +446,9 @@
             padding:10px 16px;font-size:13px;font-weight:700;
             cursor:pointer;white-space:nowrap;flex-shrink:0;
         ">Instalar</button>
-        <button id="pwa-btn-cerrar" style="
-            background:transparent;border:none;color:#666;
-            font-size:20px;cursor:pointer;padding:4px;flex-shrink:0;line-height:1;
+        <button id="pwa-btn-cerrar" aria-label="Cerrar" style="
+            background:rgba(255,255,255,0.12);border:none;color:#ddd;border-radius:10px;
+            font-size:20px;cursor:pointer;padding:8px 12px;flex-shrink:0;line-height:1;
         ">✕</button>
     </div>
 
@@ -457,12 +457,28 @@
         // Solo en Android, no en iOS, no si ya está instalado como PWA
         var isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
         var isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-        var dismissed = sessionStorage.getItem('pwa-banner-dismissed');
+        // El dismiss dura 7 días (antes era por pestaña y reaparecía en cada visita)
+        var dismissedHasta = 0;
+        try { dismissedHasta = parseInt(localStorage.getItem('pwa-banner-dismissed-hasta') || '0', 10) || 0; } catch (e) {}
 
-        if (isStandalone || isIOS || dismissed) return;
+        if (isStandalone || isIOS || Date.now() < dismissedHasta) return;
 
         var deferredPrompt = null;
         var banner = document.getElementById('pwa-install-banner');
+
+        function mostrarBanner() {
+            if (!banner) return;
+            banner.style.transform = 'translateY(0)';
+            // Reservar espacio abajo para que el banner no tape la barra
+            // pegajosa de "Continuar" de la selección de servicios.
+            document.body.style.paddingBottom = (banner.offsetHeight + 8) + 'px';
+        }
+
+        function ocultarBanner() {
+            if (!banner) return;
+            banner.style.transform = 'translateY(100%)';
+            document.body.style.paddingBottom = '';
+        }
 
         window.addEventListener('beforeinstallprompt', function(e) {
             e.preventDefault();
@@ -475,9 +491,7 @@
             if (title) title.textContent = 'Instala la app de ' + nombre;
 
             // Mostrar después de 5 segundos
-            setTimeout(function() {
-                if (banner) banner.style.transform = 'translateY(0)';
-            }, 5000);
+            setTimeout(mostrarBanner, 5000);
         });
 
         document.getElementById('pwa-btn-instalar').addEventListener('click', function() {
@@ -485,15 +499,15 @@
             deferredPrompt.prompt();
             deferredPrompt.userChoice.then(function(result) {
                 if (result.outcome === 'accepted') {
-                    banner.style.transform = 'translateY(100%)';
+                    ocultarBanner();
                 }
                 deferredPrompt = null;
             });
         });
 
         document.getElementById('pwa-btn-cerrar').addEventListener('click', function() {
-            banner.style.transform = 'translateY(100%)';
-            sessionStorage.setItem('pwa-banner-dismissed', '1');
+            ocultarBanner();
+            try { localStorage.setItem('pwa-banner-dismissed-hasta', String(Date.now() + 7 * 24 * 60 * 60 * 1000)); } catch (e) {}
         });
     })();
     </script>
@@ -538,15 +552,15 @@
     <script src="components/ServiceSelectionCategorias.js?v=20260626-tarjetas-servicios" type="text/babel"></script>
     <script src="components/ProfesionalSelector.js" type="text/babel"></script>
     <script src="components/MultiProfesionalSelector.js" type="text/babel"></script>
-    <script src="components/Calendar.js?v=20260628-excepciones" type="text/babel"></script>
+    <script src="components/Calendar.js?v=20260709-ux-fase-b" type="text/babel"></script>
     <script src="components/TimeSlots.js?v=20260530-lista-espera-dia-lleno-fix2" type="text/babel"></script>
-    <script src="components/MultiTimeSlots.js?v=20260526-tema-global" type="text/babel"></script>
-    <script src="components/BookingForm.js?v=20260709-ux-fase-a" type="text/babel"></script>
+    <script src="components/MultiTimeSlots.js?v=20260709-ux-fase-b" type="text/babel"></script>
+    <script src="components/BookingForm.js?v=20260709-ux-fase-b" type="text/babel"></script>
     <script src="components/Confirmation.js?v=20260709-ux-fase-a" type="text/babel"></script>
     <script src="components/WelcomeScreen.js?v=20260709-ux-fase-a" type="text/babel"></script>
     <script src="components/WhatsAppButton.js?v=20260528-internacional" type="text/babel"></script>
-    <script src="components/ClientAuthScreen.js?v=20260709-ux-fase-a" type="text/babel"></script>
-    <script src="components/MyBookings.js?v=20260628-excepciones" type="text/babel"></script>
+    <script src="components/ClientAuthScreen.js?v=20260709-ux-fase-b" type="text/babel"></script>
+    <script src="components/MyBookings.js?v=20260709-ux-fase-b" type="text/babel"></script>
     <script src="components/InstallButton.js" type="text/babel"></script>
     
     <!-- App de clientes -->

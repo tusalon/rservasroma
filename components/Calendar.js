@@ -162,16 +162,29 @@ function Calendar({ onDateSelect, selectedDate, profesional, profesionalCompleto
                 ? (profesionalCompleto.asignaciones || [])
                 : [];
 
+            const fechasDelMes = [];
+            for (let d = 1; d <= diasEnMes; d++) {
+                fechasDelMes.push(formatDate(new Date(year, month, d)));
+            }
+
+            // Horarios en LOTE: 2 fetches por profesional para todo el mes, en vez
+            // de un fetch por día (y en combos, por día × slot × asignación).
             const datosMultiples = asignacionesMultiples.length > 0
                 ? await Promise.all(asignacionesMultiples.map(async item => {
-                    const reservasItem = await getReservasPorFechaProfesional(negocioId, item.profesional.id, fechaInicio, fechaFin);
-                    return { ...item, reservasPorFecha: reservasItem || {} };
+                    const [reservasItem, horariosPorFechaItem] = await Promise.all([
+                        getReservasPorFechaProfesional(negocioId, item.profesional.id, fechaInicio, fechaFin),
+                        window.salonConfig.getHorariosProfesionalParaFechas(item.profesional.id, fechasDelMes)
+                    ]);
+                    return { ...item, reservasPorFecha: reservasItem || {}, horariosPorFecha: horariosPorFechaItem || {} };
                 }))
                 : [];
 
-            const reservasPorFecha = asignacionesMultiples.length > 0
-                ? {}
-                : await getReservasPorFechaProfesional(negocioId, profesional.id, fechaInicio, fechaFin);
+            const [reservasPorFecha, horariosPorFechaProfesional] = asignacionesMultiples.length > 0
+                ? [{}, {}]
+                : await Promise.all([
+                    getReservasPorFechaProfesional(negocioId, profesional.id, fechaInicio, fechaFin),
+                    window.salonConfig.getHorariosProfesionalParaFechas(profesional.id, fechasDelMes)
+                ]);
             
             const diasSemana = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
             const sinDisponibilidad = [];
@@ -184,7 +197,7 @@ function Calendar({ onDateSelect, selectedDate, profesional, profesionalCompleto
                 const fechaStr = formatDate(fecha);
                 const diaSemana = diasSemana[fecha.getDay()];
                 const diffDias = Math.ceil((new Date(`${fechaStr}T00:00:00`) - new Date(formatDate(ahora) + 'T00:00:00')) / (1000 * 60 * 60 * 24));
-                const horariosFecha = await window.salonConfig.getHorariosProfesionalParaFecha(profesional.id, fechaStr);
+                const horariosFecha = horariosPorFechaProfesional[fechaStr] || {};
                 const horariosFechaPorDia = horariosFecha.horariosPorDia || {};
                 const descansosFechaPorDia = horariosFecha.descansosPorDia || {};
                 let baseSlots = (horariosFechaPorDia[diaSemana] || []).map(indiceToHoraLegible);
@@ -206,7 +219,7 @@ function Calendar({ onDateSelect, selectedDate, profesional, profesionalCompleto
 
                 if (datosMultiples.length > 0) {
                     const primerItem = datosMultiples[0];
-                    const primerHorario = await window.salonConfig.getHorariosProfesionalParaFecha(primerItem.profesional.id, fechaStr);
+                    const primerHorario = primerItem.horariosPorFecha[fechaStr] || {};
                     baseSlots = ((primerHorario.horariosPorDia || {})[diaSemana] || []).map(indiceToHoraLegible);
                     if (primerItem.servicio?.horarios_permitidos?.length) {
                         baseSlots = baseSlots.filter(slot => servicioPermiteHorario(primerItem.servicio, slot));
@@ -224,7 +237,7 @@ function Calendar({ onDateSelect, selectedDate, profesional, profesionalCompleto
 
                         let slotCompletoDisponible = true;
                         for (const item of datosMultiples) {
-                            const horarioItem = await window.salonConfig.getHorariosProfesionalParaFecha(item.profesional.id, fechaStr);
+                            const horarioItem = item.horariosPorFecha[fechaStr] || {};
                             const horariosItemPorDia = horarioItem.horariosPorDia || {};
                             const descansosItemPorDia = horarioItem.descansosPorDia || {};
                             const duracion = parseInt(item.servicio?.duracion, 10) || 60;
@@ -420,9 +433,15 @@ function Calendar({ onDateSelect, selectedDate, profesional, profesionalCompleto
                             const puedeListaEspera = disponibilidadVerificada && !cargandoDisponibilidad && !past && !cerrado && !diaLibreProfesional && sinDisponibilidad && tieneHorarios && dentroDeAntelacion;
                             const available = disponibilidadVerificada && !cargandoDisponibilidad && !past && !cerrado && !diaLibreProfesional && !sinDisponibilidad && tieneHorarios && dentroDeAntelacion;
                             const selectable = available || puedeListaEspera;
-                            
+                            // Mientras se verifica el mes, los días candidatos se ven
+                            // "cargando" (gris pulsante), no "sin turnos" (rosa pálido):
+                            // si se pintan igual, la clienta cree que no hay nada y se va.
+                            const verificandoDia = (cargandoDisponibilidad || !disponibilidadVerificada) &&
+                                !past && !cerrado && !diaLibreProfesional && dentroDeAntelacion;
+
                             let className = "h-10 w-full flex items-center justify-center rounded-lg text-sm font-medium transition-all relative";
                             if (selected) className += " bg-pink-500 text-white shadow-md scale-105 ring-2 ring-pink-300";
+                            else if (verificandoDia) className += " text-gray-400 bg-gray-100 animate-pulse cursor-wait";
                             else if (puedeListaEspera) className += " text-amber-700 bg-amber-50 border border-amber-200 hover:bg-amber-100 hover:scale-105 cursor-pointer";
                             else if (!selectable) className += " text-pink-300 cursor-not-allowed bg-pink-50/50";
                             else className += " text-pink-700 hover:bg-pink-100 hover:text-pink-600 hover:scale-105 cursor-pointer";

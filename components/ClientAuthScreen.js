@@ -48,6 +48,30 @@ function ClientAuthScreen({ onAccessGranted, onGoBack }) {
         setError('');
     };
 
+    const debounceTelefonoRef = React.useRef(null);
+    const verificacionIdRef = React.useRef(0);
+
+    // Al escribir: actualizar el input al instante, pero consultar Supabase solo
+    // cuando el número está completo y tras una pausa (antes: un fetch POR CADA
+    // TECLA desde el 7mo dígito, sin cancelación — carrera + datos quemados).
+    const manejarCambioTelefono = (valor) => {
+        const codigoPais = codigoPaisCliente || (window.getCodigoPaisTelefono ? window.getCodigoPaisTelefono(config) : '53');
+        const paisTelefono = window.getPhoneCountryConfig ? window.getPhoneCountryConfig({ codigo_pais: codigoPais }) : { localLength: 8 };
+        const numeroLimpio = window.normalizarTelefonoLocal
+            ? window.normalizarTelefonoLocal(valor, codigoPais)
+            : valor.replace(/\D/g, '');
+
+        setWhatsapp(numeroLimpio);
+        if (debounceTelefonoRef.current) clearTimeout(debounceTelefonoRef.current);
+
+        if (numeroLimpio.length < (paisTelefono.localLength || 8)) {
+            resetCliente();
+            return;
+        }
+
+        debounceTelefonoRef.current = setTimeout(() => verificarNumero(numeroLimpio), 450);
+    };
+
     const verificarNumero = async (numero) => {
         const codigoPais = codigoPaisCliente || (window.getCodigoPaisTelefono ? window.getCodigoPaisTelefono(config) : '53');
         const paisTelefono = window.getPhoneCountryConfig ? window.getPhoneCountryConfig({ codigo_pais: codigoPais }) : { localLength: 8 };
@@ -60,6 +84,10 @@ function ClientAuthScreen({ onAccessGranted, onGoBack }) {
             resetCliente();
             return;
         }
+
+        // Si el número cambia mientras esta verificación está en vuelo, sus
+        // respuestas se descartan (una respuesta vieja no debe pisar la nueva).
+        const miVerificacion = ++verificacionIdRef.current;
 
         setVerificando(true);
         setError('');
@@ -89,6 +117,7 @@ function ClientAuthScreen({ onAccessGranted, onGoBack }) {
 
             if (window.verificarProfesionalPorTelefono) {
                 const profesional = await window.verificarProfesionalPorTelefono(numeroLimpio);
+                if (verificacionIdRef.current !== miVerificacion) return;
                 if (profesional) {
                     setEsProfesional(true);
                     setProfesionalInfo(profesional);
@@ -100,6 +129,7 @@ function ClientAuthScreen({ onAccessGranted, onGoBack }) {
             }
 
             const bloqueo = await window.getClienteBloqueado?.(numeroCompleto);
+            if (verificacionIdRef.current !== miVerificacion) return;
             if (bloqueo) {
                 setClienteBloqueado(bloqueo);
                 setNecesitaNombre(false);
@@ -108,6 +138,7 @@ function ClientAuthScreen({ onAccessGranted, onGoBack }) {
             }
 
             const cliente = await window.verificarAccesoCliente(numeroCompleto);
+            if (verificacionIdRef.current !== miVerificacion) return;
             if (cliente) {
                 guardarNegocioEnSesion();
                 onAccessGranted(cliente.nombre, numeroCompleto);
@@ -116,10 +147,11 @@ function ClientAuthScreen({ onAccessGranted, onGoBack }) {
 
             setNecesitaNombre(true);
         } catch (err) {
+            if (verificacionIdRef.current !== miVerificacion) return;
             console.error('Error verificando teléfono:', err);
-            setError('Error verificando el número. Intenta más tarde.');
+            setError('No pudimos verificar el número. Revisa tu conexión e intenta de nuevo.');
         } finally {
-            setVerificando(false);
+            if (verificacionIdRef.current === miVerificacion) setVerificando(false);
         }
     };
 
@@ -315,8 +347,11 @@ function ClientAuthScreen({ onAccessGranted, onGoBack }) {
                                 </select>
                                 <input
                                     type="tel"
+                                    name="telefono"
+                                    inputMode="numeric"
+                                    autoComplete="tel-national"
                                     value={whatsapp}
-                                    onChange={(e) => verificarNumero(e.target.value)}
+                                    onChange={(e) => manejarCambioTelefono(e.target.value)}
                                     className="w-full px-4 py-3 rounded-r-lg border border-pink-300/30 bg-black/20 text-white placeholder-pink-200/70 focus:ring-2 focus:ring-pink-500 focus:border-transparent outline-none transition"
                                     placeholder={paisTelefono.ejemplo || '51234567'}
                                     required
@@ -340,6 +375,9 @@ function ClientAuthScreen({ onAccessGranted, onGoBack }) {
                                 </label>
                                 <input
                                     type="text"
+                                    name="nombre"
+                                    autoComplete="name"
+                                    autoCapitalize="words"
                                     value={nombre}
                                     onChange={(e) => setNombre(e.target.value)}
                                     className="w-full px-4 py-3 rounded-lg border border-pink-300/30 bg-black/20 text-white placeholder-pink-200/70 focus:ring-2 focus:ring-pink-500 focus:border-transparent outline-none transition"
