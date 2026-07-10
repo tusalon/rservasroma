@@ -81,20 +81,14 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol }) {
             console.log('📱 WelcomeScreen - Config cargada:', configData);
             setConfig(configData);
             setCargando(false);
-
-            const fondo = window.getHeroBackgroundOption
-                ? window.getHeroBackgroundOption(configData?.imagen_fondo_tipo)
-                : { image: 'https://images.unsplash.com/photo-1604654894610-df63bc536371?q=80&w=2071&auto=format&fit=crop' };
-            const img = new Image();
-            img.src = fondo.image;
-            img.onload = () => setImagenCargada(true);
-            img.onerror = () => setImagenCargada(true);
         };
         cargarDatos();
 
     }, []);
 
-    if (cargando || !imagenCargada) {
+    // Solo se espera la config (rápida); la imagen de fondo NUNCA bloquea la
+    // pantalla — hace fade-in cuando llega (clave en conexiones lentas).
+    if (cargando) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-pink-50">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500"></div>
@@ -114,7 +108,7 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol }) {
     };
     const fondoPortada = window.getHeroBackgroundOption
         ? window.getHeroBackgroundOption(config?.imagen_fondo_tipo)
-        : { image: 'https://images.unsplash.com/photo-1604654894610-df63bc536371?q=80&w=2071&auto=format&fit=crop', label: 'Fondo de salon' };
+        : { image: 'https://images.unsplash.com/photo-1604654894610-df63bc536371?q=60&w=800&auto=format&fit=crop', label: 'Fondo de salon' };
     const sticker = config?.especialidad?.toLowerCase().includes('uñas') ? '💅' :
                     config?.especialidad?.toLowerCase().includes('pelo') ? '💇‍♀️' :
                     config?.especialidad?.toLowerCase().includes('belleza') ? '🌸' : '💖';
@@ -196,11 +190,12 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol }) {
             className="client-welcome-screen relative min-h-screen w-full overflow-y-auto"
         >
             {/* Imagen de fondo fija */}
-            <div className="client-welcome-background fixed inset-0 z-0">
-                <img 
+            <div className="client-welcome-background fixed inset-0 z-0 bg-gradient-to-br from-pink-200 via-pink-300 to-pink-400">
+                <img
                     src={fondoPortada.image}
-                    alt="Fondo de salón" 
-                    className="client-welcome-background-image w-full h-full object-cover"
+                    alt="Fondo de salón"
+                    onLoad={() => setImagenCargada(true)}
+                    className={`client-welcome-background-image w-full h-full object-cover transition-opacity duration-700 ${imagenCargada ? 'opacity-100' : 'opacity-0'}`}
                 />
                 <div className="client-welcome-overlay absolute inset-0 bg-black/40"></div>
             </div>

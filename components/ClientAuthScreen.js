@@ -22,14 +22,6 @@ function ClientAuthScreen({ onAccessGranted, onGoBack }) {
             setConfig(configData);
             setCodigoPaisCliente(window.getCodigoPaisTelefono ? window.getCodigoPaisTelefono(configData) : '53');
             setCargando(false);
-
-            const fondo = window.getHeroBackgroundOption
-                ? window.getHeroBackgroundOption(configData?.imagen_fondo_tipo)
-                : { image: 'https://images.unsplash.com/photo-1604654894610-df63bc536371?q=80&w=2071&auto=format&fit=crop' };
-            const img = new Image();
-            img.src = fondo.image;
-            img.onload = () => setImagenCargada(true);
-            img.onerror = () => setImagenCargada(true);
         };
         cargarDatos();
 
@@ -230,7 +222,9 @@ function ClientAuthScreen({ onAccessGranted, onGoBack }) {
         }
     };
 
-    if (cargando || !imagenCargada) {
+    // Solo se espera la config (rápida); la imagen de fondo NUNCA bloquea el
+    // formulario — hace fade-in cuando llega (clave en conexiones lentas).
+    if (cargando) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-pink-100 to-pink-200">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500"></div>
@@ -244,7 +238,7 @@ function ClientAuthScreen({ onAccessGranted, onGoBack }) {
     const paisesTelefono = window.PHONE_COUNTRIES || [paisTelefono];
     const fondoPortada = window.getHeroBackgroundOption
         ? window.getHeroBackgroundOption(config?.imagen_fondo_tipo)
-        : { image: 'https://images.unsplash.com/photo-1604654894610-df63bc536371?q=80&w=2071&auto=format&fit=crop', label: 'Fondo de salon' };
+        : { image: 'https://images.unsplash.com/photo-1604654894610-df63bc536371?q=60&w=800&auto=format&fit=crop', label: 'Fondo de salon' };
     const especialidad = (config?.especialidad || '').toLowerCase();
     const sticker = especialidad.includes('uña') ? '💅' :
                     especialidad.includes('pelo') ? '💇‍♀️' :
@@ -252,11 +246,12 @@ function ClientAuthScreen({ onAccessGranted, onGoBack }) {
 
     return (
         <div className="client-auth-screen min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
-            <div className="client-auth-background absolute inset-0 z-0">
+            <div className="client-auth-background absolute inset-0 z-0 bg-gradient-to-br from-pink-200 via-pink-300 to-pink-400">
                 <img
                     src={fondoPortada.image}
                     alt="Fondo de salón"
-                    className="client-auth-background-image w-full h-full object-cover"
+                    onLoad={() => setImagenCargada(true)}
+                    className={`client-auth-background-image w-full h-full object-cover transition-opacity duration-700 ${imagenCargada ? 'opacity-100' : 'opacity-0'}`}
                 />
                 <div className="client-auth-overlay absolute inset-0 bg-black/40"></div>
             </div>

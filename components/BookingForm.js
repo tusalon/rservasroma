@@ -229,8 +229,10 @@ END:VCALENDAR`;
                     return;
                 }
 
+                // 1) Validar TODOS los tramos del combo antes de crear ninguna reserva:
+                //    si un tramo no está disponible, no queda media reserva en la agenda.
                 let cursor = time;
-                const creadas = [];
+                const tramos = [];
 
                 for (let index = 0; index < profesional.asignaciones.length; index++) {
                     const item = profesional.asignaciones[index];
@@ -258,7 +260,7 @@ END:VCALENDAR`;
                     }
 
                     const endTime = calculateEndTime(cursor, servicioItem.duracion);
-                    const bookingData = {
+                    tramos.push({
                         cliente_nombre: cliente.nombre,
                         cliente_whatsapp: cliente.whatsapp,
                         servicio: servicioItem.nombre,
@@ -269,12 +271,28 @@ END:VCALENDAR`;
                         hora_inicio: cursor,
                         hora_fin: endTime,
                         estado: requiereAnticipo ? "Pendiente" : "Reservado"
-                    };
-
-                    const result = await createBooking(bookingData);
-                    if (!result.success || !result.data) throw new Error('No se pudo crear una de las reservas');
-                    creadas.push(result.data);
+                    });
                     cursor = endTime;
+                }
+
+                // 2) Crear los tramos; si alguno falla, revertir los ya creados
+                //    para que no quede una reserva parcial huérfana en la agenda.
+                const creadas = [];
+                try {
+                    for (const tramo of tramos) {
+                        const result = await createBooking(tramo);
+                        if (!result.success || !result.data) throw new Error('No se pudo crear una de las reservas');
+                        creadas.push(result.data);
+                    }
+                } catch (errCreacion) {
+                    for (const reservaCreada of creadas) {
+                        try {
+                            await window.updateBookingStatus(reservaCreada.id, 'Cancelado');
+                        } catch (errRollback) {
+                            console.error('No se pudo revertir la reserva', reservaCreada.id, errRollback);
+                        }
+                    }
+                    throw errCreacion;
                 }
 
                 const bookingResumen = {
@@ -284,21 +302,28 @@ END:VCALENDAR`;
                     profesional_nombre: profesional.asignaciones.map(item => `${item.servicio.nombre}: ${item.profesional.nombre}`).join(' | '),
                     hora_inicio: time,
                     hora_fin: cursor,
-                    reservas_relacionadas: creadas
+                    reservas_relacionadas: creadas,
+                    _montoAnticipo: requiereAnticipo ? montoAnticipoReserva : 0
                 };
 
-                const nombreNegocio = configNegocio?.nombre || 'Mi Salón';
-                if (requiereAnticipo) {
-                    if (window.notificarReservaPendiente) await window.notificarReservaPendiente(bookingResumen);
-                } else {
-                    if (window.notificarNuevaReserva) await window.notificarNuevaReserva(bookingResumen);
-                }
+                // Los pasos posteriores (avisar al salón, archivo de calendario) no
+                // deben ocultar una reserva ya creada si fallan.
+                try {
+                    const nombreNegocio = configNegocio?.nombre || 'Mi Salón';
+                    if (requiereAnticipo) {
+                        if (window.notificarReservaPendiente) await window.notificarReservaPendiente(bookingResumen);
+                    } else {
+                        if (window.notificarNuevaReserva) await window.notificarNuevaReserva(bookingResumen);
+                    }
 
-                const icsContent = generarArchivoCalendario(bookingResumen, nombreNegocio);
-                const fechaSegura = bookingResumen.fecha.replace(/-/g, '');
-                const horaSegura = bookingResumen.hora_inicio.replace(':', '');
-                const nombreSeguro = bookingResumen.cliente_nombre.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-                descargarArchivoICS(icsContent, `turno-${fechaSegura}-${horaSegura}-${nombreSeguro}.ics`);
+                    const icsContent = generarArchivoCalendario(bookingResumen, nombreNegocio);
+                    const fechaSegura = bookingResumen.fecha.replace(/-/g, '');
+                    const horaSegura = bookingResumen.hora_inicio.replace(':', '');
+                    const nombreSeguro = bookingResumen.cliente_nombre.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+                    descargarArchivoICS(icsContent, `turno-${fechaSegura}-${horaSegura}-${nombreSeguro}.ics`);
+                } catch (errPosterior) {
+                    console.error('Reserva creada; falló un paso posterior (notificación/calendario):', errPosterior);
+                }
 
                 onSubmit(bookingResumen);
                 return;
@@ -349,47 +374,46 @@ END:VCALENDAR`;
             };
 
             const result = await createBooking(bookingData);
-            
+
             if (result.success && result.data) {
                 console.log(` ✅ Reserva creada en estado ${result.data.estado}`);
-                
-                const nombreNegocio = configNegocio?.nombre || 'Mi Salón';
-                
-                //  ELIMINADO: No enviar WhatsApp al cliente
-                // if (requiereAnticipo && window.enviarMensajePago) {
-                //     await window.enviarMensajePago(result.data, configNegocio);
-                // } else if (!requiereAnticipo && window.enviarConfirmacionReserva) {
-                //     await window.enviarConfirmacionReserva(result.data, configNegocio);
-                // }
-                
-                //  SOLO notificar a la dueña
-                if (requiereAnticipo) {
-                    if (window.notificarReservaPendiente) {
-                        await window.notificarReservaPendiente(result.data);
+
+                // Los pasos posteriores (avisar al salón, archivo de calendario) no
+                // deben ocultar una reserva ya creada si fallan.
+                try {
+                    const nombreNegocio = configNegocio?.nombre || 'Mi Salón';
+
+                    //  SOLO notificar a la dueña
+                    if (requiereAnticipo) {
+                        if (window.notificarReservaPendiente) {
+                            await window.notificarReservaPendiente(result.data);
+                        }
+                        console.log(' 📱 Dueña notificada: RESERVA PENDIENTE DE PAGO (con datos + push)');
+                    } else {
+                        if (window.notificarNuevaReserva) {
+                            await window.notificarNuevaReserva(result.data);
+                        }
+                        console.log(' 📱 Dueña notificada: NUEVO TURNO AGENDADO (con push)');
                     }
-                    console.log(' 📱 Dueña notificada: RESERVA PENDIENTE DE PAGO (con datos + push)');
-                } else {
-                    if (window.notificarNuevaReserva) {
-                        await window.notificarNuevaReserva(result.data);
-                    }
-                    console.log(' 📱 Dueña notificada: NUEVO TURNO AGENDADO (con push)');
+
+                    // Generar y descargar archivo ICS
+                    const icsContent = generarArchivoCalendario(result.data, nombreNegocio);
+
+                    const fechaSegura = result.data.fecha.replace(/-/g, '');
+                    const horaSegura = result.data.hora_inicio.replace(':', '');
+                    const nombreSeguro = result.data.cliente_nombre
+                        .toLowerCase()
+                        .replace(/\s+/g, '-')
+                        .replace(/[^a-z0-9-]/g, '');
+
+                    descargarArchivoICS(icsContent, `turno-${fechaSegura}-${horaSegura}-${nombreSeguro}.ics`);
+                } catch (errPosterior) {
+                    console.error('Reserva creada; falló un paso posterior (notificación/calendario):', errPosterior);
                 }
-                
-                // Generar y descargar archivo ICS
-                const icsContent = generarArchivoCalendario(result.data, nombreNegocio);
-                
-                const fechaSegura = result.data.fecha.replace(/-/g, '');
-                const horaSegura = result.data.hora_inicio.replace(':', '');
-                const nombreSeguro = result.data.cliente_nombre
-                    .toLowerCase()
-                    .replace(/\s+/g, '-')
-                    .replace(/[^a-z0-9-]/g, '');
-                
-                const nombreArchivo = `turno-${fechaSegura}-${horaSegura}-${nombreSeguro}.ics`;
-                
-                descargarArchivoICS(icsContent, nombreArchivo);
-                
-                onSubmit(result.data);
+
+                onSubmit({ ...result.data, _montoAnticipo: requiereAnticipo ? montoAnticipoReserva : 0 });
+            } else {
+                setError('No se pudo guardar la reserva. Intenta de nuevo.');
             }
         } catch (err) {
             console.error('Error:', err);

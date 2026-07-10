@@ -281,7 +281,13 @@ window.enviarWhatsApp = function(telefono, mensaje) {
         const url = `https://api.whatsapp.com/send?phone=${numeroCompleto}&text=${mensajeCodificado}`;
 
         console.log('🔗 Abriendo WhatsApp:', url);
-        window.location.href = url;
+        // En pestaña nueva para no matar la app a mitad de un flujo (cancelar,
+        // reprogramar, etc.). Si el navegador bloquea el popup (llamada fuera
+        // del gesto del usuario), caer al comportamiento anterior.
+        const ventana = window.open(url, '_blank');
+        if (!ventana) {
+            window.location.href = url;
+        }
         return true;
     } catch (error) {
         console.error('❌ Error en enviarWhatsApp:', error);

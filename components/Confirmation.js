@@ -38,22 +38,43 @@ function Confirmation({ booking, onReset }) {
         return null;
     }
 
-    const fechaConDia = window.formatFechaCompleta ? 
-        window.formatFechaCompleta(booking.fecha) : 
+    const fechaConDia = window.formatFechaCompleta ?
+        window.formatFechaCompleta(booking.fecha) :
         booking.fecha;
-    const calendarLink = window.generarLinkCalendarioCliente ? 
-        window.generarLinkCalendarioCliente(booking) : 
+    const calendarLink = window.generarLinkCalendarioCliente ?
+        window.generarLinkCalendarioCliente(booking) :
         '';
     const telefonoContacto = window.formatearTelefono ? window.formatearTelefono(telefonoDuenno) : `+${telefonoDuenno}`;
 
+    // Con anticipo, la reserva queda "Pendiente" y se libera si no se paga:
+    // la pantalla debe decirlo claramente, no dar el turno por confirmado.
+    const esPendientePago = booking.estado === 'Pendiente';
+    const montoAnticipo = Number(booking._montoAnticipo || 0);
+    const monedaNegocio = window.getPreferenciasWhatsAppNegocio ? (window.getPreferenciasWhatsAppNegocio().moneda || '') : '';
+    const textoAnticipo = montoAnticipo > 0 ? `${montoAnticipo} ${monedaNegocio}`.trim() : '';
+    const linkWhatsAppAnticipo = telefonoDuenno
+        ? `https://wa.me/${String(telefonoDuenno).replace(/\D/g, '')}?text=${encodeURIComponent(`Hola! Acabo de reservar ${booking.servicio} para el ${fechaConDia} y quiero coordinar el anticipo.`)}`
+        : '';
+
     return (
         <div className="min-h-[60vh] flex flex-col items-center justify-center text-center p-6 animate-fade-in bg-gradient-to-b from-pink-50 to-pink-100">
-            <div className="w-20 h-20 bg-pink-500 rounded-full flex items-center justify-center mb-6 shadow-xl ring-4 ring-pink-300">
-                <span className="text-4xl text-white">✅</span>
+            <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-6 shadow-xl ring-4 ${esPendientePago ? 'bg-amber-500 ring-amber-300' : 'bg-pink-500 ring-pink-300'}`}>
+                <span className="text-4xl text-white">{esPendientePago ? '⏳' : '✅'}</span>
             </div>
-            
-            <h2 className="text-2xl font-bold text-pink-800 mb-2">✨ ¡Turno Reservado! ✨</h2>
-            <p className="text-pink-600 mb-6 max-w-xs mx-auto">Tu cita ha sido agendada correctamente</p>
+
+            {esPendientePago ? (
+                <>
+                    <h2 className="text-2xl font-bold text-amber-700 mb-2">⏳ ¡Ya casi! Falta el anticipo</h2>
+                    <p className="text-amber-700 mb-6 max-w-xs mx-auto">
+                        Tu turno quedará confirmado cuando envíes el anticipo{textoAnticipo ? ` de ${textoAnticipo}` : ''}. Si no se recibe a tiempo, el horario se libera.
+                    </p>
+                </>
+            ) : (
+                <>
+                    <h2 className="text-2xl font-bold text-pink-800 mb-2">✨ ¡Turno Reservado! ✨</h2>
+                    <p className="text-pink-600 mb-6 max-w-xs mx-auto">Tu cita ha sido agendada correctamente</p>
+                </>
+            )}
 
             <div className="bg-white/90 backdrop-blur-sm p-6 rounded-2xl shadow-xl border-2 border-pink-300 w-full max-w-sm mb-6">
                 <div className="space-y-4 text-left">
@@ -91,17 +112,41 @@ function Confirmation({ booking, onReset }) {
                 </div>
             </div>
 
-            <div className="bg-pink-100 border border-pink-300 rounded-lg p-4 mb-6 max-w-sm w-full">
-                <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-pink-500 rounded-full flex items-center justify-center text-white text-xl">
-                        📱
+            {esPendientePago ? (
+                <div className="bg-amber-50 border border-amber-300 rounded-lg p-4 mb-6 max-w-sm w-full">
+                    <div className="flex items-center gap-3 mb-3">
+                        <div className="w-10 h-10 bg-amber-500 rounded-full flex items-center justify-center text-white text-xl">
+                            💰
+                        </div>
+                        <div className="text-left">
+                            <p className="font-medium text-amber-800">El salón ya recibió tu solicitud</p>
+                            <p className="text-xs text-amber-700">Envía el anticipo{textoAnticipo ? ` de ${textoAnticipo}` : ''} para confirmar tu turno</p>
+                        </div>
                     </div>
-                    <div className="text-left">
-                        <p className="font-medium text-pink-800">Administradora notificada</p>
-                        <p className="text-xs text-pink-600">✅ Notificaciones enviadas</p>
+                    {linkWhatsAppAnticipo && (
+                        <a
+                            href={linkWhatsAppAnticipo}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="w-full bg-green-500 text-white py-3 rounded-xl font-bold hover:bg-green-600 transition-colors flex items-center justify-center gap-2 shadow-sm"
+                        >
+                            💬 Coordinar el anticipo por WhatsApp
+                        </a>
+                    )}
+                </div>
+            ) : (
+                <div className="bg-pink-100 border border-pink-300 rounded-lg p-4 mb-6 max-w-sm w-full">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-pink-500 rounded-full flex items-center justify-center text-white text-xl">
+                            📱
+                        </div>
+                        <div className="text-left">
+                            <p className="font-medium text-pink-800">El salón ya recibió tu reserva</p>
+                            <p className="text-xs text-pink-600">Si necesitas cambiarla, hazlo desde "Mis Reservas"</p>
+                        </div>
                     </div>
                 </div>
-            </div>
+            )}
 
             {/* Valoración */}
             <div className="w-full max-w-sm mb-4 bg-white/90 backdrop-blur-sm p-5 rounded-2xl border-2 border-pink-200 shadow-sm text-center">

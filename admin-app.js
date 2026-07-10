@@ -67,10 +67,20 @@ const APP_VERSION = '1.0.0';
 // ─────────────────────────────────────────────────────────────────────────────
 
 window.addEventListener('error', function(e) {
+    // Errores de recursos (img/script) no traen message: ignorarlos aquí.
+    if (!e || !e.message) return;
     console.error('❌ Error detectado, posible versión antigua:', e.message);
-    
+
     if (e.message.includes('Failed to load') || e.message.includes('Unexpected token')) {
-        
+        // Tope de recargas para no entrar en loop infinito con conexión lenta.
+        let intentosRecarga = 0;
+        try { intentosRecarga = parseInt(sessionStorage.getItem('recargasPorError') || '0', 10) || 0; } catch (err) {}
+        if (intentosRecarga >= 2) {
+            console.warn('🔁 Límite de recargas por error alcanzado; no se recarga más.');
+            return;
+        }
+        try { sessionStorage.setItem('recargasPorError', String(intentosRecarga + 1)); } catch (err) {}
+
         if (window.swRegistration) {
             window.swRegistration.unregister().then(() => {
                 window.location.reload();
@@ -80,6 +90,11 @@ window.addEventListener('error', function(e) {
         }
     }
 });
+
+// Si la app sobrevive 15s sin recargarse, se libera el tope.
+setTimeout(function() {
+    try { sessionStorage.removeItem('recargasPorError'); } catch (err) {}
+}, 15000);
 // getNegocioId() la define utils/config-negocio-master.js (window.getNegocioId),
 // cargado antes que admin-app.js en admin.html.
 

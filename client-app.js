@@ -4,11 +4,23 @@
 console.log('🚀 CLIENT-APP.JS VERSIÓN:', '2024-03-01');
 
 window.addEventListener('error', function(e) {
+    // Errores de recursos (img/script) no traen message: ignorarlos aquí.
+    if (!e || !e.message) return;
     console.error('❌ Error detectado, posible versión antigua:', e.message);
-    
+
     if (e.message.includes('Failed to load') || e.message.includes('Unexpected token')) {
+        // Tope de recargas: en conexiones lentas el mismo error puede repetirse
+        // al recargar, y sin límite la app queda en un loop infinito quemando datos.
+        let intentosRecarga = 0;
+        try { intentosRecarga = parseInt(sessionStorage.getItem('recargasPorError') || '0', 10) || 0; } catch (err) {}
+        if (intentosRecarga >= 2) {
+            console.warn('🔁 Límite de recargas por error alcanzado; no se recarga más.');
+            return;
+        }
+        try { sessionStorage.setItem('recargasPorError', String(intentosRecarga + 1)); } catch (err) {}
+
         console.log('🔄 Forzando recarga por posible versión antigua...');
-        
+
         if (window.swRegistration) {
             window.swRegistration.unregister().then(() => {
                 window.location.reload();
@@ -18,6 +30,11 @@ window.addEventListener('error', function(e) {
         }
     }
 });
+
+// Si la app sobrevive 15s sin recargarse, se considera sana y se libera el tope.
+setTimeout(function() {
+    try { sessionStorage.removeItem('recargasPorError'); } catch (err) {}
+}, 15000);
 
 function ClientApp() {
     const [step, setStep] = React.useState('auth');
@@ -54,6 +71,8 @@ function ClientApp() {
             return;
         }
         
+        // Anclar el primer paso en el historial del navegador para que el
+        // botón atrás del teléfono navegue entre pasos en vez de salir de la app.
         if (clienteAuth) {
             try {
                 const clienteData = JSON.parse(clienteAuth);
@@ -61,25 +80,39 @@ function ClientApp() {
                 setUserRol('cliente');
                 setStep('welcome');
                 setHistory(['auth', 'welcome']);
+                try {
+                    window.history.replaceState({ step: 'auth' }, '');
+                    window.history.pushState({ step: 'welcome' }, '');
+                } catch (e) {}
+                return;
             } catch (e) {
                 console.error('Error al parsear clienteAuth', e);
                 localStorage.removeItem('clienteAuth');
             }
         }
+        try { window.history.replaceState({ step: 'auth' }, ''); } catch (e) {}
     }, []);
 
     // ============================================
     // MANEJO DEL BOTÓN FÍSICO "ATRÁS"
+    // Cada navigateTo hace pushState, así el atrás físico dispara popstate
+    // y retrocede un paso dentro de la app. En el primer paso ya no quedan
+    // entradas propias y el navegador sale normalmente.
     // ============================================
     React.useEffect(() => {
         const handlePopState = (event) => {
-            event.preventDefault();
-            goBack();
+            const pasoAnterior = event.state && event.state.step;
+            if (!pasoAnterior) return;
+            setStep(pasoAnterior);
+            setHistory(prev => {
+                const idx = prev.lastIndexOf(pasoAnterior);
+                return idx >= 0 ? prev.slice(0, idx + 1) : [pasoAnterior];
+            });
         };
 
         window.addEventListener('popstate', handlePopState);
         return () => window.removeEventListener('popstate', handlePopState);
-    }, [history]);
+    }, []);
 
     // ============================================
     // FUNCIONES DE NAVEGACIÓN
@@ -87,21 +120,13 @@ function ClientApp() {
     const navigateTo = (newStep) => {
         setHistory(prev => [...prev, newStep]);
         setStep(newStep);
+        try { window.history.pushState({ step: newStep }, ''); } catch (e) {}
     };
 
     const goBack = () => {
-        if (history.length <= 1) {
-            if (confirm('¿Salir de la aplicación?')) {
-                window.close();
-            }
-            return;
-        }
-
-        const newHistory = [...history];
-        newHistory.pop();
-        const previousStep = newHistory[newHistory.length - 1];
-        setHistory(newHistory);
-        setStep(previousStep);
+        if (history.length <= 1) return;
+        // popstate sincroniza step e history internos.
+        window.history.back();
     };
 
     // ============================================
@@ -180,6 +205,7 @@ function ClientApp() {
     }, []);
 
     const handleLogout = () => {
+        if (!confirm('¿Cerrar tu sesión?')) return;
         localStorage.removeItem('clienteAuth');
         setCliente(null);
         setSelectedService(null);
@@ -189,7 +215,8 @@ function ClientApp() {
         setUserRol('cliente');
         setHistory(['auth']);
         setStep('auth');
-        window.location.href = 'index.html';
+        // Conservar ?s=slug: sin él, index.html manda al login de ADMIN.
+        window.location.href = 'index.html' + window.location.search;
     };
 
     const resetBooking = () => {
@@ -328,6 +355,11 @@ function ClientApp() {
                                     cliente={cliente}
                                     onSubmit={(booking) => {
                                         setBookingConfirmed(booking);
+                                        // Limpiar la selección: si vuelve atrás desde la
+                                        // confirmación, el formulario no debe reaparecer
+                                        // relleno (riesgo de reservar duplicado).
+                                        setSelectedTime('');
+                                        setSelectedDate('');
                                         navigateTo('confirmation');
                                     }}
                                     onCancel={() => setSelectedTime('')}
