@@ -26,7 +26,7 @@ function WhatsAppButton() {
         >
             <div className="icon-message-circle text-3xl"></div>
             <span className="absolute right-full mr-3 bg-gray-800 text-amber-400 px-3 py-1 rounded-lg text-sm font-medium shadow-sm opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none border border-amber-600">
-                ¡Agende su turno!
+                ¡Agenda tu turno!
             </span>
         </a>
     );

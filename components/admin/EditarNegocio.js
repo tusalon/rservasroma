@@ -30,7 +30,7 @@ function EditarNegocio() {
         anticipos_por_servicio: false,
         tipo_anticipo: 'fijo',
         valor_anticipo: '',
-        mensaje_pago: 'Para confirmar tu turno, realizá el pago del anticipo de ${monto_anticipo} a la siguiente cuenta:\n\nCBU: {cbu}\nAlias: {alias}\nTitular: {titular}\n\nTenés {tiempo_vencimiento} horas para realizar el pago. Si no se confirma el pago en ese tiempo, el turno se liberará automáticamente.',
+        mensaje_pago: 'Para confirmar tu turno, realiza el pago del anticipo de ${monto_anticipo} a la siguiente cuenta:\n\nCBU: {cbu}\nAlias: {alias}\nTitular: {titular}\n\nTienes {tiempo_vencimiento} horas para realizar el pago. Si no se confirma el pago en ese tiempo, el turno se liberará automáticamente.',
         cbu: '',
         alias: '',
         titular: '',
@@ -94,7 +94,7 @@ function EditarNegocio() {
                     anticipos_por_servicio: configData.anticipos_por_servicio === true,
                     tipo_anticipo: configData.tipo_anticipo || 'fijo',
                     valor_anticipo: configData.valor_anticipo || '',
-                    mensaje_pago: configData.mensaje_pago || 'Para confirmar tu turno, realizá el pago del anticipo de ${monto_anticipo} a la siguiente cuenta:\n\nCBU: {cbu}\nAlias: {alias}\nTitular: {titular}\n\nTenés {tiempo_vencimiento} horas para realizar el pago. Si no se confirma el pago en ese tiempo, el turno se liberará automáticamente.',
+                    mensaje_pago: configData.mensaje_pago || 'Para confirmar tu turno, realiza el pago del anticipo de ${monto_anticipo} a la siguiente cuenta:\n\nCBU: {cbu}\nAlias: {alias}\nTitular: {titular}\n\nTienes {tiempo_vencimiento} horas para realizar el pago. Si no se confirma el pago en ese tiempo, el turno se liberará automáticamente.',
                     cbu: configData.cbu || '',
                     alias: configData.alias || '',
                     titular: configData.titular || '',
@@ -455,12 +455,12 @@ function EditarNegocio() {
                                     {config.logo_preview ? (
                                         <div className="space-y-3">
                                             <img src={config.logo_preview} alt="Logo" className="h-24 object-contain mx-auto" />
-                                            <p className="text-sm text-gray-600">Hacé clic para cambiar el logo</p>
+                                            <p className="text-sm text-gray-600">Haz clic para cambiar el logo</p>
                                         </div>
                                     ) : (
                                         <div>
                                             <i className="icon-upload-cloud text-5xl text-gray-400 mb-3"></i>
-                                            <p className="text-gray-600">Hacé clic para subir un logo</p>
+                                            <p className="text-gray-600">Haz clic para subir un logo</p>
                                             <p className="text-xs text-gray-400 mt-1">PNG, JPG hasta 2MB</p>
                                         </div>
                                     )}

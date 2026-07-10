@@ -85,7 +85,7 @@ function MyBookings({ cliente, onVolver }) {
             const diffHoras = Math.floor(diffMinutos / 60);
             const mins = diffMinutos % 60;
             if (diffMinutos <= 0) return '⏰ El turno ya pasó';
-            if (diffMinutos <= minCancelacionHoras * 60) return `⚠️ Faltan menos de ${diffMinutos} min — no puedes cancelar`;
+            if (diffMinutos <= minCancelacionHoras * 60) return `⚠️ Faltan ${diffHoras > 0 ? `${diffHoras}h ${mins}m` : `${diffMinutos} min`} — ya no se puede cancelar desde la app`;
             return diffHoras > 0 ? `🕐 Faltan ${diffHoras}h ${mins}m — puedes cancelar` : `🕐 Faltan ${diffMinutos} min — puedes cancelar`;
         } catch { return ''; }
     };
@@ -452,9 +452,15 @@ function MyBookings({ cliente, onVolver }) {
                                                 <h3 className="font-bold text-pink-800 text-lg">{booking.servicio}</h3>
                                             </div>
                                             <span className={`px-3 py-1 rounded-full text-xs font-semibold
-                                                ${booking.estado === 'Reservado' ? 'bg-pink-100 text-pink-700' :
-                                                  booking.estado === 'Confirmado' ? 'bg-pink-200 text-pink-800' : 'bg-pink-100 text-pink-500'}`}>
-                                                {booking.estado}
+                                                ${booking.estado === 'Reservado' || booking.estado === 'Confirmado' ? 'bg-green-100 text-green-700' :
+                                                  booking.estado === 'Pendiente' ? 'bg-amber-100 text-amber-700' :
+                                                  booking.estado === 'Completado' ? 'bg-pink-200 text-pink-800' :
+                                                  booking.estado === 'Cancelado' ? 'bg-gray-100 text-gray-500' : 'bg-pink-100 text-pink-500'}`}>
+                                                {booking.estado === 'Reservado' || booking.estado === 'Confirmado' ? '✅ Confirmado' :
+                                                 booking.estado === 'Pendiente' ? '⏳ Falta el anticipo' :
+                                                 booking.estado === 'Completado' ? '💅 Completado' :
+                                                 booking.estado === 'Ausente' ? 'No asististe' :
+                                                 booking.estado}
                                             </span>
                                         </div>
 

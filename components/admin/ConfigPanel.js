@@ -87,7 +87,7 @@ function ConfigPanel({ profesionalId, modoRestringido }) {
 
     const abrirEditorPorDia = () => {
         if (!profesionalSeleccionado) {
-            alert('Seleccioná un profesional primero');
+            alert('Selecciona un profesional primero');
             return;
         }
         setMostrarEditorPorDia(true);
@@ -562,7 +562,7 @@ function DiasCerradosGlobalesPanel() {
     };
 
     const handleEliminar = async (id) => {
-        if (!confirm('¿Seguro que querés volver a abrir el local este día?')) return;
+        if (!confirm('¿Seguro que quieres volver a abrir el local este día?')) return;
         
         try {
             const response = await fetch(

@@ -336,7 +336,7 @@ function HorariosPorDiaPanel({ profesionalId, profesionalNombre, onGuardar, onCa
                     </div>
                     
                     <p className="text-xs text-gray-500 mt-2">
-                        ⏰ Horarios cada 30 minutos. Seleccioná las horas en las que {profesionalNombre} trabaja este día.
+                        ⏰ Horarios cada 30 minutos. Selecciona las horas en las que {profesionalNombre} trabaja este día.
                     </p>
                 </div>
             </div>

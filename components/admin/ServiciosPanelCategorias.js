@@ -642,7 +642,7 @@ function AsignarProfesionalesModal({ servicio, onClose }) {
 
                 <div className="p-4">
                     <p className="text-sm text-gray-500 mb-4">
-                        Seleccioná qué profesionales pueden realizar este servicio.
+                        Selecciona qué profesionales pueden realizar este servicio.
                         <br />
                         <span className="text-pink-600 text-xs">
                             Los clientes solo verán los profesionales marcados aquí.
@@ -654,7 +654,7 @@ function AsignarProfesionalesModal({ servicio, onClose }) {
                             <p className="text-center text-gray-500 py-4">
                                 No hay profesionales activos.
                                 <br />
-                                <span className="text-xs">Creá profesionales en la pestaña "Profesionales"</span>
+                                <span className="text-xs">Crea profesionales en la pestaña "Profesionales"</span>
                             </p>
                         ) : (
                             profesionales.map(prof => {

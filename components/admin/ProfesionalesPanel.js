@@ -213,11 +213,11 @@ function ProfesionalForm({ profesional, onGuardar, onCancelar }) {
     const handleSubmit = (e) => {
         e.preventDefault();
         if (!form.telefono || form.telefono.length < 8) {
-            alert('Ingresá un teléfono válido para el acceso del profesional');
+            alert('Ingresa un teléfono válido para el acceso del profesional');
             return;
         }
         if (!profesional && !String(form.password || '').trim()) {
-            alert('Ingresá una contraseña para el acceso del profesional');
+            alert('Ingresa una contraseña para el acceso del profesional');
             return;
         }
 

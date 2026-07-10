@@ -56,7 +56,7 @@ function Header({ cliente, onLogout, onMisReservas, onGoBack, userRol, showBackB
                             title="Mis Reservas"
                         >
                             <i className="icon-calendar"></i>
-                            <span className="text-sm font-medium hidden sm:inline">Mis Reservas</span>
+                            <span className="text-sm font-medium">Mis Citas</span>
                         </button>
                     )}
                     
@@ -87,7 +87,7 @@ function Header({ cliente, onLogout, onMisReservas, onGoBack, userRol, showBackB
                                         <div className="space-y-1">
                                             <p className="font-semibold text-amber-400">✂️ Acceso como profesional</p>
                                             <p className="text-gray-400">Bienvenido, {cliente?.nombre}</p>
-                                            <p className="text-gray-500 text-xs">Puede ver tus reservas</p>
+                                            <p className="text-gray-500 text-xs">Puedes ver tus reservas</p>
                                         </div>
                                     )}
                                 </div>

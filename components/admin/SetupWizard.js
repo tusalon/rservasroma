@@ -267,10 +267,10 @@ function SetupWizard() {
                         </div>
                     </div>
                     <h1 className="text-3xl font-bold text-gray-900">
-                        Configurá tu negocio
+                        Configura tu negocio
                     </h1>
                     <p className="text-gray-600 mt-2">
-                        Completá estos datos para personalizar tu sistema de reservas
+                        Completa estos datos para personalizar tu sistema de reservas
                     </p>
                 </div>
 
@@ -376,7 +376,7 @@ function SetupWizard() {
                         <div className="bg-blue-50 p-4 rounded-lg text-sm text-blue-700 mt-2">
                             <div className="flex items-start gap-2">
                                 <i className="icon-info mt-0.5"></i>
-                                <span>Podés cambiar estos datos después desde el panel de configuración.</span>
+                                <span>Puedes cambiar estos datos después desde el panel de configuración.</span>
                             </div>
                         </div>
                     </div>
@@ -452,12 +452,12 @@ function SetupWizard() {
                                 {config.logo_preview ? (
                                     <div className="space-y-2">
                                         <img src={config.logo_preview} alt="Preview" className="h-24 object-contain mx-auto" />
-                                        <p className="text-xs text-gray-500">Hacé clic para cambiar</p>
+                                        <p className="text-xs text-gray-500">Haz clic para cambiar</p>
                                     </div>
                                 ) : (
                                     <div className="py-4">
                                         <i className="icon-upload-cloud text-4xl text-gray-400 mb-2"></i>
-                                        <p className="text-gray-600">Hacé clic para subir un logo</p>
+                                        <p className="text-gray-600">Haz clic para subir un logo</p>
                                         <p className="text-xs text-gray-400 mt-1">PNG, JPG hasta 2MB</p>
                                     </div>
                                 )}
@@ -585,7 +585,7 @@ function SetupWizard() {
                                 <i className="icon-check-circle text-green-600 text-xl"></i>
                                 <div>
                                     <p className="text-green-800 font-medium">
-                                        Revisá que todos los datos sean correctos
+                                        Revisa que todos los datos sean correctos
                                     </p>
                                     <p className="text-sm text-green-600 mt-1">
                                         Después de guardar, podrás editar la configuración desde el panel.

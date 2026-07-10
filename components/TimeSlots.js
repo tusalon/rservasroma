@@ -303,7 +303,7 @@ function TimeSlots({ service, date, profesional, cliente, onTimeSelect, selected
             <div className="space-y-4 animate-fade-in">
                 <h2 className="text-lg font-semibold text-pink-700 flex items-center gap-2">
                     <span className="text-2xl">⏰</span>
-                    4. Elegí un horario con {profesional.nombre}
+                    4. Elige un horario con {profesional.nombre}
                 </h2>
                 <div className="flex justify-center py-8">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-500"></div>
@@ -323,14 +323,14 @@ function TimeSlots({ service, date, profesional, cliente, onTimeSelect, selected
             <div className="space-y-4 animate-fade-in">
                 <h2 className="text-lg font-semibold text-pink-700 flex items-center gap-2">
                     <span className="text-2xl">⏰</span>
-                    4. Elegí un horario con {profesional.nombre}
+                    4. Elige un horario con {profesional.nombre}
                 </h2>
                 <div className="text-center p-8 bg-pink-50 rounded-xl border border-pink-200">
                     <div className="text-5xl text-pink-400 mb-3">📅❌</div>
                     <p className="text-pink-700 font-medium">
                         {profesional.nombre} no trabaja los {diaCapitalizado}s
                     </p>
-                    <p className="text-sm text-pink-500 mt-1">Elegí otro día de la semana</p>
+                    <p className="text-sm text-pink-500 mt-1">Elige otro día de la semana</p>
                 </div>
             </div>
         );
@@ -340,7 +340,7 @@ function TimeSlots({ service, date, profesional, cliente, onTimeSelect, selected
         <div className="space-y-4 animate-fade-in">
             <h2 className="text-lg font-semibold text-pink-700 flex items-center gap-2">
                 <span className="text-2xl">⏰</span>
-                4. Elegí un horario con {profesional.nombre}
+                4. Elige un horario con {profesional.nombre}
                 {selectedTime && (
                     <span className="text-xs bg-pink-100 text-pink-700 px-2 py-1 rounded-full ml-2">
                         ✓ Horario seleccionado
@@ -360,7 +360,7 @@ function TimeSlots({ service, date, profesional, cliente, onTimeSelect, selected
                     <p className="text-pink-700 font-medium">
                         No hay horarios disponibles para {profesional.nombre} el {formatDateLocal(date)}
                     </p>
-                    <p className="text-sm text-pink-500 mt-1">Probá con otra fecha</p>
+                    <p className="text-sm text-pink-500 mt-1">Prueba con otra fecha</p>
                 </div>
             ) : (
                 <>
@@ -377,8 +377,7 @@ function TimeSlots({ service, date, profesional, cliente, onTimeSelect, selected
                         <div className="text-sm text-pink-600 bg-pink-50 p-3 rounded-lg flex items-center gap-2 border border-pink-200">
                             <span className="text-pink-500">⏰</span>
                             <span>
-                                Solo se muestran horarios con al menos {minAntelacionHoras} horas de anticipación 
-                                (hora actual + {minAntelacionHoras}h)
+                                Hoy solo se muestran horarios con al menos {minAntelacionHoras} hora{minAntelacionHoras === 1 ? '' : 's'} de anticipación.
                             </span>
                         </div>
                     )}
@@ -442,7 +441,7 @@ function TimeSlots({ service, date, profesional, cliente, onTimeSelect, selected
                     )}
                     
                     <p className="text-xs text-pink-400 mt-3 text-center">
-                        ⏰ Horarios cada 30 minutos
+                        ⏰ Toca un horario para continuar
                     </p>
                 </>
             )}

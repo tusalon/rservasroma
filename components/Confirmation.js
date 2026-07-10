@@ -85,7 +85,7 @@ function Confirmation({ booking, onReset }) {
                     
                     <div>
                         <div className="text-xs text-pink-400 uppercase tracking-wider font-semibold mb-1">WhatsApp</div>
-                        <div className="font-medium text-pink-700">{booking.cliente_whatsapp}</div>
+                        <div className="font-medium text-pink-700">+{String(booking.cliente_whatsapp || '').replace(/^\+/, '')}</div>
                     </div>
                     
                     <div>

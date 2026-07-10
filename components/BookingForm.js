@@ -7,6 +7,26 @@ function BookingForm({ service, profesional, date, time, onSubmit, onCancel, cli
     const [submitting, setSubmitting] = React.useState(false);
     const submittingRef = React.useRef(false);
     const [error, setError] = React.useState(null);
+    const [anticipoInfo, setAnticipoInfo] = React.useState(null);
+
+    // Calcular el anticipo al MOSTRAR el resumen (no solo al enviar): la clienta
+    // debe saber cuánto pagará antes de confirmar.
+    React.useEffect(() => {
+        let vigente = true;
+        const cargarAnticipo = async () => {
+            try {
+                const configNegocio = await window.cargarConfiguracionNegocio();
+                const monto = window.calcularMontoAnticipoReservaSync
+                    ? window.calcularMontoAnticipoReservaSync(configNegocio, service)
+                    : 0;
+                const requiere = configNegocio?.requiere_anticipo === true && (!configNegocio?.anticipos_por_servicio || monto > 0);
+                const moneda = window.getPreferenciasWhatsAppNegocio ? (window.getPreferenciasWhatsAppNegocio().moneda || '') : '';
+                if (vigente) setAnticipoInfo({ requiere, monto, moneda });
+            } catch (e) {}
+        };
+        cargarAnticipo();
+        return () => { vigente = false; };
+    }, [service]);
 
     // ============================================
     // FUNCIÓN PARA PARTIR LÍNEAS LARGAS (RFC 5545)
@@ -420,7 +440,7 @@ END:VCALENDAR`;
             <div className="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-6 shadow-xl space-y-6 border-2 border-pink-300">
                 <div className="flex justify-between items-center border-b border-pink-200 pb-4">
                     <h3 className="text-xl font-bold text-pink-800 flex items-center gap-2">
-                        <span></span>
+                        <span>✨</span>
                         Confirmar Reserva
                     </h3>
                     <button onClick={onCancel} className="text-pink-400 hover:text-pink-600">
@@ -432,27 +452,39 @@ END:VCALENDAR`;
                     <div className="bg-gradient-to-r from-pink-50 to-pink-100 p-4 rounded-xl border border-pink-200 space-y-2">
                         <div className="flex items-center gap-3 text-pink-700">
                             <span className="text-2xl">
-                                {service.nombre.toLowerCase().includes('corte') ? '' : 
-                                 service.nombre.toLowerCase().includes('una') ? '' :
-                                 service.nombre.toLowerCase().includes('peinado') ? '' :
-                                 service.nombre.toLowerCase().includes('maquillaje') ? '' : ''}
+                                {service.nombre.toLowerCase().includes('corte') ? '💇‍♀️' :
+                                 service.nombre.toLowerCase().includes('peinado') ? '💆‍♀️' :
+                                 service.nombre.toLowerCase().includes('maquillaje') ? '💄' :
+                                 service.nombre.toLowerCase().includes('pesta') ? '👁️' : '💅'}
                             </span>
                             <span className="font-medium">{service.nombre}</span>
                         </div>
-                        
+
                         <div className="flex items-center gap-3 text-pink-700">
-                            <span className="text-2xl"></span>
+                            <span className="text-2xl">👩‍🎨</span>
                             <span>Con: <strong>{profesional.nombre}</strong></span>
                         </div>
-                        
+
                         <div className="flex items-center gap-3 text-pink-700">
-                            <span className="text-2xl"></span>
+                            <span className="text-2xl">📅</span>
                             <span>{window.formatFechaCompleta ? window.formatFechaCompleta(date) : date}</span>
                         </div>
                         <div className="flex items-center gap-3 text-pink-700">
-                            <span className="text-2xl"></span>
+                            <span className="text-2xl">⏰</span>
                             <span>{window.formatTo12Hour ? window.formatTo12Hour(time) : time} ({service.duracion} min)</span>
                         </div>
+                        {!service.esMultiple && window.formatearPrecioServicio && window.formatearPrecioServicio(service) && (
+                            <div className="flex items-center gap-3 text-pink-700">
+                                <span className="text-2xl">💵</span>
+                                <span>Precio: <strong>{window.formatearPrecioServicio(service)}</strong></span>
+                            </div>
+                        )}
+                        {anticipoInfo?.requiere && anticipoInfo.monto > 0 && (
+                            <div className="flex items-center gap-3 text-amber-700 bg-amber-50 -mx-2 px-2 py-1 rounded-lg">
+                                <span className="text-2xl">💰</span>
+                                <span>Anticipo para confirmar: <strong>{anticipoInfo.monto} {anticipoInfo.moneda}</strong></span>
+                            </div>
+                        )}
                     </div>
 
                     <form onSubmit={handleSubmit} className="space-y-4">
@@ -464,7 +496,7 @@ END:VCALENDAR`;
 
                         {error && (
                             <div className="text-pink-600 text-sm bg-pink-100 p-3 rounded-lg flex items-start gap-2 border border-pink-300">
-                                <span className="text-pink-500"></span>
+                                <span className="text-pink-500">⚠️</span>
                                 {error}
                             </div>
                         )}
@@ -490,9 +522,9 @@ END:VCALENDAR`;
                                 </>
                             ) : (
                                 <>
-                                    <span></span>
+                                    <span>✨</span>
                                     Confirmar Reserva
-                                    <span></span>
+                                    <span>💅</span>
                                 </>
                             )}
                         </button>

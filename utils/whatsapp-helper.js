@@ -510,7 +510,7 @@ ${lineaDireccion}
 ✅ *Pago recibido correctamente*
 ${lineaCalendario}
 Te esperamos ❤️
-Cualquier cambio, podés cancelarlo desde la app con hasta 1 hora de anticipación.`;
+Cualquier cambio, puedes cancelarlo desde la app.`;
 
         window.enviarWhatsApp(booking.cliente_whatsapp, mensajeConfirmacion);
 
@@ -755,7 +755,7 @@ Hola *${booking.cliente_nombre}*, lamentamos informarte que tu turno ha sido can
 
 🔔 *Motivo:* Cancelación por administración
 
-📱 *¿Querés reprogramar?* Podés hacerlo desde la app`;
+📱 *¿Quieres reprogramar?* Puedes hacerlo desde la app`;
 
         if (canceladoPor === 'cliente') {
             window.enviarWhatsApp(config.telefono, mensajeDuenno);

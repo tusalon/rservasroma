@@ -1887,7 +1887,7 @@ function AdminApp() {
         if (!nuevaReservaData.cliente_nombre || !nuevaReservaData.cliente_whatsapp || 
             !nuevaReservaData.servicio || !nuevaReservaData.profesional_id || 
             !nuevaReservaData.fecha || !nuevaReservaData.hora_inicio) {
-            alert('Completá todos los campos');
+            alert('Completa todos los campos');
             return;
         }
 
@@ -2238,7 +2238,7 @@ function AdminApp() {
 
     const handleBloquearCliente = async (cliente = null) => {
         if (!puedeGestionarAvanzado) {
-            alert('No tenés permiso para bloquear clientes.');
+            alert('No tienes permiso para bloquear clientes.');
             return;
         }
         const nombre = cliente?.nombre || nuevoBloqueo.nombre;
@@ -2265,7 +2265,7 @@ function AdminApp() {
 
     const handleDesbloquearCliente = async (whatsapp) => {
         if (!puedeGestionarAvanzado) {
-            alert('No tenés permiso para desbloquear clientes.');
+            alert('No tienes permiso para desbloquear clientes.');
             return;
         }
         if (!confirm(`Desbloquear al cliente +${String(whatsapp).replace(/\D/g, '')}?`)) return;
@@ -2280,10 +2280,10 @@ function AdminApp() {
 
     const handleEliminarCliente = async (whatsapp) => {
         if (!puedeGestionarAvanzado) {
-            alert('No tenés permiso para eliminar clientes.');
+            alert('No tienes permiso para eliminar clientes.');
             return;
         }
-        if (!confirm('¿Seguro que querés eliminar este cliente? Perderá el acceso a la app.')) return;
+        if (!confirm('¿Seguro que quieres eliminar este cliente? Perderá el acceso a la app.')) return;
         try {
             if (typeof window.eliminarCliente !== 'function') {
                 alert('Error: Función no disponible');
@@ -2413,7 +2413,7 @@ Hola *${bookingData.cliente_nombre}*, tu turno ha sido CONFIRMADO.
 ${lineaCalendario}
 
 Te esperamos.
-Cualquier cambio, podés cancelarlo desde la app con hasta 1 hora de anticipación.`;
+Cualquier cambio, puedes cancelarlo desde la app.`;
 
                 window.enviarWhatsApp(bookingData.cliente_whatsapp, mensajeCliente);
 
@@ -2475,7 +2475,7 @@ Hola *${bookingData.cliente_nombre}*, tu turno ha sido CONFIRMADO.
 ${lineaCalendario}
 
 Te esperamos.
-Cualquier cambio, podés cancelarlo desde la app con hasta 1 hora de anticipación.`;
+Cualquier cambio, puedes cancelarlo desde la app.`;
 
             window.enviarWhatsApp(bookingData.cliente_whatsapp, mensajeCliente);
 
@@ -2494,7 +2494,7 @@ Cualquier cambio, podés cancelarlo desde la app con hasta 1 hora de anticipaci�
     // ============================================
     const borrarCanceladas = async () => {
         if (!puedeGestionarAvanzado) {
-            alert('No tenés permiso para borrar reservas canceladas.');
+            alert('No tienes permiso para borrar reservas canceladas.');
             return;
         }
         if (!confirm('Estas segura de querer borrar TODAS las reservas canceladas? Esta accion no se puede deshacer.')) return;
@@ -3588,7 +3588,7 @@ Cualquier cambio, podés cancelarlo desde la app con hasta 1 hora de anticipaci�
             return;
         }
         if (userRole === 'profesional' && profesional && Number(booking.profesional_id) !== Number(profesional.id)) {
-            alert('Solo podés editar tus propias reservas.');
+            alert('Solo puedes editar tus propias reservas.');
             return;
         }
         const servicio = serviciosList.find(s => s.nombre === booking.servicio);
