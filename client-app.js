@@ -78,11 +78,15 @@ function ClientApp() {
                 const clienteData = JSON.parse(clienteAuth);
                 setCliente(clienteData);
                 setUserRol('cliente');
-                setStep('welcome');
-                setHistory(['auth', 'welcome']);
+                // Deep link del acceso directo del ícono (manifest shortcuts):
+                // ?ir=citas abre directo Mis Citas si ya hay sesión.
+                const irCitas = params.get('ir') === 'citas';
+                setStep(irCitas ? 'mybookings' : 'welcome');
+                setHistory(irCitas ? ['auth', 'welcome', 'mybookings'] : ['auth', 'welcome']);
                 try {
                     window.history.replaceState({ step: 'auth' }, '');
                     window.history.pushState({ step: 'welcome' }, '');
+                    if (irCitas) window.history.pushState({ step: 'mybookings' }, '');
                 } catch (e) {}
                 return;
             } catch (e) {

@@ -1,8 +1,8 @@
 {
-  "name": "Rservasroma Admin",
+  "name": "Rservasroma",
   "short_name": "Rservasroma",
-  "description": "Panel de administración para salones de belleza",
-  "start_url": "/rservasroma/admin-login.html",
+  "description": "Reserva tu turno online en tu salón de belleza",
+  "start_url": "/rservasroma/",
   "scope": "/rservasroma/",
   "display": "standalone",
   "background_color": "#1A1A1A",

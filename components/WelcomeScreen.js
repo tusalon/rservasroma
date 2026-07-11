@@ -288,6 +288,16 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol }) {
                         {pushEstado === 'denied' && (
                             <p className="text-white/50 text-xs text-center">🔔 Notificaciones bloqueadas — actívalas en Ajustes del teléfono</p>
                         )}
+                        {/* iOS en Safari (sin instalar) no soporta notificaciones:
+                            guiar a instalar la app en vez de ocultar la sección. */}
+                        {pushEstado === 'unsupported' &&
+                            /iPhone|iPad|iPod/i.test(navigator.userAgent) &&
+                            window.navigator.standalone !== true && (
+                            <p className="text-white/60 text-xs text-center leading-relaxed">
+                                🔔 Para recibir recordatorios de tus citas, instala la app:
+                                <br />toca <strong>Compartir ⬆️</strong> y luego <strong>«Añadir a pantalla de inicio»</strong>
+                            </p>
+                        )}
                         {pushEstado !== 'unsupported' && pushEstado !== 'denied' && (
                             <div className="space-y-1">
                                 {pushEstado === 'granted' ? (

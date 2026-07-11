@@ -14,12 +14,16 @@
     <meta name="twitter:description" content="Elige servicio, profesional y horario en segundos. Tu salón te espera.">
 
     <!-- MASTER APP: sin slug → login de admin.
-         Excepción: dentro del APK de clientes se restaura el último salón visitado,
-         para que abrir la app desde el lanzador no termine en el login de admin.
-         El APK de clientes es el único caso con window.Capacitor Y origen remoto
-         (tusalon.github.io); el APK admin corre Capacitor pero sirve assets locales
-         (localhost), y el navegador no tiene window.Capacitor — ambos siguen yendo
-         al login como siempre. -->
+         Excepción: dentro de una APP INSTALADA de clientas (APK Android o PWA
+         añadida a la pantalla de inicio) se restaura el último salón visitado
+         o se muestra app-clientes.html — nunca el login de admin.
+         - APK clientes: UA con marcador RservasromaClientes / token wv / bridge
+           Capacitor, siempre con origen remoto tusalon.github.io. (El APK admin
+           corre Capacitor pero sirve assets locales en localhost: queda fuera.)
+         - PWA instalada: navigator.standalone (iOS) o display-mode standalone
+           (Android/desktop). En iOS la PWA tiene localStorage SEPARADO de
+           Safari, así que su primer arranque no tiene slug guardado y debe
+           caer en app-clientes.html, no en el login de administración. -->
     <script>
         (function() {
             var params = new URLSearchParams(window.location.search);
@@ -27,16 +31,12 @@
             if (!slug || slug.trim() === '') {
                 var guardado = '';
                 try { guardado = localStorage.getItem('negocioSlug') || ''; } catch (e) {}
-                // El APK de clientes es el único que carga este sitio dentro de un
-                // WebView Android: se detecta por el marcador propio del UA
-                // (appendUserAgent en capacitor.config), por el token "wv" del
-                // WebView, o por el bridge de Capacitor. No se puede depender solo
-                // de window.Capacitor: cuando la página la sirve el service worker,
-                // la inyección del bridge puede no ocurrir.
                 var ua = navigator.userAgent || '';
                 var esApkClientes = window.location.hostname === 'tusalon.github.io' &&
                     (ua.indexOf('RservasromaClientes') !== -1 || /\bwv\b/.test(ua) || !!window.Capacitor);
-                if (esApkClientes) {
+                var esPwaInstalada = window.navigator.standalone === true ||
+                    (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+                if (esApkClientes || esPwaInstalada) {
                     window.location.replace(guardado
                         ? '?s=' + encodeURIComponent(guardado)
                         : 'app-clientes.html');
@@ -439,7 +439,7 @@
         ">💅</div>
         <div style="flex:1;min-width:0;">
             <div id="pwa-banner-title" style="color:#fff;font-size:14px;font-weight:700;margin-bottom:2px;"></div>
-            <div style="color:#999;font-size:12px;">Accede rápido desde tu pantalla de inicio</div>
+            <div id="pwa-banner-subtitle" style="color:#999;font-size:12px;">Accede rápido desde tu pantalla de inicio</div>
         </div>
         <button id="pwa-btn-instalar" style="
             background:#FF1493;color:#fff;border:none;border-radius:10px;
@@ -454,17 +454,23 @@
 
     <script>
     (function() {
-        // Solo en Android, no en iOS, no si ya está instalado como PWA
         var isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
         var isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
         // El dismiss dura 7 días (antes era por pestaña y reaparecía en cada visita)
         var dismissedHasta = 0;
         try { dismissedHasta = parseInt(localStorage.getItem('pwa-banner-dismissed-hasta') || '0', 10) || 0; } catch (e) {}
 
-        if (isStandalone || isIOS || Date.now() < dismissedHasta) return;
+        if (isStandalone || Date.now() < dismissedHasta) return;
 
         var deferredPrompt = null;
         var banner = document.getElementById('pwa-install-banner');
+
+        function nombreSalon() {
+            var slug = new URLSearchParams(window.location.search).get('s') || '';
+            var nombre = '';
+            try { nombre = localStorage.getItem('negocioNombre') || ''; } catch (e) {}
+            return nombre || (slug ? slug.replace(/-/g, ' ') : 'este salón');
+        }
 
         function mostrarBanner() {
             if (!banner) return;
@@ -480,30 +486,49 @@
             document.body.style.paddingBottom = '';
         }
 
-        window.addEventListener('beforeinstallprompt', function(e) {
-            e.preventDefault();
-            deferredPrompt = e;
+        if (isIOS) {
+            // iOS no tiene beforeinstallprompt: la instalación es manual desde
+            // Safari (Compartir → Añadir a pantalla de inicio). En navegadores
+            // dentro de apps (Instagram/Facebook) o alternativos (Chrome iOS)
+            // no se puede instalar: se sugiere abrir en Safari.
+            var ua = navigator.userAgent || '';
+            var esInApp = /Instagram|FBAN|FBAV|FB_IAB|Messenger|Line\//i.test(ua);
+            var esSafari = !esInApp && !/CriOS|FxiOS|EdgiOS|OPiOS|DuckDuckGo|GSA\//i.test(ua);
 
-            // Nombre del salón
-            var slug = new URLSearchParams(window.location.search).get('s') || '';
-            var nombre = localStorage.getItem('negocioNombre') || (slug ? slug.replace(/-/g, ' ') : 'este salón');
+            var btnInstalar = document.getElementById('pwa-btn-instalar');
+            if (btnInstalar) btnInstalar.style.display = 'none';
+
             var title = document.getElementById('pwa-banner-title');
-            if (title) title.textContent = 'Instala la app de ' + nombre;
+            var subtitle = document.getElementById('pwa-banner-subtitle');
+            if (title) title.textContent = 'Instala la app de ' + nombreSalon();
+            if (subtitle) subtitle.textContent = esSafari
+                ? 'Toca Compartir ⬆️ y luego «Añadir a pantalla de inicio»'
+                : 'Abre esta página en Safari para poder instalarla';
 
-            // Mostrar después de 5 segundos
             setTimeout(mostrarBanner, 5000);
-        });
+        } else {
+            window.addEventListener('beforeinstallprompt', function(e) {
+                e.preventDefault();
+                deferredPrompt = e;
 
-        document.getElementById('pwa-btn-instalar').addEventListener('click', function() {
-            if (!deferredPrompt) return;
-            deferredPrompt.prompt();
-            deferredPrompt.userChoice.then(function(result) {
-                if (result.outcome === 'accepted') {
-                    ocultarBanner();
-                }
-                deferredPrompt = null;
+                var title = document.getElementById('pwa-banner-title');
+                if (title) title.textContent = 'Instala la app de ' + nombreSalon();
+
+                // Mostrar después de 5 segundos
+                setTimeout(mostrarBanner, 5000);
             });
-        });
+
+            document.getElementById('pwa-btn-instalar').addEventListener('click', function() {
+                if (!deferredPrompt) return;
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then(function(result) {
+                    if (result.outcome === 'accepted') {
+                        ocultarBanner();
+                    }
+                    deferredPrompt = null;
+                });
+            });
+        }
 
         document.getElementById('pwa-btn-cerrar').addEventListener('click', function() {
             ocultarBanner();
@@ -557,14 +582,14 @@
     <script src="components/MultiTimeSlots.js?v=20260709-ux-fase-b" type="text/babel"></script>
     <script src="components/BookingForm.js?v=20260709-ux-fase-c" type="text/babel"></script>
     <script src="components/Confirmation.js?v=20260709-ux-fase-d" type="text/babel"></script>
-    <script src="components/WelcomeScreen.js?v=20260709-ux-fase-a" type="text/babel"></script>
+    <script src="components/WelcomeScreen.js?v=20260710-pwa-ios" type="text/babel"></script>
     <script src="components/WhatsAppButton.js?v=20260709-ux-fase-c" type="text/babel"></script>
     <script src="components/ClientAuthScreen.js?v=20260709-ux-fase-b" type="text/babel"></script>
     <script src="components/MyBookings.js?v=20260709-ux-fase-d" type="text/babel"></script>
     <script src="components/InstallButton.js" type="text/babel"></script>
     
     <!-- App de clientes -->
-    <script src="client-app.js?v=20260709-ux-fase-d" type="text/babel"></script>
+    <script src="client-app.js?v=20260710-pwa-ios" type="text/babel"></script>
     
     <script>
         // Actualizar título dinámico desde la base de datos

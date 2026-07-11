@@ -1,6 +1,6 @@
 // sw.js - Service Worker para Rservasroma
 
-const CACHE_NAME = 'rservasroma-v9';
+const CACHE_NAME = 'rservasroma-v10';
 const BASE = '/rservasroma';
 
 const urlsToCache = [
@@ -139,8 +139,12 @@ self.addEventListener('fetch', event => {
     const nombre = reqUrl.searchParams.get('n') || slug;
     const BASE_URL = 'https://tusalon.github.io' + BASE;
     const manifest = {
+      // id estable por salón: si una clienta instala dos salones del mismo
+      // origen, Android los trata como apps distintas en vez de pisarse.
+      id: BASE_URL + '/?s=' + encodeURIComponent(slug),
       name: nombre,
       short_name: nombre.split(/\s+/).slice(0, 2).join(' '),
+      description: 'Reserva tu turno online en ' + nombre,
       start_url: BASE_URL + '/?s=' + encodeURIComponent(slug),
       scope: BASE_URL + '/',
       display: 'standalone',
@@ -149,6 +153,15 @@ self.addEventListener('fetch', event => {
       icons: [
         { src: BASE_URL + '/icons/icon-192x192.png', sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
         { src: BASE_URL + '/icons/icon-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' }
+      ],
+      // Android: mantener presionado el ícono → acceso directo a Mis Citas.
+      shortcuts: [
+        {
+          name: 'Mis Citas',
+          short_name: 'Mis Citas',
+          url: BASE_URL + '/?s=' + encodeURIComponent(slug) + '&ir=citas',
+          icons: [{ src: BASE_URL + '/icons/icon-192x192.png', sizes: '192x192', type: 'image/png' }]
+        }
       ]
     };
     event.respondWith(new Response(JSON.stringify(manifest), {
