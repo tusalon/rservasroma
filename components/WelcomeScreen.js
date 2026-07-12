@@ -8,7 +8,12 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol }) {
     const [activandoPush, setActivandoPush] = React.useState(false);
     const [pushMensaje, setPushMensaje] = React.useState('');
 
+    // UI de push oculta por bandera (ver utils/push-config.js) hasta resolver
+    // el problema pendiente de Supabase.
+    const pushUIVisible = window.RSERVAS_PUSH_UI_VISIBLE === true;
+
     React.useEffect(() => {
+        if (!pushUIVisible) return;
         if (!('Notification' in window)) { setPushEstado('unsupported'); return; }
         const permiso = Notification.permission;
         setPushEstado(permiso);
@@ -285,12 +290,12 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol }) {
                         )}
 
                         {/* Botón notificaciones */}
-                        {pushEstado === 'denied' && (
+                        {pushUIVisible && pushEstado === 'denied' && (
                             <p className="text-white/50 text-xs text-center">🔔 Notificaciones bloqueadas — actívalas en Ajustes del teléfono</p>
                         )}
                         {/* iOS en Safari (sin instalar) no soporta notificaciones:
                             guiar a instalar la app en vez de ocultar la sección. */}
-                        {pushEstado === 'unsupported' &&
+                        {pushUIVisible && pushEstado === 'unsupported' &&
                             /iPhone|iPad|iPod/i.test(navigator.userAgent) &&
                             window.navigator.standalone !== true && (
                             <p className="text-white/60 text-xs text-center leading-relaxed">
@@ -298,7 +303,7 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol }) {
                                 <br />toca <strong>Compartir ⬆️</strong> y luego <strong>«Añadir a pantalla de inicio»</strong>
                             </p>
                         )}
-                        {pushEstado !== 'unsupported' && pushEstado !== 'denied' && (
+                        {pushUIVisible && pushEstado !== 'unsupported' && pushEstado !== 'denied' && (
                             <div className="space-y-1">
                                 {pushEstado === 'granted' ? (
                                     <p className="text-white/60 text-xs flex items-center justify-center gap-1">🔔 Recordatorios activados</p>
