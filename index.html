@@ -78,6 +78,8 @@
     
     <!-- Service Worker + detección de actualizaciones -->
     <script>
+        let __swRegistration = null;
+
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 const pathSegments = window.location.pathname.split('/');
@@ -85,6 +87,7 @@
                 const swPath = basePath ? basePath + '/sw.js' : '/sw.js';
 
                 navigator.serviceWorker.register(swPath).then(registration => {
+                    __swRegistration = registration;
                     if (registration.waiting) mostrarToastActualizacion(registration.waiting);
                     registration.addEventListener('updatefound', () => {
                         const nuevoSW = registration.installing;
@@ -100,16 +103,45 @@
                     window.location.reload();
                 });
             });
+
+            // iOS Safari congela (no recarga) las PWA instaladas al salir de
+            // ellas: al reabrir desde el ícono, "load" muchas veces no se
+            // vuelve a disparar y la revisión de actualizaciones se queda
+            // estancada en la de la primera apertura. Forzamos una revisión
+            // activa cada vez que la app vuelve a primer plano.
+            window.addEventListener('pageshow', () => {
+                if (__swRegistration) __swRegistration.update().catch(() => {});
+            });
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible' && __swRegistration) {
+                    __swRegistration.update().catch(() => {});
+                }
+            });
         }
+
+        function ajustarPosicionToastActualizacion() {
+            var toast = document.getElementById('toast-update');
+            if (!toast || toast.style.opacity !== '1') return;
+            // Si el banner de "Instalar app" está visible, subir el cartel
+            // para que no se superpongan (ambos anclados abajo).
+            var espacioBanner = parseInt(document.body.style.paddingBottom, 10) || 0;
+            toast.style.bottom = espacioBanner > 0 ? (espacioBanner + 12) + 'px' : '20px';
+        }
+        window.__ajustarPosicionToastActualizacion = ajustarPosicionToastActualizacion;
 
         function mostrarToastActualizacion(sw) {
             var toast = document.getElementById('toast-update');
             if (!toast) return;
             toast.style.transform = 'translateX(-50%) translateY(0)';
             toast.style.opacity = '1';
+            ajustarPosicionToastActualizacion();
             document.getElementById('btn-actualizar').onclick = function() {
                 toast.style.opacity = '0';
                 sw.postMessage({ type: 'SKIP_WAITING' });
+            };
+            document.getElementById('btn-cerrar-actualizar').onclick = function() {
+                toast.style.transform = 'translateX(-50%) translateY(120px)';
+                toast.style.opacity = '0';
             };
         }
     </script>
@@ -405,9 +437,9 @@
         position:fixed; bottom:20px; left:50%;
         transform:translateX(-50%) translateY(120px);
         background:#1a0a2e; border:1px solid #a855f7; border-radius:14px;
-        padding:14px 18px; display:flex; align-items:center; gap:12px;
+        padding:12px 14px; display:flex; align-items:center; gap:10px;
         z-index:99999; box-shadow:0 8px 32px rgba(0,0,0,0.4);
-        opacity:0; transition:transform 0.35s ease, opacity 0.35s ease;
+        opacity:0; transition:bottom 0.25s ease, transform 0.35s ease, opacity 0.35s ease;
         min-width:260px; max-width:90vw; pointer-events:none;
     ">
         <span style="font-size:20px">✨</span>
@@ -415,11 +447,18 @@
             Hay una versión nueva disponible
         </span>
         <button id="btn-actualizar" style="
-            background:#a855f7;color:#fff;border:none;border-radius:8px;
-            padding:7px 14px;font-size:13px;font-weight:600;
+            background:#a855f7;color:#fff;border:none;border-radius:10px;
+            padding:12px 16px;font-size:13px;font-weight:600;
+            min-height:44px; display:inline-flex; align-items:center;
             cursor:pointer;white-space:nowrap;font-family:system-ui,sans-serif;
             pointer-events:auto;
         ">Actualizar</button>
+        <button id="btn-cerrar-actualizar" aria-label="Cerrar" style="
+            background:rgba(255,255,255,0.10);color:#c9c9dd;border:none;border-radius:10px;
+            min-width:44px; min-height:44px; display:inline-flex; align-items:center; justify-content:center;
+            font-size:18px; line-height:1; cursor:pointer; flex-shrink:0;
+            pointer-events:auto;
+        ">✕</button>
     </div>
 
     <!-- Banner de instalación PWA (Android) -->
@@ -478,12 +517,16 @@
             // Reservar espacio abajo para que el banner no tape la barra
             // pegajosa de "Continuar" de la selección de servicios.
             document.body.style.paddingBottom = (banner.offsetHeight + 8) + 'px';
+            // Si el cartel de "hay una actualización" ya estaba visible,
+            // subirlo para que no quede tapado por este banner.
+            window.__ajustarPosicionToastActualizacion?.();
         }
 
         function ocultarBanner() {
             if (!banner) return;
             banner.style.transform = 'translateY(100%)';
             document.body.style.paddingBottom = '';
+            window.__ajustarPosicionToastActualizacion?.();
         }
 
         if (isIOS) {
