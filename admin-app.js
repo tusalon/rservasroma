@@ -2,7 +2,11 @@
 // CON BOTÓN DE NUEVA RESERVA MANUAL, CALENDARIO DE DISPONIBILIDAD
 
 // ─── VERSIÓN DEL APK ADMIN ────────────────────────────────────────────────────
-const APP_VERSION = '1.0.0';
+// Al subir una versión nueva del admin, actualizar este número junto con
+// admin_version en la tabla config_global de Supabase (y admin_apk_url si
+// hay un link de descarga real) — si no, el banner de "nueva versión"
+// vuelve a avisar de algo que ya está en el código.
+const APP_VERSION = '1.0.51';
 
 (async function checkAppVersion() {
     try {
