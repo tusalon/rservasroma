@@ -43,24 +43,44 @@ const APP_VERSION = '1.0.0';
                     </div>
                 </div>`);
         } else if (gt(latest, APP_VERSION)) {
+            // No repetir el aviso de la MISMA versión una vez descartado — antes
+            // no se guardaba nada al cerrarlo y volvía a aparecer en cada carga
+            // de admin.html. Sí debe volver a aparecer si Supabase anuncia una
+            // versión más nueva todavía que la que ya se descartó.
+            let yaDescartada = '';
+            try { yaDescartada = localStorage.getItem('adminUpdateDismissed') || ''; } catch (e) {}
+            if (yaDescartada === latest) return;
+
             document.body.insertAdjacentHTML('afterbegin', `
                 <div id="banner-update" style="
                     position:fixed;top:0;left:0;right:0;
                     background:linear-gradient(135deg,#FF1493,#c01070);
-                    padding:10px 16px;display:flex;align-items:center;gap:12px;
+                    padding:10px 16px;display:flex;align-items:center;gap:8px;
                     z-index:99997;font-family:system-ui,sans-serif;">
                     <span style="color:#fff;font-size:13px;flex:1;">
                         ✨ Nueva versión disponible (${latest})
                     </span>
                     ${apkUrl ? `<a href="${apkUrl}" style="
                         background:#fff;color:#FF1493;text-decoration:none;
-                        border-radius:8px;padding:6px 14px;font-size:13px;font-weight:700;white-space:nowrap;">
+                        border-radius:8px;padding:10px 14px;font-size:13px;font-weight:700;white-space:nowrap;
+                        min-height:24px;display:inline-flex;align-items:center;">
                         Actualizar
                     </a>` : ''}
-                    <button onclick="document.getElementById('banner-update').remove()" style="
-                        background:transparent;border:none;color:rgba(255,255,255,0.8);
-                        font-size:20px;cursor:pointer;padding:0 4px;line-height:1;">✕</button>
+                    <button id="btn-cerrar-banner-update" style="
+                        background:rgba(255,255,255,0.15);border:none;color:#fff;border-radius:8px;
+                        min-width:36px;min-height:36px;font-size:18px;cursor:pointer;line-height:1;
+                        display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;">✕</button>
                 </div>`);
+
+            const banner = document.getElementById('banner-update');
+            // Empujar el contenido hacia abajo en vez de taparlo.
+            document.body.style.paddingTop = banner.offsetHeight + 'px';
+
+            document.getElementById('btn-cerrar-banner-update').onclick = function() {
+                try { localStorage.setItem('adminUpdateDismissed', latest); } catch (e) {}
+                banner.remove();
+                document.body.style.paddingTop = '';
+            };
         }
     } catch(e) { /* sin internet o tabla inexistente — silencioso */ }
 })();
