@@ -1,6 +1,6 @@
 // sw.js - Service Worker para Rservasroma
 
-const CACHE_NAME = 'rservasroma-v11';
+const CACHE_NAME = 'rservasroma-v12';
 const BASE = '/rservasroma';
 
 const urlsToCache = [
@@ -125,7 +125,15 @@ self.addEventListener('activate', event => {
 });
 
 // ============================================
-// FETCH — Cache First para archivos de app
+// FETCH
+// - Documentos HTML (navegación): RED PRIMERO, caché como respaldo offline.
+//   Cache-first aquí retrasaba cualquier arreglo de lógica crítica (el gate
+//   de index.html que decide admin-login vs app de clientas) hasta que el
+//   dispositivo revalidara el SW en segundo plano — podía tardar varias
+//   aperturas de la app, o sobrevivir incluso a una actualización del APK
+//   (el WebView conserva su caché entre versiones). Con red primero, el
+//   HTML llega actualizado de inmediato mientras haya conexión.
+// - Todo lo demás (JS, CSS, imágenes): Cache First, sin cambios.
 // ============================================
 self.addEventListener('fetch', event => {
   if (!event.request.url.startsWith('http')) return;
@@ -167,6 +175,21 @@ self.addEventListener('fetch', event => {
     event.respondWith(new Response(JSON.stringify(manifest), {
       headers: { 'Content-Type': 'application/manifest+json', 'Cache-Control': 'no-cache' }
     }));
+    return;
+  }
+
+  // Documento HTML (navegación real del navegador/WebView): red primero.
+  const esNavegacion = event.request.mode === 'navigate' || event.request.destination === 'document';
+  if (esNavegacion) {
+    event.respondWith(
+      fetch(event.request).then(response => {
+        if (response && response.status === 200) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+        }
+        return response;
+      }).catch(() => caches.match(event.request).then(cached => cached || new Response('Sin conexión', { status: 408 })))
+    );
     return;
   }
 
