@@ -2,13 +2,15 @@
 // CON BOTÓN DE NUEVA RESERVA MANUAL, CALENDARIO DE DISPONIBILIDAD
 
 // ─── VERSIÓN DEL APK ADMIN ────────────────────────────────────────────────────
-// Al subir una versión nueva del admin, actualizar este número junto con
-// admin_version en la tabla config_global de Supabase (y admin_apk_url si
-// hay un link de descarga real) — si no, el banner de "nueva versión"
-// vuelve a avisar de algo que ya está en el código.
+// Aviso de "nueva versión disponible" / actualización obligatoria DESACTIVADO:
+// admin_apk_url en Supabase está vacío (no hay a dónde mandar a descargar) y
+// no hay un proceso real que distribuya un APK admin nativo. Para reactivar:
+// quitar el "return" de abajo y mantener APP_VERSION sincronizado a mano con
+// admin_version en config_global (Supabase) cada vez que haga falta avisar.
 const APP_VERSION = '1.0.51';
 
 (async function checkAppVersion() {
+    return; // desactivado — ver nota arriba
     try {
         const headers = { 'apikey': window.SUPABASE_ANON_KEY, 'Authorization': `Bearer ${window.SUPABASE_ANON_KEY}` };
         const base = window.SUPABASE_URL + '/rest/v1/config_global?select=clave,valor&clave=in.(admin_version,admin_version_minima,admin_apk_url)';
