@@ -40,9 +40,27 @@
         // Verificar que hay negocioId en localStorage
         (function() {
             const negocioId = localStorage.getItem('negocioId');
+
+            // Guard de identidad (mismo que admin.html): ?s= de otro salÃ³n
+            // distinto al de la sesiÃ³n => cerrar sesiÃ³n y login del correcto.
+            const slugURL = (new URLSearchParams(window.location.search).get('s') || '').toLowerCase().trim();
+            const slugSesion = (localStorage.getItem('adminSlug') || localStorage.getItem('negocioSlug') || '').toLowerCase().trim();
+            if (slugURL && slugSesion && slugURL !== slugSesion) {
+                localStorage.removeItem('adminAuth');
+                localStorage.removeItem('adminLoginTime');
+                localStorage.removeItem('profesionalAuth');
+                localStorage.removeItem('profesionalLoginTime');
+                localStorage.removeItem('negocioId');
+                localStorage.removeItem('negocioNombre');
+                localStorage.removeItem('negocioSlug');
+                localStorage.removeItem('adminSlug');
+                window.location.href = 'admin-login.html?s=' + encodeURIComponent(slugURL);
+                return;
+            }
+
             if (!negocioId) {
                 console.log('ðŸš« No hay negocioId, redirigiendo a login');
-                window.location.href = 'admin-login.html';
+                window.location.href = 'admin-login.html' + (slugURL ? '?s=' + encodeURIComponent(slugURL) : '');
             }
         })();
     </script>

@@ -3724,7 +3724,16 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                         </button>
 
                         <button
-                            onClick={() => window.location.href = 'editar-negocio.html'}
+                            onClick={() => {
+                                // Llevar el salón de ESTA pestaña (?s= de su URL), no el
+                                // de localStorage: con varios salones abiertos en pestañas,
+                                // localStorage puede apuntar a otro y se editaría el
+                                // negocio equivocado. El guard de editar-negocio valida.
+                                const slugTab = window._rservasSlugActual ||
+                                    localStorage.getItem('adminSlug') ||
+                                    localStorage.getItem('negocioSlug') || '';
+                                window.location.href = 'editar-negocio.html' + (slugTab ? '?s=' + encodeURIComponent(slugTab) : '');
+                            }}
                             className={`${puedeGestionarAvanzado ? 'flex' : 'hidden'} items-center gap-2 bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white px-4 py-2 rounded-lg transition-all transform hover:scale-105 shadow-md border border-pink-400 flex-1 sm:flex-none justify-center`}
                         >
                             <span className="text-lg">🏢</span>

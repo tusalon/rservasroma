@@ -71,7 +71,17 @@ function EditarNegocio() {
         try {
             console.log('📥 Cargando configuración del negocio...');
             const configData = await window.cargarConfiguracionNegocio(true);
-            
+
+            // Con ?s= en la URL, la config se resuelve por SLUG (el salón de
+            // esta pestaña). Guardar con ese mismo ID: si localStorage quedó
+            // apuntando a otro salón (varias pestañas), el PATCH iría al
+            // negocio equivocado.
+            const idResuelto = window.getNegocioId ? window.getNegocioId() : '';
+            if (idResuelto && idResuelto !== id) {
+                console.log('🔁 negocioId corregido por slug de URL:', idResuelto);
+                setNegocioId(idResuelto);
+            }
+
             if (configData) {
                 console.log('✅ Datos cargados:', configData);
                 setConfig({
