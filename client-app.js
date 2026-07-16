@@ -225,7 +225,7 @@ function ClientApp() {
     }, []);
 
     const handleLogout = () => {
-        if (!confirm('¿Cerrar tu sesión?')) return;
+        if (!confirm(window.t('¿Cerrar tu sesión?'))) return;
         localStorage.removeItem('clienteAuth');
         setCliente(null);
         setSelectedService(null);

@@ -1,6 +1,8 @@
 // components/ProfesionalSelector.js - filtro por un solo servicio
 
 function ProfesionalSelector({ onSelect, selectedProfesional, selectedService }) {
+    window.useIdioma();
+    const t = window.t;
     const [profesionales, setProfesionales] = React.useState([]);
     const [cargando, setCargando] = React.useState(true);
     const [todosProfesionales, setTodosProfesionales] = React.useState([]);
@@ -69,11 +71,11 @@ function ProfesionalSelector({ onSelect, selectedProfesional, selectedService })
             <div className="space-y-4 animate-fade-in">
                 <h2 className="text-lg font-semibold text-pink-700 flex items-center gap-2">
                     <span className="text-2xl">✨</span>
-                    2. Elige tu profesional
+                    {t('2. Elige tu profesional')}
                 </h2>
                 <div className="text-center py-8">
                     <div className="animate-spin h-8 w-8 border-b-2 border-pink-500 rounded-full mx-auto"></div>
-                    <p className="text-pink-400 mt-4">Cargando profesionales...</p>
+                    <p className="text-pink-400 mt-4">{t('Cargando profesionales...')}</p>
                 </div>
             </div>
         );
@@ -83,40 +85,40 @@ function ProfesionalSelector({ onSelect, selectedProfesional, selectedService })
         <div className="space-y-4 animate-fade-in">
             <h2 className="text-lg font-semibold text-pink-700 flex items-center gap-2">
                 <span className="text-2xl">✨</span>
-                2. Elige tu profesional
+                {t('2. Elige tu profesional')}
                 {selectedProfesional && (
                     <span className="text-xs bg-pink-100 text-pink-700 px-2 py-1 rounded-full ml-2">
-                        Seleccionada
+                        {t('Seleccionada')}
                     </span>
                 )}
             </h2>
 
             {selectedService && profesionales.length === 0 ? (
                 <div className="text-center p-8 bg-pink-50 rounded-xl border border-pink-200 space-y-3">
-                    <p className="text-pink-700 font-medium">"{selectedService.nombre}" aún no tiene turnos online</p>
-                    <p className="text-sm text-pink-600">Escríbenos y te lo coordinamos directamente 💖</p>
+                    <p className="text-pink-700 font-medium">{t('"{servicio}" aún no tiene turnos online', { servicio: selectedService.nombre })}</p>
+                    <p className="text-sm text-pink-600">{t('Escríbenos y te lo coordinamos directamente 💖')}</p>
                     <button
                         onClick={() => window.contactarSalonWhatsApp?.(`Hola! Quiero reservar "${selectedService.nombre}" pero no aparece disponible en la app 💅`)}
                         className="bg-green-500 hover:bg-green-600 text-white font-bold px-5 py-3 rounded-xl shadow-sm transition-colors"
                     >
-                        💬 Reservar por WhatsApp
+                        💬 {t('Reservar por WhatsApp')}
                     </button>
                 </div>
             ) : profesionales.length === 0 ? (
                 <div className="text-center p-8 bg-white/80 backdrop-blur-sm rounded-xl border border-pink-200 space-y-3">
-                    <p className="text-pink-600 font-medium">Aún no hay profesionales con turnos online</p>
+                    <p className="text-pink-600 font-medium">{t('Aún no hay profesionales con turnos online')}</p>
                     <button
                         onClick={() => window.contactarSalonWhatsApp?.()}
                         className="bg-green-500 hover:bg-green-600 text-white font-bold px-5 py-3 rounded-xl shadow-sm transition-colors"
                     >
-                        💬 Reservar por WhatsApp
+                        💬 {t('Reservar por WhatsApp')}
                     </button>
                 </div>
             ) : (
                 <>
                     {selectedService && (
                         <div className="text-xs text-pink-600 bg-pink-50 p-2 rounded-lg border border-pink-200">
-                            Mostrando solo profesionales que realizan "{selectedService.nombre}"
+                            {t('Mostrando solo profesionales que realizan "{servicio}"', { servicio: selectedService.nombre })}
                         </div>
                     )}
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
@@ -133,7 +135,7 @@ function ProfesionalSelector({ onSelect, selectedProfesional, selectedService })
                                     <span className="font-bold text-pink-800 text-lg block">{prof.nombre}</span>
                                     <span className="text-sm text-pink-500 mt-1">{prof.especialidad}</span>
                                     {selectedProfesional?.id === prof.id && (
-                                        <div className="mt-2 text-pink-600 text-sm font-semibold">Seleccionada</div>
+                                        <div className="mt-2 text-pink-600 text-sm font-semibold">{t('Seleccionada')}</div>
                                     )}
                                 </div>
                             </button>
@@ -143,7 +145,7 @@ function ProfesionalSelector({ onSelect, selectedProfesional, selectedService })
             )}
 
             <div className="text-xs text-pink-500 bg-pink-50 p-3 rounded-lg border border-pink-200">
-                Cada profesional tiene su propia agenda. Despues de elegir, podras ver sus horarios disponibles.
+                {t('Cada profesional tiene su propia agenda. Despues de elegir, podras ver sus horarios disponibles.')}
             </div>
         </div>
     );

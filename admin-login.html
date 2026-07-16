@@ -157,29 +157,55 @@
     }
 
     .hidden { display: none !important; }
+
+    .lang-toggle {
+      position: absolute;
+      top: 18px;
+      right: 18px;
+      display: inline-flex;
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 9999px;
+      padding: 2px;
+    }
+    .lang-toggle button {
+      border: none;
+      background: transparent;
+      color: rgba(255,255,255,0.55);
+      font-size: 12px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      cursor: pointer;
+    }
+    .lang-toggle button.active { background: #FF1493; color: #fff; }
   </style>
 </head>
 
 <body>
-  <div class="card">
+  <div class="card" style="position: relative;">
+
+    <div class="lang-toggle">
+      <button type="button" id="langEs">ES</button>
+      <button type="button" id="langEn">EN</button>
+    </div>
 
     <div class="logo-wrap">
       <img src="icons/icon-192x192.png" alt="Rservasroma">
     </div>
 
     <h1 class="title">Rservasroma</h1>
-    <p class="subtitle">Panel de administración</p>
+    <p class="subtitle" id="txtSubtitle">Panel de administración</p>
 
     <div id="mensaje" class="hidden"></div>
 
     <form id="loginForm" autocomplete="off">
       <div class="field">
-        <label for="username">Usuario del salón</label>
+        <label for="username" id="txtLabelUsuario">Usuario del salón</label>
         <input type="text" id="username" placeholder="lecisnails" required autocomplete="username">
       </div>
 
       <div class="field">
-        <label for="password">Contraseña</label>
+        <label for="password" id="txtLabelPassword">Contraseña</label>
         <div class="input-wrap">
           <input type="password" id="password" placeholder="••••••••" required autocomplete="current-password">
           <button type="button" class="toggle-eye" id="togglePwd" title="Mostrar contraseña">👁</button>
@@ -194,6 +220,7 @@
   </div>
 
   <script src="utils/supabase-config.js"></script>
+  <script src="utils/i18n.js?v=20260714-i18n"></script>
   <script src="utils/offline-panel.js?v=20260626-offline-panel-live"></script>
   <script>
     (async function() {
@@ -203,6 +230,21 @@
   </script>
 
   <script>
+    function aplicarIdiomaLogin() {
+      document.getElementById('txtSubtitle').textContent = window.t('Panel de administración');
+      document.getElementById('txtLabelUsuario').textContent = window.t('Usuario del salón');
+      document.getElementById('txtLabelPassword').textContent = window.t('Contraseña');
+      document.getElementById('btnEntrar').textContent = window.t('Entrar →');
+      document.getElementById('togglePwd').title = window.t('Mostrar contraseña');
+      var idioma = window.getIdioma();
+      document.getElementById('langEs').classList.toggle('active', idioma === 'es');
+      document.getElementById('langEn').classList.toggle('active', idioma === 'en');
+    }
+    document.getElementById('langEs').addEventListener('click', function() { window.setIdioma('es'); });
+    document.getElementById('langEn').addEventListener('click', function() { window.setIdioma('en'); });
+    window.addEventListener('idioma-changed', aplicarIdiomaLogin);
+    aplicarIdiomaLogin();
+
     document.getElementById('togglePwd').addEventListener('click', function() {
       var input = document.getElementById('password');
       input.type = input.type === 'password' ? 'text' : 'password';
@@ -220,23 +262,23 @@
       errorMsg.classList.add('hidden');
       errorMsg.textContent = '';
       mensaje.classList.remove('hidden');
-      mensaje.textContent = 'Verificando...';
+      mensaje.textContent = window.t('Verificando...');
       btn.disabled = true;
 
       try {
-        if (typeof bcrypt === 'undefined') throw new Error('Error interno. Recarga la página.');
+        if (typeof bcrypt === 'undefined') throw new Error(window.t('Error interno. Recarga la página.'));
 
         var response = await fetch(
           window.SUPABASE_URL + '/rest/v1/negocios?slug=eq.' + encodeURIComponent(username) + '&select=*',
           { headers: { 'apikey': window.SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + window.SUPABASE_ANON_KEY } }
         );
 
-        if (!response.ok) throw new Error('Error de conexión. Intentá de nuevo.');
+        if (!response.ok) throw new Error(window.t('Error de conexión. Intentá de nuevo.'));
 
         var negocios = await response.json();
 
         if (!negocios || negocios.length === 0) {
-          errorMsg.textContent = 'Usuario no encontrado';
+          errorMsg.textContent = window.t('Usuario no encontrado');
           errorMsg.classList.remove('hidden');
           mensaje.classList.add('hidden');
           btn.disabled = false;
@@ -247,7 +289,7 @@
         var passwordValida = bcrypt.compareSync(password, negocio.password_hash);
 
         if (!passwordValida) {
-          errorMsg.textContent = 'Contraseña incorrecta';
+          errorMsg.textContent = window.t('Contraseña incorrecta');
           errorMsg.classList.remove('hidden');
           mensaje.classList.add('hidden');
           btn.disabled = false;
@@ -260,14 +302,14 @@
         localStorage.setItem('adminAuth',      'true');
         localStorage.setItem('adminLoginTime', Date.now());
 
-        mensaje.textContent = '✅ Bienvenida, ' + negocio.nombre + '...';
+        mensaje.textContent = window.t('✅ Bienvenida, {nombre}...', { nombre: negocio.nombre });
 
         setTimeout(function() {
           window.location.href = negocio.configurado ? 'admin.html?s=' + negocio.slug : 'setup-wizard.html?s=' + negocio.slug;
         }, 900);
 
       } catch (error) {
-        errorMsg.textContent = error.message || 'Error al conectar. Intentá de nuevo.';
+        errorMsg.textContent = error.message || window.t('Error al conectar. Intentá de nuevo.');
         errorMsg.classList.remove('hidden');
         mensaje.classList.add('hidden');
         btn.disabled = false;

@@ -193,7 +193,7 @@ const CACHE_DURATION = 2 * 60 * 1000; // 2 min
 function normalizarPreferenciasWhatsApp(config = {}) {
     const moneda = String(config.whatsapp_moneda || 'CUP').toUpperCase();
     return {
-        moneda: ['CUP','USD'].includes(moneda) ? moneda : 'CUP',
+        moneda: ['CUP', 'USD', 'EUR', 'MXN'].includes(moneda) ? moneda : 'CUP',
         mostrarCostos: config.whatsapp_mostrar_costos !== false
     };
 }

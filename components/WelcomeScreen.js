@@ -1,6 +1,8 @@
 // components/WelcomeScreen.js - Versión con REDES SOCIALES (CORREGIDA - SIN DESBORDAMIENTO)
 
 function WelcomeScreen({ onStart, onGoBack, cliente, userRol }) {
+    window.useIdioma();
+    const t = window.t;
     const [config, setConfig] = React.useState(null);
     const [cargando, setCargando] = React.useState(true);
     const [imagenCargada, setImagenCargada] = React.useState(false);
@@ -46,7 +48,7 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol }) {
             permissionPromise.then(permiso => {
                 setPushEstado(permiso);
                 if (permiso !== 'granted') {
-                    setPushMensaje(permiso === 'denied' ? 'Permiso bloqueado en el navegador' : 'Permiso no concedido');
+                    setPushMensaje(permiso === 'denied' ? t('Permiso bloqueado en el navegador') : t('Permiso no concedido'));
                     setActivandoPush(false);
                     return;
                 }
@@ -63,17 +65,17 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol }) {
                             const msg = res?.error || 'error';
                             console.warn('Push resultado:', msg);
                             if (msg === 'sw_not_ready') {
-                                setPushMensaje('Instala la app en tu pantalla de inicio para recibir avisos');
+                                setPushMensaje(t('Instala la app en tu pantalla de inicio para recibir avisos'));
                             } else if (msg.includes('applicationServerKey') || msg.includes('VAPID') || msg.includes('key')) {
-                                setPushMensaje('Recarga la app y vuelve a intentarlo');
+                                setPushMensaje(t('Recarga la app y vuelve a intentarlo'));
                             } else {
-                                setPushMensaje('No se pudo activar: ' + msg.substring(0, 60));
+                                setPushMensaje(t('No se pudo activar: {msg}', { msg: msg.substring(0, 60) }));
                             }
                         }
                     })
                     .catch(err => {
                         console.warn('Push error:', err);
-                        setPushMensaje('Error: ' + String(err).substring(0, 60));
+                        setPushMensaje(t('Error: {err}', { err: String(err).substring(0, 60) }));
                     })
                     .finally(() => setActivandoPush(false));
             }).catch(() => setActivandoPush(false));
@@ -124,14 +126,14 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol }) {
     
     const abrirWhatsApp = () => {
         if (!config?.telefono) {
-            alert('📱 El número de WhatsApp no está configurado');
+            alert('📱 ' + t('El número de WhatsApp no está configurado'));
             return;
         }
         
         const telefonoWhatsApp = window.normalizarTelefonoInternacional
             ? window.normalizarTelefonoInternacional(config.telefono, config.codigo_pais)
             : config.telefono.replace(/\D/g, '');
-        const mensaje = encodeURIComponent(`Hola! Quiero consultar sobre turnos en ${config?.nombre || 'el salón'}`);
+        const mensaje = encodeURIComponent(`Hola! Quiero consultar sobre turnos en ${config?.nombre || t('el salón')}`);
         
         // Abrir WhatsApp
         window.open(`https://wa.me/${telefonoWhatsApp}?text=${mensaje}`, '_blank');
@@ -139,7 +141,7 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol }) {
 
     const abrirInstagram = () => {
         if (!config?.instagram) {
-            alert('📷 El usuario de Instagram no está configurado');
+            alert('📷 ' + t('El usuario de Instagram no está configurado'));
             return;
         }
         
@@ -165,7 +167,7 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol }) {
 
     const abrirFacebook = () => {
         if (!config?.facebook) {
-            alert('👤 La página de Facebook no está configurada');
+            alert('👤 ' + t('La página de Facebook no está configurada'));
             return;
         }
         
@@ -198,7 +200,7 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol }) {
             <div className="client-welcome-background fixed inset-0 z-0 bg-gradient-to-br from-pink-200 via-pink-300 to-pink-400">
                 <img
                     src={fondoPortada.image}
-                    alt="Fondo de salón"
+                    alt={t('Fondo de salón')}
                     onLoad={() => setImagenCargada(true)}
                     className={`client-welcome-background-image w-full h-full object-cover transition-opacity duration-700 ${imagenCargada ? 'opacity-100' : 'opacity-0'}`}
                 />
@@ -214,7 +216,7 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol }) {
                         backgroundColor: hexToRgba(colorPrimario, 0.86),
                         borderColor: hexToRgba(colorSecundario, 0.75)
                     }}
-                    title="Volver"
+                    title={t('Volver')}
                 >
                     <i className="icon-arrow-left text-white text-xl"></i>
                 </button>
@@ -246,10 +248,10 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol }) {
 
                         {/* Título */}
                         <div>
-                            <p className="text-sm font-medium text-white/80">Bienvenida a</p>
+                            <p className="text-sm font-medium text-white/80">{t('Bienvenida a')}</p>
                             <div className="text-xl font-bold break-words leading-tight"
                                 style={{ color: colorSecundario, textShadow: `0 2px 12px ${hexToRgba(colorPrimario, 0.45)}` }}>
-                                {config?.nombre || 'Mi Salón'}
+                                {config?.nombre || t('Mi Salón')}
                             </div>
                         </div>
 
@@ -262,26 +264,26 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol }) {
 
                                         {/* Mensaje bienvenida */}
                         <p className="text-white/80 text-xs max-w-xs mx-auto leading-snug">
-                            {config?.mensaje_bienvenida || '¡Bienvenida a nuestro salón!'}
+                            {config?.mensaje_bienvenida || t('¡Bienvenida a nuestro salón!')}
                         </p>
 
                         {/* Redes sociales */}
                         {tieneRedes && (
                             <div className="flex justify-center gap-3">
                                 {tieneWhatsApp && (
-                                    <button onClick={abrirWhatsApp} title="WhatsApp"
+                                    <button onClick={abrirWhatsApp} title={t('WhatsApp')}
                                         className="w-10 h-10 bg-[#25D366] rounded-full flex items-center justify-center border border-white/30 hover:scale-105 transition-transform">
                                         <i className="icon-message-circle text-white text-lg"></i>
                                     </button>
                                 )}
                                 {tieneInstagram && (
-                                    <button onClick={abrirInstagram} title="Instagram"
+                                    <button onClick={abrirInstagram} title={t('Instagram')}
                                         className="w-10 h-10 bg-gradient-to-br from-purple-600 via-pink-500 to-orange-400 rounded-full flex items-center justify-center border border-white/30 hover:scale-105 transition-transform">
                                         <i className="icon-instagram text-white text-lg"></i>
                                     </button>
                                 )}
                                 {tieneFacebook && (
-                                    <button onClick={abrirFacebook} title="Facebook"
+                                    <button onClick={abrirFacebook} title={t('Facebook')}
                                         className="w-10 h-10 bg-[#1877F2] rounded-full flex items-center justify-center border border-white/30 hover:scale-105 transition-transform">
                                         <i className="icon-facebook text-white text-lg"></i>
                                     </button>
@@ -291,7 +293,7 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol }) {
 
                         {/* Botón notificaciones */}
                         {pushUIVisible && pushEstado === 'denied' && (
-                            <p className="text-white/50 text-xs text-center">🔔 Notificaciones bloqueadas — actívalas en Ajustes del teléfono</p>
+                            <p className="text-white/50 text-xs text-center">🔔 {t('Notificaciones bloqueadas — actívalas en Ajustes del teléfono')}</p>
                         )}
                         {/* iOS en Safari (sin instalar) no soporta notificaciones:
                             guiar a instalar la app en vez de ocultar la sección. */}
@@ -299,18 +301,18 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol }) {
                             /iPhone|iPad|iPod/i.test(navigator.userAgent) &&
                             window.navigator.standalone !== true && (
                             <p className="text-white/60 text-xs text-center leading-relaxed">
-                                🔔 Para recibir recordatorios de tus citas, instala la app:
-                                <br />toca <strong>Compartir ⬆️</strong> y luego <strong>«Añadir a pantalla de inicio»</strong>
+                                🔔 {t('Para recibir recordatorios de tus citas, instala la app:')}
+                                <br />{t('toca')} <strong>{t('Compartir ⬆️')}</strong> {t('y luego')} <strong>{t('«Añadir a pantalla de inicio»')}</strong>
                             </p>
                         )}
                         {pushUIVisible && pushEstado !== 'unsupported' && pushEstado !== 'denied' && (
                             <div className="space-y-1">
                                 {pushEstado === 'granted' ? (
-                                    <p className="text-white/60 text-xs flex items-center justify-center gap-1">🔔 Recordatorios activados</p>
+                                    <p className="text-white/60 text-xs flex items-center justify-center gap-1">🔔 {t('Recordatorios activados')}</p>
                                 ) : (
                                     <button onClick={activarNotificaciones} disabled={activandoPush}
                                         className="text-white/80 text-xs border border-white/30 rounded-full px-4 py-1.5 hover:bg-white/10 transition flex items-center gap-1.5 mx-auto disabled:opacity-50">
-                                        🔔 {activandoPush ? 'Activando...' : 'Activar recordatorios'}
+                                        🔔 {activandoPush ? t('Activando...') : t('Activar recordatorios')}
                                     </button>
                                 )}
                                 {pushMensaje && (
@@ -328,7 +330,7 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol }) {
                                 boxShadow: `0 10px 28px ${hexToRgba(colorPrimario, 0.35)}`
                             }}>
                             <span>💖</span>
-                            <span>Reservar Turno</span>
+                            <span>{t('Reservar Turno')}</span>
                             <span>✨</span>
                         </button>
 

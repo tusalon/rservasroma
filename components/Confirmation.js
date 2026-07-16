@@ -1,6 +1,8 @@
 // components/Confirmation.js - VERSIÓN SIMPLIFICADA (SIN ENVÍO AUTOMÁTICO)
 
 function Confirmation({ booking, onReset }) {
+    window.useIdioma();
+    const t = window.t;
     const [telefonoDuenno, setTelefonoDuenno] = React.useState('55002272');
     const [nombreNegocio, setNombreNegocio] = React.useState('Negocio de Prueba');
     const [estrellas, setEstrellas] = React.useState(0);
@@ -55,6 +57,8 @@ function Confirmation({ booking, onReset }) {
     const linkWhatsAppAnticipo = telefonoDuenno
         ? `https://wa.me/${String(telefonoDuenno).replace(/\D/g, '')}?text=${encodeURIComponent(`Hola! Acabo de reservar ${booking.servicio} para el ${fechaConDia} y quiero coordinar el anticipo.`)}`
         : '';
+    // Nota: el mensaje de WhatsApp de arriba se mantiene en español a propósito —
+    // es texto dirigido a la dueña del salón, no a la clienta que lee la pantalla.
 
     return (
         <div className="min-h-[60vh] flex flex-col items-center justify-center text-center p-6 animate-fade-in bg-gradient-to-b from-pink-50 to-pink-100">
@@ -64,50 +68,52 @@ function Confirmation({ booking, onReset }) {
 
             {esPendientePago ? (
                 <>
-                    <h2 className="text-2xl font-bold text-amber-700 mb-2">⏳ ¡Ya casi! Falta el anticipo</h2>
+                    <h2 className="text-2xl font-bold text-amber-700 mb-2">⏳ {t('¡Ya casi! Falta el anticipo')}</h2>
                     <p className="text-amber-700 mb-6 max-w-xs mx-auto">
-                        Tu turno quedará confirmado cuando envíes el anticipo{textoAnticipo ? ` de ${textoAnticipo}` : ''}. Si no se recibe a tiempo, el horario se libera.
+                        {textoAnticipo
+                            ? t('Tu turno quedará confirmado cuando envíes el anticipo de {monto}. Si no se recibe a tiempo, el horario se libera.', { monto: textoAnticipo })
+                            : t('Tu turno quedará confirmado cuando envíes el anticipo. Si no se recibe a tiempo, el horario se libera.')}
                     </p>
                 </>
             ) : (
                 <>
-                    <h2 className="text-2xl font-bold text-pink-800 mb-2">✨ ¡Turno Reservado! ✨</h2>
-                    <p className="text-pink-600 mb-6 max-w-xs mx-auto">Tu cita ha sido agendada correctamente</p>
+                    <h2 className="text-2xl font-bold text-pink-800 mb-2">✨ {t('¡Turno Reservado!')} ✨</h2>
+                    <p className="text-pink-600 mb-6 max-w-xs mx-auto">{t('Tu cita ha sido agendada correctamente')}</p>
                 </>
             )}
 
             <div className="bg-white/90 backdrop-blur-sm p-6 rounded-2xl shadow-xl border-2 border-pink-300 w-full max-w-sm mb-6">
                 <div className="space-y-4 text-left">
                     <div>
-                        <div className="text-xs text-pink-400 uppercase tracking-wider font-semibold mb-1">Cliente</div>
+                        <div className="text-xs text-pink-400 uppercase tracking-wider font-semibold mb-1">{t('Cliente')}</div>
                         <div className="font-medium text-pink-700 text-lg">{booking.cliente_nombre}</div>
                     </div>
-                    
+
                     <div>
                         <div className="text-xs text-pink-400 uppercase tracking-wider font-semibold mb-1">WhatsApp</div>
                         <div className="font-medium text-pink-700">+{String(booking.cliente_whatsapp || '').replace(/^\+/, '')}</div>
                     </div>
-                    
+
                     <div>
-                        <div className="text-xs text-pink-400 uppercase tracking-wider font-semibold mb-1">Servicio</div>
+                        <div className="text-xs text-pink-400 uppercase tracking-wider font-semibold mb-1">{t('Servicio')}</div>
                         <div className="font-medium text-pink-700">{booking.servicio}</div>
                         <div className="text-sm text-pink-500">{booking.duracion} min</div>
                     </div>
-                    
+
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <div className="text-xs text-pink-400 uppercase tracking-wider font-semibold mb-1">Fecha</div>
+                            <div className="text-xs text-pink-400 uppercase tracking-wider font-semibold mb-1">{t('Fecha')}</div>
                             <div className="font-medium text-pink-700 text-sm">{fechaConDia}</div>
                         </div>
                         <div>
-                            <div className="text-xs text-pink-400 uppercase tracking-wider font-semibold mb-1">Hora</div>
+                            <div className="text-xs text-pink-400 uppercase tracking-wider font-semibold mb-1">{t('Hora')}</div>
                             <div className="font-medium text-pink-700">{window.formatTo12Hour ? window.formatTo12Hour(booking.hora_inicio) : booking.hora_inicio}</div>
                         </div>
                     </div>
-                    
+
                     <div>
-                        <div className="text-xs text-pink-400 uppercase tracking-wider font-semibold mb-1">Profesional</div>
-                        <div className="font-medium text-pink-700">{booking.profesional_nombre || booking.trabajador_nombre || 'No asignada'}</div>
+                        <div className="text-xs text-pink-400 uppercase tracking-wider font-semibold mb-1">{t('Profesional')}</div>
+                        <div className="font-medium text-pink-700">{booking.profesional_nombre || booking.trabajador_nombre || t('No asignada')}</div>
                     </div>
                 </div>
             </div>
@@ -119,8 +125,12 @@ function Confirmation({ booking, onReset }) {
                             💰
                         </div>
                         <div className="text-left">
-                            <p className="font-medium text-amber-800">El salón ya recibió tu solicitud</p>
-                            <p className="text-xs text-amber-700">Envía el anticipo{textoAnticipo ? ` de ${textoAnticipo}` : ''} para confirmar tu turno</p>
+                            <p className="font-medium text-amber-800">{t('El salón ya recibió tu solicitud')}</p>
+                            <p className="text-xs text-amber-700">
+                                {textoAnticipo
+                                    ? t('Envía el anticipo de {monto} para confirmar tu turno', { monto: textoAnticipo })
+                                    : t('Envía el anticipo para confirmar tu turno')}
+                            </p>
                         </div>
                     </div>
                     {linkWhatsAppAnticipo && (
@@ -130,7 +140,7 @@ function Confirmation({ booking, onReset }) {
                             rel="noopener noreferrer"
                             className="w-full bg-green-500 text-white py-3 rounded-xl font-bold hover:bg-green-600 transition-colors flex items-center justify-center gap-2 shadow-sm"
                         >
-                            💬 Coordinar el anticipo por WhatsApp
+                            💬 {t('Coordinar el anticipo por WhatsApp')}
                         </a>
                     )}
                 </div>
@@ -141,8 +151,8 @@ function Confirmation({ booking, onReset }) {
                             📱
                         </div>
                         <div className="text-left">
-                            <p className="font-medium text-pink-800">El salón ya recibió tu reserva</p>
-                            <p className="text-xs text-pink-600">Si necesitas cambiarla, hazlo desde "Mis Reservas"</p>
+                            <p className="font-medium text-pink-800">{t('El salón ya recibió tu reserva')}</p>
+                            <p className="text-xs text-pink-600">{t('Si necesitas cambiarla, hazlo desde "Mis Reservas"')}</p>
                         </div>
                     </div>
                 </div>
@@ -152,8 +162,8 @@ function Confirmation({ booking, onReset }) {
             <div className="w-full max-w-sm mb-4 bg-white/90 backdrop-blur-sm p-5 rounded-2xl border-2 border-pink-200 shadow-sm text-center">
                 {!valoracionEnviada ? (
                     <>
-                        <p className="font-semibold text-pink-800 mb-1">¿Qué te pareció reservar con nosotras?</p>
-                        <p className="text-xs text-pink-500 mb-3">Califica la experiencia de agendar tu turno</p>
+                        <p className="font-semibold text-pink-800 mb-1">{t('¿Qué te pareció reservar con nosotras?')}</p>
+                        <p className="text-xs text-pink-500 mb-3">{t('Califica la experiencia de agendar tu turno')}</p>
                         <div className="flex justify-center gap-2">
                             {[1,2,3,4,5].map(n => (
                                 <button key={n}
@@ -175,10 +185,10 @@ function Confirmation({ booking, onReset }) {
                             ))}
                         </div>
                         <p className="font-semibold text-pink-700">
-                            {estrellas >= 5 ? '¡Gracias, eso nos encanta!' :
-                             estrellas >= 4 ? '¡Gracias por tu valoración!' :
-                             estrellas >= 3 ? 'Gracias, seguiremos mejorando.' :
-                             'Gracias, tomaremos nota para mejorar.'}
+                            {estrellas >= 5 ? t('¡Gracias, eso nos encanta!') :
+                             estrellas >= 4 ? t('¡Gracias por tu valoración!') :
+                             estrellas >= 3 ? t('Gracias, seguiremos mejorando.') :
+                             t('Gracias, tomaremos nota para mejorar.')}
                         </p>
                     </div>
                 )}
@@ -193,22 +203,22 @@ function Confirmation({ booking, onReset }) {
                         className="w-full bg-white text-pink-700 border-2 border-pink-300 py-4 rounded-xl font-bold hover:bg-pink-50 transition-colors flex items-center justify-center gap-2 text-lg shadow-sm"
                     >
                         <i className="icon-calendar text-xl"></i>
-                        Agregar al calendario
+                        {t('Agregar al calendario')}
                     </a>
                 )}
 
-                <button 
+                <button
                     onClick={onReset}
                     className="w-full bg-pink-500 text-white py-4 rounded-xl font-bold hover:bg-pink-600 transition-colors flex items-center justify-center gap-2 text-lg shadow-md"
                 >
                     <span>✨</span>
-                    Reservar otro turno
+                    {t('Reservar otro turno')}
                     <span>💅</span>
                 </button>
-                
+
                 <div className="text-sm text-pink-600 bg-white/80 backdrop-blur-sm p-4 rounded-lg flex items-center justify-center gap-2 border border-pink-300">
                    <span className="text-pink-500 text-xl">📱</span>
-                   <span>Contacto: {telefonoContacto}</span>
+                   <span>{t('Contacto:')} {telefonoContacto}</span>
                 </div>
             </div>
         </div>

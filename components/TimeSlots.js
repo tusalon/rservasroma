@@ -1,6 +1,8 @@
 // components/TimeSlots.js - Versión femenina con filtro de horarios permitidos por servicio
 
 function TimeSlots({ service, date, profesional, cliente, onTimeSelect, selectedTime }) {
+    const idioma = window.useIdioma();
+    const t = window.t;
     const [slots, setSlots] = React.useState([]);
     const [occupiedSlots, setOccupiedSlots] = React.useState([]);
     const [waitlistSlots, setWaitlistSlots] = React.useState({});
@@ -130,7 +132,7 @@ function TimeSlots({ service, date, profesional, cliente, onTimeSelect, selected
                 
                 if (Number(maxAntelacionDias) > 0 && diffDays > Number(maxAntelacionDias)) {
                     console.log(`🚫 Fecha ${date} supera antelación máxima de ${maxAntelacionDias} días`);
-                    setError(`Solo se puede reservar con hasta ${maxAntelacionDias} días de antelación`);
+                    setError(t('Solo se puede reservar con hasta {dias} días de antelación', { dias: maxAntelacionDias }));
                     setSlots([]);
                     setOccupiedSlots([]);
                     setLoading(false);
@@ -249,7 +251,7 @@ function TimeSlots({ service, date, profesional, cliente, onTimeSelect, selected
                 setOccupiedSlots(occupied);
             } catch (err) {
                 console.error(err);
-                setError("Error al cargar horarios");
+                setError(t('Error al cargar horarios'));
             } finally {
                 setLoading(false);
             }
@@ -260,11 +262,11 @@ function TimeSlots({ service, date, profesional, cliente, onTimeSelect, selected
 
     const handleUnirseListaEspera = async (slot) => {
         if (!cliente?.nombre || !cliente?.whatsapp) {
-            alert('Necesitas ingresar con tu WhatsApp para anotarte en lista de espera.');
+            alert(t('Necesitas ingresar con tu WhatsApp para anotarte en lista de espera.'));
             return;
         }
         if (!window.unirseListaEspera) {
-            alert('La lista de espera todavia no esta disponible.');
+            alert(t('La lista de espera todavia no esta disponible.'));
             return;
         }
 
@@ -284,12 +286,12 @@ function TimeSlots({ service, date, profesional, cliente, onTimeSelect, selected
 
             if (result.success) {
                 setWaitlistSlots(prev => ({ ...prev, [slot.hora]: result.data }));
-                alert('Listo. Quedaste en lista de espera para ese turno.');
+                alert(t('Listo. Quedaste en lista de espera para ese turno.'));
             } else if (result.reason === 'occupied') {
-                alert('Ese turno ya tiene una clienta en lista de espera.');
+                alert(t('Ese turno ya tiene una clienta en lista de espera.'));
                 setWaitlistSlots(prev => ({ ...prev, [slot.hora]: result.data || true }));
             } else {
-                alert('No se pudo anotarte en lista de espera. Intenta de nuevo.');
+                alert(t('No se pudo anotarte en lista de espera. Intenta de nuevo.'));
             }
         } finally {
             setJoiningWaitlist('');
@@ -303,7 +305,7 @@ function TimeSlots({ service, date, profesional, cliente, onTimeSelect, selected
             <div className="space-y-4 animate-fade-in">
                 <h2 className="text-lg font-semibold text-pink-700 flex items-center gap-2">
                     <span className="text-2xl">⏰</span>
-                    4. Elige un horario con {profesional.nombre}
+                    {t('4. Elige un horario con {nombre}', { nombre: profesional.nombre })}
                 </h2>
                 <div className="flex justify-center py-8">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-500"></div>
@@ -315,22 +317,24 @@ function TimeSlots({ service, date, profesional, cliente, onTimeSelect, selected
     if (!diaTrabaja && occupiedSlots.length === 0) {
         const [year, month, day] = date.split('-').map(Number);
         const fechaLocal = new Date(year, month - 1, day);
-        const diasSemana = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
-        const diaSemana = diasSemana[fechaLocal.getDay()];
+        const diasSemanaPlural = idioma === 'en'
+            ? ['Sundays', 'Mondays', 'Tuesdays', 'Wednesdays', 'Thursdays', 'Fridays', 'Saturdays']
+            : ['domingos', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabados'];
+        const diaSemana = diasSemanaPlural[fechaLocal.getDay()];
         const diaCapitalizado = diaSemana.charAt(0).toUpperCase() + diaSemana.slice(1);
-        
+
         return (
             <div className="space-y-4 animate-fade-in">
                 <h2 className="text-lg font-semibold text-pink-700 flex items-center gap-2">
                     <span className="text-2xl">⏰</span>
-                    4. Elige un horario con {profesional.nombre}
+                    {t('4. Elige un horario con {nombre}', { nombre: profesional.nombre })}
                 </h2>
                 <div className="text-center p-8 bg-pink-50 rounded-xl border border-pink-200">
                     <div className="text-5xl text-pink-400 mb-3">📅❌</div>
                     <p className="text-pink-700 font-medium">
-                        {profesional.nombre} no trabaja los {diaCapitalizado}s
+                        {t('{nombre} no trabaja los {dia}', { nombre: profesional.nombre, dia: diaCapitalizado })}
                     </p>
-                    <p className="text-sm text-pink-500 mt-1">Elige otro día de la semana</p>
+                    <p className="text-sm text-pink-500 mt-1">{t('Elige otro día de la semana')}</p>
                 </div>
             </div>
         );
@@ -340,10 +344,10 @@ function TimeSlots({ service, date, profesional, cliente, onTimeSelect, selected
         <div className="space-y-4 animate-fade-in">
             <h2 className="text-lg font-semibold text-pink-700 flex items-center gap-2">
                 <span className="text-2xl">⏰</span>
-                4. Elige un horario con {profesional.nombre}
+                {t('4. Elige un horario con {nombre}', { nombre: profesional.nombre })}
                 {selectedTime && (
                     <span className="text-xs bg-pink-100 text-pink-700 px-2 py-1 rounded-full ml-2">
-                        ✓ Horario seleccionado
+                        ✓ {t('Horario seleccionado')}
                     </span>
                 )}
             </h2>
@@ -358,9 +362,9 @@ function TimeSlots({ service, date, profesional, cliente, onTimeSelect, selected
                 <div className="text-center p-8 bg-pink-50 rounded-xl border border-pink-200">
                     <div className="text-5xl text-pink-400 mb-3">⏰❌</div>
                     <p className="text-pink-700 font-medium">
-                        No hay horarios disponibles para {profesional.nombre} el {formatDateLocal(date)}
+                        {t('No hay horarios disponibles para {nombre} el {fecha}', { nombre: profesional.nombre, fecha: formatDateLocal(date) })}
                     </p>
-                    <p className="text-sm text-pink-500 mt-1">Prueba con otra fecha</p>
+                    <p className="text-sm text-pink-500 mt-1">{t('Prueba con otra fecha')}</p>
                 </div>
             ) : (
                 <>
@@ -368,16 +372,19 @@ function TimeSlots({ service, date, profesional, cliente, onTimeSelect, selected
                         <div className="flex items-center gap-2 text-pink-700">
                             <span className="text-pink-500">⏰</span>
                             <span className="font-medium">
-                                Horarios disponibles de {profesional.nombre} para {formatDateLocal(date)}:
+                                {t('Horarios disponibles de {nombre} para {fecha}:', { nombre: profesional.nombre, fecha: formatDateLocal(date) })}
                             </span>
                         </div>
                     </div>
-                    
+
                     {date === getCurrentLocalDate() && (
                         <div className="text-sm text-pink-600 bg-pink-50 p-3 rounded-lg flex items-center gap-2 border border-pink-200">
                             <span className="text-pink-500">⏰</span>
                             <span>
-                                Hoy solo se muestran horarios con al menos {minAntelacionHoras} hora{minAntelacionHoras === 1 ? '' : 's'} de anticipación.
+                                {t('Hoy solo se muestran horarios con al menos {n} hora{s} de anticipación.', {
+                                    n: minAntelacionHoras,
+                                    s: minAntelacionHoras === 1 ? '' : 's'
+                                })}
                             </span>
                         </div>
                     )}
@@ -411,8 +418,8 @@ function TimeSlots({ service, date, profesional, cliente, onTimeSelect, selected
                     {occupiedSlots.length > 0 && (
                         <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4">
                             <div className="mb-3">
-                                <p className="font-semibold text-amber-800">Turnos ocupados con lista de espera</p>
-                                <p className="text-sm text-amber-700">Puedes anotarte en un turno ocupado. Solo se permite una clienta en espera por horario.</p>
+                                <p className="font-semibold text-amber-800">{t('Turnos ocupados con lista de espera')}</p>
+                                <p className="text-sm text-amber-700">{t('Puedes anotarte en un turno ocupado. Solo se permite una clienta en espera por horario.')}</p>
                             </div>
                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                                 {occupiedSlots.map(slot => {
@@ -431,7 +438,7 @@ function TimeSlots({ service, date, profesional, cliente, onTimeSelect, selected
                                         >
                                             <span>{window.formatTo12Hour ? window.formatTo12Hour(slot.hora) : slot.hora}</span>
                                             <span className="text-xs font-medium mt-1">
-                                                {cargando ? 'Guardando...' : yaTieneEspera ? 'Lista ocupada' : 'Lista de espera'}
+                                                {cargando ? t('Guardando...') : yaTieneEspera ? t('Lista ocupada') : t('Lista de espera')}
                                             </span>
                                         </button>
                                     );
@@ -441,7 +448,7 @@ function TimeSlots({ service, date, profesional, cliente, onTimeSelect, selected
                     )}
                     
                     <p className="text-xs text-pink-400 mt-3 text-center">
-                        ⏰ Toca un horario para continuar
+                        ⏰ {t('Toca un horario para continuar')}
                     </p>
                 </>
             )}

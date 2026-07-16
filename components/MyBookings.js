@@ -1,6 +1,8 @@
 // components/MyBookings.js
 
 function MyBookings({ cliente, onVolver }) {
+    window.useIdioma();
+    const t = window.t;
     const [bookings, setBookings] = React.useState([]);
     const [loading, setLoading] = React.useState(true);
     // Guarda el ID de la reserva en proceso de cancelación (no un booleano
@@ -63,7 +65,7 @@ function MyBookings({ cliente, onVolver }) {
             const data = await response.json();
             setBookings(Array.isArray(data) ? data : []);
         } catch {
-            setMensajeError('Error al cargar tus reservas. Intenta de nuevo.');
+            setMensajeError(t('Error al cargar tus reservas. Intenta de nuevo.'));
         } finally {
             setLoading(false);
         }
@@ -86,9 +88,9 @@ function MyBookings({ cliente, onVolver }) {
             const diffMinutos = Math.floor(diffMs / 60000);
             const diffHoras = Math.floor(diffMinutos / 60);
             const mins = diffMinutos % 60;
-            if (diffMinutos <= 0) return '⏰ El turno ya pasó';
-            if (diffMinutos <= minCancelacionHoras * 60) return `⚠️ Faltan ${diffHoras > 0 ? `${diffHoras}h ${mins}m` : `${diffMinutos} min`} — ya no se puede cancelar desde la app`;
-            return diffHoras > 0 ? `🕐 Faltan ${diffHoras}h ${mins}m — puedes cancelar` : `🕐 Faltan ${diffMinutos} min — puedes cancelar`;
+            if (diffMinutos <= 0) return '⏰ ' + t('El turno ya pasó');
+            if (diffMinutos <= minCancelacionHoras * 60) return '⚠️ ' + t('Faltan {tiempo} — ya no se puede cancelar desde la app', { tiempo: diffHoras > 0 ? `${diffHoras}h ${mins}m` : `${diffMinutos} min` });
+            return '🕐 ' + t('Faltan {tiempo} — puedes cancelar', { tiempo: diffHoras > 0 ? `${diffHoras}h ${mins}m` : `${diffMinutos} min` });
         } catch { return ''; }
     };
 
@@ -131,13 +133,13 @@ function MyBookings({ cliente, onVolver }) {
         const minHoras = configGlobal?.min_antelacion_horas ?? 2;
         const diffDias = Math.ceil((fechaLocal - hoy) / 86400000);
         if (Number(maxDias) > 0 && diffDias > Number(maxDias)) {
-            setMensajeReprogramacion(`Solo puedes reservar con hasta ${maxDias} días de anticipación.`);
+            setMensajeReprogramacion(t('Solo puedes reservar con hasta {dias} días de anticipación.', { dias: maxDias }));
             return [];
         }
 
         const diasCerrados = typeof window.getDiasCerrados === 'function' ? await window.getDiasCerrados() : [];
         if ((diasCerrados || []).some(d => d.fecha === fecha)) {
-            setMensajeReprogramacion('Ese día está cerrado para reservas.');
+            setMensajeReprogramacion(t('Ese día está cerrado para reservas.'));
             return [];
         }
 
@@ -149,14 +151,14 @@ function MyBookings({ cliente, onVolver }) {
             { headers: { 'apikey': window.SUPABASE_ANON_KEY, 'Authorization': `Bearer ${window.SUPABASE_ANON_KEY}` } });
         const profesional = profRes.ok ? (await profRes.json())[0] : {};
         if (profesional?.fechas_libres?.includes(fecha)) {
-            setMensajeReprogramacion('La profesional tiene ese día marcado como libre.');
+            setMensajeReprogramacion(t('La profesional tiene ese día marcado como libre.'));
             return [];
         }
 
         const diasSemana = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
         const diaSemana = diasSemana[fechaLocal.getDay()];
         const indicesDelDia = horarios?.horariosPorDia?.[diaSemana] || [];
-        if (!indicesDelDia.length) { setMensajeReprogramacion('No hay horarios para ese día.'); return []; }
+        if (!indicesDelDia.length) { setMensajeReprogramacion(t('No hay horarios para ese día.')); return []; }
 
         const servicio = await obtenerServicioReserva(booking);
         const duracion = parseInt(booking.duracion || servicio?.duracion || 60, 10);
@@ -180,7 +182,7 @@ function MyBookings({ cliente, onVolver }) {
             return !(reservas || []).some(r => String(r.id) !== String(booking.id) && slotStart < timeToMinutes(r.hora_fin) && slotEnd > timeToMinutes(r.hora_inicio));
         });
 
-        setMensajeReprogramacion(disponibles.length ? '' : 'No hay horarios disponibles para esa fecha.');
+        setMensajeReprogramacion(disponibles.length ? '' : t('No hay horarios disponibles para esa fecha.'));
         return [...new Set(disponibles)].sort();
     };
 
@@ -188,7 +190,7 @@ function MyBookings({ cliente, onVolver }) {
         if (!puedeCancelar(booking.fecha, booking.hora_inicio)) {
             const telefonoDuenno = await window.getTelefonoDuenno();
             const tel = window.formatearTelefono ? window.formatearTelefono(telefonoDuenno) : `+${telefonoDuenno}`;
-            mostrarToast('error', `No puedes cancelar con menos de ${minCancelacionHoras}h de anticipación. Escribe al ${tel}`);
+            mostrarToast('error', t('No puedes cancelar con menos de {n}h de anticipación. Escribe al {tel}', { n: minCancelacionHoras, tel }));
             return;
         }
         setConfirmandoCancelacion(booking);
@@ -207,10 +209,10 @@ function MyBookings({ cliente, onVolver }) {
             booking.cancelado_por = 'cliente';
             if (window.notificarCancelacion) await window.notificarCancelacion(booking);
             await window.notificarListaEsperaTurnoLiberado?.(booking);
-            mostrarToast('ok', 'Turno cancelado correctamente.');
+            mostrarToast('ok', t('Turno cancelado correctamente.'));
             await cargarReservas();
         } catch {
-            mostrarToast('error', 'Error al cancelar el turno. Intenta de nuevo.');
+            mostrarToast('error', t('Error al cancelar el turno. Intenta de nuevo.'));
         } finally {
             setCancelando(null);
         }
@@ -223,7 +225,7 @@ function MyBookings({ cliente, onVolver }) {
         setReprogramacionHora('');
         calcularHorariosReprogramacion(reservaReprogramando, reprogramacionFecha)
             .then(setHorariosReprogramacion)
-            .catch(() => { setMensajeReprogramacion('Error cargando horarios.'); setHorariosReprogramacion([]); })
+            .catch(() => { setMensajeReprogramacion(t('Error cargando horarios.')); setHorariosReprogramacion([]); })
             .finally(() => setCargandoHorariosReprogramacion(false));
     }, [reservaReprogramando, reprogramacionFecha, negocioId, configGlobal]);
 
@@ -238,7 +240,7 @@ function MyBookings({ cliente, onVolver }) {
     };
 
     const abrirReprogramacion = (booking) => {
-        if (!puedeReprogramar(booking)) { mostrarToast('error', 'Esta cita ya no se puede reprogramar.'); return; }
+        if (!puedeReprogramar(booking)) { mostrarToast('error', t('Esta cita ya no se puede reprogramar.')); return; }
         setReservaReprogramando(booking);
         setReprogramacionFecha('');
         setReprogramacionHora('');
@@ -269,8 +271,8 @@ function MyBookings({ cliente, onVolver }) {
             if (window.enviarPushCliente && nuevo.cliente_whatsapp) {
                 window.enviarPushCliente({
                     whatsapp: nuevo.cliente_whatsapp,
-                    title: `📅 Cita reprogramada — ${config?.nombre || 'Tu salón'}`,
-                    body: `${nuevo.servicio}: ahora el ${fN} a las ${hN}`,
+                    title: `📅 ${t('Cita reprogramada')} — ${config?.nombre || t('Tu salón')}`,
+                    body: t('{servicio}: ahora el {fecha} a las {hora}', { servicio: nuevo.servicio, fecha: fN, hora: hN }),
                 }).catch(() => {});
             }
         } catch {}
@@ -278,7 +280,7 @@ function MyBookings({ cliente, onVolver }) {
 
     const handleGuardarReprogramacion = async () => {
         if (!reservaReprogramando || !reprogramacionFecha || !reprogramacionHora) {
-            mostrarToast('error', 'Selecciona fecha y hora para reprogramar.');
+            mostrarToast('error', t('Selecciona fecha y hora para reprogramar.'));
             return;
         }
         setReprogramando(true);
@@ -286,7 +288,7 @@ function MyBookings({ cliente, onVolver }) {
             const horariosVigentes = await calcularHorariosReprogramacion(reservaReprogramando, reprogramacionFecha);
             if (!horariosVigentes.includes(reprogramacionHora)) {
                 setHorariosReprogramacion(horariosVigentes);
-                mostrarToast('error', 'Ese horario ya no está disponible. Elige otro.');
+                mostrarToast('error', t('Ese horario ya no está disponible. Elige otro.'));
                 return;
             }
             const horaFin = calcularHoraFin(reprogramacionHora, reservaReprogramando.duracion || 60);
@@ -299,11 +301,11 @@ function MyBookings({ cliente, onVolver }) {
             const actualizadas = await res.json();
             await notificarReprogramacion(actualizadas?.[0] || { ...reservaReprogramando, ...payload }, reservaReprogramando);
             await window.notificarListaEsperaTurnoLiberado?.(reservaReprogramando);
-            mostrarToast('ok', 'Turno reprogramado correctamente.');
+            mostrarToast('ok', t('Turno reprogramado correctamente.'));
             cerrarReprogramacion();
             await cargarReservas();
         } catch {
-            mostrarToast('error', 'Error al reprogramar el turno. Intenta de nuevo.');
+            mostrarToast('error', t('Error al reprogramar el turno. Intenta de nuevo.'));
         } finally {
             setReprogramando(false);
         }
@@ -342,7 +344,7 @@ function MyBookings({ cliente, onVolver }) {
             {confirmandoCancelacion && (
                 <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-4">
                     <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
-                        <h3 className="text-lg font-bold text-pink-800 mb-2">¿Cancelar turno?</h3>
+                        <h3 className="text-lg font-bold text-pink-800 mb-2">{t('¿Cancelar turno?')}</h3>
                         <p className="text-sm text-pink-600 mb-1">
                             {window.formatFechaCompleta ? window.formatFechaCompleta(confirmandoCancelacion.fecha) : confirmandoCancelacion.fecha}
                         </p>
@@ -352,11 +354,11 @@ function MyBookings({ cliente, onVolver }) {
                         <div className="flex gap-3">
                             <button onClick={() => setConfirmandoCancelacion(null)}
                                 className="flex-1 py-2 rounded-lg border border-gray-200 text-gray-600 font-medium">
-                                No, volver
+                                {t('No, volver')}
                             </button>
                             <button onClick={confirmarCancelacion}
                                 className="flex-1 py-2 rounded-lg bg-red-500 text-white font-medium">
-                                Sí, cancelar
+                                {t('Sí, cancelar')}
                             </button>
                         </div>
                     </div>
@@ -368,9 +370,9 @@ function MyBookings({ cliente, onVolver }) {
                 <div className="max-w-3xl mx-auto px-4 py-4 flex justify-between items-center">
                     <button onClick={onVolver} className="flex items-center gap-2 text-pink-600 hover:text-pink-800 transition">
                         <i className="icon-arrow-left text-xl"></i>
-                        <span className="font-medium">Volver</span>
+                        <span className="font-medium">{t('Volver')}</span>
                     </button>
-                    <h1 className="text-xl font-bold text-pink-800">✨ Mis Reservas</h1>
+                    <h1 className="text-xl font-bold text-pink-800">✨ {t('Mis Reservas')}</h1>
                     <div className="w-20"></div>
                 </div>
             </div>
@@ -395,9 +397,9 @@ function MyBookings({ cliente, onVolver }) {
 
                 <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
                     {[
-                        ['proximas',   `Próximas (${proximasCount})`],
-                        ['historial',  `Historial (${historialCount})`],
-                        ['canceladas', `Canceladas (${canceladasCount})`],
+                        ['proximas',   t('Próximas ({n})', { n: proximasCount })],
+                        ['historial',  t('Historial ({n})', { n: historialCount })],
+                        ['canceladas', t('Canceladas ({n})', { n: canceladasCount })],
                     ].map(([key, label]) => (
                         <button key={key} onClick={() => setFiltro(key)}
                             className={`px-4 py-2 rounded-full text-sm font-medium transition whitespace-nowrap
@@ -411,8 +413,8 @@ function MyBookings({ cliente, onVolver }) {
                     <div className="bg-pink-50 border border-pink-200 rounded-xl p-4 mb-4 flex items-center gap-3">
                         <span className="text-3xl">💅</span>
                         <div>
-                            <p className="font-semibold text-pink-800">{historialCount} visita{historialCount !== 1 ? 's' : ''} en total</p>
-                            <p className="text-xs text-pink-500">Gracias por elegirnos siempre</p>
+                            <p className="font-semibold text-pink-800">{t('{n} visita{s} en total', { n: historialCount, s: historialCount !== 1 ? 's' : '' })}</p>
+                            <p className="text-xs text-pink-500">{t('Gracias por elegirnos siempre')}</p>
                         </div>
                     </div>
                 )}
@@ -420,18 +422,18 @@ function MyBookings({ cliente, onVolver }) {
                 {loading ? (
                     <div className="text-center py-12">
                         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500 mx-auto"></div>
-                        <p className="text-pink-500 mt-4">Cargando tus reservas...</p>
+                        <p className="text-pink-500 mt-4">{t('Cargando tus reservas...')}</p>
                     </div>
                 ) : reservasFiltradas.length === 0 ? (
                     <div className="text-center py-12 bg-white/80 backdrop-blur-sm rounded-xl shadow-sm border border-pink-200">
                         <div className="text-6xl mb-4">{filtro === 'historial' ? '📖' : '📅'}</div>
                         <p className="text-pink-600 mb-2">
-                            {filtro === 'proximas' ? 'No tienes turnos próximos' :
-                             filtro === 'historial' ? 'Aún no tienes visitas pasadas' :
-                             'No tienes turnos cancelados'}
+                            {filtro === 'proximas' ? t('No tienes turnos próximos') :
+                             filtro === 'historial' ? t('Aún no tienes visitas pasadas') :
+                             t('No tienes turnos cancelados')}
                         </p>
                         {filtro === 'proximas' && (
-                            <button onClick={onVolver} className="text-pink-500 font-medium hover:underline">Reservar un turno</button>
+                            <button onClick={onVolver} className="text-pink-500 font-medium hover:underline">{t('Reservar un turno')}</button>
                         )}
                     </div>
                 ) : (
@@ -441,7 +443,7 @@ function MyBookings({ cliente, onVolver }) {
                             const puedeReprogramarBooking = puedeReprogramar(booking);
                             const tiempoRestante = getMensajeTiempoRestante(booking.fecha, booking.hora_inicio);
                             const fechaConDia = window.formatFechaCompleta ? window.formatFechaCompleta(booking.fecha) : booking.fecha;
-                            const profesional = booking.profesional_nombre || booking.trabajador_nombre || 'No asignada';
+                            const profesional = booking.profesional_nombre || booking.trabajador_nombre || t('No asignada');
                             const calendarLink = window.generarLinkCalendarioCliente ? window.generarLinkCalendarioCliente(booking) : '';
 
                             return (
@@ -458,10 +460,10 @@ function MyBookings({ cliente, onVolver }) {
                                                   booking.estado === 'Pendiente' ? 'bg-amber-100 text-amber-700' :
                                                   booking.estado === 'Completado' ? 'bg-pink-200 text-pink-800' :
                                                   booking.estado === 'Cancelado' ? 'bg-gray-100 text-gray-500' : 'bg-pink-100 text-pink-500'}`}>
-                                                {booking.estado === 'Reservado' || booking.estado === 'Confirmado' ? '✅ Confirmado' :
-                                                 booking.estado === 'Pendiente' ? '⏳ Falta el anticipo' :
-                                                 booking.estado === 'Completado' ? '💅 Completado' :
-                                                 booking.estado === 'Ausente' ? 'No asististe' :
+                                                {booking.estado === 'Reservado' || booking.estado === 'Confirmado' ? '✅ ' + t('Confirmado') :
+                                                 booking.estado === 'Pendiente' ? '⏳ ' + t('Falta el anticipo') :
+                                                 booking.estado === 'Completado' ? '💅 ' + t('Completado') :
+                                                 booking.estado === 'Ausente' ? t('No asististe') :
                                                  booking.estado}
                                             </span>
                                         </div>
@@ -477,7 +479,7 @@ function MyBookings({ cliente, onVolver }) {
                                             </div>
                                             <div className="flex items-center gap-2 text-pink-600 col-span-2">
                                                 <span className="text-pink-400">👩‍🎨</span>
-                                                <span>Profesional: {profesional}</span>
+                                                <span>{t('Profesional:')} {profesional}</span>
                                             </div>
                                         </div>
 
@@ -493,7 +495,7 @@ function MyBookings({ cliente, onVolver }) {
                                             <a href={calendarLink} target="_blank" rel="noopener noreferrer"
                                                 className="w-full py-2 rounded-lg font-medium transition flex items-center justify-center gap-2 bg-white hover:bg-pink-50 text-pink-700 border border-pink-300 mb-2">
                                                 <i className="icon-calendar text-base"></i>
-                                                Agregar al calendario
+                                                {t('Agregar al calendario')}
                                             </a>
                                         )}
 
@@ -501,7 +503,7 @@ function MyBookings({ cliente, onVolver }) {
                                             <button onClick={() => abrirReprogramacion(booking)}
                                                 className="w-full py-2 rounded-lg font-medium transition flex items-center justify-center gap-2 bg-white hover:bg-pink-50 text-pink-700 border border-pink-300 mb-2">
                                                 <i className="icon-calendar text-base"></i>
-                                                Cambiar fecha y hora
+                                                {t('Cambiar fecha y hora')}
                                             </button>
                                         )}
 
@@ -512,9 +514,9 @@ function MyBookings({ cliente, onVolver }) {
                                                     ${puedeCancelarBooking ? 'bg-pink-100 hover:bg-pink-200 text-pink-700' : 'bg-pink-50 text-pink-400 cursor-not-allowed'}
                                                     disabled:opacity-50 disabled:cursor-not-allowed`}>
                                                 {cancelando === booking.id ? (
-                                                    <><div className="animate-spin h-4 w-4 border-2 border-pink-600 border-t-transparent rounded-full"></div>Cancelando...</>
+                                                    <><div className="animate-spin h-4 w-4 border-2 border-pink-600 border-t-transparent rounded-full"></div>{t('Cancelando...')}</>
                                                 ) : (
-                                                    <><span>❌</span>{puedeCancelarBooking ? 'Cancelar turno' : 'No se puede cancelar aún'}</>
+                                                    <><span>❌</span>{puedeCancelarBooking ? t('Cancelar turno') : t('No se puede cancelar aún')}</>
                                                 )}
                                             </button>
                                         )}
@@ -532,7 +534,7 @@ function MyBookings({ cliente, onVolver }) {
                     <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-xl w-full max-w-lg max-h-[92vh] overflow-y-auto">
                         <div className="sticky top-0 bg-white border-b border-pink-100 p-4 flex items-center justify-between">
                             <div>
-                                <h2 className="text-lg font-bold text-pink-800">Cambiar fecha y hora</h2>
+                                <h2 className="text-lg font-bold text-pink-800">{t('Cambiar fecha y hora')}</h2>
                                 <p className="text-sm text-pink-500">{reservaReprogramando.servicio}</p>
                             </div>
                             <button onClick={cerrarReprogramacion} disabled={reprogramando}
@@ -543,22 +545,22 @@ function MyBookings({ cliente, onVolver }) {
 
                         <div className="p-4 space-y-4">
                             <div className="rounded-lg bg-pink-50 border border-pink-100 p-3 text-sm text-pink-700">
-                                Solo cambia la fecha y hora. El servicio, profesional y duración se mantienen igual.
+                                {t('Solo cambia la fecha y hora. El servicio, profesional y duración se mantienen igual.')}
                             </div>
 
                             <div className="grid grid-cols-2 gap-3 text-sm">
                                 <div className="bg-gray-50 rounded-lg p-3">
-                                    <p className="text-gray-500">Profesional</p>
-                                    <p className="font-semibold text-gray-800">{reservaReprogramando.profesional_nombre || 'No asignada'}</p>
+                                    <p className="text-gray-500">{t('Profesional')}</p>
+                                    <p className="font-semibold text-gray-800">{reservaReprogramando.profesional_nombre || t('No asignada')}</p>
                                 </div>
                                 <div className="bg-gray-50 rounded-lg p-3">
-                                    <p className="text-gray-500">Duración</p>
+                                    <p className="text-gray-500">{t('Duración')}</p>
                                     <p className="font-semibold text-gray-800">{reservaReprogramando.duracion || 60} min</p>
                                 </div>
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Nueva fecha</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">{t('Nueva fecha')}</label>
                                 <input type="date" min={getTodayLocalString()} value={reprogramacionFecha}
                                     onChange={(e) => setReprogramacionFecha(e.target.value)}
                                     className="w-full border border-pink-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-pink-400" />
@@ -566,7 +568,7 @@ function MyBookings({ cliente, onVolver }) {
 
                             {reprogramacionFecha && (
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">Nueva hora</label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">{t('Nueva hora')}</label>
                                     {cargandoHorariosReprogramacion ? (
                                         <div className="flex justify-center py-6">
                                             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-500"></div>
@@ -582,7 +584,7 @@ function MyBookings({ cliente, onVolver }) {
                                         </div>
                                     ) : (
                                         <div className="p-3 rounded-lg bg-pink-50 text-pink-700 border border-pink-100 text-sm">
-                                            {mensajeReprogramacion || 'No hay horarios disponibles para esa fecha.'}
+                                            {mensajeReprogramacion || t('No hay horarios disponibles para esa fecha.')}
                                         </div>
                                     )}
                                 </div>
@@ -595,12 +597,12 @@ function MyBookings({ cliente, onVolver }) {
                             <div className="flex gap-3 pt-2">
                                 <button onClick={cerrarReprogramacion} disabled={reprogramando}
                                     className="flex-1 py-2 rounded-lg border border-gray-200 text-gray-700 disabled:opacity-50">
-                                    Cancelar
+                                    {t('Cancelar')}
                                 </button>
                                 <button onClick={handleGuardarReprogramacion}
                                     disabled={reprogramando || !reprogramacionFecha || !reprogramacionHora}
                                     className="flex-1 py-2 rounded-lg bg-pink-500 text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed">
-                                    {reprogramando ? 'Guardando...' : 'Guardar cambio'}
+                                    {reprogramando ? t('Guardando...') : t('Guardar cambio')}
                                 </button>
                             </div>
                         </div>

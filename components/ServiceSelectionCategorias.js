@@ -9,7 +9,7 @@ function catId(categoria) {
 }
 
 function catNombre(categoria) {
-    return categoria?.nombre || categoria?.label || 'Otros';
+    return categoria?.nombre || categoria?.label || window.t('Otros');
 }
 
 function catIcono(categoria) {
@@ -53,6 +53,8 @@ function getCategoriaCliente(servicio, categorias = []) {
 }
 
 function ServiceSelection({ onSelect, selectedService }) {
+    const idioma = window.useIdioma();
+    const t = window.t;
     const [services, setServices] = React.useState([]);
     const [categorias, setCategorias] = React.useState(window.salonCategoriasServicios?.defaults || []);
     const [cargando, setCargando] = React.useState(true);
@@ -97,8 +99,8 @@ function ServiceSelection({ onSelect, selectedService }) {
         const visibles = categorias.filter(categoria =>
             services.some(servicio => inferirCategoriaCliente(servicio, categorias) === catId(categoria))
         );
-        return services.length > 0 ? [{ id: 'todos', slug: 'todos', nombre: 'Todos', icono: '📋' }, ...visibles] : [];
-    }, [services, categorias]);
+        return services.length > 0 ? [{ id: 'todos', slug: 'todos', nombre: t('Todos'), icono: '📋' }, ...visibles] : [];
+    }, [services, categorias, idioma]);
 
     React.useEffect(() => {
         if (categoriaActiva !== 'todos' && !categoriasVisibles.some(categoria => catId(categoria) === categoriaActiva)) {
@@ -189,11 +191,11 @@ function ServiceSelection({ onSelect, selectedService }) {
             <div className="space-y-4 animate-fade-in">
                 <h2 className="text-lg font-semibold text-pink-700 flex items-center gap-2">
                     <span className="text-2xl">✨</span>
-                    1. Elige tu servicio
+                    {t('1. Elige tu servicio')}
                 </h2>
                 <div className="text-center py-8">
                     <div className="animate-spin h-8 w-8 border-b-2 border-pink-500 rounded-full mx-auto"></div>
-                    <p className="text-pink-400 mt-4">Cargando servicios...</p>
+                    <p className="text-pink-400 mt-4">{t('Cargando servicios...')}</p>
                 </div>
             </div>
         );
@@ -203,19 +205,19 @@ function ServiceSelection({ onSelect, selectedService }) {
         <div className="space-y-4 animate-fade-in">
             <h2 className="text-lg font-semibold text-pink-700 flex items-center gap-2">
                 <span className="text-2xl">✨</span>
-                1. Elige tu servicio
-                {serviciosSeleccionados.length > 0 && <span className="text-xs bg-pink-100 text-pink-700 px-2 py-1 rounded-full ml-1">{serviciosSeleccionados.length} seleccionados</span>}
+                {t('1. Elige tu servicio')}
+                {serviciosSeleccionados.length > 0 && <span className="text-xs bg-pink-100 text-pink-700 px-2 py-1 rounded-full ml-1">{t('{n} seleccionados', { n: serviciosSeleccionados.length })}</span>}
             </h2>
 
             {services.length === 0 ? (
                 <div className="text-center p-8 bg-white/80 backdrop-blur-sm rounded-xl border border-pink-200 space-y-3">
-                    <p className="text-pink-600 font-medium">Los turnos online aún no están listos</p>
-                    <p className="text-sm text-pink-500">Escríbenos por WhatsApp y coordinamos tu cita 💖</p>
+                    <p className="text-pink-600 font-medium">{t('Los turnos online aún no están listos')}</p>
+                    <p className="text-sm text-pink-500">{t('Escríbenos por WhatsApp y coordinamos tu cita 💖')}</p>
                     <button
                         onClick={() => window.contactarSalonWhatsApp?.()}
                         className="bg-green-500 hover:bg-green-600 text-white font-bold px-5 py-3 rounded-xl shadow-sm transition-colors"
                     >
-                        💬 Reservar por WhatsApp
+                        💬 {t('Reservar por WhatsApp')}
                     </button>
                 </div>
             ) : (
@@ -226,7 +228,7 @@ function ServiceSelection({ onSelect, selectedService }) {
                             className="w-full flex items-center justify-between gap-3 bg-gradient-to-r from-pink-500 to-pink-600 text-white p-4 rounded-xl shadow-md hover:from-pink-600 hover:to-pink-700 transition-all"
                         >
                             <span className="text-left">
-                                <span className="block text-xs opacity-90">💖 ¿Repetir tu último turno?</span>
+                                <span className="block text-xs opacity-90">💖 {t('¿Repetir tu último turno?')}</span>
                                 <span className="block font-bold">{servicioUltimoTurno.nombre}</span>
                             </span>
                             <span className="text-2xl">→</span>
@@ -239,7 +241,7 @@ function ServiceSelection({ onSelect, selectedService }) {
                                 type="text"
                                 value={busqueda}
                                 onChange={e => { setBusqueda(e.target.value); setCategoriaActiva('todos'); }}
-                                placeholder="Buscar servicio..."
+                                placeholder={t('Buscar servicio...')}
                                 className="flex-1 px-3 py-2 bg-transparent text-pink-800 placeholder-pink-300 focus:outline-none text-sm"
                             />
                             {busqueda && (
@@ -268,7 +270,7 @@ function ServiceSelection({ onSelect, selectedService }) {
 
                     {busqueda && serviciosFiltrados.length === 0 && (
                         <div className="text-center py-6 text-pink-400 text-sm">
-                            No hay servicios que coincidan con "{busqueda}"
+                            {t('No hay servicios que coincidan con "{busqueda}"', { busqueda })}
                         </div>
                     )}
 
@@ -294,7 +296,7 @@ function ServiceSelection({ onSelect, selectedService }) {
                                                 </div>
                                             </div>
                                             <span className={`text-xs px-2 py-1 rounded-full border ${estaSeleccionado ? 'bg-pink-600 text-white border-pink-600' : 'bg-white text-pink-600 border-pink-200'}`}>
-                                                {estaSeleccionado ? '✓ Elegido' : 'Agregar'}
+                                                {estaSeleccionado ? '✓ ' + t('Elegido') : t('Agregar')}
                                             </span>
                                         </div>
                                         {service.descripcion && <p className="text-sm text-pink-600/70 ml-8 leading-relaxed break-words">{service.descripcion}</p>}
@@ -315,7 +317,13 @@ function ServiceSelection({ onSelect, selectedService }) {
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                         <div>
                             <p className="font-bold text-pink-800">
-                                {serviciosSeleccionados.length} servicio{serviciosSeleccionados.length === 1 ? '' : 's'} · {totalSeleccion.duracion} min · {totalSeleccion.precio % 1 === 0 ? totalSeleccion.precio.toFixed(0) : totalSeleccion.precio.toFixed(2)} {totalSeleccion.monedas.length === 1 ? totalSeleccion.monedas[0] : 'base'}
+                                {t('{n} servicio{s} · {duracion} min · {precio} {moneda}', {
+                                    n: serviciosSeleccionados.length,
+                                    s: serviciosSeleccionados.length === 1 ? '' : 's',
+                                    duracion: totalSeleccion.duracion,
+                                    precio: totalSeleccion.precio % 1 === 0 ? totalSeleccion.precio.toFixed(0) : totalSeleccion.precio.toFixed(2),
+                                    moneda: totalSeleccion.monedas.length === 1 ? totalSeleccion.monedas[0] : t('base')
+                                })}
                             </p>
                             <p className="text-xs text-pink-500 truncate">
                                 {serviciosSeleccionados.map(s => s.nombre).join(' + ')}
@@ -326,7 +334,7 @@ function ServiceSelection({ onSelect, selectedService }) {
                             onClick={continuar}
                             className="bg-pink-600 text-white px-5 py-3 rounded-xl font-bold hover:bg-pink-700 transition"
                         >
-                            Continuar
+                            {t('Continuar')}
                         </button>
                     </div>
                 </div>

@@ -1,6 +1,8 @@
 // components/MultiTimeSlots.js - horarios secuenciales para varios servicios/profesionales
 
 function MultiTimeSlots({ service, date, profesional, onTimeSelect, selectedTime, onNoAvailability }) {
+    window.useIdioma();
+    const t = window.t;
     const [slots, setSlots] = React.useState([]);
     const [loading, setLoading] = React.useState(false);
     const [error, setError] = React.useState(null);
@@ -108,7 +110,7 @@ function MultiTimeSlots({ service, date, profesional, onTimeSelect, selectedTime
                 // desaparecer todo sin explicación. Ahora se muestra el mensaje.
             } catch (err) {
                 console.error('Error calculando horarios multiservicio:', err);
-                setError('Error al cargar horarios');
+                setError(t('Error al cargar horarios'));
                 setSlots([]);
             } finally {
                 setLoading(false);
@@ -124,12 +126,12 @@ function MultiTimeSlots({ service, date, profesional, onTimeSelect, selectedTime
         <div className="space-y-4 animate-fade-in">
             <h2 className="text-lg font-semibold text-pink-700 flex items-center gap-2">
                 <span className="text-2xl">⏰</span>
-                4. Elige horario de inicio
-                {selectedTime && <span className="text-xs bg-pink-100 text-pink-700 px-2 py-1 rounded-full ml-2">Seleccionado</span>}
+                {t('4. Elige horario de inicio')}
+                {selectedTime && <span className="text-xs bg-pink-100 text-pink-700 px-2 py-1 rounded-full ml-2">{t('Seleccionado')}</span>}
             </h2>
 
             <div className="text-sm bg-pink-50 p-4 rounded-xl border border-pink-200 text-pink-700">
-                Los servicios se reservarán en secuencia desde la hora seleccionada.
+                {t('Los servicios se reservarán en secuencia desde la hora seleccionada.')}
             </div>
 
             {loading ? (
@@ -141,8 +143,8 @@ function MultiTimeSlots({ service, date, profesional, onTimeSelect, selectedTime
             ) : slots.length === 0 ? (
                 <div className="p-6 bg-white/90 rounded-xl border-2 border-pink-200 text-center">
                     <span className="text-3xl block mb-2">😔</span>
-                    <p className="text-pink-700 font-semibold">No hay horarios seguidos para estos servicios ese día.</p>
-                    <p className="text-pink-500 text-sm mt-1">Prueba con otra fecha en el calendario de arriba.</p>
+                    <p className="text-pink-700 font-semibold">{t('No hay horarios seguidos para estos servicios ese día.')}</p>
+                    <p className="text-pink-500 text-sm mt-1">{t('Prueba con otra fecha en el calendario de arriba.')}</p>
                 </div>
             ) : (
                 <>
@@ -162,7 +164,7 @@ function MultiTimeSlots({ service, date, profesional, onTimeSelect, selectedTime
                         ))}
                     </div>
                     <p className="text-xs text-pink-400 mt-3 text-center">
-                        Mínimo {minAntelacionHoras} hora(s) de anticipación.
+                        {t('Mínimo {n} hora(s) de anticipación.', { n: minAntelacionHoras })}
                     </p>
                 </>
             )}

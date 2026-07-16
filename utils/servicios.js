@@ -25,7 +25,7 @@ function formatearMontoServicio(valor) {
 
 function getMonedaServicio(servicio = {}) {
     const moneda = String(servicio.precio_moneda || servicio.moneda || 'CUP').toUpperCase();
-    return ['CUP', 'USD'].includes(moneda) ? moneda : 'CUP';
+    return ['CUP', 'USD', 'EUR', 'MXN'].includes(moneda) ? moneda : 'CUP';
 }
 
 function getPrecioServicioBase(servicio = {}) {

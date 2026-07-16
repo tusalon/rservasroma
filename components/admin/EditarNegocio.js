@@ -2,7 +2,10 @@
 // + NUEVA SECCIÓN DE ANTICIPOS
 
 function EditarNegocio() {
+    window.useIdioma();
+    const t = window.t;
     const [negocioId, setNegocioId] = React.useState(null);
+    const [monedaEditadaManualmente, setMonedaEditadaManualmente] = React.useState(false);
     const [cargando, setCargando] = React.useState(true);
     const [guardando, setGuardando] = React.useState(false);
     const [error, setError] = React.useState('');
@@ -100,13 +103,13 @@ function EditarNegocio() {
                     titular: configData.titular || '',
                     banco: configData.banco || '',
                     tiempo_vencimiento: configData.tiempo_vencimiento || 2,
-                    whatsapp_moneda: ['CUP', 'USD'].includes(String(configData.whatsapp_moneda || '').toUpperCase()) ? String(configData.whatsapp_moneda).toUpperCase() : 'CUP',
+                    whatsapp_moneda: ['CUP', 'USD', 'EUR', 'MXN'].includes(String(configData.whatsapp_moneda || '').toUpperCase()) ? String(configData.whatsapp_moneda).toUpperCase() : 'CUP',
                     whatsapp_mostrar_costos: configData.whatsapp_mostrar_costos !== false
                 });
             }
         } catch (error) {
             console.error('❌ Error cargando datos:', error);
-            setError('Error al cargar los datos');
+            setError(t('Error al cargar los datos'));
         } finally {
             setCargando(false);
         }
@@ -116,11 +119,11 @@ function EditarNegocio() {
         const file = e.target.files[0];
         if (file) {
             if (!file.type.startsWith('image/')) {
-                setError('Solo se permiten imágenes');
+                setError(t('Solo se permiten imágenes'));
                 return;
             }
             if (file.size > 2 * 1024 * 1024) {
-                setError('La imagen no puede superar los 2MB');
+                setError(t('La imagen no puede superar los 2MB'));
                 return;
             }
             const reader = new FileReader();
@@ -179,7 +182,7 @@ function EditarNegocio() {
             console.log('🔍 Verificando negocioId:', negocioId);
             
             if (!negocioId) {
-                throw new Error('No hay ID de negocio. Por favor, iniciá sesión nuevamente.');
+                throw new Error(t('No hay ID de negocio. Por favor, iniciá sesión nuevamente.'));
             }
 
             // Subir logo si hay uno nuevo
@@ -219,7 +222,7 @@ function EditarNegocio() {
                 titular: config.titular || null,
                 banco: config.banco || null,
                 tiempo_vencimiento: config.tiempo_vencimiento ? parseInt(config.tiempo_vencimiento) : 2,
-                whatsapp_moneda: ['CUP', 'USD'].includes(String(config.whatsapp_moneda || '').toUpperCase()) ? String(config.whatsapp_moneda).toUpperCase() : 'CUP',
+                whatsapp_moneda: ['CUP', 'USD', 'EUR', 'MXN'].includes(String(config.whatsapp_moneda || '').toUpperCase()) ? String(config.whatsapp_moneda).toUpperCase() : 'CUP',
                 whatsapp_mostrar_costos: config.whatsapp_mostrar_costos !== false,
                 updated_at: new Date().toISOString()
             };
@@ -284,7 +287,7 @@ function EditarNegocio() {
             
         } catch (error) {
             console.error('❌ Error completo:', error);
-            setError(`Error al guardar: ${error.message}`);
+            setError(t('Error al guardar: {mensaje}', { mensaje: error.message }));
         } finally {
             setGuardando(false);
         }
@@ -305,9 +308,9 @@ function EditarNegocio() {
                     <div className="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-6">
                         <i className="icon-check text-4xl text-white"></i>
                     </div>
-                    <h2 className="text-2xl font-bold text-gray-900 mb-2">¡Cambios guardados!</h2>
-                    <p className="text-gray-600 mb-4">La configuración se actualizó correctamente.</p>
-                    <p className="text-sm text-gray-500">Redirigiendo al panel...</p>
+                    <h2 className="text-2xl font-bold text-gray-900 mb-2">{t('¡Cambios guardados!')}</h2>
+                    <p className="text-gray-600 mb-4">{t('La configuración se actualizó correctamente.')}</p>
+                    <p className="text-sm text-gray-500">{t('Redirigiendo al panel...')}</p>
                     <div className="animate-spin h-6 w-6 border-2 border-green-500 border-t-transparent rounded-full mx-auto mt-4"></div>
                 </div>
             </div>
@@ -327,17 +330,20 @@ function EditarNegocio() {
                                 <i className="icon-building text-2xl text-white"></i>
                             </div>
                             <div>
-                                <h1 className="text-2xl font-bold text-gray-900">Editar Negocio</h1>
-                                <p className="text-sm text-gray-500">Modificá los datos de tu negocio</p>
+                                <h1 className="text-2xl font-bold text-gray-900">{t('Editar Negocio')}</h1>
+                                <p className="text-sm text-gray-500">{t('Modificá los datos de tu negocio')}</p>
                             </div>
                         </div>
-                        <button
-                            onClick={() => window.location.href = 'admin.html'}
-                            className="px-4 py-2 border rounded-lg hover:bg-gray-100 transition flex items-center gap-2"
-                        >
-                            <i className="icon-x"></i>
-                            Cancelar
-                        </button>
+                        <div className="flex items-center gap-2">
+                            <window.LanguageToggle />
+                            <button
+                                onClick={() => window.location.href = 'admin.html'}
+                                className="px-4 py-2 border rounded-lg hover:bg-gray-100 transition flex items-center gap-2"
+                            >
+                                <i className="icon-x"></i>
+                                {t('Cancelar')}
+                            </button>
+                        </div>
                     </div>
 
                     {error && (
@@ -352,12 +358,12 @@ function EditarNegocio() {
                         <div>
                             <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
                                 <i className="icon-info text-amber-500"></i>
-                                Datos básicos
+                                {t('Datos básicos')}
                             </h2>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Nombre del negocio
+                                        {t('Nombre del negocio')}
                                     </label>
                                     <input
                                         type="text"
@@ -368,7 +374,7 @@ function EditarNegocio() {
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Teléfono
+                                        {t('Teléfono')}
                                     </label>
                                     <div className="flex gap-2">
                                         <select
@@ -378,7 +384,15 @@ function EditarNegocio() {
                                                 const telefonoLocal = window.normalizarTelefonoLocal
                                                     ? window.normalizarTelefonoLocal(config.telefono, nuevoCodigo)
                                                     : config.telefono.replace(/\D/g, '');
-                                                setConfig({...config, codigo_pais: nuevoCodigo, telefono: telefonoLocal});
+                                                const monedaSugerida = !monedaEditadaManualmente && window.getMonedaSugeridaPorCodigoPais
+                                                    ? window.getMonedaSugeridaPorCodigoPais(nuevoCodigo)
+                                                    : null;
+                                                setConfig({
+                                                    ...config,
+                                                    codigo_pais: nuevoCodigo,
+                                                    telefono: telefonoLocal,
+                                                    ...(monedaSugerida ? { whatsapp_moneda: monedaSugerida } : {})
+                                                });
                                                 if (window.setCodigoPaisTelefono) window.setCodigoPaisTelefono(nuevoCodigo);
                                             }}
                                             className="w-36 border rounded-lg px-3 py-2 bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
@@ -401,7 +415,7 @@ function EditarNegocio() {
                                         />
                                     </div>
                                     <p className="text-xs text-gray-500 mt-1">
-                                        Se usara como {window.formatearTelefono ? window.formatearTelefono(config.telefono, config.codigo_pais) : `+${config.codigo_pais} ${config.telefono}`}.
+                                        {t('Se usara como {telefono}.', { telefono: window.formatearTelefono ? window.formatearTelefono(config.telefono, config.codigo_pais) : `+${config.codigo_pais} ${config.telefono}` })}
                                     </p>
                                 </div>
                                 <div>
@@ -417,7 +431,7 @@ function EditarNegocio() {
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Dirección
+                                        {t('Dirección')}
                                     </label>
                                     <input
                                         type="text"
@@ -433,13 +447,13 @@ function EditarNegocio() {
                         <div className="pt-4 border-t">
                             <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
                                 <i className="icon-palette text-amber-500"></i>
-                                Personalización
+                                {t('Personalización')}
                             </h2>
-                            
+
                             {/* Logo */}
                             <div className="mb-4">
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Logo del negocio
+                                    {t('Logo del negocio')}
                                 </label>
                                 <div 
                                     className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-amber-500 transition cursor-pointer"
@@ -455,13 +469,13 @@ function EditarNegocio() {
                                     {config.logo_preview ? (
                                         <div className="space-y-3">
                                             <img src={config.logo_preview} alt="Logo" className="h-24 object-contain mx-auto" />
-                                            <p className="text-sm text-gray-600">Haz clic para cambiar el logo</p>
+                                            <p className="text-sm text-gray-600">{t('Haz clic para cambiar el logo')}</p>
                                         </div>
                                     ) : (
                                         <div>
                                             <i className="icon-upload-cloud text-5xl text-gray-400 mb-3"></i>
-                                            <p className="text-gray-600">Haz clic para subir un logo</p>
-                                            <p className="text-xs text-gray-400 mt-1">PNG, JPG hasta 2MB</p>
+                                            <p className="text-gray-600">{t('Haz clic para subir un logo')}</p>
+                                            <p className="text-xs text-gray-400 mt-1">{t('PNG, JPG hasta 2MB')}</p>
                                         </div>
                                     )}
                                 </div>
@@ -471,7 +485,7 @@ function EditarNegocio() {
                             <div className="mb-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="rounded-lg border border-gray-200 p-4 bg-gray-50">
                                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Color principal
+                                        {t('Color principal')}
                                     </label>
                                     <div className="flex items-center gap-3">
                                         <input
@@ -491,7 +505,7 @@ function EditarNegocio() {
                                 </div>
                                 <div className="rounded-lg border border-gray-200 p-4 bg-gray-50">
                                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Color secundario
+                                        {t('Color secundario')}
                                     </label>
                                     <div className="flex items-center gap-3">
                                         <input
@@ -514,8 +528,8 @@ function EditarNegocio() {
                                         className="p-4 text-white"
                                         style={{ background: `linear-gradient(135deg, ${config.color_primario}, ${config.color_secundario})` }}
                                     >
-                                        <p className="font-semibold">Vista previa de colores</p>
-                                        <p className="text-sm opacity-90">Estos colores se aplican en la bienvenida, botones y detalles principales.</p>
+                                        <p className="font-semibold">{t('Vista previa de colores')}</p>
+                                        <p className="text-sm opacity-90">{t('Estos colores se aplican en la bienvenida, botones y detalles principales.')}</p>
                                     </div>
                                 </div>
                             </div>
@@ -523,7 +537,7 @@ function EditarNegocio() {
                             {/* Fondo de la app de clientes */}
                             <div className="mb-4">
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Imagen de fondo para clientes
+                                    {t('Imagen de fondo para clientes')}
                                 </label>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                                     {(window.HERO_BACKGROUND_OPTIONS || []).map((opcion) => (
@@ -545,20 +559,20 @@ function EditarNegocio() {
                                         </button>
                                     ))}
                                 </div>
-                                <p className="text-xs text-gray-500 mt-2">Esta imagen se vera en la pantalla de acceso y bienvenida de la clienta.</p>
+                                <p className="text-xs text-gray-500 mt-2">{t('Esta imagen se vera en la pantalla de acceso y bienvenida de la clienta.')}</p>
                             </div>
 
                             {/* Horario de atención */}
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Horario de atención
+                                    {t('Horario de atención')}
                                 </label>
                                 <input
                                     type="text"
                                     value={config.horario_atencion}
                                     onChange={(e) => setConfig({...config, horario_atencion: e.target.value})}
                                     className="w-full border rounded-lg px-3 py-2"
-                                    placeholder="Lun-Vie 9:00-20:00, Sáb 9:00-18:00"
+                                    placeholder={t('Lun-Vie 9:00-20:00, Sáb 9:00-18:00')}
                                 />
                             </div>
                         </div>
@@ -567,15 +581,15 @@ function EditarNegocio() {
                         <div className="pt-4 border-t">
                             <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
                                 <i className="icon-coin-stack text-amber-500"></i>
-                                💰 Anticipos
+                                💰 {t('Anticipos')}
                             </h2>
-                            
+
                             <div className="space-y-4">
                                 {/* Switch Requerir anticipo */}
                                 <div className="flex items-center justify-between bg-gray-50 p-4 rounded-lg">
                                     <div>
-                                        <label className="font-medium text-gray-700">Requerir anticipo para reservas</label>
-                                        <p className="text-xs text-gray-500 mt-1">Si activás, los clientes deberán pagar un anticipo para confirmar el turno</p>
+                                        <label className="font-medium text-gray-700">{t('Requerir anticipo para reservas')}</label>
+                                        <p className="text-xs text-gray-500 mt-1">{t('Si activás, los clientes deberán pagar un anticipo para confirmar el turno')}</p>
                                     </div>
                                     <label className="relative inline-flex items-center cursor-pointer">
                                         <input
@@ -592,8 +606,8 @@ function EditarNegocio() {
                                     <>
                                         <div className="flex items-center justify-between bg-amber-50 p-4 rounded-lg border border-amber-100">
                                             <div>
-                                                <label className="font-medium text-amber-800">Usar anticipo diferente por servicio</label>
-                                                <p className="text-xs text-amber-700 mt-1">Si activas esto, cada servicio define su propio anticipo desde Servicios.</p>
+                                                <label className="font-medium text-amber-800">{t('Usar anticipo diferente por servicio')}</label>
+                                                <p className="text-xs text-amber-700 mt-1">{t('Si activas esto, cada servicio define su propio anticipo desde Servicios.')}</p>
                                             </div>
                                             <label className="relative inline-flex items-center cursor-pointer">
                                                 <input
@@ -609,7 +623,7 @@ function EditarNegocio() {
                                         {/* Tipo de anticipo */}
                                         <div className={config.anticipos_por_servicio ? 'opacity-60' : ''}>
                                             <label className="block text-sm font-medium text-gray-700 mb-2">
-                                                Tipo de anticipo global
+                                                {t('Tipo de anticipo global')}
                                             </label>
                                             <div className="grid grid-cols-2 gap-3">
                                                 <button
@@ -622,8 +636,8 @@ function EditarNegocio() {
                                                     }`}
                                                 >
                                                     <div className="text-2xl mb-2">💰</div>
-                                                    <div className="font-medium">Monto fijo</div>
-                                                    <div className="text-xs text-gray-500 mt-1">Ej: $500 por turno</div>
+                                                    <div className="font-medium">{t('Monto fijo')}</div>
+                                                    <div className="text-xs text-gray-500 mt-1">{t('Ej: $500 por turno')}</div>
                                                 </button>
                                                 <button
                                                     type="button"
@@ -635,8 +649,8 @@ function EditarNegocio() {
                                                     }`}
                                                 >
                                                     <div className="text-2xl mb-2">📊</div>
-                                                    <div className="font-medium">Porcentaje</div>
-                                                    <div className="text-xs text-gray-500 mt-1">Ej: 30% del servicio</div>
+                                                    <div className="font-medium">{t('Porcentaje')}</div>
+                                                    <div className="text-xs text-gray-500 mt-1">{t('Ej: 30% del servicio')}</div>
                                                 </button>
                                             </div>
                                         </div>
@@ -644,14 +658,14 @@ function EditarNegocio() {
                                         {/* Valor del anticipo */}
                                         <div className={config.anticipos_por_servicio ? 'opacity-60' : ''}>
                                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                {config.tipo_anticipo === 'fijo' ? 'Monto global del anticipo ($)' : 'Porcentaje global del servicio (%)'}
+                                                {config.tipo_anticipo === 'fijo' ? t('Monto global del anticipo ($)') : t('Porcentaje global del servicio (%)')}
                                             </label>
                                             <input
                                                 type="number"
                                                 value={config.valor_anticipo}
                                                 onChange={(e) => setConfig({...config, valor_anticipo: e.target.value})}
                                                 className="w-full border rounded-lg px-3 py-2"
-                                                placeholder={config.tipo_anticipo === 'fijo' ? 'Ej: 500' : 'Ej: 30'}
+                                                placeholder={config.tipo_anticipo === 'fijo' ? t('Ej: 500') : t('Ej: 30')}
                                                 min="0"
                                                 step={config.tipo_anticipo === 'fijo' ? "1" : "0.1"}
                                             />
@@ -660,30 +674,30 @@ function EditarNegocio() {
                                         {/* Tiempo de vencimiento */}
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                Tiempo para pagar (horas)
+                                                {t('Tiempo para pagar (horas)')}
                                             </label>
                                             <select
                                                 value={config.tiempo_vencimiento}
                                                 onChange={(e) => setConfig({...config, tiempo_vencimiento: parseInt(e.target.value)})}
                                                 className="w-full border rounded-lg px-3 py-2"
                                             >
-                                                <option value="1">1 hora</option>
-                                                <option value="2">2 horas</option>
-                                                <option value="3">3 horas</option>
-                                                <option value="6">6 horas</option>
-                                                <option value="12">12 horas</option>
-                                                <option value="24">24 horas</option>
-                                                <option value="48">48 horas</option>
+                                                <option value="1">{t('1 hora')}</option>
+                                                <option value="2">{t('{n} horas', { n: 2 })}</option>
+                                                <option value="3">{t('{n} horas', { n: 3 })}</option>
+                                                <option value="6">{t('{n} horas', { n: 6 })}</option>
+                                                <option value="12">{t('{n} horas', { n: 12 })}</option>
+                                                <option value="24">{t('{n} horas', { n: 24 })}</option>
+                                                <option value="48">{t('{n} horas', { n: 48 })}</option>
                                             </select>
-                                            <p className="text-xs text-gray-500 mt-1">Si no paga en este tiempo, la reserva se elimina y el horario queda libre automaticamente</p>
+                                            <p className="text-xs text-gray-500 mt-1">{t('Si no paga en este tiempo, la reserva se elimina y el horario queda libre automaticamente')}</p>
                                         </div>
 
                                         {/* Datos bancarios */}
                                         <div className="space-y-3 p-4 bg-gray-50 rounded-lg">
-                                            <h3 className="font-medium text-gray-700">Datos de la cuenta</h3>
-                                            
+                                            <h3 className="font-medium text-gray-700">{t('Datos de la cuenta')}</h3>
+
                                             <div>
-                                                <label className="block text-xs text-gray-500 mb-1">Banco</label>
+                                                <label className="block text-xs text-gray-500 mb-1">{t('Banco')}</label>
                                                 <input
                                                     type="text"
                                                     value={config.banco}
@@ -694,7 +708,7 @@ function EditarNegocio() {
                                             </div>
                                             
                                             <div>
-                                                <label className="block text-xs text-gray-500 mb-1">CBU (22 dígitos)</label>
+                                                <label className="block text-xs text-gray-500 mb-1">{t('CBU (22 dígitos)')}</label>
                                                 <input
                                                     type="text"
                                                     value={config.cbu}
@@ -706,7 +720,7 @@ function EditarNegocio() {
                                             </div>
                                             
                                             <div>
-                                                <label className="block text-xs text-gray-500 mb-1">Alias</label>
+                                                <label className="block text-xs text-gray-500 mb-1">{t('Alias')}</label>
                                                 <input
                                                     type="text"
                                                     value={config.alias}
@@ -717,7 +731,7 @@ function EditarNegocio() {
                                             </div>
                                             
                                             <div>
-                                                <label className="block text-xs text-gray-500 mb-1">Titular</label>
+                                                <label className="block text-xs text-gray-500 mb-1">{t('Titular')}</label>
                                                 <input
                                                     type="text"
                                                     value={config.titular}
@@ -731,7 +745,7 @@ function EditarNegocio() {
                                         {/* Mensaje personalizado */}
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                Mensaje para el cliente
+                                                {t('Mensaje para el cliente')}
                                             </label>
                                             <textarea
                                                 value={config.mensaje_pago}
@@ -740,18 +754,18 @@ function EditarNegocio() {
                                                 rows="8"
                                             />
                                             <div className="bg-blue-50 p-3 rounded-lg mt-2 text-xs">
-                                                <p className="font-medium text-blue-700 mb-2">Variables disponibles:</p>
+                                                <p className="font-medium text-blue-700 mb-2">{t('Variables disponibles:')}</p>
                                                 <div className="grid grid-cols-2 gap-2 text-blue-600">
-                                                    <span><code>{'{monto_anticipo}'}</code> - Monto calculado</span>
-                                                    <span><code>{'{servicio}'}</code> - Nombre del servicio</span>
-                                                    <span><code>{'{fecha}'}</code> - Fecha del turno</span>
-                                                    <span><code>{'{hora}'}</code> - Hora del turno</span>
-                                                    <span><code>{'{profesional}'}</code> - Profesional</span>
+                                                    <span><code>{'{monto_anticipo}'}</code> - {t('Monto calculado')}</span>
+                                                    <span><code>{'{servicio}'}</code> - {t('Nombre del servicio')}</span>
+                                                    <span><code>{'{fecha}'}</code> - {t('Fecha del turno')}</span>
+                                                    <span><code>{'{hora}'}</code> - {t('Hora del turno')}</span>
+                                                    <span><code>{'{profesional}'}</code> - {t('Profesional')}</span>
                                                     <span><code>{'{cbu}'}</code> - CBU</span>
-                                                    <span><code>{'{alias}'}</code> - Alias</span>
-                                                    <span><code>{'{titular}'}</code> - Titular</span>
-                                                    <span><code>{'{banco}'}</code> - Banco</span>
-                                                    <span><code>{'{tiempo_vencimiento}'}</code> - Horas para pagar</span>
+                                                    <span><code>{'{alias}'}</code> - {t('Alias')}</span>
+                                                    <span><code>{'{titular}'}</code> - {t('Titular')}</span>
+                                                    <span><code>{'{banco}'}</code> - {t('Banco')}</span>
+                                                    <span><code>{'{tiempo_vencimiento}'}</code> - {t('Horas para pagar')}</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -764,12 +778,12 @@ function EditarNegocio() {
                         <div className="pt-4 border-t">
                             <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
                                 <i className="icon-message-square text-amber-500"></i>
-                                Mensajes
+                                {t('Mensajes')}
                             </h2>
                             <div className="space-y-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Mensaje de bienvenida
+                                        {t('Mensaje de bienvenida')}
                                     </label>
                                     <textarea
                                         value={config.mensaje_bienvenida}
@@ -777,11 +791,11 @@ function EditarNegocio() {
                                         className="w-full border rounded-lg px-3 py-2"
                                         rows="3"
                                     />
-                                    <p className="text-xs text-gray-400 mt-1">Se muestra al abrir la app</p>
+                                    <p className="text-xs text-gray-400 mt-1">{t('Se muestra al abrir la app')}</p>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Confirmación de reserva
+                                        {t('Confirmación de reserva')}
                                     </label>
                                     <textarea
                                         value={config.mensaje_confirmacion}
@@ -792,7 +806,7 @@ function EditarNegocio() {
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Mensaje por inasistencia
+                                        {t('Mensaje por inasistencia')}
                                     </label>
                                     <textarea
                                         value={config.mensaje_inasistencia}
@@ -801,15 +815,15 @@ function EditarNegocio() {
                                         rows="6"
                                     />
                                     <p className="text-xs text-gray-400 mt-1">
-                                        Variables: {'{cliente}'}, {'{nombre_negocio}'}, {'{servicio}'}, {'{fecha}'}, {'{hora}'}, {'{profesional}'}.
+                                        {t('Variables:')} {'{cliente}'}, {'{nombre_negocio}'}, {'{servicio}'}, {'{fecha}'}, {'{hora}'}, {'{profesional}'}.
                                     </p>
                                 </div>
                                 <div className="rounded-xl border border-amber-100 bg-amber-50 p-4">
                                     <div className="flex items-start justify-between gap-4 mb-4">
                                         <div>
-                                            <h3 className="font-semibold text-gray-900">Costos en WhatsApp</h3>
+                                            <h3 className="font-semibold text-gray-900">{t('Costos en WhatsApp')}</h3>
                                             <p className="text-xs text-gray-600 mt-1">
-                                                Define si los mensajes de reserva muestran importes y en que moneda se escriben.
+                                                {t('Define si los mensajes de reserva muestran importes y en que moneda se escriben.')}
                                             </p>
                                         </div>
                                         <label className="relative inline-flex items-center cursor-pointer shrink-0">
@@ -824,18 +838,23 @@ function EditarNegocio() {
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Moneda para mensajes
+                                            {t('Moneda para mensajes')}
                                         </label>
                                         <select
                                             value={config.whatsapp_moneda || 'CUP'}
-                                            onChange={(e) => setConfig({...config, whatsapp_moneda: e.target.value})}
+                                            onChange={(e) => {
+                                                setMonedaEditadaManualmente(true);
+                                                setConfig({...config, whatsapp_moneda: e.target.value});
+                                            }}
                                             className="w-full border border-amber-200 rounded-lg px-3 py-2 bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
                                         >
                                             <option value="CUP">CUP - Pesos cubanos</option>
                                             <option value="USD">USD - Dolares</option>
+                                            <option value="EUR">EUR - Euros</option>
+                                            <option value="MXN">MXN - Pesos mexicanos</option>
                                         </select>
                                         <p className="text-xs text-gray-500 mt-2">
-                                            Si desactivas los costos, se ocultan los totales de los mensajes generados por WhatsApp.
+                                            {t('Si desactivas los costos, se ocultan los totales de los mensajes generados por WhatsApp.')}
                                         </p>
                                     </div>
                                 </div>
@@ -846,7 +865,7 @@ function EditarNegocio() {
                         <div className="pt-4 border-t">
                             <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
                                 <i className="icon-share-2 text-amber-500"></i>
-                                Redes sociales
+                                {t('Redes sociales')}
                             </h2>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
@@ -862,7 +881,7 @@ function EditarNegocio() {
                                             value={config.instagram}
                                             onChange={(e) => setConfig({...config, instagram: e.target.value})}
                                             className="w-full px-4 py-2 rounded-r-lg border border-gray-300"
-                                            placeholder="usuario"
+                                            placeholder={t('usuario')}
                                         />
                                     </div>
                                 </div>
@@ -875,7 +894,7 @@ function EditarNegocio() {
                                         value={config.facebook}
                                         onChange={(e) => setConfig({...config, facebook: e.target.value})}
                                         className="w-full border rounded-lg px-3 py-2"
-                                        placeholder="/página"
+                                        placeholder={t('/página')}
                                     />
                                 </div>
                             </div>
@@ -888,7 +907,7 @@ function EditarNegocio() {
                             onClick={() => window.location.href = 'admin.html'}
                             className="px-6 py-2 border rounded-lg hover:bg-gray-100 transition"
                         >
-                            Cancelar
+                            {t('Cancelar')}
                         </button>
                         <button
                             onClick={handleGuardar}
@@ -898,12 +917,12 @@ function EditarNegocio() {
                             {guardando ? (
                                 <>
                                     <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
-                                    Guardando...
+                                    {t('Guardando...')}
                                 </>
                             ) : (
                                 <>
                                     <i className="icon-check"></i>
-                                    Guardar Cambios
+                                    {t('Guardar Cambios')}
                                 </>
                             )}
                         </button>

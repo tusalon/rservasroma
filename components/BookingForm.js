@@ -4,6 +4,8 @@
 // MODIFICADO: Solo notifica a la dueña, NO al cliente
 
 function BookingForm({ service, profesional, date, time, onSubmit, onCancel, cliente }) {
+    window.useIdioma();
+    const t = window.t;
     const [submitting, setSubmitting] = React.useState(false);
     const submittingRef = React.useRef(false);
     const [error, setError] = React.useState(null);
@@ -244,7 +246,7 @@ END:VCALENDAR`;
                 const diaSemana = diasSemana[new Date(year, month - 1, day).getDay()];
 
                 if (fechaTurno < minFechaPermitida) {
-                    setError(`Solo se puede reservar con al menos ${minAntelacionHoras} hora(s) de anticipación.`);
+                    setError(t('Solo se puede reservar con al menos {n} hora(s) de anticipación.', { n: minAntelacionHoras }));
                     setSubmitting(false);
                     return;
                 }
@@ -274,7 +276,7 @@ END:VCALENDAR`;
                     const horarioPermitido = index > 0 || servicioPermiteHorario(servicioItem, cursor);
 
                     if (!trabajaEseDia || tocaDescanso || tieneConflicto || !horarioPermitido) {
-                        setError(`El horario de ${servicioItem.nombre} con ${profesionalItem.nombre} ya no está disponible.`);
+                        setError(t('El horario de {servicio} con {nombre} ya no está disponible.', { servicio: servicioItem.nombre, nombre: profesionalItem.nombre }));
                         setSubmitting(false);
                         return;
                     }
@@ -349,7 +351,7 @@ END:VCALENDAR`;
             const available = filterAvailableSlots(baseSlots, service.duracion, bookings);
 
             if (available.length === 0) {
-                setError("Ese horario ya no está disponible.");
+                setError(t('Ese horario ya no está disponible.'));
                 setSubmitting(false);
                 return;
             }
@@ -416,7 +418,7 @@ END:VCALENDAR`;
 
                 onSubmit({ ...result.data, _montoAnticipo: requiereAnticipo ? montoAnticipoReserva : 0 });
             } else {
-                setError('No se pudo guardar la reserva. Intenta de nuevo.');
+                setError(t('No se pudo guardar la reserva. Intenta de nuevo.'));
             }
         } catch (err) {
             console.error('Error:', err);
@@ -424,7 +426,7 @@ END:VCALENDAR`;
             if (err && (err.code === 'HORARIO_OCUPADO' || err.code === 'CLIENTE_BLOQUEADO')) {
                 setError(err.message);
             } else {
-                setError("Ocurrió un error al guardar la reserva.");
+                setError(t('Ocurrió un error al guardar la reserva.'));
             }
         } finally {
             submittingRef.current = false;
@@ -441,7 +443,7 @@ END:VCALENDAR`;
                 <div className="flex justify-between items-center border-b border-pink-200 pb-4">
                     <h3 className="text-xl font-bold text-pink-800 flex items-center gap-2">
                         <span>✨</span>
-                        Confirmar Reserva
+                        {t('Confirmar Reserva')}
                     </h3>
                     <button onClick={onCancel} className="text-pink-400 hover:text-pink-600">
                         <i className="icon-x text-2xl"></i>
@@ -462,7 +464,7 @@ END:VCALENDAR`;
 
                         <div className="flex items-center gap-3 text-pink-700">
                             <span className="text-2xl">👩‍🎨</span>
-                            <span>Con: <strong>{profesional.nombre}</strong></span>
+                            <span>{t('Con:')} <strong>{profesional.nombre}</strong></span>
                         </div>
 
                         <div className="flex items-center gap-3 text-pink-700">
@@ -476,13 +478,13 @@ END:VCALENDAR`;
                         {!service.esMultiple && window.formatearPrecioServicio && window.formatearPrecioServicio(service) && (
                             <div className="flex items-center gap-3 text-pink-700">
                                 <span className="text-2xl">💵</span>
-                                <span>Precio: <strong>{window.formatearPrecioServicio(service)}</strong></span>
+                                <span>{t('Precio:')} <strong>{window.formatearPrecioServicio(service)}</strong></span>
                             </div>
                         )}
                         {anticipoInfo?.requiere && anticipoInfo.monto > 0 && (
                             <div className="flex items-center gap-3 text-amber-700 bg-amber-50 -mx-2 px-2 py-1 rounded-lg">
                                 <span className="text-2xl">💰</span>
-                                <span>Anticipo para confirmar: <strong>{anticipoInfo.monto} {anticipoInfo.moneda}</strong></span>
+                                <span>{t('Anticipo para confirmar:')} <strong>{anticipoInfo.monto} {anticipoInfo.moneda}</strong></span>
                             </div>
                         )}
                     </div>
@@ -490,7 +492,7 @@ END:VCALENDAR`;
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <div className="bg-pink-50 p-3 rounded-lg border border-pink-200">
                             <p className="text-sm text-pink-700">
-                                <span className="font-semibold">Tus datos:</span> {cliente.nombre} - +{cliente.whatsapp}
+                                <span className="font-semibold">{t('Tus datos:')}</span> {cliente.nombre} - +{cliente.whatsapp}
                             </p>
                         </div>
 
@@ -518,12 +520,12 @@ END:VCALENDAR`;
                             {submitting ? (
                                 <>
                                     <div className="animate-spin rounded-full h-4 w-4 border-2 border-white/30 border-t-white"></div>
-                                    Procesando...
+                                    {t('Procesando...')}
                                 </>
                             ) : (
                                 <>
                                     <span>✨</span>
-                                    Confirmar Reserva
+                                    {t('Confirmar Reserva')}
                                     <span>💅</span>
                                 </>
                             )}

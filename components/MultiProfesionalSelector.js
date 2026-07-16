@@ -1,6 +1,8 @@
 // components/MultiProfesionalSelector.js - profesional por servicio
 
 function MultiProfesionalSelector({ selectedService, selectedProfesional, onSelect }) {
+    window.useIdioma();
+    const t = window.t;
     const servicios = selectedService?.servicios || [];
     const [opciones, setOpciones] = React.useState({});
     const [seleccion, setSeleccion] = React.useState(selectedProfesional?.asignaciones || []);
@@ -29,7 +31,7 @@ function MultiProfesionalSelector({ selectedService, selectedProfesional, onSele
         if (seleccion.length === servicios.length && servicios.length > 0) {
             onSelect({
                 esMultiple: true,
-                nombre: 'Varios profesionales',
+                nombre: t('Varios profesionales'),
                 asignaciones: servicios.map(servicio => {
                     const item = seleccion.find(s => s.servicio.id === servicio.id);
                     return item;
@@ -52,7 +54,7 @@ function MultiProfesionalSelector({ selectedService, selectedProfesional, onSele
             <div className="space-y-4 animate-fade-in">
                 <h2 className="text-lg font-semibold text-pink-700 flex items-center gap-2">
                     <span className="text-2xl">✨</span>
-                    2. Elige profesional por servicio
+                    {t('2. Elige profesional por servicio')}
                 </h2>
                 <div className="flex justify-center py-8">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-500"></div>
@@ -65,9 +67,9 @@ function MultiProfesionalSelector({ selectedService, selectedProfesional, onSele
         <div className="space-y-4 animate-fade-in">
             <h2 className="text-lg font-semibold text-pink-700 flex items-center gap-2">
                 <span className="text-2xl">✨</span>
-                2. Elige profesional por servicio
+                {t('2. Elige profesional por servicio')}
                 {seleccion.length === servicios.length && (
-                    <span className="text-xs bg-pink-100 text-pink-700 px-2 py-1 rounded-full ml-2">Completo</span>
+                    <span className="text-xs bg-pink-100 text-pink-700 px-2 py-1 rounded-full ml-2">{t('Completo')}</span>
                 )}
             </h2>
 
@@ -87,13 +89,13 @@ function MultiProfesionalSelector({ selectedService, selectedProfesional, onSele
 
                             {profesionales.length === 0 ? (
                                 <div className="text-sm bg-pink-50 border border-pink-200 rounded-lg p-3 space-y-2">
-                                    <p className="text-pink-700">"{servicio.nombre}" aún no tiene turnos online.</p>
+                                    <p className="text-pink-700">{t('"{servicio}" aún no tiene turnos online.', { servicio: servicio.nombre })}</p>
                                     <button
                                         type="button"
                                         onClick={() => window.contactarSalonWhatsApp?.(`Hola! Quiero reservar "${servicio.nombre}" pero no aparece disponible en la app 💅`)}
                                         className="bg-green-500 hover:bg-green-600 text-white font-bold px-4 py-2 rounded-lg transition-colors"
                                     >
-                                        💬 Reservar por WhatsApp
+                                        💬 {t('Reservar por WhatsApp')}
                                     </button>
                                 </div>
                             ) : (
@@ -124,7 +126,7 @@ function MultiProfesionalSelector({ selectedService, selectedProfesional, onSele
             </div>
 
             <p className="text-xs text-pink-500 bg-pink-50 p-3 rounded-lg border border-pink-200">
-                La agenda se calculará en secuencia: cada servicio empieza cuando termina el anterior.
+                {t('La agenda se calculará en secuencia: cada servicio empieza cuando termina el anterior.')}
             </p>
         </div>
     );

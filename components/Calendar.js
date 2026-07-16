@@ -1,6 +1,8 @@
 // components/Calendar.js - Disponibilidad real por servicio, profesional y reservas
 
 function Calendar({ onDateSelect, selectedDate, profesional, profesionalCompleto, service, onHorariosCargados }) {
+    const idioma = window.useIdioma();
+    const t = window.t;
     const [currentDate, setCurrentDate] = React.useState(new Date());
     const [diasLaborales, setDiasLaborales] = React.useState([]);
     const [diasCerrados, setDiasCerrados] = React.useState([]);
@@ -357,23 +359,25 @@ function Calendar({ onDateSelect, selectedDate, profesional, profesionalCompleto
     };
 
     const days = getDaysInMonth();
-    const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+    const monthNames = idioma === 'en'
+        ? ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+        : ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
 
     if (cargandoHorarios) {
         return (
             <div className="space-y-4 animate-fade-in">
                 <h2 className="text-lg font-semibold text-pink-700 flex items-center gap-2">
                     <span className="text-2xl">📅</span>
-                    3. Selecciona una fecha
+                    {t('3. Selecciona una fecha')}
                     {profesional && (
                         <span className="text-sm bg-pink-100 text-pink-700 px-3 py-1 rounded-full ml-2">
-                            con {profesional.nombre}
+                            {t('con {nombre}', { nombre: profesional.nombre })}
                         </span>
                     )}
                 </h2>
                 <div className="text-center py-8">
                     <div className="animate-spin h-8 w-8 border-b-2 border-pink-500 rounded-full mx-auto"></div>
-                    <p className="text-pink-400 mt-4">Cargando disponibilidad...</p>
+                    <p className="text-pink-400 mt-4">{t('Cargando disponibilidad...')}</p>
                 </div>
             </div>
         );
@@ -383,37 +387,37 @@ function Calendar({ onDateSelect, selectedDate, profesional, profesionalCompleto
         <div className="space-y-4 animate-fade-in">
             <h2 className="text-lg font-semibold text-pink-700 flex items-center gap-2">
                 <span className="text-2xl">📅</span>
-                3. Selecciona una fecha
+                {t('3. Selecciona una fecha')}
                 {profesional && (
                     <span className="text-sm bg-pink-100 text-pink-700 px-3 py-1 rounded-full ml-2">
-                        con {profesional.nombre}
+                        {t('con {nombre}', { nombre: profesional.nombre })}
                     </span>
                 )}
                 {selectedDate && (
                     <span className="text-xs bg-pink-100 text-pink-700 px-2 py-1 rounded-full ml-2">
-                        Fecha seleccionada
+                        {t('Fecha seleccionada')}
                     </span>
                 )}
                 {cargandoDisponibilidad && (
                     <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full ml-2 animate-pulse">
-                        Verificando...
+                        {t('Verificando...')}
                     </span>
                 )}
             </h2>
             
             <div className="bg-white/90 backdrop-blur-sm rounded-xl border-2 border-pink-200 shadow-sm overflow-hidden">
                 <div className="flex items-center justify-between p-4 bg-gradient-to-r from-pink-50 to-pink-100 border-b border-pink-200">
-                    <button onClick={prevMonth} className="p-2 hover:bg-white/50 rounded-full transition-colors text-pink-600" title="Mes anterior">◀</button>
+                    <button onClick={prevMonth} className="p-2 hover:bg-white/50 rounded-full transition-colors text-pink-600" title={t('Mes anterior')}>◀</button>
                     <span className="font-bold text-pink-800 text-lg capitalize">
                         {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
                     </span>
-                    <button onClick={nextMonth} className="p-2 hover:bg-white/50 rounded-full transition-colors text-pink-600" title="Mes siguiente">▶</button>
+                    <button onClick={nextMonth} className="p-2 hover:bg-white/50 rounded-full transition-colors text-pink-600" title={t('Mes siguiente')}>▶</button>
                 </div>
 
                 <div className="p-4">
                     <div className="grid grid-cols-7 mb-2 text-center">
-                        {['D', 'L', 'M', 'M', 'J', 'V', 'S'].map((d, i) => (
-                            <div key={i} className={`text-xs font-medium py-1 ${d === 'D' ? 'text-pink-400' : 'text-pink-600'}`}>{d}</div>
+                        {(idioma === 'en' ? ['S', 'M', 'T', 'W', 'T', 'F', 'S'] : ['D', 'L', 'M', 'M', 'J', 'V', 'S']).map((d, i) => (
+                            <div key={i} className={`text-xs font-medium py-1 ${i === 0 ? 'text-pink-400' : 'text-pink-600'}`}>{d}</div>
                         ))}
                     </div>
                     
@@ -447,18 +451,20 @@ function Calendar({ onDateSelect, selectedDate, profesional, profesionalCompleto
                             else className += " text-pink-700 hover:bg-pink-100 hover:text-pink-600 hover:scale-105 cursor-pointer";
                             
                             let title = "";
-                            if (cerrado) title = "Dia cerrado";
-                            else if (diaLibreProfesional) title = `${profesional?.nombre} no trabaja este dia`;
-                            else if (puedeListaEspera) title = "Dia lleno: puedes anotarte en lista de espera";
-                            else if (sinDisponibilidad) title = "Sin horarios disponibles para este servicio";
-                            else if (!disponibilidadVerificada || cargandoDisponibilidad) title = "Verificando disponibilidad";
-                            else if (past && dateStr === getTodayLocalString()) title = "Hoy ya no hay horarios disponibles";
-                            else if (past) title = "Fecha pasada";
+                            if (cerrado) title = t('Dia cerrado');
+                            else if (diaLibreProfesional) title = t('{nombre} no trabaja este dia', { nombre: profesional?.nombre });
+                            else if (puedeListaEspera) title = t('Dia lleno: puedes anotarte en lista de espera');
+                            else if (sinDisponibilidad) title = t('Sin horarios disponibles para este servicio');
+                            else if (!disponibilidadVerificada || cargandoDisponibilidad) title = t('Verificando disponibilidad');
+                            else if (past && dateStr === getTodayLocalString()) title = t('Hoy ya no hay horarios disponibles');
+                            else if (past) title = t('Fecha pasada');
                             else if (!profesionalTrabaja && profesional && !tieneHorarios) {
-                                const diasSemana = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
-                                title = `${profesional.nombre} no trabaja los ${diasSemana[date.getDay()]}s`;
-                            } else if (!tieneHorarios) title = "No hay horarios configurados para este dia";
-                            else title = "Disponible";
+                                const diasSemana = idioma === 'en'
+                                    ? ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+                                    : ['domingos', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabados'];
+                                title = t('{nombre} no trabaja los {dia}', { nombre: profesional.nombre, dia: diasSemana[date.getDay()] });
+                            } else if (!tieneHorarios) title = t('No hay horarios configurados para este dia');
+                            else title = t('Disponible');
                             
                             return (
                                 <button key={idx} onClick={() => selectable && onDateSelect(dateStr)} disabled={!selectable} className={className} title={title}>
@@ -481,22 +487,22 @@ function Calendar({ onDateSelect, selectedDate, profesional, profesionalCompleto
                     <div className="flex items-center gap-2">
                         <span className="text-pink-400 text-lg">📅</span>
                         <span>
-                            <strong>Dias que trabaja {profesional.nombre}:</strong>{' '}
+                            <strong>{t('Dias que trabaja {nombre}:', { nombre: profesional.nombre })}</strong>{' '}
                             {diasLaborales.length > 0
                                 ? diasLaborales.map(d => d.charAt(0).toUpperCase() + d.slice(1)).join(', ')
-                                : 'Todos los dias (sin configuracion especifica)'}
+                                : t('Todos los dias (sin configuracion especifica)')}
                         </span>
                     </div>
                     {fechasLibresProfesional.length > 0 && (
                         <div className="flex items-center gap-2 mt-2">
                             <span className="text-orange-500 text-lg">○</span>
-                            <span><strong>Dias libres:</strong> {fechasLibresProfesional.length} dia(s) no disponible(s)</span>
+                            <span><strong>{t('Dias libres:')}</strong> {t('{n} dia(s) no disponible(s)', { n: fechasLibresProfesional.length })}</span>
                         </div>
                     )}
                     {diasCerrados.length > 0 && (
                         <div className="flex items-center gap-2 mt-2">
                             <span className="text-red-400 text-lg">×</span>
-                            <span><strong>Dias cerrados del local:</strong> {diasCerrados.length} dia(s) no disponible(s)</span>
+                            <span><strong>{t('Dias cerrados del local:')}</strong> {t('{n} dia(s) no disponible(s)', { n: diasCerrados.length })}</span>
                         </div>
                     )}
                 </div>

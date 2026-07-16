@@ -38,7 +38,7 @@ async function getConfigNegocio() {
         const preferenciasWhatsApp = window.getPreferenciasWhatsAppNegocio
             ? window.getPreferenciasWhatsAppNegocio(config)
             : {
-                moneda: ['CUP', 'USD'].includes(String(config?.whatsapp_moneda || '').toUpperCase()) ? String(config.whatsapp_moneda).toUpperCase() : 'CUP',
+                moneda: ['CUP', 'USD', 'EUR', 'MXN'].includes(String(config?.whatsapp_moneda || '').toUpperCase()) ? String(config.whatsapp_moneda).toUpperCase() : 'CUP',
                 mostrarCostos: config?.whatsapp_mostrar_costos !== false
             };
         return {
@@ -107,9 +107,9 @@ async function calcularMontoAnticipo(configNegocio, servicioNombre) {
 
     const porcentaje = (configNegocio.valor_anticipo || 0) / 100;
     const resultado = precioServicio * porcentaje;
-    // Para CUP redondear a entero, para USD preservar 2 decimales
+    // Para CUP redondear a entero, el resto de monedas preserva 2 decimales
     const moneda = String(configNegocio?.whatsapp_moneda || 'CUP').toUpperCase();
-    return moneda === 'USD' ? Math.round(resultado * 100) / 100 : Math.round(resultado);
+    return moneda === 'CUP' ? Math.round(resultado) : Math.round(resultado * 100) / 100;
 }
 
 async function calcularTotalReserva(booking) {
@@ -180,7 +180,7 @@ function getPreferenciasWhatsApp(configNegocio = {}) {
     }
     const moneda = String(configNegocio?.whatsapp_moneda || 'CUP').toUpperCase();
     return {
-        moneda: ['CUP', 'USD'].includes(moneda) ? moneda : 'CUP',
+        moneda: ['CUP', 'USD', 'EUR', 'MXN'].includes(moneda) ? moneda : 'CUP',
         mostrarCostos: configNegocio?.whatsapp_mostrar_costos !== false
     };
 }

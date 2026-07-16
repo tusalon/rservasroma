@@ -13,7 +13,7 @@ function categoriaId(categoria) {
 }
 
 function categoriaNombre(categoria) {
-    return categoria?.nombre || categoria?.label || 'Otros';
+    return categoria?.nombre || categoria?.label || window.t('Otros');
 }
 
 function categoriaIcono(categoria) {
@@ -61,6 +61,8 @@ function getCategoriaServicio(servicio, categorias = []) {
 }
 
 function ServiciosPanel() {
+    const idioma = window.useIdioma();
+    const t = window.t;
     const [servicios, setServicios] = React.useState([]);
     const [categorias, setCategorias] = React.useState(window.salonCategoriasServicios?.defaults || []);
     const [mostrarForm, setMostrarForm] = React.useState(false);
@@ -105,10 +107,10 @@ function ServiciosPanel() {
     };
 
     const categoriasFiltro = React.useMemo(() => ([
-        { id: 'todos', slug: 'todos', nombre: 'Todos', icono: '📋', activo: true },
+        { id: 'todos', slug: 'todos', nombre: t('Todos'), icono: '📋', activo: true },
         ...categorias.filter(c => c.activo !== false),
-        { id: 'inactivos', slug: 'inactivos', nombre: 'Inactivos', icono: '⏸️', activo: true }
-    ]), [categorias]);
+        { id: 'inactivos', slug: 'inactivos', nombre: t('Inactivos'), icono: '⏸️', activo: true }
+    ]), [categorias, idioma]);
 
     React.useEffect(() => {
         if (!categoriasFiltro.some(categoria => categoriaId(categoria) === categoriaActiva)) {
@@ -140,7 +142,7 @@ function ServiciosPanel() {
             : await window.salonServicios.crear(servicio);
 
         if (!resultado) {
-            alert('No se pudo guardar el servicio. Revisa la consola para ver el detalle de Supabase.');
+            alert(t('No se pudo guardar el servicio. Revisa la consola para ver el detalle de Supabase.'));
             return;
         }
 
@@ -151,7 +153,7 @@ function ServiciosPanel() {
 
     const duplicarServicio = async (servicio) => {
         await window.salonServicios.crear({
-            nombre: `${servicio.nombre} (copia)`,
+            nombre: `${servicio.nombre} (${t('copia')})`,
             categoria: inferirCategoriaServicio(servicio, categorias),
             duracion: servicio.duracion,
             precio: servicio.precio,
@@ -169,7 +171,7 @@ function ServiciosPanel() {
     };
 
     const eliminarServicio = async (id) => {
-        if (!confirm('¿Eliminar este servicio? También se eliminarán las asignaciones de profesionales.')) return;
+        if (!confirm(t('¿Eliminar este servicio? También se eliminarán las asignaciones de profesionales.'))) return;
         await window.salonServicios.eliminar(id);
         await cargarDatos();
     };
@@ -191,7 +193,7 @@ function ServiciosPanel() {
         return (
             <div className="bg-white rounded-xl shadow-sm p-6 text-center py-12">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500 mx-auto"></div>
-                <p className="text-gray-500 mt-4">Cargando servicios...</p>
+                <p className="text-gray-500 mt-4">{t('Cargando servicios...')}</p>
             </div>
         );
     }
@@ -202,18 +204,18 @@ function ServiciosPanel() {
                 <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                     <div>
                         <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                            <span>💅</span> Servicios
+                            <span>💅</span> {t('Servicios')}
                         </h2>
                         <p className="text-sm text-gray-500 mt-1">
-                            Controla servicios, categorías, precios, duración y profesionales.
+                            {t('Controla servicios, categorías, precios, duración y profesionales.')}
                         </p>
                     </div>
                     <div className="flex flex-col sm:flex-row gap-2">
                         <button onClick={() => setMostrarCategorias(!mostrarCategorias)} className="border border-pink-200 text-pink-700 px-4 py-3 rounded-lg hover:bg-pink-50 font-semibold">
-                            ⚙️ Categorías
+                            ⚙️ {t('Categorías')}
                         </button>
                         <button onClick={() => abrirFormularioServicio()} className="bg-pink-600 text-white px-4 py-3 rounded-lg hover:bg-pink-700 font-semibold shadow-sm">
-                            + Nuevo servicio
+                            + {t('Nuevo servicio')}
                         </button>
                     </div>
                 </div>
@@ -224,10 +226,10 @@ function ServiciosPanel() {
                         value={busqueda}
                         onChange={(e) => setBusqueda(e.target.value)}
                         className="flex-1 border border-gray-200 rounded-lg px-4 py-3 focus:ring-2 focus:ring-pink-500 focus:border-pink-500 outline-none"
-                        placeholder="Buscar por nombre o descripción"
+                        placeholder={t('Buscar por nombre o descripción')}
                     />
                     <button onClick={() => setBusqueda('')} className="px-3 py-2 rounded-lg border border-gray-200 text-sm hover:bg-gray-50">
-                        Limpiar
+                        {t('Limpiar')}
                     </button>
                 </div>
 
@@ -273,8 +275,8 @@ function ServiciosPanel() {
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
                 {serviciosFiltrados.length === 0 ? (
                     <div className="xl:col-span-2 bg-white rounded-xl border border-dashed border-gray-300 p-10 text-center text-gray-500">
-                        <p className="font-medium">No hay servicios para este filtro.</p>
-                        <p className="text-sm mt-1">Crea uno nuevo o cambia de categoría.</p>
+                        <p className="font-medium">{t('No hay servicios para este filtro.')}</p>
+                        <p className="text-sm mt-1">{t('Crea uno nuevo o cambia de categoría.')}</p>
                     </div>
                 ) : (
                     serviciosFiltrados.map(servicio => {
@@ -300,17 +302,17 @@ function ServiciosPanel() {
                                             <span className="px-2 py-1 bg-gray-100 rounded-full text-gray-700">{servicio.duracion} min</span>
                                             <span className="px-2 py-1 bg-gray-100 rounded-full text-gray-700">{window.formatearPrecioServicio ? window.formatearPrecioServicio(servicio) : `$${servicio.precio}`}</span>
                                             <button onClick={() => toggleActivo(servicio)} className={`px-2 py-1 rounded-full text-xs font-semibold ${servicio.activo !== false ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-600'}`}>
-                                                {servicio.activo !== false ? 'Activo' : 'Inactivo'}
+                                                {servicio.activo !== false ? t('Activo') : t('Inactivo')}
                                             </button>
                                         </div>
                                         {servicio.descripcion && <p className="text-sm text-gray-500 mt-3 line-clamp-2">{servicio.descripcion}</p>}
-                                        {servicio.horarios_permitidos?.length > 0 && <p className="text-xs text-pink-600 mt-3">🕐 Horarios permitidos: {formatearListaHorasAdmin(servicio.horarios_permitidos)}</p>}
+                                        {servicio.horarios_permitidos?.length > 0 && <p className="text-xs text-pink-600 mt-3">🕐 {t('Horarios permitidos:')} {formatearListaHorasAdmin(servicio.horarios_permitidos)}</p>}
                                     </div>
                                     <div className="flex gap-1 shrink-0">
-                                        <button onClick={() => setServicioParaAsignar(servicio)} className="w-9 h-9 rounded-lg hover:bg-purple-50 text-purple-600" title="Asignar profesionales">👥</button>
-                                        <button onClick={() => abrirFormularioServicio(servicio)} className="w-9 h-9 rounded-lg hover:bg-blue-50 text-blue-600" title="Editar">✏️</button>
-                                        <button onClick={() => duplicarServicio(servicio)} className="w-9 h-9 rounded-lg hover:bg-amber-50 text-amber-600" title="Duplicar">📄</button>
-                                        <button onClick={() => eliminarServicio(servicio.id)} className="w-9 h-9 rounded-lg hover:bg-red-50 text-red-600" title="Eliminar">🗑️</button>
+                                        <button onClick={() => setServicioParaAsignar(servicio)} className="w-9 h-9 rounded-lg hover:bg-purple-50 text-purple-600" title={t('Asignar profesionales')}>👥</button>
+                                        <button onClick={() => abrirFormularioServicio(servicio)} className="w-9 h-9 rounded-lg hover:bg-blue-50 text-blue-600" title={t('Editar')}>✏️</button>
+                                        <button onClick={() => duplicarServicio(servicio)} className="w-9 h-9 rounded-lg hover:bg-amber-50 text-amber-600" title={t('Duplicar')}>📄</button>
+                                        <button onClick={() => eliminarServicio(servicio.id)} className="w-9 h-9 rounded-lg hover:bg-red-50 text-red-600" title={t('Eliminar')}>🗑️</button>
                                     </div>
                                 </div>
                             </div>
@@ -327,6 +329,8 @@ function ServiciosPanel() {
 }
 
 function CategoriasServiciosManager({ categorias, servicios, onChange }) {
+    window.useIdioma();
+    const t = window.t;
     const [form, setForm] = React.useState({ nombre: '', icono: '✨', orden: 99 });
     const [editando, setEditando] = React.useState(null);
 
@@ -338,7 +342,7 @@ function CategoriasServiciosManager({ categorias, servicios, onChange }) {
     const guardar = async (e) => {
         e.preventDefault();
         if (!form.nombre.trim()) {
-            alert('Escribe el nombre de la categoría.');
+            alert(t('Escribe el nombre de la categoría.'));
             return;
         }
 
@@ -355,7 +359,7 @@ function CategoriasServiciosManager({ categorias, servicios, onChange }) {
             : await window.salonCategoriasServicios?.crear(payload);
 
         if (!result) {
-            alert('No se pudo guardar la categoría. Revisa si ya corriste el SQL de categorías.');
+            alert(t('No se pudo guardar la categoría. Revisa si ya corriste el SQL de categorías.'));
             return;
         }
 
@@ -376,7 +380,7 @@ function CategoriasServiciosManager({ categorias, servicios, onChange }) {
     const eliminar = async (categoria) => {
         const id = categoriaId(categoria);
         const usados = servicios.filter(s => inferirCategoriaServicio(s, categorias) === id);
-        if (!confirm(`¿Eliminar la categoría "${categoriaNombre(categoria)}"? ${usados.length ? 'Sus servicios pasarán a Otros.' : ''}`)) return;
+        if (!confirm(t('¿Eliminar la categoría "{nombre}"? {aviso}', { nombre: categoriaNombre(categoria), aviso: usados.length ? t('Sus servicios pasarán a Otros.') : '' }))) return;
 
         for (const servicio of usados) {
             await window.salonServicios.actualizar(servicio.id, { categoria: 'otros' });
@@ -384,7 +388,7 @@ function CategoriasServiciosManager({ categorias, servicios, onChange }) {
 
         const ok = await window.salonCategoriasServicios?.eliminar(categoria.id);
         if (!ok) {
-            alert('No se pudo eliminar la categoría. Revisa si ya corriste el SQL de categorías.');
+            alert(t('No se pudo eliminar la categoría. Revisa si ya corriste el SQL de categorías.'));
             return;
         }
         await onChange();
@@ -393,7 +397,7 @@ function CategoriasServiciosManager({ categorias, servicios, onChange }) {
     const toggle = async (categoria) => {
         const ok = await window.salonCategoriasServicios?.actualizar(categoria.id, { activo: categoria.activo === false });
         if (!ok) {
-            alert('No se pudo cambiar el estado de la categoría.');
+            alert(t('No se pudo cambiar el estado de la categoría.'));
             return;
         }
         await onChange();
@@ -403,20 +407,20 @@ function CategoriasServiciosManager({ categorias, servicios, onChange }) {
         <div className="bg-white rounded-xl border border-pink-100 shadow-sm p-5">
             <div className="flex flex-col lg:flex-row gap-5">
                 <form onSubmit={guardar} className="lg:w-80 space-y-3">
-                    <h3 className="font-bold text-gray-900">{editando ? 'Editar categoría' : 'Nueva categoría'}</h3>
-                    <input value={form.nombre} onChange={(e) => setForm({...form, nombre: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2" placeholder="Nombre: Faciales premium" />
+                    <h3 className="font-bold text-gray-900">{editando ? t('Editar categoría') : t('Nueva categoría')}</h3>
+                    <input value={form.nombre} onChange={(e) => setForm({...form, nombre: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2" placeholder={t('Nombre: Faciales premium')} />
                     <div className="grid grid-cols-2 gap-2">
-                        <input value={form.icono} onChange={(e) => setForm({...form, icono: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2" placeholder="Emoji" maxLength="4" />
-                        <input value={form.orden} onChange={(e) => setForm({...form, orden: e.target.value.replace(/\D/g, '')})} className="w-full border border-gray-200 rounded-lg px-3 py-2" placeholder="Orden" inputMode="numeric" />
+                        <input value={form.icono} onChange={(e) => setForm({...form, icono: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2" placeholder={t('Emoji')} maxLength="4" />
+                        <input value={form.orden} onChange={(e) => setForm({...form, orden: e.target.value.replace(/\D/g, '')})} className="w-full border border-gray-200 rounded-lg px-3 py-2" placeholder={t('Orden')} inputMode="numeric" />
                     </div>
                     <div className="flex gap-2">
-                        <button type="submit" className="flex-1 bg-pink-600 text-white px-3 py-2 rounded-lg hover:bg-pink-700">{editando ? 'Actualizar' : 'Crear'}</button>
-                        {editando && <button type="button" onClick={reset} className="px-3 py-2 border rounded-lg hover:bg-gray-50">Cancelar</button>}
+                        <button type="submit" className="flex-1 bg-pink-600 text-white px-3 py-2 rounded-lg hover:bg-pink-700">{editando ? t('Actualizar') : t('Crear')}</button>
+                        {editando && <button type="button" onClick={reset} className="px-3 py-2 border rounded-lg hover:bg-gray-50">{t('Cancelar')}</button>}
                     </div>
                 </form>
 
                 <div className="flex-1">
-                    <h3 className="font-bold text-gray-900 mb-3">Categorías actuales</h3>
+                    <h3 className="font-bold text-gray-900 mb-3">{t('Categorías actuales')}</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                         {categorias.map(categoria => {
                             const id = categoriaId(categoria);
@@ -426,11 +430,11 @@ function CategoriasServiciosManager({ categorias, servicios, onChange }) {
                                     <span className="text-2xl">{categoriaIcono(categoria)}</span>
                                     <div className="flex-1 min-w-0">
                                         <div className="font-semibold text-gray-800 truncate">{categoriaNombre(categoria)}</div>
-                                        <div className="text-xs text-gray-500">{usados} servicios · orden {categoria.orden || 99}</div>
+                                        <div className="text-xs text-gray-500">{t('{n} servicios · orden {orden}', { n: usados, orden: categoria.orden || 99 })}</div>
                                     </div>
-                                    <button onClick={() => editar(categoria)} className="text-blue-600 hover:bg-blue-50 rounded-lg w-8 h-8" title="Editar">✏️</button>
-                                    <button onClick={() => toggle(categoria)} className="text-amber-600 hover:bg-amber-50 rounded-lg w-8 h-8" title="Activar/desactivar">{categoria.activo === false ? '▶️' : '⏸️'}</button>
-                                    <button onClick={() => eliminar(categoria)} className="text-red-600 hover:bg-red-50 rounded-lg w-8 h-8" title="Eliminar">🗑️</button>
+                                    <button onClick={() => editar(categoria)} className="text-blue-600 hover:bg-blue-50 rounded-lg w-8 h-8" title={t('Editar')}>✏️</button>
+                                    <button onClick={() => toggle(categoria)} className="text-amber-600 hover:bg-amber-50 rounded-lg w-8 h-8" title={t('Activar/desactivar')}>{categoria.activo === false ? '▶️' : '⏸️'}</button>
+                                    <button onClick={() => eliminar(categoria)} className="text-red-600 hover:bg-red-50 rounded-lg w-8 h-8" title={t('Eliminar')}>🗑️</button>
                                 </div>
                             );
                         })}
@@ -442,6 +446,8 @@ function CategoriasServiciosManager({ categorias, servicios, onChange }) {
 }
 
 function ServicioFormCategorias({ servicio, categorias, onGuardar, onCancelar }) {
+    window.useIdioma();
+    const t = window.t;
     const categoriaInicial = servicio ? inferirCategoriaServicio(servicio, categorias) : categoriaId(categorias.find(c => c.activo !== false) || categorias[0]);
     const [form, setForm] = React.useState({
         nombre: servicio?.nombre || '',
@@ -464,16 +470,16 @@ function ServicioFormCategorias({ servicio, categorias, onGuardar, onCancelar })
         const precioDesde = window.parsePrecioServicio ? window.parsePrecioServicio(form.precio_desde, NaN) : parseFloat(String(form.precio_desde).replace(',', '.'));
         const precioHasta = form.precio_hasta === '' ? null : (window.parsePrecioServicio ? window.parsePrecioServicio(form.precio_hasta, NaN) : parseFloat(String(form.precio_hasta).replace(',', '.')));
         const valorAnticipo = form.valor_anticipo === '' ? null : (window.parsePrecioServicio ? window.parsePrecioServicio(form.valor_anticipo, NaN) : parseFloat(String(form.valor_anticipo).replace(',', '.')));
-        if (!form.nombre.trim()) return alert('El nombre del servicio es obligatorio');
-        if (isNaN(duracion) || duracion < 3) return alert('La duración debe ser al menos 3 minutos');
-        if (isNaN(precioDesde) || precioDesde < 0) return alert('El precio desde debe ser válido');
-        if (precioHasta !== null && (isNaN(precioHasta) || precioHasta < precioDesde)) return alert('El precio hasta debe ser mayor o igual al precio desde');
-        if (form.requiere_anticipo && (valorAnticipo === null || isNaN(valorAnticipo) || valorAnticipo <= 0)) return alert('El anticipo del servicio debe ser mayor que cero');
+        if (!form.nombre.trim()) return alert(t('El nombre del servicio es obligatorio'));
+        if (isNaN(duracion) || duracion < 3) return alert(t('La duración debe ser al menos 3 minutos'));
+        if (isNaN(precioDesde) || precioDesde < 0) return alert(t('El precio desde debe ser válido'));
+        if (precioHasta !== null && (isNaN(precioHasta) || precioHasta < precioDesde)) return alert(t('El precio hasta debe ser mayor o igual al precio desde'));
+        if (form.requiere_anticipo && (valorAnticipo === null || isNaN(valorAnticipo) || valorAnticipo <= 0)) return alert(t('El anticipo del servicio debe ser mayor que cero'));
 
         let horarios = [];
         if (horariosStr.trim()) {
             horarios = horariosStr.split(',').map(h => h.trim()).filter(h => h.match(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/));
-            if (horarios.length === 0) return alert('Formato de horarios inválido. Usa HH:MM separados por comas.');
+            if (horarios.length === 0) return alert(t('Formato de horarios inválido. Usa HH:MM separados por comas.'));
         }
 
         onGuardar({
@@ -484,7 +490,7 @@ function ServicioFormCategorias({ servicio, categorias, onGuardar, onCancelar })
             precio: precioDesde,
             precio_desde: precioDesde,
             precio_hasta: precioHasta,
-            precio_moneda: ['CUP', 'USD'].includes(form.precio_moneda) ? form.precio_moneda : 'CUP',
+            precio_moneda: ['CUP', 'USD', 'EUR', 'MXN'].includes(form.precio_moneda) ? form.precio_moneda : 'CUP',
             requiere_anticipo: form.requiere_anticipo,
             tipo_anticipo: form.tipo_anticipo === 'porcentaje' ? 'porcentaje' : 'fijo',
             valor_anticipo: form.requiere_anticipo ? valorAnticipo : null,
@@ -496,40 +502,42 @@ function ServicioFormCategorias({ servicio, categorias, onGuardar, onCancelar })
         <form onSubmit={submit} className="bg-white rounded-xl border border-pink-100 shadow-sm p-5">
             <div className="flex items-start justify-between gap-4 mb-5">
                 <div>
-                    <h3 className="text-lg font-bold text-gray-900">{servicio ? '✏️ Editar servicio' : '➕ Nuevo servicio'}</h3>
-                    <p className="text-sm text-gray-500 mt-1">Completa la información que verá la clienta al reservar.</p>
+                    <h3 className="text-lg font-bold text-gray-900">{servicio ? '✏️ ' + t('Editar servicio') : '➕ ' + t('Nuevo servicio')}</h3>
+                    <p className="text-sm text-gray-500 mt-1">{t('Completa la información que verá la clienta al reservar.')}</p>
                 </div>
                 <button type="button" onClick={onCancelar} className="text-gray-400 hover:text-gray-700 text-2xl leading-none">×</button>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <section className="space-y-3">
-                    <h4 className="font-semibold text-gray-800">Información básica</h4>
-                    <input value={form.nombre} onChange={(e) => setForm({...form, nombre: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2" placeholder="Nombre del servicio" required />
+                    <h4 className="font-semibold text-gray-800">{t('Información básica')}</h4>
+                    <input value={form.nombre} onChange={(e) => setForm({...form, nombre: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2" placeholder={t('Nombre del servicio')} required />
                     <select value={form.categoria} onChange={(e) => setForm({...form, categoria: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 bg-white">
                         {categorias.filter(c => c.activo !== false).map(categoria => (
                             <option key={categoriaId(categoria)} value={categoriaId(categoria)}>{categoriaIcono(categoria)} {categoriaNombre(categoria)}</option>
                         ))}
                     </select>
-                    <textarea value={form.descripcion} onChange={(e) => setForm({...form, descripcion: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2" rows="4" placeholder="Descripción" />
+                    <textarea value={form.descripcion} onChange={(e) => setForm({...form, descripcion: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2" rows="4" placeholder={t('Descripción')} />
                 </section>
                 <section className="space-y-3">
-                    <h4 className="font-semibold text-gray-800">Precio, duración y disponibilidad</h4>
+                    <h4 className="font-semibold text-gray-800">{t('Precio, duración y disponibilidad')}</h4>
                     <div className="grid grid-cols-2 gap-3">
-                        <input value={form.duracion} onChange={(e) => setForm({...form, duracion: e.target.value.replace(/\D/g, '')})} className="w-full border border-gray-200 rounded-lg px-3 py-2" placeholder="Duración" inputMode="numeric" />
+                        <input value={form.duracion} onChange={(e) => setForm({...form, duracion: e.target.value.replace(/\D/g, '')})} className="w-full border border-gray-200 rounded-lg px-3 py-2" placeholder={t('Duración')} inputMode="numeric" />
                         <select value={form.precio_moneda} onChange={(e) => setForm({...form, precio_moneda: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 bg-white">
                             <option value="CUP">CUP</option>
                             <option value="USD">USD</option>
+                            <option value="EUR">EUR</option>
+                            <option value="MXN">MXN</option>
                         </select>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
-                        <input value={form.precio_desde} onChange={(e) => setForm({...form, precio_desde: e.target.value.replace(/[^0-9.,]/g, '')})} className="w-full border border-gray-200 rounded-lg px-3 py-2" placeholder="Precio desde" inputMode="decimal" />
-                        <input value={form.precio_hasta} onChange={(e) => setForm({...form, precio_hasta: e.target.value.replace(/[^0-9.,]/g, '')})} className="w-full border border-gray-200 rounded-lg px-3 py-2" placeholder="Precio hasta opcional" inputMode="decimal" />
+                        <input value={form.precio_desde} onChange={(e) => setForm({...form, precio_desde: e.target.value.replace(/[^0-9.,]/g, '')})} className="w-full border border-gray-200 rounded-lg px-3 py-2" placeholder={t('Precio desde')} inputMode="decimal" />
+                        <input value={form.precio_hasta} onChange={(e) => setForm({...form, precio_hasta: e.target.value.replace(/[^0-9.,]/g, '')})} className="w-full border border-gray-200 rounded-lg px-3 py-2" placeholder={t('Precio hasta opcional')} inputMode="decimal" />
                     </div>
-                    <p className="text-xs text-gray-400">Si no hay rango, deja vacío "precio hasta". El cálculo usa el precio desde.</p>
+                    <p className="text-xs text-gray-400">{t('Si no hay rango, deja vacío "precio hasta". El cálculo usa el precio desde.')}</p>
                     <div className="rounded-lg border border-amber-100 bg-amber-50 p-3 space-y-3">
                         <label className="flex items-center justify-between gap-3 cursor-pointer">
-                            <span className="text-sm font-semibold text-amber-800">Anticipo propio de este servicio</span>
+                            <span className="text-sm font-semibold text-amber-800">{t('Anticipo propio de este servicio')}</span>
                             <input
                                 type="checkbox"
                                 checked={form.requiere_anticipo}
@@ -540,22 +548,22 @@ function ServicioFormCategorias({ servicio, categorias, onGuardar, onCancelar })
                         {form.requiere_anticipo && (
                             <div className="grid grid-cols-2 gap-3">
                                 <select value={form.tipo_anticipo} onChange={(e) => setForm({...form, tipo_anticipo: e.target.value})} className="w-full border border-amber-200 rounded-lg px-3 py-2 bg-white">
-                                    <option value="fijo">Monto fijo</option>
-                                    <option value="porcentaje">Porcentaje</option>
+                                    <option value="fijo">{t('Monto fijo')}</option>
+                                    <option value="porcentaje">{t('Porcentaje')}</option>
                                 </select>
-                                <input value={form.valor_anticipo} onChange={(e) => setForm({...form, valor_anticipo: e.target.value.replace(/[^0-9.,]/g, '')})} className="w-full border border-amber-200 rounded-lg px-3 py-2" placeholder={form.tipo_anticipo === 'porcentaje' ? 'Ej: 30' : 'Ej: 500'} inputMode="decimal" />
+                                <input value={form.valor_anticipo} onChange={(e) => setForm({...form, valor_anticipo: e.target.value.replace(/[^0-9.,]/g, '')})} className="w-full border border-amber-200 rounded-lg px-3 py-2" placeholder={form.tipo_anticipo === 'porcentaje' ? t('Ej: 30') : t('Ej: 500')} inputMode="decimal" />
                             </div>
                         )}
-                        <p className="text-xs text-amber-700">Solo se usa si en Editar negocio activas los anticipos por servicio.</p>
+                        <p className="text-xs text-amber-700">{t('Solo se usa si en Editar negocio activas los anticipos por servicio.')}</p>
                     </div>
-                    <input value={horariosStr} onChange={(e) => setHorariosStr(e.target.value)} className="w-full border border-gray-200 rounded-lg px-3 py-2" placeholder="Horarios permitidos: 09:00, 11:00" />
-                    <p className="text-xs text-gray-400">Déjalo vacío para usar todos los horarios del profesional.</p>
+                    <input value={horariosStr} onChange={(e) => setHorariosStr(e.target.value)} className="w-full border border-gray-200 rounded-lg px-3 py-2" placeholder={t('Horarios permitidos: 09:00, 11:00')} />
+                    <p className="text-xs text-gray-400">{t('Déjalo vacío para usar todos los horarios del profesional.')}</p>
                 </section>
             </div>
 
             <div className="flex flex-col sm:flex-row justify-end gap-2 mt-5 pt-4 border-t">
-                <button type="button" onClick={onCancelar} className="px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50">Cancelar</button>
-                <button type="submit" className="px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 font-semibold">{servicio ? 'Actualizar servicio' : 'Guardar servicio'}</button>
+                <button type="button" onClick={onCancelar} className="px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50">{t('Cancelar')}</button>
+                <button type="submit" className="px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 font-semibold">{servicio ? t('Actualizar servicio') : t('Guardar servicio')}</button>
             </div>
         </form>
     );
@@ -563,6 +571,8 @@ function ServicioFormCategorias({ servicio, categorias, onGuardar, onCancelar })
 
 // 🔥 COMPONENTE MODAL: Asignar Profesionales a Servicio
 function AsignarProfesionalesModal({ servicio, onClose }) {
+    window.useIdioma();
+    const t = window.t;
     const [profesionales, setProfesionales] = React.useState([]);
     const [asignados, setAsignados] = React.useState([]);
     const [cargando, setCargando] = React.useState(true);
@@ -611,7 +621,7 @@ function AsignarProfesionalesModal({ servicio, onClose }) {
             }
         } catch (error) {
             console.error('Error cambiando asignación:', error);
-            alert('Error al asignar profesional');
+            alert(t('Error al asignar profesional'));
         } finally {
             setGuardando(false);
         }
@@ -622,7 +632,7 @@ function AsignarProfesionalesModal({ servicio, onClose }) {
             <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                 <div className="bg-white rounded-xl p-6">
                     <div className="animate-spin h-8 w-8 border-b-2 border-pink-500 mx-auto"></div>
-                    <p className="text-gray-500 mt-4">Cargando profesionales...</p>
+                    <p className="text-gray-500 mt-4">{t('Cargando profesionales...')}</p>
                 </div>
             </div>
         );
@@ -633,7 +643,7 @@ function AsignarProfesionalesModal({ servicio, onClose }) {
             <div className="bg-white rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
                 <div className="sticky top-0 bg-white p-4 border-b flex justify-between items-center">
                     <h3 className="text-lg font-bold">
-                        👥 Profesionales para "{servicio.nombre}"
+                        👥 {t('Profesionales para "{servicio}"', { servicio: servicio.nombre })}
                     </h3>
                     <button onClick={onClose} className="text-gray-500 hover:text-gray-700 text-2xl">
                         ×
@@ -642,19 +652,19 @@ function AsignarProfesionalesModal({ servicio, onClose }) {
 
                 <div className="p-4">
                     <p className="text-sm text-gray-500 mb-4">
-                        Selecciona qué profesionales pueden realizar este servicio.
+                        {t('Selecciona qué profesionales pueden realizar este servicio.')}
                         <br />
                         <span className="text-pink-600 text-xs">
-                            Los clientes solo verán los profesionales marcados aquí.
+                            {t('Los clientes solo verán los profesionales marcados aquí.')}
                         </span>
                     </p>
 
                     <div className="space-y-2">
                         {profesionales.length === 0 ? (
                             <p className="text-center text-gray-500 py-4">
-                                No hay profesionales activos.
+                                {t('No hay profesionales activos.')}
                                 <br />
-                                <span className="text-xs">Crea profesionales en la pestaña "Profesionales"</span>
+                                <span className="text-xs">{t('Crea profesionales en la pestaña "Profesionales"')}</span>
                             </p>
                         ) : (
                             profesionales.map(prof => {
@@ -694,13 +704,13 @@ function AsignarProfesionalesModal({ servicio, onClose }) {
                 <div className="sticky bottom-0 bg-white p-4 border-t">
                     <div className="flex justify-between items-center">
                         <div className="text-sm text-gray-500">
-                            {asignados.length} de {profesionales.length} profesionales seleccionados
+                            {t('{asignados} de {total} profesionales seleccionados', { asignados: asignados.length, total: profesionales.length })}
                         </div>
                         <button
                             onClick={onClose}
                             className="px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700"
                         >
-                            Cerrar
+                            {t('Cerrar')}
                         </button>
                     </div>
                 </div>

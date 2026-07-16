@@ -1,6 +1,8 @@
 // components/admin/ProfesionalesPanel.js
 
 function ProfesionalesPanel() {
+    window.useIdioma();
+    const t = window.t;
     const [profesionales, setProfesionales] = React.useState([]);
     const [mostrarForm, setMostrarForm] = React.useState(false);
     const [editando, setEditando] = React.useState(null);
@@ -39,19 +41,19 @@ function ProfesionalesPanel() {
             setEditando(null);
         } catch (error) {
             console.error('Error guardando profesional:', error);
-            alert('Error al guardar el profesional');
+            alert(t('Error al guardar el profesional'));
         }
     };
 
     const handleEliminar = async (id) => {
-        if (!confirm('¿Eliminar este profesional?')) return;
+        if (!confirm(t('¿Eliminar este profesional?'))) return;
         try {
             console.log('🗑️ Eliminando profesional:', id);
             await window.salonProfesionales.eliminar(id);
             await cargarProfesionales();
         } catch (error) {
             console.error('Error eliminando profesional:', error);
-            alert('Error al eliminar el profesional');
+            alert(t('Error al eliminar el profesional'));
         }
     };
 
@@ -67,10 +69,10 @@ function ProfesionalesPanel() {
 
     const getNivelNombre = (nivel) => {
         switch(nivel) {
-            case 1: return '🔰 Básico';
-            case 2: return '⭐ Intermedio';
-            case 3: return '👑 Avanzado';
-            default: return '🔰 Básico';
+            case 1: return '🔰 ' + t('Básico');
+            case 2: return '⭐ ' + t('Intermedio');
+            case 3: return '👑 ' + t('Avanzado');
+            default: return '🔰 ' + t('Básico');
         }
     };
 
@@ -79,7 +81,7 @@ function ProfesionalesPanel() {
             <div className="bg-white rounded-xl shadow-sm p-6">
                 <div className="text-center py-12">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-500 mx-auto"></div>
-                    <p className="text-gray-500 mt-4">Cargando profesionales...</p>
+                    <p className="text-gray-500 mt-4">{t('Cargando profesionales...')}</p>
                 </div>
             </div>
         );
@@ -88,7 +90,7 @@ function ProfesionalesPanel() {
     return (
         <div className="bg-white rounded-xl shadow-sm p-6">
             <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-bold">👥 Profesionales</h2>
+                <h2 className="text-xl font-bold">👥 {t('Profesionales')}</h2>
                 <button
                     onClick={() => {
                         setEditando(null);
@@ -96,7 +98,7 @@ function ProfesionalesPanel() {
                     }}
                     className="bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700"
                 >
-                    + Nuevo Profesional
+                    + {t('Nuevo Profesional')}
                 </button>
             </div>
 
@@ -114,7 +116,7 @@ function ProfesionalesPanel() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {profesionales.length === 0 ? (
                     <div className="col-span-2 text-center py-8 text-gray-500">
-                        No hay profesionales cargados
+                        {t('No hay profesionales cargados')}
                     </div>
                 ) : (
                     profesionales.map(p => (
@@ -135,7 +137,7 @@ function ProfesionalesPanel() {
                                                         : 'bg-gray-200 text-gray-600'
                                                 }`}
                                             >
-                                                {p.activo ? 'Activo' : 'Inactivo'}
+                                                {p.activo ? t('Activo') : t('Inactivo')}
                                             </button>
                                         </div>
                                         <p className="text-sm text-gray-600">{p.especialidad}</p>
@@ -184,6 +186,8 @@ function ProfesionalesPanel() {
 }
 
 function ProfesionalForm({ profesional, onGuardar, onCancelar }) {
+    window.useIdioma();
+    const t = window.t;
     const [form, setForm] = React.useState(profesional ? { ...profesional, password: '' } : {
         nombre: '',
         especialidad: '',
@@ -196,28 +200,28 @@ function ProfesionalForm({ profesional, onGuardar, onCancelar }) {
 
     const avatares = ['👤', '💇', '💅', '👑', '⭐', '🔰'];
     const colores = [
-        { value: 'bg-amber-600', label: 'Ámbar' },
-        { value: 'bg-amber-700', label: 'Ámbar Oscuro' },
-        { value: 'bg-pink-500', label: 'Rosa' },
-        { value: 'bg-purple-500', label: 'Púrpura' },
-        { value: 'bg-blue-500', label: 'Azul' },
-        { value: 'bg-green-500', label: 'Verde' }
+        { value: 'bg-amber-600', label: t('Ámbar') },
+        { value: 'bg-amber-700', label: t('Ámbar Oscuro') },
+        { value: 'bg-pink-500', label: t('Rosa') },
+        { value: 'bg-purple-500', label: t('Púrpura') },
+        { value: 'bg-blue-500', label: t('Azul') },
+        { value: 'bg-green-500', label: t('Verde') }
     ];
-    
+
     const niveles = [
-        { value: 1, label: '🔰 Básico - Solo ver reservas', desc: 'Acceso limitado a reservas' },
-        { value: 2, label: '⭐ Intermedio - Reservas + Configuración propia + Clientes', desc: 'Puede ver configuración (solo sus horarios) y clientes' },
-        { value: 3, label: '👑 Avanzado - Acceso total', desc: 'Puede gestionar todo como el dueño' }
+        { value: 1, label: '🔰 ' + t('Básico - Solo ver reservas'), desc: t('Acceso limitado a reservas') },
+        { value: 2, label: '⭐ ' + t('Intermedio - Reservas + Configuración propia + Clientes'), desc: t('Puede ver configuración (solo sus horarios) y clientes') },
+        { value: 3, label: '👑 ' + t('Avanzado - Acceso total'), desc: t('Puede gestionar todo como el dueño') }
     ];
 
     const handleSubmit = (e) => {
         e.preventDefault();
         if (!form.telefono || form.telefono.length < 8) {
-            alert('Ingresa un teléfono válido para el acceso del profesional');
+            alert(t('Ingresa un teléfono válido para el acceso del profesional'));
             return;
         }
         if (!profesional && !String(form.password || '').trim()) {
-            alert('Ingresa una contraseña para el acceso del profesional');
+            alert(t('Ingresa una contraseña para el acceso del profesional'));
             return;
         }
 
@@ -231,31 +235,31 @@ function ProfesionalForm({ profesional, onGuardar, onCancelar }) {
     return (
         <form onSubmit={handleSubmit} className="mb-6 p-4 bg-gray-50 rounded-lg">
             <h3 className="font-semibold mb-4">
-                {profesional ? '✏️ Editar Profesional' : '➕ Nuevo Profesional'}
+                {profesional ? '✏️ ' + t('Editar Profesional') : '➕ ' + t('Nuevo Profesional')}
             </h3>
-            
+
             <div className="space-y-3">
                 <input
                     type="text"
-                    placeholder="Nombre"
+                    placeholder={t('Nombre')}
                     value={form.nombre}
                     onChange={(e) => setForm({...form, nombre: e.target.value})}
                     className="w-full border rounded-lg px-3 py-2"
                     required
                 />
-                
+
                 <input
                     type="text"
-                    placeholder="Especialidad"
+                    placeholder={t('Especialidad')}
                     value={form.especialidad}
                     onChange={(e) => setForm({...form, especialidad: e.target.value})}
                     className="w-full border rounded-lg px-3 py-2"
                     required
                 />
-                
+
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Nivel de Acceso
+                        {t('Nivel de Acceso')}
                     </label>
                     <select
                         value={form.nivel}
@@ -273,7 +277,7 @@ function ProfesionalForm({ profesional, onGuardar, onCancelar }) {
                 
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Teléfono
+                        {t('Teléfono')}
                     </label>
                     <div className="flex">
                         <span className="inline-flex items-center px-3 rounded-l-lg border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm">
@@ -292,26 +296,26 @@ function ProfesionalForm({ profesional, onGuardar, onCancelar }) {
                             placeholder={window.getPhoneCountryConfig ? window.getPhoneCountryConfig().ejemplo : '55002272'}
                         />
                     </div>
-                    <p className="text-xs text-gray-400 mt-1">Numero local despues del codigo de pais.</p>
+                    <p className="text-xs text-gray-400 mt-1">{t('Numero local despues del codigo de pais.')}</p>
                 </div>
-                
+
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Contraseña
+                        {t('Contraseña')}
                     </label>
                     <input
                         type="password"
                         value={form.password}
                         onChange={(e) => setForm({...form, password: e.target.value})}
                         className="w-full border rounded-lg px-3 py-2"
-                        placeholder={profesional ? 'Dejar vacío para mantener la actual' : 'Contraseña de acceso'}
+                        placeholder={profesional ? t('Dejar vacío para mantener la actual') : t('Contraseña de acceso')}
                         required={!profesional}
                     />
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-2">
                     <div>
-                        <label className="block text-sm mb-1">Avatar</label>
+                        <label className="block text-sm mb-1">{t('Avatar')}</label>
                         <select
                             value={form.avatar}
                             onChange={(e) => setForm({...form, avatar: e.target.value})}
@@ -324,7 +328,7 @@ function ProfesionalForm({ profesional, onGuardar, onCancelar }) {
                     </div>
                     
                     <div>
-                        <label className="block text-sm mb-1">Color</label>
+                        <label className="block text-sm mb-1">{t('Color')}</label>
                         <select
                             value={form.color}
                             onChange={(e) => setForm({...form, color: e.target.value})}
@@ -339,8 +343,8 @@ function ProfesionalForm({ profesional, onGuardar, onCancelar }) {
             </div>
             
             <div className="flex justify-end gap-2 mt-4">
-                <button type="button" onClick={onCancelar} className="px-4 py-2 border rounded-lg hover:bg-gray-100">Cancelar</button>
-                <button type="submit" className="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700">Guardar</button>
+                <button type="button" onClick={onCancelar} className="px-4 py-2 border rounded-lg hover:bg-gray-100">{t('Cancelar')}</button>
+                <button type="submit" className="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700">{t('Guardar')}</button>
             </div>
         </form>
     );

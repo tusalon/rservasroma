@@ -1,6 +1,8 @@
 // components/admin/HorariosPorDiaPanel.js - Panel para configurar horarios por día
 
 function HorariosPorDiaPanel({ profesionalId, profesionalNombre, onGuardar, onCancelar }) {
+    const idioma = window.useIdioma();
+    const t = window.t;
     const [horariosPorDia, setHorariosPorDia] = React.useState({});
     const [descansosPorDia, setDescansosPorDia] = React.useState({});
     const [cargando, setCargando] = React.useState(true);
@@ -9,7 +11,15 @@ function HorariosPorDiaPanel({ profesionalId, profesionalNombre, onGuardar, onCa
     const [nuevoDescanso, setNuevoDescanso] = React.useState({ inicio: '13:00', fin: '14:00' });
     const formatearHora = (hora) => window.formatTo12Hour ? window.formatTo12Hour(hora) : hora;
 
-    const dias = [
+    const dias = idioma === 'en' ? [
+        { id: 'lunes', nombre: 'Monday' },
+        { id: 'martes', nombre: 'Tuesday' },
+        { id: 'miercoles', nombre: 'Wednesday' },
+        { id: 'jueves', nombre: 'Thursday' },
+        { id: 'viernes', nombre: 'Friday' },
+        { id: 'sabado', nombre: 'Saturday' },
+        { id: 'domingo', nombre: 'Sunday' }
+    ] : [
         { id: 'lunes', nombre: 'Lunes' },
         { id: 'martes', nombre: 'Martes' },
         { id: 'miercoles', nombre: 'Miércoles' },
@@ -65,7 +75,7 @@ function HorariosPorDiaPanel({ profesionalId, profesionalNombre, onGuardar, onCa
             
         } catch (error) {
             console.error('Error cargando horarios:', error);
-            alert('Error al cargar horarios');
+            alert(t('Error al cargar horarios'));
         } finally {
             setCargando(false);
         }
@@ -143,7 +153,7 @@ function HorariosPorDiaPanel({ profesionalId, profesionalNombre, onGuardar, onCa
     const agregarDescanso = () => {
         if (!nuevoDescanso.inicio || !nuevoDescanso.fin) return;
         if (nuevoDescanso.inicio >= nuevoDescanso.fin) {
-            alert('La hora de inicio del descanso debe ser menor que la hora final.');
+            alert(t('La hora de inicio del descanso debe ser menor que la hora final.'));
             return;
         }
 
@@ -175,7 +185,7 @@ function HorariosPorDiaPanel({ profesionalId, profesionalNombre, onGuardar, onCa
         return (
             <div className="text-center py-8">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500 mx-auto"></div>
-                <p className="text-gray-500 mt-2">Cargando horarios...</p>
+                <p className="text-gray-500 mt-2">{t('Cargando horarios...')}</p>
             </div>
         );
     }
@@ -183,13 +193,13 @@ function HorariosPorDiaPanel({ profesionalId, profesionalNombre, onGuardar, onCa
     return (
         <div className="bg-white rounded-xl shadow-sm p-6">
             <h3 className="text-lg font-bold mb-4">
-                📅 Horarios de {profesionalNombre} por día
+                📅 {t('Horarios de {nombre} por día', { nombre: profesionalNombre })}
             </h3>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 {/* Panel izquierdo: Selector de días */}
                 <div className="md:col-span-1 space-y-2">
-                    <h4 className="font-medium text-gray-700 mb-2">Días de la semana</h4>
+                    <h4 className="font-medium text-gray-700 mb-2">{t('Días de la semana')}</h4>
                     {dias.map(dia => {
                         const cantidadHoras = horariosPorDia[dia.id]?.length || 0;
                         return (
@@ -212,7 +222,7 @@ function HorariosPorDiaPanel({ profesionalId, profesionalNombre, onGuardar, onCa
                                                 ? 'bg-amber-500 text-white' 
                                                 : 'bg-gray-300 text-gray-700'}
                                         `}>
-                                            {cantidadHoras} hs
+                                            {t('{n} hs', { n: cantidadHoras })}
                                         </span>
                                     )}
                                 </div>
@@ -220,49 +230,49 @@ function HorariosPorDiaPanel({ profesionalId, profesionalNombre, onGuardar, onCa
                         );
                     })}
                 </div>
-                
+
                 {/* Panel derecho: Horas para el día seleccionado */}
                 <div className="md:col-span-3">
                     <div className="flex justify-between items-center mb-4">
                         <h4 className="font-medium text-gray-700">
-                            Horas para {dias.find(d => d.id === diaSeleccionado)?.nombre}
+                            {t('Horas para {dia}', { dia: dias.find(d => d.id === diaSeleccionado)?.nombre })}
                             {horasDisponibles.length > 0 && (
                                 <span className="ml-2 text-sm text-amber-600">
-                                    ({horasDisponibles.length} horarios)
+                                    ({t('{n} horarios', { n: horasDisponibles.length })})
                                 </span>
                             )}
                         </h4>
-                        
+
                         <div className="flex gap-2">
                             <button
                                 onClick={toggleTodasLasHoras}
                                 className="px-3 py-1 bg-blue-500 text-white rounded-lg text-sm hover:bg-blue-600"
                             >
-                                {horasDisponibles.length === todasLasHoras.length ? 'Quitar todas' : 'Agregar todas'}
+                                {horasDisponibles.length === todasLasHoras.length ? t('Quitar todas') : t('Agregar todas')}
                             </button>
                             <button
                                 onClick={limpiarDia}
                                 className="px-3 py-1 bg-red-500 text-white rounded-lg text-sm hover:bg-red-600"
                             >
-                                Limpiar día
+                                {t('Limpiar día')}
                             </button>
                         </div>
                     </div>
-                    
+
                     {/* Selector para copiar horarios de otro día */}
                     <div className="mb-4 p-3 bg-gray-50 rounded-lg flex items-center gap-2">
-                        <span className="text-sm text-gray-600">Copiar horarios de:</span>
+                        <span className="text-sm text-gray-600">{t('Copiar horarios de:')}</span>
                         <select
                             onChange={(e) => copiarHorarios(e.target.value)}
                             className="border rounded-lg px-2 py-1 text-sm"
                             value=""
                         >
-                            <option value="">Seleccionar día</option>
+                            <option value="">{t('Seleccionar día')}</option>
                             {dias
                                 .filter(d => d.id !== diaSeleccionado)
                                 .map(dia => (
                                     <option key={dia.id} value={dia.id}>
-                                        {dia.nombre} ({horariosPorDia[dia.id]?.length || 0} hs)
+                                        {dia.nombre} ({t('{n} hs', { n: horariosPorDia[dia.id]?.length || 0 })})
                                     </option>
                                 ))
                             }
@@ -271,7 +281,7 @@ function HorariosPorDiaPanel({ profesionalId, profesionalNombre, onGuardar, onCa
 
                     {/* Descansos / almuerzo */}
                     <div className="mb-4 p-3 bg-amber-50 rounded-lg border border-amber-200">
-                        <h5 className="font-medium text-amber-800 mb-3">Descansos / almuerzo</h5>
+                        <h5 className="font-medium text-amber-800 mb-3">{t('Descansos / almuerzo')}</h5>
                         <div className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-2 mb-3">
                             <input
                                 type="time"
@@ -290,13 +300,13 @@ function HorariosPorDiaPanel({ profesionalId, profesionalNombre, onGuardar, onCa
                                 onClick={agregarDescanso}
                                 className="bg-amber-600 text-white px-3 py-2 rounded-lg text-sm hover:bg-amber-700"
                             >
-                                Agregar
+                                {t('Agregar')}
                             </button>
                         </div>
 
                         <div className="space-y-2">
                             {(descansosPorDia[diaSeleccionado] || []).length === 0 ? (
-                                <p className="text-xs text-amber-700">Sin descansos para este dia.</p>
+                                <p className="text-xs text-amber-700">{t('Sin descansos para este dia.')}</p>
                             ) : (
                                 (descansosPorDia[diaSeleccionado] || []).map((descanso, index) => (
                                     <div key={`${descanso.inicio}-${descanso.fin}-${index}`} className="flex justify-between items-center bg-white border border-amber-100 rounded-lg px-3 py-2 text-sm">
@@ -306,7 +316,7 @@ function HorariosPorDiaPanel({ profesionalId, profesionalNombre, onGuardar, onCa
                                             onClick={() => eliminarDescanso(index)}
                                             className="text-red-600 hover:text-red-800"
                                         >
-                                            Quitar
+                                            {t('Quitar')}
                                         </button>
                                     </div>
                                 ))
@@ -336,14 +346,14 @@ function HorariosPorDiaPanel({ profesionalId, profesionalNombre, onGuardar, onCa
                     </div>
                     
                     <p className="text-xs text-gray-500 mt-2">
-                        ⏰ Horarios cada 30 minutos. Selecciona las horas en las que {profesionalNombre} trabaja este día.
+                        ⏰ {t('Horarios cada 30 minutos. Selecciona las horas en las que {nombre} trabaja este día.', { nombre: profesionalNombre })}
                     </p>
                 </div>
             </div>
-            
+
             {/* Resumen semanal */}
             <div className="mt-6 pt-4 border-t">
-                <h4 className="font-medium text-gray-700 mb-3">Resumen semanal:</h4>
+                <h4 className="font-medium text-gray-700 mb-3">{t('Resumen semanal:')}</h4>
                 <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2">
                     {dias.map(dia => {
                         const cantidad = horariosPorDia[dia.id]?.length || 0;
@@ -351,27 +361,27 @@ function HorariosPorDiaPanel({ profesionalId, profesionalNombre, onGuardar, onCa
                             <div key={dia.id} className="text-center p-2 bg-gray-50 rounded-lg">
                                 <div className="text-xs text-gray-500">{dia.nombre.substring(0, 3)}</div>
                                 <div className={`font-bold ${cantidad > 0 ? 'text-amber-600' : 'text-gray-400'}`}>
-                                    {cantidad} hs
+                                    {t('{n} hs', { n: cantidad })}
                                 </div>
                             </div>
                         );
                     })}
                 </div>
             </div>
-            
+
             {/* Botones de acción */}
             <div className="flex justify-end gap-3 mt-6">
                 <button
                     onClick={onCancelar}
                     className="px-4 py-2 border rounded-lg hover:bg-gray-100"
                 >
-                    Cancelar
+                    {t('Cancelar')}
                 </button>
                 <button
                     onClick={handleGuardar}
                     className="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700"
                 >
-                    Guardar Horarios
+                    {t('Guardar Horarios')}
                 </button>
             </div>
         </div>

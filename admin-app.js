@@ -397,6 +397,8 @@ const minutesToHoraLegible = (minutosTotales) => {
     return `${horas.toString().padStart(2, '0')}:${minutos.toString().padStart(2, '0')}`;
 };
 function AdminApp() {
+    const idioma = window.useIdioma();
+    const t = window.t;
     const profesionalInicial = window.getProfesionalAutenticado?.() || null;
     const [bookings, setBookings] = React.useState([]);
     const [loading, setLoading] = React.useState(true);
@@ -1673,7 +1675,7 @@ function AdminApp() {
                 `Disponibilidad semanal - ${nombreNegocio}`,
                 `Disponibilidad semanal de ${nombreNegocio}`
             );
-            if (!compartido) alert('Imagen generada. Si no se abrio el menu de compartir, revisa Descargas.');
+            if (!compartido) alert(t('Imagen generada. Si no se abrio el menu de compartir, revisa Descargas.'));
         } catch (error) {
             console.error('Error generando imagen de disponibilidad:', error);
             compartirDisponibilidadSemanalTexto();
@@ -1843,10 +1845,10 @@ function AdminApp() {
                 `Disponibilidad mensual - ${nombreNegocio}`,
                 `Disponibilidad mensual de ${nombreNegocio}`
             );
-            if (!compartido) alert('Imagen mensual generada. Si no se abrio el menu de compartir, revisa Descargas.');
+            if (!compartido) alert(t('Imagen mensual generada. Si no se abrio el menu de compartir, revisa Descargas.'));
         } catch (error) {
             console.error('Error generando imagen mensual:', error);
-            alert('No se pudo generar la imagen mensual.');
+            alert(t('No se pudo generar la imagen mensual.'));
         }
     };
 
@@ -1905,7 +1907,7 @@ function AdminApp() {
     };
     const handleCrearReservaManual = async () => {
         if (!puedeGestionarReservas) {
-            alert('Tu nivel de acceso solo permite ver reservas.');
+            alert(t('Tu nivel de acceso solo permite ver reservas.'));
             return;
         }
         if (creandoReservaManualRef.current) return;
@@ -1913,7 +1915,7 @@ function AdminApp() {
         if (!nuevaReservaData.cliente_nombre || !nuevaReservaData.cliente_whatsapp || 
             !nuevaReservaData.servicio || !nuevaReservaData.profesional_id || 
             !nuevaReservaData.fecha || !nuevaReservaData.hora_inicio) {
-            alert('Completa todos los campos');
+            alert(t('Completa todos los campos'));
             return;
         }
 
@@ -1923,13 +1925,13 @@ function AdminApp() {
         try {
             const serviciosSeleccionados = getServiciosManualSeleccionados();
             if (serviciosSeleccionados.length === 0) {
-                alert('Servicio no encontrado');
+                alert(t('Servicio no encontrado'));
                 return;
             }
             
             const profesional = profesionalesList.find(p => p.id === parseInt(nuevaReservaData.profesional_id));
             if (!profesional) {
-                alert('Profesional no encontrado');
+                alert(t('Profesional no encontrado'));
                 return;
             }
             
@@ -1937,7 +1939,7 @@ function AdminApp() {
             const totalServiciosManual = getTotalManualServicios(serviciosSeleccionados);
             const usaDuracionPersonalizada = tieneDuracionManualPersonalizada();
             if (duracionTotal <= 0) {
-                alert('La duracion de la cita debe ser mayor que 0 minutos.');
+                alert(t('La duracion de la cita debe ser mayor que 0 minutos.'));
                 return;
             }
             const endTime = getHoraFinManual(serviciosSeleccionados);
@@ -1965,7 +1967,7 @@ function AdminApp() {
                     servicios: serviciosSeleccionados
                 });
                 if (!montoAnticipoManual || montoAnticipoManual <= 0) {
-                    alert('Este servicio no tiene anticipo configurado. Configuralo en Servicios o desmarca requerir anticipo.');
+                    alert(t('Este servicio no tiene anticipo configurado. Configuralo en Servicios o desmarca requerir anticipo.'));
                     return;
                 }
             }
@@ -2110,7 +2112,7 @@ function AdminApp() {
                     }
                 } catch (whatsappError) {
                     console.error('Error enviando WhatsApp:', whatsappError);
-                    alert('Reserva creada, pero hubo un error al enviar el mensaje al cliente.');
+                    alert(t('Reserva creada, pero hubo un error al enviar el mensaje al cliente.'));
                 }
                 
                 setShowNuevaReservaModal(false);
@@ -2132,11 +2134,11 @@ function AdminApp() {
                 
                 fetchBookings();
             } else {
-                alert('Error al crear la reserva: ' + (result.error || 'Error desconocido'));
+                alert(t('Error al crear la reserva: {error}', { error: result.error || t('Error desconocido') }));
             }
         } catch (error) {
             console.error('Error creando reserva:', error);
-            alert('Error al crear la reserva: ' + error.message);
+            alert(t('Error al crear la reserva: {error}', { error: error.message }));
         } finally {
             creandoReservaManualRef.current = false;
             setCreandoReservaManual(false);
@@ -2192,7 +2194,7 @@ function AdminApp() {
         event.target.value = '';
         if (!file) return;
         if (!puedeGestionarReservas && userRole !== 'admin' && userNivel < 3) {
-            alert('No tienes permiso para importar clientes.');
+            alert(t('No tienes permiso para importar clientes.'));
             return;
         }
 
@@ -2201,7 +2203,7 @@ function AdminApp() {
             const texto = await file.text();
             const clientes = parseClientesCsv(texto);
             if (clientes.length === 0) {
-                alert('No se encontraron clientes validos. Usa columnas nombre,whatsapp.');
+                alert(t('No se encontraron clientes validos. Usa columnas nombre,whatsapp.'));
                 return;
             }
 
@@ -2215,10 +2217,10 @@ function AdminApp() {
             }
 
             await loadClientesRegistrados();
-            alert(`CSV procesado. Clientes creados/actualizados: ${creados}. Fallidos: ${fallidos}.`);
+            alert(t('CSV procesado. Clientes creados/actualizados: {creados}. Fallidos: {fallidos}.', { creados, fallidos }));
         } catch (error) {
             console.error('Error importando CSV de clientes:', error);
-            alert('No se pudo importar el CSV. Revisa el formato.');
+            alert(t('No se pudo importar el CSV. Revisa el formato.'));
         } finally {
             setImportandoClientesCsv(false);
         }
@@ -2264,7 +2266,7 @@ function AdminApp() {
 
     const handleBloquearCliente = async (cliente = null) => {
         if (!puedeGestionarAvanzado) {
-            alert('No tienes permiso para bloquear clientes.');
+            alert(t('No tienes permiso para bloquear clientes.'));
             return;
         }
         const nombre = cliente?.nombre || nuevoBloqueo.nombre;
@@ -2272,57 +2274,57 @@ function AdminApp() {
         const motivo = cliente ? prompt('Motivo del bloqueo (opcional):', '') : nuevoBloqueo.motivo;
 
         if (!whatsapp) {
-            alert('Escribe el WhatsApp del cliente.');
+            alert(t('Escribe el WhatsApp del cliente.'));
             return;
         }
 
-        if (!confirm(`Bloquear al cliente +${String(whatsapp).replace(/\D/g, '')}?`)) return;
+        if (!confirm(t('Bloquear al cliente +{telefono}?', { telefono: String(whatsapp).replace(/\D/g, '') }))) return;
 
         const ok = await window.bloquearCliente?.({ nombre, whatsapp, motivo });
         if (ok) {
             setNuevoBloqueo({ nombre: '', whatsapp: '', codigo_pais: codigoPaisNegocio, motivo: '' });
             await loadClientesRegistrados();
             await loadClientesBloqueados();
-            alert('Cliente bloqueado. Ya no podrá registrarse ni reservar.');
+            alert(t('Cliente bloqueado. Ya no podrá registrarse ni reservar.'));
         } else {
-            alert('No se pudo bloquear el cliente. Revisa que la tabla clientes_bloqueados exista en Supabase.');
+            alert(t('No se pudo bloquear el cliente. Revisa que la tabla clientes_bloqueados exista en Supabase.'));
         }
     };
 
     const handleDesbloquearCliente = async (whatsapp) => {
         if (!puedeGestionarAvanzado) {
-            alert('No tienes permiso para desbloquear clientes.');
+            alert(t('No tienes permiso para desbloquear clientes.'));
             return;
         }
-        if (!confirm(`Desbloquear al cliente +${String(whatsapp).replace(/\D/g, '')}?`)) return;
+        if (!confirm(t('Desbloquear al cliente +{telefono}?', { telefono: String(whatsapp).replace(/\D/g, '') }))) return;
         const ok = await window.desbloquearCliente?.(whatsapp);
         if (ok) {
             await loadClientesBloqueados();
-            alert('Cliente desbloqueado.');
+            alert(t('Cliente desbloqueado.'));
         } else {
-            alert('No se pudo desbloquear el cliente.');
+            alert(t('No se pudo desbloquear el cliente.'));
         }
     };
 
     const handleEliminarCliente = async (whatsapp) => {
         if (!puedeGestionarAvanzado) {
-            alert('No tienes permiso para eliminar clientes.');
+            alert(t('No tienes permiso para eliminar clientes.'));
             return;
         }
-        if (!confirm('¿Seguro que quieres eliminar este cliente? Perderá el acceso a la app.')) return;
+        if (!confirm(t('¿Seguro que quieres eliminar este cliente? Perderá el acceso a la app.'))) return;
         try {
             if (typeof window.eliminarCliente !== 'function') {
-                alert('Error: Función no disponible');
+                alert(t('Error: Función no disponible'));
                 return;
             }
             const resultado = await window.eliminarCliente(whatsapp);
             if (resultado) {
                 await loadClientesRegistrados();
-                alert(`Cliente eliminado`);
+                alert(t('Cliente eliminado'));
             }
         } catch (error) {
             console.error('Error eliminando cliente:', error);
-            alert('Error al eliminar cliente');
+            alert(t('Error al eliminar cliente'));
         }
     };
     const fetchBookings = async () => {
@@ -2359,7 +2361,7 @@ function AdminApp() {
             }
         } catch (error) {
             console.error('Error fetching bookings:', error);
-            alert('Error al cargar las reservas');
+            alert(t('Error al cargar las reservas'));
         } finally {
             setLoading(false);
         }
@@ -2387,12 +2389,12 @@ function AdminApp() {
     }, [userRole, userNivel, profesional]);
     const confirmarPago = async (id, bookingData) => {
         if (!puedeGestionarReservas) {
-            alert('Tu nivel de acceso solo permite ver reservas.');
+            alert(t('Tu nivel de acceso solo permite ver reservas.'));
             return;
         }
         const reservasGrupo = bookingData?._reservasGrupo || [];
         if (bookingData?._grupoVisual && reservasGrupo.length > 1) {
-            if (!confirm(`Confirmar que se recibió el pago de ${bookingData.cliente_nombre}? Los ${reservasGrupo.length} servicios pasarán a "Reservado".`)) return;
+            if (!confirm(t('Confirmar que se recibió el pago de {nombre}? Los {n} servicios pasarán a "Reservado".', { nombre: bookingData.cliente_nombre, n: reservasGrupo.length }))) return;
 
             try {
                 for (const reserva of reservasGrupo) {
@@ -2450,12 +2452,12 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                 return;
             } catch (error) {
                 console.error('Error confirmando pago del grupo:', error);
-                alert('Error al confirmar pago del grupo');
+                alert(t('Error al confirmar pago del grupo'));
                 return;
             }
         }
 
-        if (!confirm(`Confirmar que se recibió el pago de ${bookingData.cliente_nombre}? El turno pasará a "Reservado".`)) return;
+        if (!confirm(t('Confirmar que se recibió el pago de {nombre}? El turno pasará a "Reservado".', { nombre: bookingData.cliente_nombre }))) return;
 
         try {
 
@@ -2512,7 +2514,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
 
         } catch (error) {
             console.error('Error confirmando pago:', error);
-            alert('Error al confirmar el pago');
+            alert(t('Error al confirmar el pago'));
         }
     };
 
@@ -2520,10 +2522,10 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
     // ============================================
     const borrarCanceladas = async () => {
         if (!puedeGestionarAvanzado) {
-            alert('No tienes permiso para borrar reservas canceladas.');
+            alert(t('No tienes permiso para borrar reservas canceladas.'));
             return;
         }
-        if (!confirm('Estas segura de querer borrar TODAS las reservas canceladas? Esta accion no se puede deshacer.')) return;
+        if (!confirm(t('Estas segura de querer borrar TODAS las reservas canceladas? Esta accion no se puede deshacer.'))) return;
         
         try {
             const negocioId = getNegocioId();
@@ -2543,35 +2545,35 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
             if (!response.ok) {
                 const error = await response.text();
                 console.error('Error al borrar:', error);
-                alert('Error al borrar las reservas canceladas');
+                alert(t('Error al borrar las reservas canceladas'));
                 return;
             }
             
-            alert(`Se borraron todas las reservas canceladas correctamente`);
+            alert(t('Se borraron todas las reservas canceladas correctamente'));
             fetchBookings();
             
         } catch (error) {
             console.error('Error:', error);
-            alert('Error al conectar con el servidor');
+            alert(t('Error al conectar con el servidor'));
         }
     };
 
     const eliminarReservaHistorial = async (bookingData) => {
         if (!puedeGestionarAvanzado) {
-            alert('No tenes permiso para eliminar citas del historial.');
+            alert(t('No tenes permiso para eliminar citas del historial.'));
             return;
         }
 
         const estado = bookingData?.estado;
         if (estado !== 'Cancelado' && estado !== 'Completado' && estado !== 'Ausente') {
-            alert('Solo se pueden eliminar citas canceladas, completadas o ausentes.');
+            alert(t('Solo se pueden eliminar citas canceladas, completadas o ausentes.'));
             return;
         }
 
         const reservasGrupo = bookingData?._reservasGrupo || [];
         const ids = reservasGrupo.length > 0 ? reservasGrupo.map(reserva => reserva.id) : [bookingData.id];
         const detalle = reservasGrupo.length > 1 ? `la cita completa (${reservasGrupo.length} servicios)` : 'esta cita';
-        if (!confirm(`Eliminar ${detalle} del historial? Esta accion no se puede deshacer.`)) return;
+        if (!confirm(t('Eliminar {detalle} del historial? Esta accion no se puede deshacer.', { detalle }))) return;
 
         try {
             const negocioId = getNegocioId();
@@ -2589,25 +2591,25 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
 
             if (!response.ok) {
                 console.error('Error eliminando cita:', await response.text());
-                alert('Error al eliminar la cita');
+                alert(t('Error al eliminar la cita'));
                 return;
             }
 
-            alert('Cita eliminada del historial');
+            alert(t('Cita eliminada del historial'));
             fetchBookings();
         } catch (error) {
             console.error('Error eliminando cita:', error);
-            alert('Error al conectar con el servidor');
+            alert(t('Error al conectar con el servidor'));
         }
     };
 
     const abrirModalCobro = (bookingData) => {
         if (!puedeGestionarReservas) {
-            alert('No tenes permiso para registrar cobros.');
+            alert(t('No tenes permiso para registrar cobros.'));
             return;
         }
         if (bookingData?.estado !== 'Completado') {
-            alert('Solo se puede registrar cobro real en citas completadas.');
+            alert(t('Solo se puede registrar cobro real en citas completadas.'));
             return;
         }
 
@@ -2624,7 +2626,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
 
         const monto = Number(String(cobroForm.monto_cobrado || '').replace(',', '.'));
         if (Number.isNaN(monto) || monto < 0) {
-            alert('Ingresa un monto cobrado valido.');
+            alert(t('Ingresa un monto cobrado valido.'));
             return;
         }
 
@@ -2669,13 +2671,13 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                 }
             }
 
-            alert('Cobro real guardado');
+            alert(t('Cobro real guardado'));
             setCobroEditando(null);
             setCobroForm({ monto_cobrado: '', notas_cobro: '' });
             fetchBookings();
         } catch (error) {
             console.error('Error guardando cobro real:', error);
-            alert('Error al guardar el cobro real. Verifica que ejecutaste el SQL de cobro real.');
+            alert(t('Error al guardar el cobro real. Verifica que ejecutaste el SQL de cobro real.'));
         } finally {
             setGuardandoCobro(false);
         }
@@ -2692,18 +2694,18 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
 
     const marcarAusencia = async (bookingData) => {
         if (!puedeGestionarReservas) {
-            alert('No tenes permiso para marcar ausencias.');
+            alert(t('No tenes permiso para marcar ausencias.'));
             return;
         }
 
         if (!turnoYaPaso(bookingData)) {
-            alert('Solo se puede marcar ausencia en turnos que ya pasaron.');
+            alert(t('Solo se puede marcar ausencia en turnos que ya pasaron.'));
             return;
         }
 
         const estado = bookingData?.estado;
         if (estado === 'Cancelado' || estado === 'Ausente') {
-            alert('Esta cita no se puede marcar como ausencia.');
+            alert(t('Esta cita no se puede marcar como ausencia.'));
             return;
         }
 
@@ -2713,8 +2715,8 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
         const detalle = reservas.length > 1 ? `la cita completa (${reservas.length} servicios)` : 'esta cita';
         if (!ids.length) return;
 
-        if (!confirm(`Marcar ${detalle} como AUSENTE?`)) return;
-        const enviarMensaje = confirm('Quieres enviarle ahora el mensaje de inasistencia por WhatsApp?');
+        if (!confirm(t('Marcar {detalle} como AUSENTE?', { detalle }))) return;
+        const enviarMensaje = confirm(t('Quieres enviarle ahora el mensaje de inasistencia por WhatsApp?'));
 
         try {
             const negocioId = getNegocioId();
@@ -2743,17 +2745,17 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
             fetchBookings();
         } catch (error) {
             console.error('Error marcando ausencia:', error);
-            alert('Error al marcar la ausencia.');
+            alert(t('Error al marcar la ausencia.'));
         }
     };
     const handleCancel = async (id, bookingData) => {
         if (!puedeGestionarReservas) {
-            alert('Tu nivel de acceso solo permite ver reservas.');
+            alert(t('Tu nivel de acceso solo permite ver reservas.'));
             return;
         }
         const reservasGrupo = bookingData?._reservasGrupo || [];
         if (bookingData?._grupoVisual && reservasGrupo.length > 1) {
-            if (!confirm(`¿Cancelar la cita completa de ${bookingData.cliente_nombre}? Se cancelarán ${reservasGrupo.length} servicios.`)) return;
+            if (!confirm(t('¿Cancelar la cita completa de {nombre}? Se cancelarán {n} servicios.', { nombre: bookingData.cliente_nombre, n: reservasGrupo.length }))) return;
 
             let todoOk = true;
             for (const reserva of reservasGrupo) {
@@ -2768,16 +2770,16 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                     await window.notificarCancelacion(bookingData);
                 }
 
-                alert('Cita completa cancelada');
+                alert(t('Cita completa cancelada'));
                 fetchBookings();
             } else {
-                alert('Error al cancelar uno o más servicios del grupo');
+                alert(t('Error al cancelar uno o más servicios del grupo'));
                 fetchBookings();
             }
             return;
         }
 
-        if (!confirm(`¿Cancelar reserva de ${bookingData.cliente_nombre}?`)) return;
+        if (!confirm(t('¿Cancelar reserva de {nombre}?', { nombre: bookingData.cliente_nombre }))) return;
         
         const ok = await cancelBooking(id, bookingData);
         if (ok) {
@@ -2788,15 +2790,15 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                 await window.notificarCancelacion(bookingData);
             }
             
-            alert('Reserva cancelada');
+            alert(t('Reserva cancelada'));
             fetchBookings();
         } else {
-            alert('Error al cancelar');
+            alert(t('Error al cancelar'));
         }
     };
 
     const handleLogout = () => {
-        if (confirm('¿Cerrar sesión?')) {
+        if (confirm(t('¿Cerrar sesión?'))) {
             localStorage.removeItem('adminAuth');
             localStorage.removeItem('adminUser');
             localStorage.removeItem('adminLoginTime');
@@ -3066,19 +3068,19 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
         const sorted = [...reservasCliente].sort((a, b) => `${b.fecha} ${b.hora_inicio}`.localeCompare(`${a.fecha} ${a.hora_inicio}`));
         const ultima = sorted[0] || null;
 
-        let label = 'Nuevo';
+        let label = t('Nuevo');
         let tone = 'bg-gray-100 text-gray-700 border-gray-200';
         if (total >= 3 && cancelRate >= 50) {
-            label = 'Riesgo alto';
+            label = t('Riesgo alto');
             tone = 'bg-red-50 text-red-700 border-red-200';
         } else if (score >= 80) {
-            label = 'Excelente';
+            label = t('Excelente');
             tone = 'bg-emerald-50 text-emerald-700 border-emerald-200';
         } else if (total >= 3) {
-            label = 'Frecuente';
+            label = t('Frecuente');
             tone = 'bg-blue-50 text-blue-700 border-blue-200';
         } else if (pendientes > 0) {
-            label = 'Pendiente';
+            label = t('Pendiente');
             tone = 'bg-amber-50 text-amber-700 border-amber-200';
         }
 
@@ -3098,10 +3100,11 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
     };
 
     const getAgendaTitle = () => {
+        const localeFecha = idioma === 'en' ? 'en-US' : 'es-CU';
         if (agendaMode === 'dia') {
-            return agendaDate.toLocaleDateString('es-CU', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+            return agendaDate.toLocaleDateString(localeFecha, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
         }
-        return `${agendaDays[0].toLocaleDateString('es-CU', { day: 'numeric', month: 'short' })} - ${agendaDays[6].toLocaleDateString('es-CU', { day: 'numeric', month: 'short', year: 'numeric' })}`;
+        return `${agendaDays[0].toLocaleDateString(localeFecha, { day: 'numeric', month: 'short' })} - ${agendaDays[6].toLocaleDateString(localeFecha, { day: 'numeric', month: 'short', year: 'numeric' })}`;
     };
 
     const normalizarServicioAgenda = (value) => {
@@ -3206,7 +3209,8 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
     const formatMoneyEstadistica = (value) => {
         const monto = Number(value || 0);
         const decimales = monto % 1 === 0 ? 0 : 2;
-        return `$${monto.toLocaleString('es-CU', { minimumFractionDigits: decimales, maximumFractionDigits: decimales })}`;
+        const localeMonto = idioma === 'en' ? 'en-US' : 'es-CU';
+        return `$${monto.toLocaleString(localeMonto, { minimumFractionDigits: decimales, maximumFractionDigits: decimales })}`;
     };
 
     const getDateFromInput = (value) => {
@@ -3228,10 +3232,11 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
         let fin = new Date(base);
         let titulo = '';
 
+        const localeRango = idioma === 'en' ? 'en-US' : 'es-CU';
         if (estadisticasPeriodo === 'semana') {
             inicio = startOfWeek(base);
             fin = addDays(inicio, 6);
-            titulo = `${inicio.toLocaleDateString('es-CU', { day: 'numeric', month: 'short' })} - ${fin.toLocaleDateString('es-CU', { day: 'numeric', month: 'short', year: 'numeric' })}`;
+            titulo = `${inicio.toLocaleDateString(localeRango, { day: 'numeric', month: 'short' })} - ${fin.toLocaleDateString(localeRango, { day: 'numeric', month: 'short', year: 'numeric' })}`;
         } else if (estadisticasPeriodo === 'ano') {
             inicio = new Date(base.getFullYear(), 0, 1);
             fin = new Date(base.getFullYear(), 11, 31);
@@ -3239,7 +3244,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
         } else {
             inicio = new Date(base.getFullYear(), base.getMonth(), 1);
             fin = new Date(base.getFullYear(), base.getMonth() + 1, 0);
-            titulo = base.toLocaleDateString('es-CU', { month: 'long', year: 'numeric' });
+            titulo = base.toLocaleDateString(localeRango, { month: 'long', year: 'numeric' });
         }
 
         return {
@@ -3279,12 +3284,12 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
             const estado = estados[reserva.estado] !== undefined ? reserva.estado : 'Reservado';
             const cobro = parseMontoEstadistica(reserva.monto_cobrado);
             const estimado = getServicioPrecioEstadistica(reserva.servicio);
-            const profesionalNombre = reserva.profesional_nombre || reserva.trabajador_nombre || 'Sin profesional';
-            const servicioNombre = reserva.servicio || 'Sin servicio';
+            const profesionalNombre = reserva.profesional_nombre || reserva.trabajador_nombre || t('Sin profesional');
+            const servicioNombre = reserva.servicio || t('Sin servicio');
             const diaKey = reserva.fecha || 'Sin fecha';
             const diaLabel = reserva.fecha
-                ? getDateFromInput(reserva.fecha).toLocaleDateString('es-CU', { weekday: 'short', day: 'numeric', month: 'short' })
-                : 'Sin fecha';
+                ? getDateFromInput(reserva.fecha).toLocaleDateString(idioma === 'en' ? 'en-US' : 'es-CU', { weekday: 'short', day: 'numeric', month: 'short' })
+                : t('Sin fecha');
 
             if (!porProfesional[profesionalNombre]) {
                 porProfesional[profesionalNombre] = { nombre: profesionalNombre, total: 0, completadas: 0, canceladas: 0, ausentes: 0, cobro: 0 };
@@ -3385,7 +3390,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
         try {
             if (navigator.clipboard?.writeText) {
                 await navigator.clipboard.writeText(texto);
-                alert('Resumen copiado');
+                alert(t('Resumen copiado'));
             } else {
                 window.prompt('Copia el resumen:', texto);
             }
@@ -3417,12 +3422,12 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
     const renderEstadisticas = () => {
         const stats = calcularEstadisticas();
         const cards = [
-            { label: 'Cobro real', value: formatMoneyEstadistica(stats.cobroReal), tone: 'text-emerald-700 bg-emerald-50 border-emerald-100' },
-            { label: 'Ingreso estimado', value: formatMoneyEstadistica(stats.ingresoEstimado), tone: 'text-pink-700 bg-pink-50 border-pink-100' },
-            { label: 'Completadas', value: stats.estados.Completado, tone: 'text-blue-700 bg-blue-50 border-blue-100' },
-            { label: 'Canceladas', value: stats.estados.Cancelado, tone: 'text-red-700 bg-red-50 border-red-100' },
-            { label: 'Ausentes', value: stats.estados.Ausente, tone: 'text-slate-700 bg-slate-50 border-slate-100' },
-            { label: 'Sin cobro', value: stats.citasSinCobro, tone: 'text-amber-700 bg-amber-50 border-amber-100' }
+            { label: t('Cobro real'), value: formatMoneyEstadistica(stats.cobroReal), tone: 'text-emerald-700 bg-emerald-50 border-emerald-100' },
+            { label: t('Ingreso estimado'), value: formatMoneyEstadistica(stats.ingresoEstimado), tone: 'text-pink-700 bg-pink-50 border-pink-100' },
+            { label: t('Completadas'), value: stats.estados.Completado, tone: 'text-blue-700 bg-blue-50 border-blue-100' },
+            { label: t('Canceladas'), value: stats.estados.Cancelado, tone: 'text-red-700 bg-red-50 border-red-100' },
+            { label: t('Ausentes'), value: stats.estados.Ausente, tone: 'text-slate-700 bg-slate-50 border-slate-100' },
+            { label: t('Sin cobro'), value: stats.citasSinCobro, tone: 'text-amber-700 bg-amber-50 border-amber-100' }
         ];
 
         return (
@@ -3430,17 +3435,17 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                 <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
                     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                         <div>
-                            <p className="text-xs uppercase tracking-wide text-pink-500 font-bold">Estadisticas</p>
+                            <p className="text-xs uppercase tracking-wide text-pink-500 font-bold">{t('Estadisticas')}</p>
                             <h2 className="text-2xl font-bold text-gray-900">{stats.rango.titulo}</h2>
-                            <p className="text-sm text-gray-500">Desde {stats.rango.inicio} hasta {stats.rango.fin}</p>
+                            <p className="text-sm text-gray-500">{t('Desde {inicio} hasta {fin}', { inicio: stats.rango.inicio, fin: stats.rango.fin })}</p>
                         </div>
 
                         <div className="flex flex-wrap items-center gap-2">
                             <div className="inline-flex bg-gray-100 rounded-lg p-1">
                                 {[
-                                    ['semana', 'Semana'],
-                                    ['mes', 'Mes'],
-                                    ['ano', 'Ano']
+                                    ['semana', t('Semana')],
+                                    ['mes', t('Mes')],
+                                    ['ano', t('Ano')]
                                 ].map(([id, label]) => (
                                     <button key={id} onClick={() => setEstadisticasPeriodo(id)} className={`px-3 py-1.5 rounded-md text-sm font-medium ${estadisticasPeriodo === id ? 'bg-white text-pink-600 shadow-sm' : 'text-gray-600'}`}>
                                         {label}
@@ -3448,7 +3453,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                                 ))}
                             </div>
                             <input type="date" value={estadisticasFecha} onChange={(e) => setEstadisticasFecha(e.target.value)} className="border rounded-lg px-3 py-2 text-sm bg-white" />
-                            <button onClick={copiarResumenEstadisticas} className="px-3 py-2 rounded-lg bg-pink-500 text-white text-sm font-bold hover:bg-pink-600">Copiar resumen</button>
+                            <button onClick={copiarResumenEstadisticas} className="px-3 py-2 rounded-lg bg-pink-500 text-white text-sm font-bold hover:bg-pink-600">{t('Copiar resumen')}</button>
                             <button onClick={descargarEstadisticasCSV} className="px-3 py-2 rounded-lg bg-gray-900 text-white text-sm font-bold hover:bg-black">CSV</button>
                         </div>
                     </div>
@@ -3465,17 +3470,17 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                     <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
-                        <h3 className="font-bold text-gray-900 mb-4">Resumen de citas</h3>
+                        <h3 className="font-bold text-gray-900 mb-4">{t('Resumen de citas')}</h3>
                         <div className="space-y-3">
                             {[
-                                ['Total citas', stats.totalCitas],
-                                ['Servicios vendidos/reservados', stats.totalServicios],
-                                ['Reservadas', stats.estados.Reservado],
-                                ['Pendientes', stats.estados.Pendiente],
-                                ['Completadas', `${stats.estados.Completado} (${stats.tasaCompletadas}%)`],
-                                ['Canceladas', `${stats.estados.Cancelado} (${stats.tasaCanceladas}%)`],
-                                ['Ausentes', `${stats.estados.Ausente} (${stats.tasaAusentes}%)`],
-                                ['Ticket promedio real', formatMoneyEstadistica(stats.ticketPromedio)]
+                                [t('Total citas'), stats.totalCitas],
+                                [t('Servicios vendidos/reservados'), stats.totalServicios],
+                                [t('Reservadas'), stats.estados.Reservado],
+                                [t('Pendientes'), stats.estados.Pendiente],
+                                [t('Completadas'), `${stats.estados.Completado} (${stats.tasaCompletadas}%)`],
+                                [t('Canceladas'), `${stats.estados.Cancelado} (${stats.tasaCanceladas}%)`],
+                                [t('Ausentes'), `${stats.estados.Ausente} (${stats.tasaAusentes}%)`],
+                                [t('Ticket promedio real'), formatMoneyEstadistica(stats.ticketPromedio)]
                             ].map(([label, value]) => (
                                 <div key={label} className="flex justify-between gap-3 text-sm border-b border-gray-100 pb-2 last:border-b-0">
                                     <span className="text-gray-500">{label}</span>
@@ -3486,30 +3491,30 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                     </div>
 
                     <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
-                        <h3 className="font-bold text-gray-900 mb-4">Profesionales</h3>
+                        <h3 className="font-bold text-gray-900 mb-4">{t('Profesionales')}</h3>
                         <div className="space-y-3">
-                            {stats.topProfesionales.length === 0 ? <p className="text-sm text-gray-500">No hay datos en este periodo.</p> : stats.topProfesionales.map(item => (
+                            {stats.topProfesionales.length === 0 ? <p className="text-sm text-gray-500">{t('No hay datos en este periodo.')}</p> : stats.topProfesionales.map(item => (
                                 <div key={item.nombre} className="rounded-lg bg-gray-50 border border-gray-100 p-3">
                                     <div className="flex justify-between gap-3">
                                         <p className="font-bold text-gray-900 truncate">{item.nombre}</p>
                                         <p className="font-bold text-emerald-700">{formatMoneyEstadistica(item.cobro)}</p>
                                     </div>
-                                    <p className="text-xs text-gray-500 mt-1">{item.completadas} completadas - {item.canceladas} canceladas - {item.ausentes} ausentes</p>
+                                    <p className="text-xs text-gray-500 mt-1">{t('{completadas} completadas - {canceladas} canceladas - {ausentes} ausentes', { completadas: item.completadas, canceladas: item.canceladas, ausentes: item.ausentes })}</p>
                                 </div>
                             ))}
                         </div>
                     </div>
 
                     <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
-                        <h3 className="font-bold text-gray-900 mb-4">Servicios mas pedidos</h3>
+                        <h3 className="font-bold text-gray-900 mb-4">{t('Servicios mas pedidos')}</h3>
                         <div className="space-y-3">
-                            {stats.topServicios.length === 0 ? <p className="text-sm text-gray-500">No hay datos en este periodo.</p> : stats.topServicios.map(item => (
+                            {stats.topServicios.length === 0 ? <p className="text-sm text-gray-500">{t('No hay datos en este periodo.')}</p> : stats.topServicios.map(item => (
                                 <div key={item.nombre} className="rounded-lg bg-gray-50 border border-gray-100 p-3">
                                     <div className="flex justify-between gap-3">
                                         <p className="font-bold text-gray-900 truncate">{item.nombre}</p>
                                         <p className="font-bold text-gray-900">{item.total}</p>
                                     </div>
-                                    <p className="text-xs text-gray-500 mt-1">{item.completadas} completadas - {formatMoneyEstadistica(item.cobro)} real</p>
+                                    <p className="text-xs text-gray-500 mt-1">{t('{completadas} completadas - {cobro} real', { completadas: item.completadas, cobro: formatMoneyEstadistica(item.cobro) })}</p>
                                 </div>
                             ))}
                         </div>
@@ -3518,23 +3523,23 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
 
                 <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
-                        <h3 className="font-bold text-gray-900">Detalle por dia</h3>
-                        <p className="text-sm text-gray-500">{stats.dias.length} dias con movimiento</p>
+                        <h3 className="font-bold text-gray-900">{t('Detalle por dia')}</h3>
+                        <p className="text-sm text-gray-500">{t('{n} dias con movimiento', { n: stats.dias.length })}</p>
                     </div>
                     {stats.dias.length === 0 ? (
-                        <p className="text-sm text-gray-500">No hay reservas en este periodo.</p>
+                        <p className="text-sm text-gray-500">{t('No hay reservas en este periodo.')}</p>
                     ) : (
                         <div className="overflow-x-auto">
                             <table className="min-w-full text-sm">
                                 <thead>
                                     <tr className="text-left text-gray-500 border-b">
-                                        <th className="py-2 pr-3">Dia</th>
-                                        <th className="py-2 pr-3">Total</th>
-                                        <th className="py-2 pr-3">Completadas</th>
-                                        <th className="py-2 pr-3">Pendientes</th>
-                                        <th className="py-2 pr-3">Canceladas</th>
-                                        <th className="py-2 pr-3">Ausentes</th>
-                                        <th className="py-2 pr-3">Cobro real</th>
+                                        <th className="py-2 pr-3">{t('Dia')}</th>
+                                        <th className="py-2 pr-3">{t('Total')}</th>
+                                        <th className="py-2 pr-3">{t('Completadas')}</th>
+                                        <th className="py-2 pr-3">{t('Pendientes')}</th>
+                                        <th className="py-2 pr-3">{t('Canceladas')}</th>
+                                        <th className="py-2 pr-3">{t('Ausentes')}</th>
+                                        <th className="py-2 pr-3">{t('Cobro real')}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -3561,29 +3566,29 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
     const getTabsDisponibles = () => {
         const tabs = [];
         const puedeVerEstadisticas = userRole === 'admin' || (userRole === 'profesional' && userNivel >= 2);
-        tabs.push({ id: 'reservas', icono: '📅', label: userRole === 'profesional' ? 'Mis Reservas' : 'Reservas' });
-        
-        tabs.push({ id: 'agenda', icono: '📋', label: 'Agenda' });
+        tabs.push({ id: 'reservas', icono: '📅', label: userRole === 'profesional' ? t('Mis Reservas') : t('Reservas') });
+
+        tabs.push({ id: 'agenda', icono: '📋', label: t('Agenda') });
 
         if (puedeVerEstadisticas) {
-            tabs.push({ id: 'estadisticas', icono: 'Stats', label: 'Estadisticas' });
+            tabs.push({ id: 'estadisticas', icono: 'Stats', label: t('Estadisticas') });
         }
         if (userRole === 'admin' || (userRole === 'profesional' && userNivel >= 2)) {
-            tabs.push({ id: 'configuracion', icono: '⚙️', label: 'Configuración' });
-            tabs.push({ id: 'clientes', icono: '👥', label: 'Clientes' });
+            tabs.push({ id: 'configuracion', icono: '⚙️', label: t('Configuración') });
+            tabs.push({ id: 'clientes', icono: '👥', label: t('Clientes') });
         }
-        
+
         if (userRole === 'admin' || (userRole === 'profesional' && userNivel >= 3)) {
-            tabs.push({ id: 'servicios', icono: '💅', label: 'Servicios' });
-            tabs.push({ id: 'profesionales', icono: '👩‍💼', label: 'Profesionales' });
+            tabs.push({ id: 'servicios', icono: '💅', label: t('Servicios') });
+            tabs.push({ id: 'profesionales', icono: '👩‍💼', label: t('Profesionales') });
         }
-        
+
         return tabs;
     };
 
     const abrirModalNuevaReserva = () => {
         if (!puedeGestionarReservas) {
-            alert('Tu nivel de acceso solo permite ver reservas.');
+            alert(t('Tu nivel de acceso solo permite ver reservas.'));
             return;
         }
         setReservaEditando(null);
@@ -3610,11 +3615,11 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
 
     const abrirModalReprogramar = (booking) => {
         if (!puedeGestionarReservas) {
-            alert('Tu nivel de acceso solo permite ver reservas.');
+            alert(t('Tu nivel de acceso solo permite ver reservas.'));
             return;
         }
         if (userRole === 'profesional' && profesional && Number(booking.profesional_id) !== Number(profesional.id)) {
-            alert('Solo puedes editar tus propias reservas.');
+            alert(t('Solo puedes editar tus propias reservas.'));
             return;
         }
         const servicio = serviciosList.find(s => s.nombre === booking.servicio);
@@ -3693,7 +3698,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                         )}
                         <div>
                             <h1 className="text-xl font-bold text-pink-800">{nombreNegocio}</h1>
-                            <p className="text-xs text-pink-500">Panel de Administración</p>
+                            <p className="text-xs text-pink-500">{t('Panel de Administración')}</p>
                         </div>
                     </div>
 
@@ -3704,17 +3709,17 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                             className={`${puedeGestionarReservas ? 'flex' : 'hidden'} items-center gap-2 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-4 py-2 rounded-lg transition-all transform hover:scale-105 shadow-md border border-green-400 flex-1 sm:flex-none justify-center`}
                         >
                             <span className="text-lg">➕</span>
-                            <span className="font-medium">Nueva Reserva</span>
+                            <span className="font-medium">{t('Nueva Reserva')}</span>
                         </button>
 
                         {/* BOTÓN CALENDARIO DE DISPONIBILIDAD */}
                         <button
                             onClick={abrirModalDisponibilidad}
                             className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-4 py-2 rounded-lg transition-all transform hover:scale-105 shadow-md border border-blue-400 flex-1 sm:flex-none justify-center"
-                            title="Ver disponibilidad mensual"
+                            title={t('Ver disponibilidad mensual')}
                         >
                             <span className="text-lg">📆</span>
-                            <span className="font-medium">Ver Disponibilidad</span>
+                            <span className="font-medium">{t('Ver Disponibilidad')}</span>
                         </button>
 
                         <button
@@ -3722,35 +3727,37 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                             className={`${puedeGestionarAvanzado ? 'flex' : 'hidden'} items-center gap-2 bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white px-4 py-2 rounded-lg transition-all transform hover:scale-105 shadow-md border border-pink-400 flex-1 sm:flex-none justify-center`}
                         >
                             <span className="text-lg">🏢</span>
-                            <span className="font-medium">Editar Negocio</span>
+                            <span className="font-medium">{t('Editar Negocio')}</span>
                         </button>
 
-                        <button 
+                        <button
                             onClick={() => {
                                 cargarConfiguracion();
                                 setConfigVersion(prev => prev + 1);
-                            }} 
+                            }}
                             className="p-2 bg-pink-50 rounded-full hover:bg-pink-100 transition-all hover:scale-105 border border-pink-200"
-                            title="Recargar datos del negocio"
+                            title={t('Recargar datos del negocio')}
                         >
                             <i className="icon-refresh-cw text-pink-600"></i>
                         </button>
 
-                        <button 
-                            onClick={fetchBookings} 
+                        <button
+                            onClick={fetchBookings}
                             className="p-2 bg-pink-50 rounded-full hover:bg-pink-100 transition-all hover:scale-105 border border-pink-200"
-                            title="Actualizar reservas"
+                            title={t('Actualizar reservas')}
                         >
                             <i className="icon-refresh-cw text-pink-600"></i>
                         </button>
 
-                        <button 
+                        <button
                             onClick={handleLogout}
                             className="p-2 bg-pink-50 rounded-full hover:bg-pink-100 transition-all hover:scale-105 border border-pink-200"
-                            title="Cerrar sesión"
+                            title={t('Cerrar sesión')}
                         >
                             <i className="icon-log-out text-pink-600"></i>
                         </button>
+
+                        <window.LanguageToggle />
                     </div>
 
                     {(() => {
@@ -3804,7 +3811,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                         <div className="bg-white rounded-xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
                             <div className="flex justify-between items-center mb-4">
-                                <h3 className="text-xl font-bold">Nueva Reserva Manual</h3>
+                                <h3 className="text-xl font-bold">{t('Nueva Reserva Manual')}</h3>
                                     <button
                                         onClick={() => setShowNuevaReservaModal(false)}
                                         disabled={creandoReservaManual}
@@ -3815,7 +3822,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                                 {!reservaEditando && (
                                     <div className="bg-pink-50/70 border border-pink-100 rounded-xl p-3">
                                         <label className="block text-sm font-semibold text-pink-800 mb-2">
-                                            Elegir cliente registrado
+                                            {t('Elegir cliente registrado')}
                                         </label>
                                         <div className="relative">
                                             <input
@@ -3828,23 +3835,23 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                                                     }
                                                 }}
                                                 className="w-full border border-pink-200 rounded-lg px-3 py-2 pr-10 focus:ring-2 focus:ring-pink-500 focus:border-pink-500 outline-none"
-                                                placeholder="Buscar por nombre o WhatsApp"
+                                                placeholder={t('Buscar por nombre o WhatsApp')}
                                             />
                                             <span className="absolute right-3 top-2.5 text-pink-400">🔎</span>
                                         </div>
                                         <p className="text-xs text-pink-600/70 mt-1">
-                                            Puedes elegir de la lista o buscar por nombre/WhatsApp. Si no existe, escribe los datos manualmente.
+                                            {t('Puedes elegir de la lista o buscar por nombre/WhatsApp. Si no existe, escribe los datos manualmente.')}
                                         </p>
                                         {cargandoClientes && (
-                                            <p className="text-xs text-pink-500 mt-2">Cargando clientes...</p>
+                                            <p className="text-xs text-pink-500 mt-2">{t('Cargando clientes...')}</p>
                                         )}
                                         {busquedaClienteManual && !cargandoClientes && clientesManualFiltrados.length === 0 && (
                                             <p className="text-xs text-gray-500 mt-2">
-                                                No encontramos ese cliente. Puedes escribir los datos manualmente y se guardará al crear la reserva.
+                                                {t('No encontramos ese cliente. Puedes escribir los datos manualmente y se guardará al crear la reserva.')}
                                             </p>
                                         )}
                                         {!cargandoClientes && clientesRegistrados.length === 0 && (
-                                            <p className="text-xs text-gray-500 mt-2">Aún no hay clientes registrados.</p>
+                                            <p className="text-xs text-gray-500 mt-2">{t('Aún no hay clientes registrados.')}</p>
                                         )}
                                         {clientesManualFiltrados.length > 0 && (
                                             <div className="mt-2 max-h-52 overflow-y-auto rounded-lg border border-pink-100 bg-white divide-y divide-pink-50">
@@ -3856,10 +3863,10 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                                                         className="w-full px-3 py-2 text-left hover:bg-pink-50 flex items-center justify-between gap-3"
                                                     >
                                                         <span className="min-w-0">
-                                                            <span className="block font-medium text-gray-800 truncate">{cliente.nombre || 'Cliente sin nombre'}</span>
+                                                            <span className="block font-medium text-gray-800 truncate">{cliente.nombre || t('Cliente sin nombre')}</span>
                                                             <span className="block text-xs text-gray-500">+{String(cliente.whatsapp || '').replace(/\D/g, '')}</span>
                                                         </span>
-                                                        <span className="text-xs text-pink-600 font-semibold shrink-0">Usar</span>
+                                                        <span className="text-xs text-pink-600 font-semibold shrink-0">{t('Usar')}</span>
                                                     </button>
                                                 ))}
                                             </div>
@@ -3867,11 +3874,11 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                                     </div>
                                 )}
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Nombre del Cliente *</label>
-                                    <input type="text" value={nuevaReservaData.cliente_nombre} onChange={(e) => setNuevaReservaData({...nuevaReservaData, cliente_nombre: e.target.value})} className="w-full border rounded-lg px-3 py-2" placeholder="Ej: Juan Pérez" />
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">{t('Nombre del Cliente *')}</label>
+                                    <input type="text" value={nuevaReservaData.cliente_nombre} onChange={(e) => setNuevaReservaData({...nuevaReservaData, cliente_nombre: e.target.value})} className="w-full border rounded-lg px-3 py-2" placeholder={t('Ej: Juan Pérez')} />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">WhatsApp del Cliente *</label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">{t('WhatsApp del Cliente *')}</label>
                                     <div className="flex">
                                         <select
                                             value={codigoPaisClienteManual}
@@ -3894,7 +3901,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Servicio{!reservaEditando ? 's' : ''} *
+                                        {!reservaEditando ? t('Servicios *') : t('Servicio *')}
                                     </label>
                                     {reservaEditando ? (
                                         <select
@@ -3905,7 +3912,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                                             }}
                                             className="w-full border rounded-lg px-3 py-2"
                                         >
-                                            <option value="">Seleccionar servicio</option>
+                                            <option value="">{t('Seleccionar servicio')}</option>
                                             {serviciosList.map(s => (
                                                 <option key={s.id} value={s.nombre}>{s.nombre} ({s.duracion} min - {window.formatearPrecioServicio ? window.formatearPrecioServicio(s) : `$${s.precio}`})</option>
                                             ))}
@@ -3935,13 +3942,13 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                                     )}
                                     {!reservaEditando && serviciosManualSeleccionados.length > 0 && (
                                         <p className="text-xs text-pink-600 mt-2">
-                                            {serviciosManualSeleccionados.length} servicio{serviciosManualSeleccionados.length === 1 ? '' : 's'} - {getServiciosManualSeleccionados().reduce((total, s) => total + Number(s.duracion || 60), 0)} min
+                                            {t('{n} servicio{s} - {min} min', { n: serviciosManualSeleccionados.length, s: serviciosManualSeleccionados.length === 1 ? '' : 's', min: getServiciosManualSeleccionados().reduce((total, s) => total + Number(s.duracion || 60), 0) })}
                                         </p>
                                     )}
                                 </div>
                                 {userRole === 'admin' && nuevaReservaData.servicio && (
                                     <div className="rounded-xl border border-pink-100 bg-pink-50 p-3">
-                                        <label className="block text-sm font-medium text-pink-800 mb-1">Duracion para esta cita (min)</label>
+                                        <label className="block text-sm font-medium text-pink-800 mb-1">{t('Duracion para esta cita (min)')}</label>
                                         <input
                                             type="number"
                                             min="5"
@@ -3955,37 +3962,37 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                                                 hora_fin: ''
                                             })}
                                             className="w-full border border-pink-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-pink-300 focus:border-pink-400"
-                                            placeholder={`Usar ${getDuracionManualConfigurada(getServiciosManualSeleccionados())} min`}
+                                            placeholder={t('Usar {min} min', { min: getDuracionManualConfigurada(getServiciosManualSeleccionados()) })}
                                         />
                                         <p className="text-xs text-pink-700 mt-1">
-                                            Dejalo vacio para usar la duracion configurada. Si escribes un tiempo, solo aplica a esta cita.
+                                            {t('Dejalo vacio para usar la duracion configurada. Si escribes un tiempo, solo aplica a esta cita.')}
                                         </p>
                                         {tieneDuracionManualPersonalizada() && (
                                             <p className="text-xs font-semibold text-pink-800 mt-1">
-                                                Esta reserva se calculara con {getDuracionManualTotal(getServiciosManualSeleccionados())} min.
+                                                {t('Esta reserva se calculara con {min} min.', { min: getDuracionManualTotal(getServiciosManualSeleccionados()) })}
                                             </p>
                                         )}
                                     </div>
                                 )}
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Profesional *</label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">{t('Profesional *')}</label>
                                     <select value={nuevaReservaData.profesional_id} onChange={(e) => setNuevaReservaData({...nuevaReservaData, profesional_id: e.target.value})} className="w-full border rounded-lg px-3 py-2">
-                                        <option value="">Seleccionar profesional</option>
+                                        <option value="">{t('Seleccionar profesional')}</option>
                                         {profesionalesManualFiltrados.map(p => (<option key={p.id} value={p.id}>{p.nombre} - {p.especialidad}</option>))}
                                     </select>
                                     {nuevaReservaData.servicio && profesionalesManualFiltrados.length === 0 && (
-                                        <p className="text-xs text-red-500 mt-1">No hay profesionales asignados a este servicio.</p>
+                                        <p className="text-xs text-red-500 mt-1">{t('No hay profesionales asignados a este servicio.')}</p>
                                     )}
                                 </div>
                                 {userRole === 'admin' && (
                                     <div className="flex items-center gap-3 bg-yellow-50 p-3 rounded-lg">
                                         <input type="checkbox" id="requiereAnticipo" checked={nuevaReservaData.requiereAnticipo} onChange={(e) => setNuevaReservaData({...nuevaReservaData, requiereAnticipo: e.target.checked})} />
-                                        <label htmlFor="requiereAnticipo" className="text-sm font-medium text-yellow-800">Requerir anticipo al cliente</label>
+                                        <label htmlFor="requiereAnticipo" className="text-sm font-medium text-yellow-800">{t('Requerir anticipo al cliente')}</label>
                                     </div>
                                 )}
                                 {nuevaReservaData.servicio && nuevaReservaData.profesional_id && (
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">Fecha *</label>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">{t('Fecha *')}</label>
                                         <div className="bg-white rounded-xl border">
                                             <div className="flex justify-between p-3 bg-gray-50 border-b">
                                                 <button onClick={() => cambiarMes(-1)}>›</button>
@@ -3994,7 +4001,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                                             </div>
                                             <div className="p-3">
                                                 <div className="grid grid-cols-7 mb-2 text-center text-xs text-gray-400">
-                                                    {['D','L','M','M','J','V','S'].map(d => <div key={d}>{d}</div>)}
+                                                    {(idioma === 'en' ? ['S','M','T','W','T','F','S'] : ['D','L','M','M','J','V','S']).map((d, i) => <div key={i}>{d}</div>)}
                                                 </div>
                                                 <div className="grid grid-cols-7 gap-1">
                                                     {days.map((date, idx) => {
@@ -4014,7 +4021,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                                                         else className += " text-gray-700 hover:bg-pink-50 cursor-pointer";
                                                         
                                                         return (
-                                                            <button key={idx} onClick={() => handleDateSelect(date)} disabled={fechaDeshabilitada} className={className} title={esCerrado ? "Dia cerrado, disponible para admin" : esPasado ? "Fecha pasada" : ""}>
+                                                            <button key={idx} onClick={() => handleDateSelect(date)} disabled={fechaDeshabilitada} className={className} title={esCerrado ? t('Dia cerrado, disponible para admin') : esPasado ? t('Fecha pasada') : ""}>
                                                                 {date.getDate()}
                                                             </button>
                                                         );
@@ -4026,10 +4033,10 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                                 )}
                                 {nuevaReservaData.fecha && (
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">Horario de la cita *</label>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">{t('Horario de la cita *')}</label>
                                         <div className="grid grid-cols-2 gap-3 mb-3">
                                             <div>
-                                                <label className="block text-xs font-semibold text-gray-500 mb-1">Inicio</label>
+                                                <label className="block text-xs font-semibold text-gray-500 mb-1">{t('Inicio')}</label>
                                                 <input
                                                     type="time"
                                                     value={nuevaReservaData.hora_inicio}
@@ -4041,7 +4048,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                                                 />
                                             </div>
                                             <div>
-                                                <label className="block text-xs font-semibold text-gray-500 mb-1">Fin</label>
+                                                <label className="block text-xs font-semibold text-gray-500 mb-1">{t('Fin')}</label>
                                                 <input
                                                     type="time"
                                                     value={nuevaReservaData.hora_fin}
@@ -4056,13 +4063,14 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                                         </div>
                                         {nuevaReservaData.hora_inicio && (
                                             <p className="text-xs text-gray-500 mb-3">
-                                                Duracion calculada: {getDuracionManualTotal(getServiciosManualSeleccionados())} min
-                                                {nuevaReservaData.hora_fin ? ' segun inicio y fin.' : ' segun el servicio o la duracion personalizada.'}
+                                                {nuevaReservaData.hora_fin
+                                                    ? t('Duracion calculada: {min} min segun inicio y fin.', { min: getDuracionManualTotal(getServiciosManualSeleccionados()) })
+                                                    : t('Duracion calculada: {min} min segun el servicio o la duracion personalizada.', { min: getDuracionManualTotal(getServiciosManualSeleccionados()) })}
                                             </p>
                                         )}
                                         {modoHorarioManualCompleto && horariosDisponibles.length > 0 && (
                                             <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-                                                Modo admin: este dia no tiene horario normal para el profesional. Puedes elegir cualquier hora libre del dia, siempre que no choque con otra cita.
+                                                {t('Modo admin: este dia no tiene horario normal para el profesional. Puedes elegir cualquier hora libre del dia, siempre que no choque con otra cita.')}
                                             </div>
                                         )}
                                         {horariosDisponibles.length > 0 ? (
@@ -4073,7 +4081,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                                                     </button>
                                                 ))}
                                             </div>
-                                        ) : <p className="text-sm text-gray-500">No hay horarios disponibles</p>}
+                                        ) : <p className="text-sm text-gray-500">{t('No hay horarios disponibles')}</p>}
                                     </div>
                                 )}
                                 <div className="flex gap-3 pt-4">
@@ -4082,7 +4090,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                                         disabled={creandoReservaManual}
                                         className="flex-1 px-4 py-2 border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
-                                        Cancelar
+                                        {t('Cancelar')}
                                     </button>
                                     {puedeGestionarReservas && reservaEditando?.estado === 'Pendiente' && (
                                         <button
@@ -4093,7 +4101,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                                             }}
                                             className="flex-1 px-4 py-2 bg-yellow-500 text-white rounded-lg"
                                         >
-                                            Confirmar pago
+                                            {t('Confirmar pago')}
                                         </button>
                                     )}
                                     <button
@@ -4101,7 +4109,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                                         disabled={creandoReservaManual}
                                         className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg disabled:opacity-60 disabled:cursor-not-allowed"
                                     >
-                                        {creandoReservaManual ? 'Guardando...' : reservaEditando ? 'Guardar cambios' : 'Crear Reserva'}
+                                        {creandoReservaManual ? t('Guardando...') : reservaEditando ? t('Guardar cambios') : t('Crear Reserva')}
                                     </button>
                                 </div>
                             </div>
@@ -4129,46 +4137,46 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                         <div className="bg-white w-full sm:max-w-xl max-h-[96vh] overflow-y-auto rounded-t-3xl sm:rounded-2xl shadow-2xl">
                             <div className="sticky top-0 z-10 bg-white/95 backdrop-blur border-b px-5 py-4 flex items-center justify-between">
                                 <button onClick={() => setAgendaDetalleBooking(null)} className="w-10 h-10 rounded-full hover:bg-gray-100 text-2xl leading-none">x</button>
-                                <h3 className="text-xl font-bold text-gray-900">Cita</h3>
+                                <h3 className="text-xl font-bold text-gray-900">{t('Cita')}</h3>
                                 {puedeEditarReserva(agendaDetalleBooking) ? (
-                                    <button onClick={() => abrirModalReprogramar(agendaDetalleBooking)} className="w-16 h-10 rounded-full hover:bg-gray-100 text-sm font-bold">Editar</button>
+                                    <button onClick={() => abrirModalReprogramar(agendaDetalleBooking)} className="w-16 h-10 rounded-full hover:bg-gray-100 text-sm font-bold">{t('Editar')}</button>
                                 ) : <span className="w-10"></span>}
                             </div>
 
                             <div className="px-5 py-5">
                                 <div className="mb-5">
-                                    <h2 className="text-2xl font-extrabold leading-tight text-gray-950">{agendaDetalleBooking.servicio || 'Servicio'}</h2>
-                                    <p className="mt-2 text-xl font-bold text-gray-900">Total: {formatMoneyEstadistica(resumen.totalMostrar)}</p>
+                                    <h2 className="text-2xl font-extrabold leading-tight text-gray-950">{agendaDetalleBooking.servicio || t('Servicio')}</h2>
+                                    <p className="mt-2 text-xl font-bold text-gray-900">{t('Total:')} {formatMoneyEstadistica(resumen.totalMostrar)}</p>
                                     <div className="mt-3 flex flex-wrap gap-2">
-                                        <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-bold ${estadoClase}`}>{agendaDetalleBooking.estado || 'Sin estado'}</span>
+                                        <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-bold ${estadoClase}`}>{agendaDetalleBooking.estado ? t(agendaDetalleBooking.estado) : t('Sin estado')}</span>
                                         <span className="inline-flex rounded-full border border-green-200 bg-green-50 px-3 py-1 text-xs font-bold text-green-700">{getAgendaEstadoPago(agendaDetalleBooking)}</span>
                                     </div>
                                 </div>
 
                                 <div className="mb-5 space-y-1 text-gray-700">
                                     <p className="font-semibold">{window.formatFechaCompleta ? window.formatFechaCompleta(agendaDetalleBooking.fecha) : agendaDetalleBooking.fecha}</p>
-                                    <p>de {formatTo12Hour(agendaDetalleBooking.hora_inicio)} a {formatTo12Hour(horaFinDetalle)} ({duracionDetalle} min)</p>
-                                    <p className="font-semibold">{agendaDetalleBooking.profesional_nombre || agendaDetalleBooking.trabajador_nombre || 'Sin profesional'}</p>
+                                    <p>{t('de {inicio} a {fin} ({min} min)', { inicio: formatTo12Hour(agendaDetalleBooking.hora_inicio), fin: formatTo12Hour(horaFinDetalle), min: duracionDetalle })}</p>
+                                    <p className="font-semibold">{agendaDetalleBooking.profesional_nombre || agendaDetalleBooking.trabajador_nombre || t('Sin profesional')}</p>
                                     {config?.direccion && <p className="text-sm text-gray-500">{config.direccion}</p>}
                                 </div>
 
                                 <div className="divide-y rounded-xl border bg-white">
-                                    <div className="flex items-center justify-between p-4"><span className="font-semibold text-gray-800">Cliente</span><span className="text-right text-gray-600">{agendaDetalleBooking.cliente_nombre || 'Sin nombre'} &gt;</span></div>
-                                    <div className="flex items-center justify-between p-4"><span className="font-semibold text-gray-800">WhatsApp</span><button onClick={() => window.enviarWhatsApp?.(agendaDetalleBooking.cliente_whatsapp, `Hola ${agendaDetalleBooking.cliente_nombre || ''}`)} className="text-right text-pink-600 font-semibold">+{agendaDetalleBooking.cliente_whatsapp || 'Sin numero'} &gt;</button></div>
-                                    <div className="flex items-center justify-between p-4"><span className="font-semibold text-gray-800">Precio del servicio</span><span className="font-bold text-gray-900">{formatMoneyEstadistica(resumen.costoServicios)}</span></div>
-                                    <div className="flex items-center justify-between p-4"><span className="font-semibold text-gray-800">Anticipo requerido</span><span className={`font-bold ${resumen.requiereAnticipo ? 'text-amber-700' : 'text-gray-500'}`}>{resumen.requiereAnticipo ? 'Si' : 'No'}</span></div>
-                                    {resumen.requiereAnticipo && <div className="flex items-center justify-between p-4"><div><p className="font-semibold text-gray-800">Monto del anticipo</p><p className="text-sm text-gray-500">{resumen.tipoAnticipo === 'porcentaje' ? `${resumen.valorAnticipo}% del servicio` : 'Monto fijo'}</p></div><span className="font-bold text-amber-700">{formatMoneyEstadistica(resumen.anticipo)}</span></div>}
-                                    <div className="flex items-center justify-between p-4"><span className="font-semibold text-gray-800">Coste de servicios</span><span className="text-gray-600">{formatMoneyEstadistica(resumen.costoServicios)}</span></div>
-                                    <div className="flex items-center justify-between p-4"><span className="font-semibold text-gray-800">Descuento</span><span className="text-gray-600">No</span></div>
-                                    <div className="flex items-center justify-between p-4"><span className="font-semibold text-gray-800">Coste total</span><span className="text-gray-600">{formatMoneyEstadistica(resumen.totalMostrar)}</span></div>
-                                    <div className="flex items-center justify-between p-4"><div><p className="font-semibold text-gray-800">Deposito</p><p className="text-sm text-gray-500">{resumen.requiereAnticipo ? (agendaDetalleBooking.estado === 'Pendiente' ? 'Pendiente de recibir' : 'Aplica para esta cita') : 'No aplica'}</p></div><span className="text-gray-600">{formatMoneyEstadistica(resumen.anticipo)}</span></div>
-                                    <div className="flex items-center justify-between p-4"><span className="font-semibold text-gray-800">Total pendiente</span><span className="font-bold text-gray-900">{formatMoneyEstadistica(resumen.pendiente)}</span></div>
-                                    <div className="flex items-center justify-between p-4"><span className="font-semibold text-gray-800">Cobro real</span><span className="font-bold text-emerald-700">{resumen.cobroReal > 0 ? formatMoneyEstadistica(resumen.cobroReal) : 'Sin registrar'}</span></div>
+                                    <div className="flex items-center justify-between p-4"><span className="font-semibold text-gray-800">{t('Cliente')}</span><span className="text-right text-gray-600">{agendaDetalleBooking.cliente_nombre || t('Sin nombre')} &gt;</span></div>
+                                    <div className="flex items-center justify-between p-4"><span className="font-semibold text-gray-800">WhatsApp</span><button onClick={() => window.enviarWhatsApp?.(agendaDetalleBooking.cliente_whatsapp, `Hola ${agendaDetalleBooking.cliente_nombre || ''}`)} className="text-right text-pink-600 font-semibold">+{agendaDetalleBooking.cliente_whatsapp || t('Sin numero')} &gt;</button></div>
+                                    <div className="flex items-center justify-between p-4"><span className="font-semibold text-gray-800">{t('Precio del servicio')}</span><span className="font-bold text-gray-900">{formatMoneyEstadistica(resumen.costoServicios)}</span></div>
+                                    <div className="flex items-center justify-between p-4"><span className="font-semibold text-gray-800">{t('Anticipo requerido')}</span><span className={`font-bold ${resumen.requiereAnticipo ? 'text-amber-700' : 'text-gray-500'}`}>{resumen.requiereAnticipo ? t('Si') : t('No')}</span></div>
+                                    {resumen.requiereAnticipo && <div className="flex items-center justify-between p-4"><div><p className="font-semibold text-gray-800">{t('Monto del anticipo')}</p><p className="text-sm text-gray-500">{resumen.tipoAnticipo === 'porcentaje' ? t('{n}% del servicio', { n: resumen.valorAnticipo }) : t('Monto fijo')}</p></div><span className="font-bold text-amber-700">{formatMoneyEstadistica(resumen.anticipo)}</span></div>}
+                                    <div className="flex items-center justify-between p-4"><span className="font-semibold text-gray-800">{t('Coste de servicios')}</span><span className="text-gray-600">{formatMoneyEstadistica(resumen.costoServicios)}</span></div>
+                                    <div className="flex items-center justify-between p-4"><span className="font-semibold text-gray-800">{t('Descuento')}</span><span className="text-gray-600">{t('No')}</span></div>
+                                    <div className="flex items-center justify-between p-4"><span className="font-semibold text-gray-800">{t('Coste total')}</span><span className="text-gray-600">{formatMoneyEstadistica(resumen.totalMostrar)}</span></div>
+                                    <div className="flex items-center justify-between p-4"><div><p className="font-semibold text-gray-800">{t('Deposito')}</p><p className="text-sm text-gray-500">{resumen.requiereAnticipo ? (agendaDetalleBooking.estado === 'Pendiente' ? t('Pendiente de recibir') : t('Aplica para esta cita')) : t('No aplica')}</p></div><span className="text-gray-600">{formatMoneyEstadistica(resumen.anticipo)}</span></div>
+                                    <div className="flex items-center justify-between p-4"><span className="font-semibold text-gray-800">{t('Total pendiente')}</span><span className="font-bold text-gray-900">{formatMoneyEstadistica(resumen.pendiente)}</span></div>
+                                    <div className="flex items-center justify-between p-4"><span className="font-semibold text-gray-800">{t('Cobro real')}</span><span className="font-bold text-emerald-700">{resumen.cobroReal > 0 ? formatMoneyEstadistica(resumen.cobroReal) : t('Sin registrar')}</span></div>
                                 </div>
 
                                 {serviciosDetalle.length > 1 && (
                                     <div className="mt-5 rounded-xl border border-pink-100 bg-pink-50 p-4">
-                                        <p className="text-xs font-bold uppercase text-pink-500 mb-3">Servicios del turno</p>
+                                        <p className="text-xs font-bold uppercase text-pink-500 mb-3">{t('Servicios del turno')}</p>
                                         <div className="space-y-2">
                                             {serviciosDetalle.map(item => (
                                                 <div key={item.id} className="flex justify-between gap-3 text-sm">
@@ -4181,14 +4189,14 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                                 )}
 
                                 <div className="mt-5 rounded-xl border bg-gray-50 p-4">
-                                    <p className="font-bold text-gray-900 mb-3">Acciones</p>
+                                    <p className="font-bold text-gray-900 mb-3">{t('Acciones')}</p>
                                     <div className="grid grid-cols-2 gap-2">
-                                        {agendaDetalleBooking.estado === 'Pendiente' && puedeGestionarReservas && <button onClick={() => confirmarPago(agendaDetalleBooking.id, agendaDetalleBooking)} className="px-3 py-2 rounded-lg bg-green-600 text-white font-bold text-sm">Confirmar pago</button>}
-                                        {puedeEditarReserva(agendaDetalleBooking) && <button onClick={() => abrirModalReprogramar(agendaDetalleBooking)} className="px-3 py-2 rounded-lg bg-pink-500 text-white font-bold text-sm">Editar</button>}
-                                        {turnoYaPaso(agendaDetalleBooking) && agendaDetalleBooking.estado !== 'Ausente' && puedeGestionarReservas && <button onClick={() => marcarAusencia(agendaDetalleBooking)} className="px-3 py-2 rounded-lg bg-slate-700 text-white font-bold text-sm">Ausencia</button>}
-                                        {agendaDetalleBooking.estado === 'Completado' && puedeGestionarReservas && <button onClick={() => abrirModalCobro(agendaDetalleBooking)} className="px-3 py-2 rounded-lg bg-emerald-600 text-white font-bold text-sm">Cobro real</button>}
-                                        {puedeEditarReserva(agendaDetalleBooking) && <button onClick={() => handleCancel(agendaDetalleBooking.id, agendaDetalleBooking)} className="px-3 py-2 rounded-lg bg-red-500 text-white font-bold text-sm">Cancelar</button>}
-                                        {puedeGestionarAvanzado && ['Cancelado', 'Completado', 'Ausente'].includes(agendaDetalleBooking.estado) && <button onClick={() => eliminarReservaHistorial(agendaDetalleBooking)} className="px-3 py-2 rounded-lg bg-gray-900 text-white font-bold text-sm">Eliminar</button>}
+                                        {agendaDetalleBooking.estado === 'Pendiente' && puedeGestionarReservas && <button onClick={() => confirmarPago(agendaDetalleBooking.id, agendaDetalleBooking)} className="px-3 py-2 rounded-lg bg-green-600 text-white font-bold text-sm">{t('Confirmar pago')}</button>}
+                                        {puedeEditarReserva(agendaDetalleBooking) && <button onClick={() => abrirModalReprogramar(agendaDetalleBooking)} className="px-3 py-2 rounded-lg bg-pink-500 text-white font-bold text-sm">{t('Editar')}</button>}
+                                        {turnoYaPaso(agendaDetalleBooking) && agendaDetalleBooking.estado !== 'Ausente' && puedeGestionarReservas && <button onClick={() => marcarAusencia(agendaDetalleBooking)} className="px-3 py-2 rounded-lg bg-slate-700 text-white font-bold text-sm">{t('Ausencia')}</button>}
+                                        {agendaDetalleBooking.estado === 'Completado' && puedeGestionarReservas && <button onClick={() => abrirModalCobro(agendaDetalleBooking)} className="px-3 py-2 rounded-lg bg-emerald-600 text-white font-bold text-sm">{t('Cobro real')}</button>}
+                                        {puedeEditarReserva(agendaDetalleBooking) && <button onClick={() => handleCancel(agendaDetalleBooking.id, agendaDetalleBooking)} className="px-3 py-2 rounded-lg bg-red-500 text-white font-bold text-sm">{t('Cancelar')}</button>}
+                                        {puedeGestionarAvanzado && ['Cancelado', 'Completado', 'Ausente'].includes(agendaDetalleBooking.estado) && <button onClick={() => eliminarReservaHistorial(agendaDetalleBooking)} className="px-3 py-2 rounded-lg bg-gray-900 text-white font-bold text-sm">{t('Eliminar')}</button>}
                                     </div>
                                 </div>
                             </div>
@@ -4202,13 +4210,13 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 sm:p-4">
                         <div className="bg-white rounded-xl max-w-5xl w-full p-3 sm:p-6 max-h-[96vh] overflow-y-auto">
                             <div className="flex justify-between items-center mb-3">
-                                <h3 className="text-lg sm:text-xl font-bold">📆 Disponibilidad</h3>
+                                <h3 className="text-lg sm:text-xl font-bold">📆 {t('Disponibilidad')}</h3>
                                 <button onClick={() => setShowDisponibilidadModal(false)} className="text-gray-500 hover:text-gray-700 text-2xl">×</button>
                             </div>
-                            
+
                             {userRole === 'admin' && profesionalesList.length > 0 && (
                                 <div className="mb-3">
-                                    <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Profesional:</label>
+                                    <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">{t('Profesional:')}</label>
                                     <select
                                         value={profesionalSeleccionadoDispo || ''}
                                         onChange={(e) => {
@@ -4219,17 +4227,17 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                                         }}
                                         className="w-full border rounded-lg px-3 py-2 text-sm"
                                     >
-                                        <option value="">Seleccionar profesional</option>
+                                        <option value="">{t('Seleccionar profesional')}</option>
                                         {profesionalesList.map(p => (
                                             <option key={p.id} value={p.id}>{p.nombre}</option>
                                         ))}
                                     </select>
                                 </div>
                             )}
-                            
+
                             <div className="flex gap-2 mb-3">
-                                <button onClick={() => { setModoDisponibilidad('mes'); cargarDisponibilidadDelMes(disponibilidadFecha, profesionalSeleccionadoDispo); }} className={`flex-1 px-3 py-2 rounded-lg text-sm font-semibold ${modoDisponibilidad === 'mes' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>Mensual</button>
-                                <button onClick={() => { setModoDisponibilidad('semana'); cargarDisponibilidadSemanal(disponibilidadFecha, profesionalSeleccionadoDispo); }} className={`flex-1 px-3 py-2 rounded-lg text-sm font-semibold ${modoDisponibilidad === 'semana' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>Semanal</button>
+                                <button onClick={() => { setModoDisponibilidad('mes'); cargarDisponibilidadDelMes(disponibilidadFecha, profesionalSeleccionadoDispo); }} className={`flex-1 px-3 py-2 rounded-lg text-sm font-semibold ${modoDisponibilidad === 'mes' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>{t('Mensual')}</button>
+                                <button onClick={() => { setModoDisponibilidad('semana'); cargarDisponibilidadSemanal(disponibilidadFecha, profesionalSeleccionadoDispo); }} className={`flex-1 px-3 py-2 rounded-lg text-sm font-semibold ${modoDisponibilidad === 'semana' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>{t('Semanal')}</button>
                             </div>
 
                             <div className="flex justify-between items-center mb-3">
@@ -4241,20 +4249,20 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                             </div>
                             
                             {disponibilidadCargando ? (
-                                <div className="text-center py-12"><div className="animate-spin h-8 w-8 border-b-2 border-pink-500 mx-auto"></div><p className="mt-2">Cargando disponibilidad...</p></div>
+                                <div className="text-center py-12"><div className="animate-spin h-8 w-8 border-b-2 border-pink-500 mx-auto"></div><p className="mt-2">{t('Cargando disponibilidad...')}</p></div>
                             ) : modoDisponibilidad === 'semana' ? (
                                 <div className="space-y-4">
                                     <div className="flex items-center justify-between gap-2">
                                         <div>
-                                            <p className="text-sm font-bold text-gray-900">Disponibilidad semanal</p>
-                                            <p className="text-xs text-gray-500">Turnos libres en verde para compartir.</p>
+                                            <p className="text-sm font-bold text-gray-900">{t('Disponibilidad semanal')}</p>
+                                            <p className="text-xs text-gray-500">{t('Turnos libres en verde para compartir.')}</p>
                                         </div>
                                         <button
                                             onClick={compartirDisponibilidadSemanal}
                                             disabled={disponibilidadSemanal.length === 0}
                                             className="px-4 py-2 bg-green-600 text-white rounded-xl text-xs sm:text-sm font-bold hover:bg-green-700 disabled:opacity-50 shadow-sm"
                                         >
-                                            Compartir
+                                            {t('Compartir')}
                                         </button>
                                     </div>
 
@@ -4275,7 +4283,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                                                     <div className="px-1.5 py-3 sm:p-4 space-y-2 sm:space-y-3">
                                                         {disponibles.length === 0 ? (
                                                             <div className="h-24 sm:h-32 rounded-xl border border-dashed border-gray-200 bg-white/70 text-gray-400 text-[9px] sm:text-xs flex items-center justify-center text-center px-1 leading-tight">
-                                                                Sin turnos
+                                                                {t('Sin turnos')}
                                                             </div>
                                                         ) : (
                                                             disponibles.map(turno => (
@@ -4291,26 +4299,26 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                                     </div>
 
                                     <div className="flex flex-wrap gap-3 text-[11px] sm:text-xs text-gray-600">
-                                        <span className="inline-flex items-center gap-1"><span className="w-3 h-3 rounded bg-green-500"></span>Disponible</span>
-                                        <span className="inline-flex items-center gap-1"><span className="w-3 h-3 rounded bg-gray-100 border border-gray-200"></span>Sin turnos</span>
+                                        <span className="inline-flex items-center gap-1"><span className="w-3 h-3 rounded bg-green-500"></span>{t('Disponible')}</span>
+                                        <span className="inline-flex items-center gap-1"><span className="w-3 h-3 rounded bg-gray-100 border border-gray-200"></span>{t('Sin turnos')}</span>
                                     </div>
                                 </div>
                             ) : (
                                 <div className="space-y-3">
                                     <div className="flex items-center justify-between gap-2">
                                         <div>
-                                            <p className="text-sm font-bold text-gray-900">Disponibilidad mensual</p>
-                                            <p className="text-xs text-gray-500">Calendario listo para compartir.</p>
+                                            <p className="text-sm font-bold text-gray-900">{t('Disponibilidad mensual')}</p>
+                                            <p className="text-xs text-gray-500">{t('Calendario listo para compartir.')}</p>
                                         </div>
                                         <button
                                             onClick={compartirDisponibilidadMensual}
                                             className="px-4 py-2 bg-green-600 text-white rounded-xl text-xs sm:text-sm font-bold hover:bg-green-700 shadow-sm"
                                         >
-                                            Compartir
+                                            {t('Compartir')}
                                         </button>
                                     </div>
                                     <div className="grid grid-cols-7 mb-2 text-center">
-                                        {['D', 'L', 'M', 'M', 'J', 'V', 'S'].map(d => <div key={d} className="text-xs font-medium text-gray-500">{d}</div>)}
+                                        {(idioma === 'en' ? ['S', 'M', 'T', 'W', 'T', 'F', 'S'] : ['D', 'L', 'M', 'M', 'J', 'V', 'S']).map((d, i) => <div key={i} className="text-xs font-medium text-gray-500">{d}</div>)}
                                     </div>
                                     <div className="grid grid-cols-7 gap-1">
                                         {disponibilidadDays.map((date, idx) => {
@@ -4335,7 +4343,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                                             else className += " bg-gray-100 text-gray-400 border-gray-200";
                                             
                                             return (
-                                                <div key={idx} className={className} title={esCerrado ? "Día cerrado" : esPasado ? "Fecha pasada" : disponible ? `${disponiblesDia} turno(s) disponible(s)` : "Sin horarios disponibles"}>
+                                                <div key={idx} className={className} title={esCerrado ? t('Día cerrado') : esPasado ? t('Fecha pasada') : disponible ? t('{n} turno(s) disponible(s)', { n: disponiblesDia }) : t('Sin horarios disponibles')}>
                                                     <span className="text-base leading-tight">{date.getDate()}</span>
                                                     {!esCerrado && !esPasado && (
                                                         <span className={`mt-0.5 min-w-5 px-1.5 py-0.5 rounded-full border text-[11px] font-bold leading-none ${tonoConteo}`}>
@@ -4352,10 +4360,10 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                             
                             {modoDisponibilidad === 'mes' && <div className="mt-4 p-3 bg-gray-50 rounded-lg text-xs">
                                 <div className="flex flex-wrap gap-4">
-                                    <div className="flex items-center gap-2"><div className="w-5 h-5 bg-green-100 border border-green-300 rounded-full flex items-center justify-center text-[10px] font-bold text-green-700">6</div><span>4+ tranquilo</span></div>
-                                    <div className="flex items-center gap-2"><div className="w-5 h-5 bg-yellow-100 border border-yellow-300 rounded-full flex items-center justify-center text-[10px] font-bold text-yellow-700">3</div><span>3 medio</span></div>
-                                    <div className="flex items-center gap-2"><div className="w-5 h-5 bg-red-100 border border-red-300 rounded-full flex items-center justify-center text-[10px] font-bold text-red-700">2</div><span>1-2 urgente</span></div>
-                                    <div className="flex items-center gap-2"><div className="w-5 h-5 bg-gray-100 border border-gray-200 rounded-full flex items-center justify-center text-[10px] font-bold text-gray-400">0</div><span>Sin horarios</span></div>
+                                    <div className="flex items-center gap-2"><div className="w-5 h-5 bg-green-100 border border-green-300 rounded-full flex items-center justify-center text-[10px] font-bold text-green-700">6</div><span>{t('4+ tranquilo')}</span></div>
+                                    <div className="flex items-center gap-2"><div className="w-5 h-5 bg-yellow-100 border border-yellow-300 rounded-full flex items-center justify-center text-[10px] font-bold text-yellow-700">3</div><span>{t('3 medio')}</span></div>
+                                    <div className="flex items-center gap-2"><div className="w-5 h-5 bg-red-100 border border-red-300 rounded-full flex items-center justify-center text-[10px] font-bold text-red-700">2</div><span>{t('1-2 urgente')}</span></div>
+                                    <div className="flex items-center gap-2"><div className="w-5 h-5 bg-gray-100 border border-gray-200 rounded-full flex items-center justify-center text-[10px] font-bold text-gray-400">0</div><span>{t('Sin horarios')}</span></div>
                                 </div>
                             </div>}
                         </div>
@@ -4392,17 +4400,17 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                 {tabActivo === 'clientes' && (userRole === 'admin' || userNivel >= 2) && (
                     <div className="bg-white rounded-xl shadow-sm p-6">
                         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-5">
-                            <h2 className="text-xl font-bold">Clientes Registrados ({clientesRegistrados.length})</h2>
-                            <p className="text-sm text-gray-500">Score calculado con el historial de reservas, completadas y canceladas.</p>
+                            <h2 className="text-xl font-bold">{t('Clientes Registrados ({n})', { n: clientesRegistrados.length })}</h2>
+                            <p className="text-sm text-gray-500">{t('Score calculado con el historial de reservas, completadas y canceladas.')}</p>
                             <div className="flex flex-wrap gap-2">
                                 {(userRole === 'admin' || userNivel >= 3) && (
                                     <label className={`px-4 py-2 rounded-lg bg-gray-900 text-white text-sm font-bold hover:bg-black cursor-pointer ${importandoClientesCsv ? 'opacity-60 pointer-events-none' : ''}`}>
-                                        {importandoClientesCsv ? 'Importando...' : 'Cargar CSV'}
+                                        {importandoClientesCsv ? t('Importando...') : t('Cargar CSV')}
                                         <input type="file" accept=".csv,text/csv" onChange={handleImportarClientesCsv} className="hidden" disabled={importandoClientesCsv} />
                                     </label>
                                 )}
                                 <button onClick={() => { setShowClientesRegistrados(!showClientesRegistrados); if (!showClientesRegistrados) { loadClientesRegistrados(); loadClientesBloqueados(); } }} className="px-4 py-2 rounded-lg bg-pink-50 text-pink-600 text-sm font-medium hover:bg-pink-100">
-                                    {showClientesRegistrados ? 'Ocultar' : 'Mostrar'}
+                                    {showClientesRegistrados ? t('Ocultar') : t('Mostrar')}
                                 </button>
                             </div>
                         </div>
@@ -4415,7 +4423,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                                             type="text"
                                             value={busquedaClientes}
                                             onChange={e => setBusquedaClientes(e.target.value)}
-                                            placeholder="Buscar por nombre o número..."
+                                            placeholder={t('Buscar por nombre o número...')}
                                             className="flex-1 bg-transparent text-sm outline-none text-gray-700 placeholder-pink-300"
                                         />
                                         {busquedaClientes && (
@@ -4425,9 +4433,9 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                                 )}
                                 {(userRole === 'admin' || userNivel >= 3) && (
                                     <div className="rounded-xl border border-red-100 bg-red-50 p-4">
-                                        <h3 className="font-bold text-red-700 mb-3">Lista negra</h3>
+                                        <h3 className="font-bold text-red-700 mb-3">{t('Lista negra')}</h3>
                                         <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
-                                            <input type="text" value={nuevoBloqueo.nombre} onChange={(e) => setNuevoBloqueo({...nuevoBloqueo, nombre: e.target.value})} className="border rounded-lg px-3 py-2 text-sm" placeholder="Nombre opcional" />
+                                            <input type="text" value={nuevoBloqueo.nombre} onChange={(e) => setNuevoBloqueo({...nuevoBloqueo, nombre: e.target.value})} className="border rounded-lg px-3 py-2 text-sm" placeholder={t('Nombre opcional')} />
                                             <div className="flex">
                                                 <select
                                                     value={nuevoBloqueo.codigo_pais || codigoPaisNegocio}
@@ -4444,25 +4452,25 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                                                 </select>
                                                 <input type="tel" value={nuevoBloqueo.whatsapp} onChange={(e) => setNuevoBloqueo({...nuevoBloqueo, whatsapp: String(e.target.value || '').replace(/\D/g, '')})} className="border rounded-r-lg px-3 py-2 text-sm" placeholder="WhatsApp" />
                                             </div>
-                                            <input type="text" value={nuevoBloqueo.motivo} onChange={(e) => setNuevoBloqueo({...nuevoBloqueo, motivo: e.target.value})} className="border rounded-lg px-3 py-2 text-sm" placeholder="Motivo opcional" />
-                                            <button onClick={() => handleBloquearCliente()} className="px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-bold hover:bg-red-700">Bloquear</button>
+                                            <input type="text" value={nuevoBloqueo.motivo} onChange={(e) => setNuevoBloqueo({...nuevoBloqueo, motivo: e.target.value})} className="border rounded-lg px-3 py-2 text-sm" placeholder={t('Motivo opcional')} />
+                                            <button onClick={() => handleBloquearCliente()} className="px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-bold hover:bg-red-700">{t('Bloquear')}</button>
                                         </div>
 
                                         <div className="mt-4 space-y-2">
-                                            {cargandoBloqueados ? <p className="text-sm text-red-600">Cargando lista negra...</p> : clientesBloqueados.length === 0 ? <p className="text-sm text-red-500">No hay clientes bloqueados.</p> :
+                                            {cargandoBloqueados ? <p className="text-sm text-red-600">{t('Cargando lista negra...')}</p> : clientesBloqueados.length === 0 ? <p className="text-sm text-red-500">{t('No hay clientes bloqueados.')}</p> :
                                                 clientesBloqueados.map((cliente) => (
                                                     <div key={cliente.id || cliente.whatsapp} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded-lg bg-white border border-red-100 p-3">
                                                         <div>
-                                                            <p className="font-semibold text-gray-900">{cliente.nombre || 'Sin nombre'} <span className="text-sm text-gray-500">+{cliente.whatsapp}</span></p>
-                                                            {cliente.motivo && <p className="text-xs text-gray-500">Motivo: {cliente.motivo}</p>}
+                                                            <p className="font-semibold text-gray-900">{cliente.nombre || t('Sin nombre')} <span className="text-sm text-gray-500">+{cliente.whatsapp}</span></p>
+                                                            {cliente.motivo && <p className="text-xs text-gray-500">{t('Motivo:')} {cliente.motivo}</p>}
                                                         </div>
-                                                        <button onClick={() => handleDesbloquearCliente(cliente.whatsapp)} className="px-3 py-2 rounded-lg bg-white border border-red-200 text-red-600 text-sm font-medium hover:bg-red-50">Desbloquear</button>
+                                                        <button onClick={() => handleDesbloquearCliente(cliente.whatsapp)} className="px-3 py-2 rounded-lg bg-white border border-red-200 text-red-600 text-sm font-medium hover:bg-red-50">{t('Desbloquear')}</button>
                                                     </div>
                                                 ))}
                                         </div>
                                     </div>
                                 )}
-                                {cargandoClientes ? <p className="text-center text-pink-500">Cargando clientes...</p> : clientesRegistrados.length === 0 ? <p className="text-center text-gray-500">No hay clientes registrados</p> :
+                                {cargandoClientes ? <p className="text-center text-pink-500">{t('Cargando clientes...')}</p> : clientesRegistrados.length === 0 ? <p className="text-center text-gray-500">{t('No hay clientes registrados')}</p> :
                                     (() => {
                                         const q = busquedaClientes.toLowerCase().trim();
                                         const qNum = busquedaClientes.replace(/\D/g, '');
@@ -4470,13 +4478,13 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                                             (c.nombre || '').toLowerCase().includes(q) ||
                                             (qNum && (c.whatsapp || '').includes(qNum))
                                         ) : clientesRegistrados;
-                                        if (filtrados.length === 0) return <p className="text-center text-gray-400 text-sm py-4">No hay clientes que coincidan con "{busquedaClientes}"</p>;
+                                        if (filtrados.length === 0) return <p className="text-center text-gray-400 text-sm py-4">{t('No hay clientes que coincidan con "{busqueda}"', { busqueda: busquedaClientes })}</p>;
                                         return filtrados.map((cliente, idx) => {
                                         const score = getClienteScore(cliente);
                                         const reservasCliente = getReservasCliente(cliente);
                                         const ultimaCita = score.ultima
                                             ? `${window.formatFechaCompleta ? window.formatFechaCompleta(score.ultima.fecha) : score.ultima.fecha} ${formatTo12Hour(score.ultima.hora_inicio)}`
-                                            : 'Sin citas';
+                                            : t('Sin citas');
 
                                         return (
                                             <div
@@ -4497,20 +4505,20 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                                                         <div className="flex flex-wrap items-center gap-2">
                                                             <p className="font-bold text-gray-900 truncate">{cliente.nombre}</p>
                                                             <span className={`px-2.5 py-1 rounded-full border text-xs font-semibold ${score.tone}`}>{score.label}</span>
-                                                            <span className="px-2.5 py-1 rounded-full bg-white border text-xs font-semibold text-gray-700">Score {score.score}/100</span>
+                                                            <span className="px-2.5 py-1 rounded-full bg-white border text-xs font-semibold text-gray-700">{t('Score {n}/100', { n: score.score })}</span>
                                                         </div>
                                                         <p className="text-sm text-gray-500 mt-1">+{cliente.whatsapp}</p>
-                                                        <p className="text-xs text-gray-500 mt-1">Ultima cita: {ultimaCita}</p>
-                                                        <p className="text-xs font-semibold text-pink-600 mt-2">Tocar para ver todos sus turnos</p>
+                                                        <p className="text-xs text-gray-500 mt-1">{t('Ultima cita:')} {ultimaCita}</p>
+                                                        <p className="text-xs font-semibold text-pink-600 mt-2">{t('Tocar para ver todos sus turnos')}</p>
                                                     </div>
 
                                                     {(userRole === 'admin' || userNivel >= 3) && (
                                                         <div className="flex flex-wrap gap-2">
                                                             <button onClick={(event) => { event.stopPropagation(); handleBloquearCliente(cliente); }} className="px-3 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-black">
-                                                                Bloquear
+                                                                {t('Bloquear')}
                                                             </button>
                                                             <button onClick={(event) => { event.stopPropagation(); handleEliminarCliente(cliente.whatsapp); }} className="px-3 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600">
-                                                                Quitar
+                                                                {t('Quitar')}
                                                             </button>
                                                         </div>
                                                     )}
@@ -4518,31 +4526,31 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
 
                                                 <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mt-4">
                                                     <div className="bg-white rounded-lg p-3 border">
-                                                        <p className="text-xs text-gray-500">Total</p>
+                                                        <p className="text-xs text-gray-500">{t('Total')}</p>
                                                         <p className="text-lg font-bold text-gray-900">{score.total}</p>
                                                     </div>
                                                     <div className="bg-white rounded-lg p-3 border">
-                                                        <p className="text-xs text-gray-500">Activas</p>
+                                                        <p className="text-xs text-gray-500">{t('Activas')}</p>
                                                         <p className="text-lg font-bold text-pink-600">{score.activas}</p>
                                                     </div>
                                                     <div className="bg-white rounded-lg p-3 border">
-                                                        <p className="text-xs text-gray-500">Pendientes</p>
+                                                        <p className="text-xs text-gray-500">{t('Pendientes')}</p>
                                                         <p className="text-lg font-bold text-amber-600">{score.pendientes}</p>
                                                     </div>
                                                     <div className="bg-white rounded-lg p-3 border">
-                                                        <p className="text-xs text-gray-500">Completadas</p>
+                                                        <p className="text-xs text-gray-500">{t('Completadas')}</p>
                                                         <p className="text-lg font-bold text-emerald-600">{score.completadas}</p>
                                                     </div>
                                                     <div className="bg-white rounded-lg p-3 border">
-                                                        <p className="text-xs text-gray-500">Canceladas</p>
+                                                        <p className="text-xs text-gray-500">{t('Canceladas')}</p>
                                                         <p className="text-lg font-bold text-red-600">{score.canceladas}</p>
                                                     </div>
                                                 </div>
 
                                                 <div className="mt-3">
                                                     <div className="flex justify-between text-xs text-gray-500 mb-1">
-                                                        <span>Completadas {score.completionRate}%</span>
-                                                        <span>Cancelación {score.cancelRate}%</span>
+                                                        <span>{t('Completadas {n}%', { n: score.completionRate })}</span>
+                                                        <span>{t('Cancelación {n}%', { n: score.cancelRate })}</span>
                                                     </div>
                                                     <div className="h-2 bg-white rounded-full overflow-hidden border">
                                                         <div className="h-full bg-emerald-400" style={{ width: `${score.completionRate}%` }}></div>
@@ -4562,13 +4570,13 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                         <div className="bg-white w-full sm:max-w-2xl max-h-[88vh] rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden" onClick={(event) => event.stopPropagation()}>
                             <div className="p-5 border-b bg-gradient-to-r from-white to-pink-50 flex items-start justify-between gap-4">
                                 <div className="min-w-0">
-                                    <p className="text-xs font-bold uppercase text-pink-500 tracking-wide">Historial del cliente</p>
-                                    <h3 className="text-2xl font-bold text-gray-900 truncate">{clienteDetalle.cliente.nombre || 'Cliente'}</h3>
+                                    <p className="text-xs font-bold uppercase text-pink-500 tracking-wide">{t('Historial del cliente')}</p>
+                                    <h3 className="text-2xl font-bold text-gray-900 truncate">{clienteDetalle.cliente.nombre || t('Cliente')}</h3>
                                     <p className="text-sm text-gray-500">+{clienteDetalle.cliente.whatsapp}</p>
                                     <div className="flex flex-wrap gap-2 mt-3">
                                         <span className={`px-2.5 py-1 rounded-full border text-xs font-semibold ${clienteDetalle.score.tone}`}>{clienteDetalle.score.label}</span>
-                                        <span className="px-2.5 py-1 rounded-full bg-white border text-xs font-semibold text-gray-700">Score {clienteDetalle.score.score}/100</span>
-                                        <span className="px-2.5 py-1 rounded-full bg-pink-50 text-pink-700 border border-pink-100 text-xs font-semibold">{clienteDetalle.reservas.length} turnos</span>
+                                        <span className="px-2.5 py-1 rounded-full bg-white border text-xs font-semibold text-gray-700">{t('Score {n}/100', { n: clienteDetalle.score.score })}</span>
+                                        <span className="px-2.5 py-1 rounded-full bg-pink-50 text-pink-700 border border-pink-100 text-xs font-semibold">{t('{n} turnos', { n: clienteDetalle.reservas.length })}</span>
                                     </div>
                                 </div>
                                 <button onClick={() => setClienteDetalle(null)} className="w-10 h-10 rounded-full bg-white border text-gray-500 hover:text-gray-900 hover:bg-gray-50 text-xl leading-none">×</button>
@@ -4577,7 +4585,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                             <div className="p-5 overflow-y-auto max-h-[68vh] space-y-3">
                                 {clienteDetalle.reservas.length === 0 ? (
                                     <div className="text-center py-10 bg-gray-50 rounded-xl border border-gray-100">
-                                        <p className="text-gray-500">Este cliente aún no tiene turnos registrados.</p>
+                                        <p className="text-gray-500">{t('Este cliente aún no tiene turnos registrados.')}</p>
                                     </div>
                                 ) : (
                                     clienteDetalle.reservas.map((reserva, index) => {
@@ -4594,10 +4602,10 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                                                     <div className="min-w-0">
                                                         <p className="text-sm font-bold">{fecha}</p>
                                                         <p className="text-lg font-extrabold">{horaInicio}{horaFin ? ` - ${horaFin}` : ''}</p>
-                                                        <p className="font-semibold mt-2">{reserva.servicio || 'Servicio sin nombre'}</p>
-                                                        <p className="text-sm opacity-80">Profesional: {reserva.profesional_nombre || 'No asignado'}</p>
+                                                        <p className="font-semibold mt-2">{reserva.servicio || t('Servicio sin nombre')}</p>
+                                                        <p className="text-sm opacity-80">{t('Profesional:')} {reserva.profesional_nombre || t('No asignado')}</p>
                                                     </div>
-                                                    <span className="self-start px-3 py-1 rounded-full bg-white/80 border text-xs font-bold">{estado}</span>
+                                                    <span className="self-start px-3 py-1 rounded-full bg-white/80 border text-xs font-bold">{t(estado)}</span>
                                                 </div>
 
                                                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-3 text-sm">
@@ -4606,11 +4614,11 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                                                         <p className="font-semibold">+{reserva.cliente_whatsapp || clienteDetalle.cliente.whatsapp}</p>
                                                     </div>
                                                     <div className="bg-white/70 rounded-lg p-2 border">
-                                                        <p className="text-xs opacity-70">Cobro real</p>
-                                                        <p className="font-semibold">{cobro > 0 ? `$${cobro}` : 'Sin registrar'}</p>
+                                                        <p className="text-xs opacity-70">{t('Cobro real')}</p>
+                                                        <p className="font-semibold">{cobro > 0 ? `$${cobro}` : t('Sin registrar')}</p>
                                                     </div>
                                                     <div className="bg-white/70 rounded-lg p-2 border">
-                                                        <p className="text-xs opacity-70">ID cita</p>
+                                                        <p className="text-xs opacity-70">{t('ID cita')}</p>
                                                         <p className="font-semibold truncate">{reserva.id || '-'}</p>
                                                     </div>
                                                 </div>
@@ -4629,7 +4637,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                         <div className="p-4 sm:p-5 border-b bg-gradient-to-r from-white to-pink-50">
                             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                                 <div>
-                                    <p className="text-xs uppercase tracking-wide text-pink-500 font-bold">Agenda {agendaMode === 'dia' ? 'diaria' : 'semanal'}</p>
+                                    <p className="text-xs uppercase tracking-wide text-pink-500 font-bold">{agendaMode === 'dia' ? t('Agenda diaria') : t('Agenda semanal')}</p>
                                     <h2 className="text-2xl font-bold text-gray-900">
                                         {getAgendaTitle()}
                                     </h2>
@@ -4637,12 +4645,12 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
 
                                 <div className="flex flex-wrap items-center gap-2">
                                     <div className="inline-flex bg-gray-100 rounded-lg p-1">
-                                        <button onClick={() => setAgendaMode('dia')} className={`px-3 py-1.5 rounded-md text-sm font-medium ${agendaMode === 'dia' ? 'bg-white text-pink-600 shadow-sm' : 'text-gray-600'}`}>Dia</button>
-                                        <button onClick={() => setAgendaMode('semana')} className={`px-3 py-1.5 rounded-md text-sm font-medium ${agendaMode === 'semana' ? 'bg-white text-pink-600 shadow-sm' : 'text-gray-600'}`}>Semana</button>
+                                        <button onClick={() => setAgendaMode('dia')} className={`px-3 py-1.5 rounded-md text-sm font-medium ${agendaMode === 'dia' ? 'bg-white text-pink-600 shadow-sm' : 'text-gray-600'}`}>{t('Dia')}</button>
+                                        <button onClick={() => setAgendaMode('semana')} className={`px-3 py-1.5 rounded-md text-sm font-medium ${agendaMode === 'semana' ? 'bg-white text-pink-600 shadow-sm' : 'text-gray-600'}`}>{t('Semana')}</button>
                                     </div>
-                                    <button onClick={() => setAgendaDate(addDays(agendaDate, agendaMode === 'dia' ? -1 : -7))} className="px-3 py-2 rounded-lg border bg-white hover:bg-gray-50 text-sm font-medium">{agendaMode === 'dia' ? 'Día anterior' : 'Semana anterior'}</button>
-                                    <button onClick={() => setAgendaDate(new Date())} className="px-3 py-2 rounded-lg bg-pink-500 text-white hover:bg-pink-600 text-sm font-medium">Hoy</button>
-                                    <button onClick={() => setAgendaDate(addDays(agendaDate, agendaMode === 'dia' ? 1 : 7))} className="px-3 py-2 rounded-lg border bg-white hover:bg-gray-50 text-sm font-medium">{agendaMode === 'dia' ? 'Día siguiente' : 'Semana siguiente'}</button>
+                                    <button onClick={() => setAgendaDate(addDays(agendaDate, agendaMode === 'dia' ? -1 : -7))} className="px-3 py-2 rounded-lg border bg-white hover:bg-gray-50 text-sm font-medium">{agendaMode === 'dia' ? t('Día anterior') : t('Semana anterior')}</button>
+                                    <button onClick={() => setAgendaDate(new Date())} className="px-3 py-2 rounded-lg bg-pink-500 text-white hover:bg-pink-600 text-sm font-medium">{t('Hoy')}</button>
+                                    <button onClick={() => setAgendaDate(addDays(agendaDate, agendaMode === 'dia' ? 1 : 7))} className="px-3 py-2 rounded-lg border bg-white hover:bg-gray-50 text-sm font-medium">{agendaMode === 'dia' ? t('Día siguiente') : t('Semana siguiente')}</button>
                                 </div>
                             </div>
 
@@ -4657,7 +4665,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                                             onClick={() => { setAgendaDate(day); setAgendaMode('dia'); }}
                                             className={`py-2 rounded-lg text-center transition ${selected ? 'bg-gray-900 text-white shadow-sm' : isToday ? 'bg-pink-50 text-pink-700' : 'hover:bg-gray-50 text-gray-700'}`}
                                         >
-                                            <span className="block text-xs font-semibold uppercase">{day.toLocaleDateString('es-CU', { weekday: 'short' }).charAt(0)}</span>
+                                            <span className="block text-xs font-semibold uppercase">{day.toLocaleDateString(idioma === 'en' ? 'en-US' : 'es-CU', { weekday: 'short' }).charAt(0)}</span>
                                             <span className="block text-lg font-bold leading-tight">{day.getDate()}</span>
                                             <span className={`mx-auto mt-1 block h-1.5 w-1.5 rounded-full ${getAgendaDayBookings(day).length ? selected ? 'bg-white' : 'bg-pink-500' : 'bg-transparent'}`}></span>
                                         </button>
@@ -4667,19 +4675,19 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
 
                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5">
                                 <div className="rounded-lg border border-pink-100 bg-white p-3">
-                                    <p className="text-xs text-gray-500">Turnos</p>
+                                    <p className="text-xs text-gray-500">{t('Turnos')}</p>
                                     <p className="text-2xl font-bold text-gray-900">{agendaVisibleBookings.length}</p>
                                 </div>
                                 <div className="rounded-lg border border-amber-100 bg-white p-3">
-                                    <p className="text-xs text-gray-500">Pendientes</p>
+                                    <p className="text-xs text-gray-500">{t('Pendientes')}</p>
                                     <p className="text-2xl font-bold text-amber-600">{agendaVisibleBookings.filter(b => b.estado === 'Pendiente').length}</p>
                                 </div>
                                 <div className="rounded-lg border border-emerald-100 bg-white p-3">
-                                    <p className="text-xs text-gray-500">Completados</p>
+                                    <p className="text-xs text-gray-500">{t('Completados')}</p>
                                     <p className="text-2xl font-bold text-emerald-600">{agendaVisibleBookings.filter(b => b.estado === 'Completado').length}</p>
                                 </div>
                                 <div className="rounded-lg border border-blue-100 bg-white p-3">
-                                    <p className="text-xs text-gray-500">Profesionales</p>
+                                    <p className="text-xs text-gray-500">{t('Profesionales')}</p>
                                     <p className="text-2xl font-bold text-blue-600">{new Set(agendaVisibleBookings.map(b => b.profesional_id || b.profesional_nombre)).size}</p>
                                 </div>
                             </div>
@@ -4703,7 +4711,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
 
                                         {agendaDayBookings.length === 0 && (
                                             <div className="absolute inset-x-4 top-8 rounded-xl border border-dashed border-gray-200 bg-gray-50 p-5 text-center text-gray-500">
-                                                No hay citas para este día
+                                                {t('No hay citas para este día')}
                                             </div>
                                         )}
 
@@ -4722,10 +4730,10 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                                                             <p className="text-[11px] font-bold leading-tight opacity-90">{formatTo12Hour(booking.hora_inicio)} - {formatTo12Hour(booking.hora_fin || calculateEndTime(booking.hora_inicio, booking.duracion || 60))}</p>
                                                             {!isShort && <p className="text-sm font-bold truncate">{booking.cliente_nombre}</p>}
                                                             {!isShort && <p className="text-xs truncate opacity-90">{booking._grupoVisual ? `${booking._reservasGrupo.length} servicios - ${booking.servicio}` : booking.servicio}</p>}
-                                                            {!isShort && <p className="text-[11px] truncate opacity-80">{booking.profesional_nombre || booking.trabajador_nombre || 'Sin profesional'}</p>}
+                                                            {!isShort && <p className="text-[11px] truncate opacity-80">{booking.profesional_nombre || booking.trabajador_nombre || t('Sin profesional')}</p>}
                                                         </div>
                                                         <button onClick={(event) => { event.stopPropagation(); abrirDetalleAgenda(booking); }} className="mt-auto w-full rounded-md py-1 text-[11px] bg-white/80 hover:bg-white text-gray-700 font-bold">
-                                                            Detalles
+                                                            {t('Detalles')}
                                                         </button>
                                                     </div>
                                                 </div>
@@ -4740,7 +4748,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                         <div className="overflow-x-auto">
                             <div className="min-w-[1440px]">
                                 <div className="grid grid-cols-[72px_repeat(7,minmax(190px,1fr))] border-b bg-white sticky top-0 z-10">
-                                    <div className="p-3 text-xs font-semibold text-gray-400 border-r">Hora</div>
+                                    <div className="p-3 text-xs font-semibold text-gray-400 border-r">{t('Hora')}</div>
                                     {agendaDays.map(day => {
                                         const dateStr = formatDate(day);
                                         const dayBookings = getAgendaDayBookings(day);
@@ -4749,7 +4757,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                                             <div key={dateStr} className={`p-3 border-r last:border-r-0 ${isToday ? 'bg-pink-50' : ''}`}>
                                                 <div className="flex items-center justify-between">
                                                     <div>
-                                                        <p className="text-xs font-bold uppercase text-gray-500">{day.toLocaleDateString('es-CU', { weekday: 'short' })}</p>
+                                                        <p className="text-xs font-bold uppercase text-gray-500">{day.toLocaleDateString(idioma === 'en' ? 'en-US' : 'es-CU', { weekday: 'short' })}</p>
                                                         <p className={`text-xl font-bold ${isToday ? 'text-pink-600' : 'text-gray-900'}`}>{day.getDate()}</p>
                                                     </div>
                                                     <span className={`text-xs px-2 py-1 rounded-full ${dayBookings.length ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-500'}`}>
@@ -4815,9 +4823,9 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                         )}
 
                         <div className="p-4 border-t bg-gray-50 flex flex-wrap gap-3 text-xs">
-                            <span className="inline-flex items-center gap-2"><span className="w-3 h-3 rounded bg-pink-500"></span>Reservado</span>
-                            <span className="inline-flex items-center gap-2"><span className="w-3 h-3 rounded bg-amber-400"></span>Pendiente</span>
-                            <span className="inline-flex items-center gap-2"><span className="w-3 h-3 rounded bg-emerald-500"></span>Completado</span>
+                            <span className="inline-flex items-center gap-2"><span className="w-3 h-3 rounded bg-pink-500"></span>{t('Reservado')}</span>
+                            <span className="inline-flex items-center gap-2"><span className="w-3 h-3 rounded bg-amber-400"></span>{t('Pendiente')}</span>
+                            <span className="inline-flex items-center gap-2"><span className="w-3 h-3 rounded bg-emerald-500"></span>{t('Completado')}</span>
                         </div>
                     </div>
                 )}
@@ -4827,8 +4835,8 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                         <div className="bg-white rounded-xl max-w-md w-full p-5 shadow-xl">
                             <div className="flex items-start justify-between gap-4 border-b pb-3 mb-4">
                                 <div>
-                                    <p className="text-xs uppercase tracking-wide text-emerald-600 font-bold">Cobro real</p>
-                                    <h3 className="text-xl font-bold text-gray-900">{cobroEditando.cliente_nombre || 'Cliente sin nombre'}</h3>
+                                    <p className="text-xs uppercase tracking-wide text-emerald-600 font-bold">{t('Cobro real')}</p>
+                                    <h3 className="text-xl font-bold text-gray-900">{cobroEditando.cliente_nombre || t('Cliente sin nombre')}</h3>
                                     <p className="text-sm text-gray-500">{cobroEditando.servicio}</p>
                                 </div>
                                 <button onClick={() => setCobroEditando(null)} disabled={guardandoCobro} className="text-gray-500 hover:text-gray-700 text-2xl leading-none">×</button>
@@ -4836,7 +4844,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
 
                             <div className="space-y-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Monto cobrado real</label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">{t('Monto cobrado real')}</label>
                                     <input
                                         type="number"
                                         min="0"
@@ -4844,29 +4852,29 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                                         value={cobroForm.monto_cobrado}
                                         onChange={(e) => setCobroForm({...cobroForm, monto_cobrado: e.target.value})}
                                         className="w-full border rounded-lg px-3 py-2"
-                                        placeholder="Ej: 2500"
+                                        placeholder={t('Ej: 2500')}
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Nota opcional</label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">{t('Nota opcional')}</label>
                                     <textarea
                                         value={cobroForm.notas_cobro}
                                         onChange={(e) => setCobroForm({...cobroForm, notas_cobro: e.target.value})}
                                         className="w-full border rounded-lg px-3 py-2 min-h-24"
-                                        placeholder="Ej: ajuste por diseño extra, descuento, propina..."
+                                        placeholder={t('Ej: ajuste por diseño extra, descuento, propina...')}
                                     />
                                 </div>
                                 {cobroEditando._grupoVisual && (
                                     <p className="text-xs text-gray-500">
-                                        Esta cita tiene varios servicios. El monto se distribuirá entre ellos para que las estadísticas sumen correctamente.
+                                        {t('Esta cita tiene varios servicios. El monto se distribuirá entre ellos para que las estadísticas sumen correctamente.')}
                                     </p>
                                 )}
                             </div>
 
                             <div className="flex gap-3 mt-5">
-                                <button onClick={() => setCobroEditando(null)} disabled={guardandoCobro} className="flex-1 px-4 py-2 border rounded-lg disabled:opacity-50">Cancelar</button>
+                                <button onClick={() => setCobroEditando(null)} disabled={guardandoCobro} className="flex-1 px-4 py-2 border rounded-lg disabled:opacity-50">{t('Cancelar')}</button>
                                 <button onClick={guardarCobroReal} disabled={guardandoCobro} className="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-lg font-bold disabled:opacity-60">
-                                    {guardandoCobro ? 'Guardando...' : 'Guardar cobro'}
+                                    {guardandoCobro ? t('Guardando...') : t('Guardar cobro')}
                                 </button>
                             </div>
                         </div>
@@ -4878,13 +4886,13 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                     <>
                         {userRole === 'profesional' && profesional && (
                             <div className="bg-pink-50 border border-pink-200 rounded-lg p-4">
-                                <p className="text-pink-800 font-medium">Hola {profesional.nombre} - Mostrando tus reservas ({filteredVisualBookings.length})</p>
+                                <p className="text-pink-800 font-medium">{t('Hola {nombre} - Mostrando tus reservas ({n})', { nombre: profesional.nombre, n: filteredVisualBookings.length })}</p>
                             </div>
                         )}
 
                         <div className="bg-white p-4 rounded-xl shadow-sm space-y-3">
                             <div className="space-y-2">
-                                <p className="text-xs uppercase tracking-wide text-gray-500 font-bold">Filtrar por día</p>
+                                <p className="text-xs uppercase tracking-wide text-gray-500 font-bold">{t('Filtrar por día')}</p>
                                 <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 items-center">
                                     <input
                                         type="date"
@@ -4893,31 +4901,31 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                                         className="col-span-2 sm:col-span-1 border border-gray-300 bg-white text-gray-900 rounded-lg px-3 py-2 text-sm font-semibold shadow-sm min-h-[42px]"
                                         style={{ colorScheme: 'light' }}
                                     />
-                                    <button onClick={() => setFilterDate(getCurrentLocalDate())} className={`px-3 py-2 rounded-lg text-sm font-bold border ${filterDate === getCurrentLocalDate() ? 'bg-pink-500 text-white border-pink-500' : 'bg-gray-100 text-gray-800 border-gray-200'}`}>Hoy</button>
-                                    <button onClick={() => setFilterDate(formatDate(addDays(new Date(), 1)))} className={`px-3 py-2 rounded-lg text-sm font-bold border ${filterDate === formatDate(addDays(new Date(), 1)) ? 'bg-pink-500 text-white border-pink-500' : 'bg-gray-100 text-gray-800 border-gray-200'}`}>Mañana</button>
-                                    <button onClick={() => setFilterDate('')} className={`px-3 py-2 rounded-lg text-sm font-bold border ${!filterDate ? 'bg-gray-900 text-white border-gray-900' : 'bg-gray-100 text-gray-800 border-gray-200'}`}>Todas</button>
+                                    <button onClick={() => setFilterDate(getCurrentLocalDate())} className={`px-3 py-2 rounded-lg text-sm font-bold border ${filterDate === getCurrentLocalDate() ? 'bg-pink-500 text-white border-pink-500' : 'bg-gray-100 text-gray-800 border-gray-200'}`}>{t('Hoy')}</button>
+                                    <button onClick={() => setFilterDate(formatDate(addDays(new Date(), 1)))} className={`px-3 py-2 rounded-lg text-sm font-bold border ${filterDate === formatDate(addDays(new Date(), 1)) ? 'bg-pink-500 text-white border-pink-500' : 'bg-gray-100 text-gray-800 border-gray-200'}`}>{t('Mañana')}</button>
+                                    <button onClick={() => setFilterDate('')} className={`px-3 py-2 rounded-lg text-sm font-bold border ${!filterDate ? 'bg-gray-900 text-white border-gray-900' : 'bg-gray-100 text-gray-800 border-gray-200'}`}>{t('Todas')}</button>
                                 </div>
                             </div>
 
                             <div className="flex flex-wrap gap-2 items-center">
-                                <button onClick={() => setStatusFilter('activas')} className={`px-4 py-2 rounded-lg text-sm font-medium ${statusFilter === 'activas' ? 'bg-pink-500 text-white' : 'bg-gray-100 text-gray-700'}`}>Activas ({activasCount})</button>
-                                <button onClick={() => setStatusFilter('pendientes')} className={`px-4 py-2 rounded-lg text-sm font-medium ${statusFilter === 'pendientes' ? 'bg-yellow-500 text-white' : 'bg-gray-100 text-gray-700'}`}>Pendientes ({pendientesCount})</button>
-                                <button onClick={() => setStatusFilter('completadas')} className={`px-4 py-2 rounded-lg text-sm font-medium ${statusFilter === 'completadas' ? 'bg-pink-500 text-white' : 'bg-gray-100 text-gray-700'}`}>Completadas ({completadasCount})</button>
-                                <button onClick={() => setStatusFilter('ausentes')} className={`px-4 py-2 rounded-lg text-sm font-medium ${statusFilter === 'ausentes' ? 'bg-slate-600 text-white' : 'bg-gray-100 text-gray-700'}`}>Ausentes ({ausentesCount})</button>
-                                <button onClick={() => setStatusFilter('canceladas')} className={`px-4 py-2 rounded-lg text-sm font-medium ${statusFilter === 'canceladas' ? 'bg-pink-500 text-white' : 'bg-gray-100 text-gray-700'}`}>Canceladas ({canceladasCount})</button>
-                                <button onClick={() => setStatusFilter('todas')} className={`px-4 py-2 rounded-lg text-sm font-medium ${statusFilter === 'todas' ? 'bg-pink-500 text-white' : 'bg-gray-100 text-gray-700'}`}>Todas ({bookings.length})</button>
+                                <button onClick={() => setStatusFilter('activas')} className={`px-4 py-2 rounded-lg text-sm font-medium ${statusFilter === 'activas' ? 'bg-pink-500 text-white' : 'bg-gray-100 text-gray-700'}`}>{t('Activas ({n})', { n: activasCount })}</button>
+                                <button onClick={() => setStatusFilter('pendientes')} className={`px-4 py-2 rounded-lg text-sm font-medium ${statusFilter === 'pendientes' ? 'bg-yellow-500 text-white' : 'bg-gray-100 text-gray-700'}`}>{t('Pendientes ({n})', { n: pendientesCount })}</button>
+                                <button onClick={() => setStatusFilter('completadas')} className={`px-4 py-2 rounded-lg text-sm font-medium ${statusFilter === 'completadas' ? 'bg-pink-500 text-white' : 'bg-gray-100 text-gray-700'}`}>{t('Completadas ({n})', { n: completadasCount })}</button>
+                                <button onClick={() => setStatusFilter('ausentes')} className={`px-4 py-2 rounded-lg text-sm font-medium ${statusFilter === 'ausentes' ? 'bg-slate-600 text-white' : 'bg-gray-100 text-gray-700'}`}>{t('Ausentes ({n})', { n: ausentesCount })}</button>
+                                <button onClick={() => setStatusFilter('canceladas')} className={`px-4 py-2 rounded-lg text-sm font-medium ${statusFilter === 'canceladas' ? 'bg-pink-500 text-white' : 'bg-gray-100 text-gray-700'}`}>{t('Canceladas ({n})', { n: canceladasCount })}</button>
+                                <button onClick={() => setStatusFilter('todas')} className={`px-4 py-2 rounded-lg text-sm font-medium ${statusFilter === 'todas' ? 'bg-pink-500 text-white' : 'bg-gray-100 text-gray-700'}`}>{t('Todas ({n})', { n: bookings.length })}</button>
                                 {puedeGestionarAvanzado && statusFilter === 'canceladas' && (
-                                    <button onClick={borrarCanceladas} className="px-4 py-2 bg-red-700 text-white rounded-lg text-sm">🗑️ Borrar todas</button>
+                                    <button onClick={borrarCanceladas} className="px-4 py-2 bg-red-700 text-white rounded-lg text-sm">🗑️ {t('Borrar todas')}</button>
                                 )}
                             </div>
                         </div>
 
                         {loading ? (
-                            <div className="text-center py-12"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500 mx-auto"></div><p className="text-pink-500 mt-4">Cargando reservas...</p></div>
+                            <div className="text-center py-12"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500 mx-auto"></div><p className="text-pink-500 mt-4">{t('Cargando reservas...')}</p></div>
                         ) : (
                             <div className="space-y-3">
                                 {filteredVisualBookings.length === 0 ? (
-                                    <div className="text-center py-12 bg-white rounded-xl"><p className="text-gray-500">No hay reservas para mostrar</p></div>
+                                    <div className="text-center py-12 bg-white rounded-xl"><p className="text-gray-500">{t('No hay reservas para mostrar')}</p></div>
                                 ) : (
                                     filteredVisualBookings.map(b => (
                                         <div key={b._grupoVisualId || b.id} className={`bg-white p-4 rounded-xl shadow-sm border-l-4 ${
@@ -4932,51 +4940,51 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                                                 <span className="text-sm bg-pink-100 text-pink-700 px-2 py-1 rounded-full">{formatTo12Hour(b.hora_inicio)}{b._grupoVisual ? ` - ${formatTo12Hour(b.hora_fin)}` : ''}</span>
                                             </div>
                                             <div className="text-sm space-y-1">
-                                                <p><span className="font-medium">Cliente:</span> {b.cliente_nombre}</p>
+                                                <p><span className="font-medium">{t('Cliente:')}</span> {b.cliente_nombre}</p>
                                                 <p><span className="font-medium">WhatsApp:</span> {b.cliente_whatsapp}</p>
-                                                <p><span className="font-medium">Servicio:</span> {b.servicio}</p>
-                                                <p><span className="font-medium">👩‍🎨 Profesional:</span> {b.profesional_nombre || b.trabajador_nombre}</p>
+                                                <p><span className="font-medium">{t('Servicio:')}</span> {b.servicio}</p>
+                                                <p><span className="font-medium">👩‍🎨 {t('Profesional:')}</span> {b.profesional_nombre || b.trabajador_nombre}</p>
                                                 {b._grupoVisual && (
                                                     <div className="mt-2 rounded-lg bg-pink-50 border border-pink-100 p-2 space-y-1">
-                                                        <p className="text-xs font-bold text-pink-700">Cita agrupada: {b._reservasGrupo.length} servicios consecutivos</p>
+                                                        <p className="text-xs font-bold text-pink-700">{t('Cita agrupada: {n} servicios consecutivos', { n: b._reservasGrupo.length })}</p>
                                                         {b._reservasGrupo.map(item => (
                                                             <p key={item.id} className="text-xs text-gray-700">
-                                                                {formatTo12Hour(item.hora_inicio)} - {formatTo12Hour(item.hora_fin || calculateEndTime(item.hora_inicio, item.duracion || 60))} - {item.servicio} - {item.profesional_nombre || item.trabajador_nombre || 'Sin profesional'}
+                                                                {formatTo12Hour(item.hora_inicio)} - {formatTo12Hour(item.hora_fin || calculateEndTime(item.hora_inicio, item.duracion || 60))} - {item.servicio} - {item.profesional_nombre || item.trabajador_nombre || t('Sin profesional')}
                                                             </p>
                                                         ))}
                                                     </div>
                                                 )}
                                                 {Number(b.monto_cobrado || 0) > 0 && (
                                                     <div className="mt-2 rounded-lg bg-green-50 border border-green-100 p-2">
-                                                        <p className="text-xs font-bold text-green-700">Cobro real: ${Number(b.monto_cobrado).toLocaleString('es-CU')}</p>
+                                                        <p className="text-xs font-bold text-green-700">{t('Cobro real: {monto}', { monto: '$' + Number(b.monto_cobrado).toLocaleString(idioma === 'en' ? 'en-US' : 'es-CU') })}</p>
                                                         {b.notas_cobro && <p className="text-xs text-green-700 mt-1">{b.notas_cobro}</p>}
                                                     </div>
                                                 )}
                                             </div>
                                             <div className="flex justify-between items-center mt-3 pt-2 border-t">
                                                 <span className={`px-2 py-1 rounded-full text-xs font-semibold ${b.estado === 'Reservado' ? 'bg-pink-100 text-pink-700' : b.estado === 'Pendiente' ? 'bg-yellow-100 text-yellow-700' : b.estado === 'Completado' ? 'bg-green-100 text-green-700' : b.estado === 'Ausente' ? 'bg-slate-100 text-slate-700' : 'bg-red-100 text-red-700'}`}>
-                                                    {b.estado}
+                                                    {t(b.estado)}
                                                 </span>
                                                 <div className="flex flex-wrap justify-end gap-2">
                                                     {puedeEditarReserva(b) && (b.estado === 'Pendiente' || b.estado === 'Reservado') && (
-                                                        <button onClick={() => abrirModalReprogramar(b)} className="px-3 py-1 bg-blue-500 text-white rounded-lg text-sm hover:bg-blue-600">Reprogramar</button>
+                                                        <button onClick={() => abrirModalReprogramar(b)} className="px-3 py-1 bg-blue-500 text-white rounded-lg text-sm hover:bg-blue-600">{t('Reprogramar')}</button>
                                                     )}
                                                     {puedeGestionarReservas && b.estado === 'Pendiente' && (
-                                                        <button onClick={() => confirmarPago(b.id, b)} className="px-3 py-1 bg-green-500 text-white rounded-lg text-sm hover:bg-green-600">Confirmar pago</button>
+                                                        <button onClick={() => confirmarPago(b.id, b)} className="px-3 py-1 bg-green-500 text-white rounded-lg text-sm hover:bg-green-600">{t('Confirmar pago')}</button>
                                                     )}
                                                     {puedeGestionarReservas && b.estado === 'Reservado' && (
-                                                        <button onClick={() => handleCancel(b.id, b)} className="px-3 py-1 bg-red-500 text-white rounded-lg text-sm hover:bg-red-600">❌ Cancelar</button>
+                                                        <button onClick={() => handleCancel(b.id, b)} className="px-3 py-1 bg-red-500 text-white rounded-lg text-sm hover:bg-red-600">❌ {t('Cancelar')}</button>
                                                     )}
                                                     {puedeGestionarReservas && b.estado === 'Completado' && (
                                                         <button onClick={() => abrirModalCobro(b)} className="px-3 py-1 bg-emerald-500 text-white rounded-lg text-sm hover:bg-emerald-600">
-                                                            {Number(b.monto_cobrado || 0) > 0 ? 'Editar cobro' : 'Cobro real'}
+                                                            {Number(b.monto_cobrado || 0) > 0 ? t('Editar cobro') : t('Cobro real')}
                                                         </button>
                                                     )}
                                                     {puedeGestionarReservas && turnoYaPaso(b) && b.estado !== 'Cancelado' && b.estado !== 'Ausente' && (
-                                                        <button onClick={() => marcarAusencia(b)} className="px-3 py-1 bg-slate-600 text-white rounded-lg text-sm hover:bg-slate-700">Marcar ausencia</button>
+                                                        <button onClick={() => marcarAusencia(b)} className="px-3 py-1 bg-slate-600 text-white rounded-lg text-sm hover:bg-slate-700">{t('Marcar ausencia')}</button>
                                                     )}
                                                     {puedeGestionarAvanzado && (b.estado === 'Cancelado' || b.estado === 'Completado' || b.estado === 'Ausente') && (
-                                                        <button onClick={() => eliminarReservaHistorial(b)} className="px-3 py-1 bg-gray-700 text-white rounded-lg text-sm hover:bg-gray-800">Eliminar</button>
+                                                        <button onClick={() => eliminarReservaHistorial(b)} className="px-3 py-1 bg-gray-700 text-white rounded-lg text-sm hover:bg-gray-800">{t('Eliminar')}</button>
                                                     )}
                                                 </div>
                                             </div>

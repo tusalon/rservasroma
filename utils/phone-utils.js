@@ -23,6 +23,21 @@
         { id: 'DE', nombre: 'Alemania',   bandera: '\uD83C\uDDE9\uD83C\uDDEA', codigo: '49',  ejemplo: '15123456789', localLength: 11 }
     ];
 
+    // Sugerencia de moneda seg\u00FAn el pa\u00EDs del negocio (Europa -> Euro, M\u00E9xico -> MXN).
+    // Es solo un valor por defecto: el campo de moneda sigue siendo editable a mano.
+    const monedaSugeridaPorPais = {
+        ES: 'EUR', PT: 'EUR', IT: 'EUR', FR: 'EUR', DE: 'EUR',
+        MX: 'MXN'
+    };
+
+    function getMonedaSugeridaPorCodigoPais(codigoPais) {
+        const pais = COUNTRIES.find((p) => p.codigo === String(codigoPais));
+        if (!pais) return null;
+        return monedaSugeridaPorPais[pais.id] || null;
+    }
+
+    window.getMonedaSugeridaPorCodigoPais = getMonedaSugeridaPorCodigoPais;
+
     const onlyDigits = (value) => String(value || '').replace(/\D/g, '');
 
     function normalizarCodigoPais(value) {
