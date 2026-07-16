@@ -1291,11 +1291,11 @@ function AdminApp() {
                     const slotStart = timeToMinutes(hora);
                     const slotEnd = slotStart + 60;
 
-                    if (esCerrado) return { hora, estado: 'Cerrado', detalle: 'Local cerrado' };
-                    if (esPasado) return { hora, estado: 'Pasado', detalle: 'Fecha pasada' };
-                    if (esLibre) return { hora, estado: 'Libre', detalle: `${profesionalObj?.nombre || 'Profesional'} no trabaja` };
-                    if (!trabaja) return { hora, estado: 'No trabaja', detalle: 'Dia no laboral' };
-                    if (slotTieneDescanso(slotStart, slotEnd, descansosDelDia)) return { hora, estado: 'Descanso', detalle: 'Descanso configurado' };
+                    if (esCerrado) return { hora, estado: 'Cerrado', detalle: t('Local cerrado') };
+                    if (esPasado) return { hora, estado: 'Pasado', detalle: t('Fecha pasada') };
+                    if (esLibre) return { hora, estado: 'Libre', detalle: t('{nombre} no trabaja', { nombre: profesionalObj?.nombre || t('Profesional') }) };
+                    if (!trabaja) return { hora, estado: 'No trabaja', detalle: t('Dia no laboral') };
+                    if (slotTieneDescanso(slotStart, slotEnd, descansosDelDia)) return { hora, estado: 'Descanso', detalle: t('Descanso configurado') };
 
                     const reserva = reservasDia.find(item => {
                         const reservaStart = timeToMinutes(item.hora_inicio);
@@ -1304,10 +1304,10 @@ function AdminApp() {
                     });
 
                     if (reserva) {
-                        return { hora, estado: 'Ocupado', detalle: `${reserva.cliente_nombre || 'Cliente'} - ${reserva.servicio || 'Servicio'}` };
+                        return { hora, estado: 'Ocupado', detalle: `${reserva.cliente_nombre || t('Cliente')} - ${reserva.servicio || t('Servicio')}` };
                     }
 
-                    return { hora, estado: 'Disponible', detalle: 'Disponible' };
+                    return { hora, estado: 'Disponible', detalle: t('Disponible') };
                 });
 
                 return {
@@ -2081,8 +2081,8 @@ function AdminApp() {
                 }
 
                 alert(result.parcial
-                    ? 'Se crearon algunos servicios, pero uno falló. Revisa la agenda.'
-                    : `Reserva creada exitosamente como "${result.data.estado}"`);
+                    ? t('Se crearon algunos servicios, pero uno falló. Revisa la agenda.')
+                    : t('Reserva creada exitosamente como "{estado}"', { estado: t(result.data.estado) }));
                 
                 try {
                     if (reservaEditando) {
@@ -3352,31 +3352,31 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
 
     const crearResumenEstadisticasTexto = (stats) => {
         const lineas = [
-            `Resumen de ${nombreNegocio}`,
-            `Periodo: ${stats.rango.titulo}`,
+            t('Resumen de {nombre}', { nombre: nombreNegocio }),
+            t('Periodo: {periodo}', { periodo: stats.rango.titulo }),
             '',
-            `Cobro real: ${formatMoneyEstadistica(stats.cobroReal)}`,
-            `Ingreso estimado: ${formatMoneyEstadistica(stats.ingresoEstimado)}`,
-            `Ticket promedio: ${formatMoneyEstadistica(stats.ticketPromedio)}`,
+            t('Cobro real: {monto}', { monto: formatMoneyEstadistica(stats.cobroReal) }),
+            t('Ingreso estimado: {monto}', { monto: formatMoneyEstadistica(stats.ingresoEstimado) }),
+            t('Ticket promedio: {monto}', { monto: formatMoneyEstadistica(stats.ticketPromedio) }),
             '',
-            `Citas: ${stats.totalCitas}`,
-            `Completadas: ${stats.estados.Completado}`,
-            `Reservadas: ${stats.estados.Reservado}`,
-            `Pendientes: ${stats.estados.Pendiente}`,
-            `Canceladas: ${stats.estados.Cancelado}`,
-            `Ausentes: ${stats.estados.Ausente}`,
-            `Sin cobro registrado: ${stats.citasSinCobro}`
+            t('Citas: {n}', { n: stats.totalCitas }),
+            t('Completadas: {n}', { n: stats.estados.Completado }),
+            t('Reservadas: {n}', { n: stats.estados.Reservado }),
+            t('Pendientes: {n}', { n: stats.estados.Pendiente }),
+            t('Canceladas: {n}', { n: stats.estados.Cancelado }),
+            t('Ausentes: {n}', { n: stats.estados.Ausente }),
+            t('Sin cobro registrado: {n}', { n: stats.citasSinCobro })
         ];
 
         if (stats.topProfesionales.length) {
-            lineas.push('', 'Profesionales destacados:');
+            lineas.push('', t('Profesionales destacados:'));
             stats.topProfesionales.slice(0, 3).forEach(item => {
-                lineas.push(`- ${item.nombre}: ${formatMoneyEstadistica(item.cobro)} / ${item.completadas} completadas`);
+                lineas.push(t('- {nombre}: {monto} / {n} completadas', { nombre: item.nombre, monto: formatMoneyEstadistica(item.cobro), n: item.completadas }));
             });
         }
 
         if (stats.topServicios.length) {
-            lineas.push('', 'Servicios mas pedidos:');
+            lineas.push('', t('Servicios mas pedidos:'));
             stats.topServicios.slice(0, 3).forEach(item => {
                 lineas.push(`- ${item.nombre}: ${item.total}`);
             });
@@ -3392,11 +3392,11 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                 await navigator.clipboard.writeText(texto);
                 alert(t('Resumen copiado'));
             } else {
-                window.prompt('Copia el resumen:', texto);
+                window.prompt(t('Copia el resumen:'), texto);
             }
         } catch (error) {
             console.error('Error copiando resumen:', error);
-            window.prompt('Copia el resumen:', texto);
+            window.prompt(t('Copia el resumen:'), texto);
         }
     };
 
@@ -3404,7 +3404,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
         const stats = calcularEstadisticas();
         const escapeCsv = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`;
         const filas = [
-            ['Fecha', 'Total servicios', 'Completadas', 'Canceladas', 'Pendientes', 'Ausentes', 'Cobro real'],
+            [t('Fecha'), t('Total servicios'), t('Completadas'), t('Canceladas'), t('Pendientes'), t('Ausentes'), t('Cobro real')],
             ...stats.dias.map(dia => [dia.fecha, dia.total, dia.completadas, dia.canceladas, dia.pendientes, dia.ausentes, dia.cobro])
         ];
         const csv = filas.map(fila => fila.map(escapeCsv).join(',')).join('\n');
@@ -3799,7 +3799,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                                         cursor: 'pointer',
                                         flexShrink: 0
                                     }}
-                                    title="Copiar enlace"
+                                    title={t('Copiar enlace')}
                                 >📋</button>
                             </div>
                         ) : null;

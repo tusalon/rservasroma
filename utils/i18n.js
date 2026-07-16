@@ -893,7 +893,36 @@
         '4+ tranquilo': '4+ relaxed',
         '3 medio': '3 medium',
         '1-2 urgente': '1-2 urgent',
-        'Sin horarios': 'No slots'
+        'Sin horarios': 'No slots',
+
+        // admin-app.js — tooltips disponibilidad, resumen, CSV
+        'Local cerrado': 'Business closed',
+        '{nombre} no trabaja': "{nombre} doesn't work",
+        'Dia no laboral': 'Non-working day',
+        'Descanso configurado': 'Scheduled break',
+        'Copiar enlace': 'Copy link',
+        'Resumen de {nombre}': 'Summary of {nombre}',
+        'Periodo: {periodo}': 'Period: {periodo}',
+        'Cobro real: {monto}': 'Actual charge: {monto}',
+        'Ingreso estimado: {monto}': 'Estimated income: {monto}',
+        'Ticket promedio: {monto}': 'Average ticket: {monto}',
+        'Citas: {n}': 'Appointments: {n}',
+        'Completadas: {n}': 'Completed: {n}',
+        'Reservadas: {n}': 'Booked: {n}',
+        'Pendientes: {n}': 'Pending: {n}',
+        'Canceladas: {n}': 'Cancelled: {n}',
+        'Ausentes: {n}': 'No-shows: {n}',
+        'Sin cobro registrado: {n}': 'No charge recorded: {n}',
+        'Profesionales destacados:': 'Top professionals:',
+        '- {nombre}: {monto} / {n} completadas': '- {nombre}: {monto} / {n} completed',
+        'Servicios mas pedidos:': 'Most requested services:',
+        'Copia el resumen:': 'Copy the summary:',
+        'Total servicios': 'Total services',
+        'Reserva creada exitosamente como "{estado}"': 'Booking created successfully as "{estado}"',
+        'Se crearon algunos servicios, pero uno falló. Revisa la agenda.': 'Some services were created, but one failed. Check the schedule.',
+
+        // components/admin/SetupWizard.js
+        'Tu turno ha sido reservado con éxito': 'Your appointment has been booked successfully'
     });
 
     function getIdioma() {
