@@ -2807,6 +2807,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
             localStorage.removeItem('userRole');
             localStorage.removeItem('clienteAuth');
             localStorage.removeItem('negocioId');
+            localStorage.removeItem('adminSlug');
             window.location.href = 'index.html';
         }
     };

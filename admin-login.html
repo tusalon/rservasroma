@@ -245,6 +245,19 @@
     window.addEventListener('idioma-changed', aplicarIdiomaLogin);
     aplicarIdiomaLogin();
 
+    // Si llegamos desde un enlace admin con salón (?s=slug), pre-llenar el
+    // usuario: el usuario del login ES el slug del salón.
+    (function() {
+      var slugParam = (new URLSearchParams(window.location.search).get('s') || '').toLowerCase().trim();
+      if (slugParam) {
+        var campoUsuario = document.getElementById('username');
+        if (campoUsuario && !campoUsuario.value) {
+          campoUsuario.value = slugParam;
+          document.getElementById('password').focus();
+        }
+      }
+    })();
+
     document.getElementById('togglePwd').addEventListener('click', function() {
       var input = document.getElementById('password');
       input.type = input.type === 'password' ? 'text' : 'password';
@@ -298,6 +311,10 @@
 
         localStorage.setItem('negocioId',      negocio.id);
         localStorage.setItem('negocioSlug',    negocio.slug);
+        // adminSlug: slug de la SESIÓN admin. Es distinto de negocioSlug,
+        // que también lo pisan las páginas de clientas al visitar cualquier
+        // salón (es el "último salón visitado" para restaurar la PWA).
+        localStorage.setItem('adminSlug',      negocio.slug);
         localStorage.setItem('negocioNombre',  negocio.nombre);
         localStorage.setItem('adminAuth',      'true');
         localStorage.setItem('adminLoginTime', Date.now());

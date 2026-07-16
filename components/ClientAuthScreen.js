@@ -178,6 +178,10 @@ function ClientAuthScreen({ onAccessGranted, onGoBack }) {
             localStorage.removeItem('clienteAuth');
             localStorage.removeItem('adminAuth');
             localStorage.removeItem('adminLoginTime');
+            // adminSlug: el guard de admin.html compara este slug con el ?s=
+            // de la URL para no mostrar datos de otro salón.
+            const slugSesionProfesional = window._rservasSlugActual || localStorage.getItem('negocioSlug') || '';
+            if (slugSesionProfesional) localStorage.setItem('adminSlug', slugSesionProfesional);
             localStorage.setItem('profesionalAuth', JSON.stringify({
                 id: profesional.id,
                 nombre: profesional.nombre,

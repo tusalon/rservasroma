@@ -7,6 +7,16 @@
     <script>
       (function() {
         try {
+          // iOS no soporta manifests blob para "Añadir a pantalla de inicio":
+          // caía al manifest.json estático (orientado a clientas) y el ícono
+          // del admin abría la app de clientas. Sin <link rel="manifest">,
+          // iOS usa la URL ACTUAL (admin.html?s=slug) como inicio, que es
+          // exactamente lo que el ícono del panel debe abrir.
+          if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+            var linkIOS = document.querySelector('link[rel="manifest"]');
+            if (linkIOS) linkIOS.remove();
+            return;
+          }
           var nombre = localStorage.getItem('negocioNombre') || '';
           var slug   = localStorage.getItem('negocioSlug')   || '';
           if (!nombre || !slug) return;
@@ -83,18 +93,44 @@
     <script src="components/admin/ProfesionalesPanel.js?v=20260714-i18n" type="text/babel"></script>
     <script src="components/admin/HorariosPorDiaPanel.js?v=20260714-i18n" type="text/babel"></script>
     <script src="components/admin/HorariosExcepcionPanel.js?v=20260714-i18n" type="text/babel"></script>
-    <script src="admin-app.js?v=20260716-i18n-admin3" type="text/babel"></script>
+    <script src="admin-app.js?v=20260716-identidad" type="text/babel"></script>
 
     <script>
         (function() {
             const negocioId = localStorage.getItem('negocioId');
-            
-            if (!negocioId) {
-                console.log('ðŸš« No hay sesiÃ³n, redirigiendo a login');
-                window.location.href = 'admin-login.html';
+
+            // Guard de identidad: un enlace admin de OTRO salÃ³n (?s= distinto
+            // al de la sesiÃ³n activa) no debe mostrar el negocio anterior ni
+            // mezclar datos. Se cierra la sesiÃ³n y se pide login del salÃ³n
+            // correcto.
+            const slugURL = (new URLSearchParams(window.location.search).get('s') || '').toLowerCase().trim();
+            const slugSesion = (localStorage.getItem('adminSlug') || localStorage.getItem('negocioSlug') || '').toLowerCase().trim();
+            if (slugURL && slugSesion && slugURL !== slugSesion) {
+                localStorage.removeItem('adminAuth');
+                localStorage.removeItem('adminLoginTime');
+                localStorage.removeItem('profesionalAuth');
+                localStorage.removeItem('profesionalLoginTime');
+                localStorage.removeItem('negocioId');
+                localStorage.removeItem('negocioNombre');
+                localStorage.removeItem('negocioSlug');
+                localStorage.removeItem('adminSlug');
+                window.location.href = 'admin-login.html?s=' + encodeURIComponent(slugURL);
                 return;
             }
-            
+
+            // Fijar ?s= en la URL cuando falte (con sesiÃ³n activa): asÃ­
+            // "AÃ±adir a pantalla de inicio" en iOS siempre captura la URL
+            // del salÃ³n correcto como inicio del Ã­cono.
+            if (!slugURL && slugSesion) {
+                try { window.history.replaceState(null, '', 'admin.html?s=' + encodeURIComponent(slugSesion)); } catch (e) {}
+            }
+
+            if (!negocioId) {
+                console.log('ðŸš« No hay sesiÃ³n, redirigiendo a login');
+                window.location.href = 'admin-login.html' + (slugURL ? '?s=' + encodeURIComponent(slugURL) : '');
+                return;
+            }
+
             // Verificar sesiÃ³n (8 horas)
             const ahora = Date.now();
             const maxSesion = 8 * 60 * 60 * 1000;
@@ -109,7 +145,8 @@
                 localStorage.removeItem('adminLoginTime');
                 localStorage.removeItem('profesionalAuth');
                 localStorage.removeItem('profesionalLoginTime');
-                window.location.href = 'admin-login.html';
+                const slugLogin = slugURL || slugSesion;
+                window.location.href = 'admin-login.html' + (slugLogin ? '?s=' + encodeURIComponent(slugLogin) : '');
             }
         })();
     </script>
