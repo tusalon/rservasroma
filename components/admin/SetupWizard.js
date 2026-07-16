@@ -499,8 +499,8 @@ function SetupWizard() {
                                     >
                                         <img src={opcion.image} alt={opcion.label} className="h-24 w-full object-cover" />
                                         <div className="p-3">
-                                            <p className="text-sm font-semibold text-gray-900">{opcion.label}</p>
-                                            <p className="text-xs text-gray-500 mt-1">{opcion.description}</p>
+                                            <p className="text-sm font-semibold text-gray-900">{t(opcion.label)}</p>
+                                            <p className="text-xs text-gray-500 mt-1">{t(opcion.description)}</p>
                                         </div>
                                     </button>
                                 ))}

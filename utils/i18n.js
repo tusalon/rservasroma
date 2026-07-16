@@ -510,6 +510,24 @@
         'La configuración se actualizó correctamente.': 'The settings were updated successfully.',
         'Redirigiendo al panel...': 'Redirecting to the panel...',
         'Editar Negocio': 'Edit Business',
+
+        // admin-app.js — encabezado y pestañas (faltaban en el diccionario)
+        'Nueva Reserva': 'New Booking',
+        'Ver Disponibilidad': 'View Availability',
+        'Ver disponibilidad mensual': 'View monthly availability',
+        'Recargar datos del negocio': 'Reload business data',
+        'Actualizar reservas': 'Refresh bookings',
+        'Enlace de clientes:': 'Client link:',
+        'Reservas': 'Bookings',
+        'Agenda': 'Schedule',
+        'Configuración': 'Settings',
+        'Clientes': 'Clients',
+
+        // Estados de reserva (se muestran vía t(estado) en badges)
+        'Pendiente': 'Pending',
+        'Cancelado': 'Cancelled',
+        'Ausente': 'No-show',
+
         'Modificá los datos de tu negocio': 'Edit your business information',
         'Datos básicos': 'Basic information',
         'Nombre del negocio': 'Business name',
@@ -922,7 +940,19 @@
         'Se crearon algunos servicios, pero uno falló. Revisa la agenda.': 'Some services were created, but one failed. Check the schedule.',
 
         // components/admin/SetupWizard.js
-        'Tu turno ha sido reservado con éxito': 'Your appointment has been booked successfully'
+        'Tu turno ha sido reservado con éxito': 'Your appointment has been booked successfully',
+
+        // utils/hero-backgrounds.js — opciones de imagen de fondo
+        'Manicurista / unas': 'Manicurist / nails',
+        'Ideal para estudios de unas y nail art.': 'Ideal for nail studios and nail art.',
+        'Salon de belleza': 'Beauty salon',
+        'Para salones generales, spa y estetica.': 'For general salons, spa, and aesthetics.',
+        'Barberia': 'Barbershop',
+        'Para barberias y servicios masculinos.': "For barbershops and men's services.",
+        'Salon de peluqueria': 'Hair salon',
+        'Para cortes, color, peinados y tratamientos.': 'For cuts, color, styling, and treatments.',
+        'Salon de lashes': 'Lash salon',
+        'Para pestanas, cejas y mirada.': 'For lashes, brows, and the eyes.'
     });
 
     function getIdioma() {
