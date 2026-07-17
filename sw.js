@@ -1,6 +1,6 @@
 // sw.js - Service Worker para Rservasroma
 
-const CACHE_NAME = 'rservasroma-v19';
+const CACHE_NAME = 'rservasroma-v20';
 const BASE = '/rservasroma';
 
 const urlsToCache = [
@@ -141,20 +141,26 @@ self.addEventListener('fetch', event => {
   if (BYPASS.some(b => event.request.url.includes(b))) return;
   if (event.request.method !== 'GET') return;
 
-  // Manifest dinámico por salón — sin blob URLs
+  // Manifest dinámico por salón — sin blob URLs. La app de clientas y la
+  // administrativa (mode=admin) tienen id y start_url distintos para que un
+  // mismo salón pueda tener instaladas ambas sin que una sustituya a la otra.
   const reqUrl = new URL(event.request.url);
   if (reqUrl.pathname === `${BASE}/manifest.json` && reqUrl.searchParams.has('s')) {
     const slug   = reqUrl.searchParams.get('s') || '';
     const nombre = reqUrl.searchParams.get('n') || slug;
+    const esAdmin = reqUrl.searchParams.get('mode') === 'admin';
     const BASE_URL = 'https://tusalon.github.io' + BASE;
+    const appUrl = esAdmin
+      ? BASE_URL + '/admin.html?s=' + encodeURIComponent(slug)
+      : BASE_URL + '/?s=' + encodeURIComponent(slug);
     const manifest = {
-      // id estable por salón: si una clienta instala dos salones del mismo
-      // origen, Android los trata como apps distintas en vez de pisarse.
-      id: BASE_URL + '/?s=' + encodeURIComponent(slug),
+      id: appUrl,
       name: nombre,
       short_name: nombre.split(/\s+/).slice(0, 2).join(' '),
-      description: 'Reserva tu turno online en ' + nombre,
-      start_url: BASE_URL + '/?s=' + encodeURIComponent(slug),
+      description: esAdmin
+        ? 'Panel de administración de ' + nombre
+        : 'Reserva tu turno online en ' + nombre,
+      start_url: appUrl,
       scope: BASE_URL + '/',
       display: 'standalone',
       theme_color: '#FF1493',
@@ -162,17 +168,20 @@ self.addEventListener('fetch', event => {
       icons: [
         { src: BASE_URL + '/icons/icon-192x192.png', sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
         { src: BASE_URL + '/icons/icon-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' }
-      ],
+      ]
+    };
+
+    if (!esAdmin) {
       // Android: mantener presionado el ícono → acceso directo a Mis Citas.
-      shortcuts: [
+      manifest.shortcuts = [
         {
           name: 'Mis Citas',
           short_name: 'Mis Citas',
           url: BASE_URL + '/?s=' + encodeURIComponent(slug) + '&ir=citas',
           icons: [{ src: BASE_URL + '/icons/icon-192x192.png', sizes: '192x192', type: 'image/png' }]
         }
-      ]
-    };
+      ];
+    }
     event.respondWith(new Response(JSON.stringify(manifest), {
       headers: { 'Content-Type': 'application/manifest+json', 'Cache-Control': 'no-cache' }
     }));

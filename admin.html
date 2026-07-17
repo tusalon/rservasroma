@@ -17,25 +17,15 @@
             if (linkIOS) linkIOS.remove();
             return;
           }
-          var nombre = localStorage.getItem('negocioNombre') || '';
-          var slug   = localStorage.getItem('negocioSlug')   || '';
-          if (!nombre || !slug) return;
-          var m = {
-            name:             nombre,
-            short_name:       nombre.split(/\s+/).slice(0,2).join(' '),
-            start_url:        'admin.html?s=' + slug,
-            scope:            './',
-            display:          'standalone',
-            theme_color:      '#FF1493',
-            background_color: '#1A1A1A',
-            icons: [
-              { src: 'icons/icon-192x192.png', sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
-              { src: 'icons/icon-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' }
-            ]
-          };
-          var blob = new Blob([JSON.stringify(m)], { type: 'application/json' });
+          var params = new URLSearchParams(window.location.search);
+          var slug = (params.get('s') || localStorage.getItem('adminSlug') || localStorage.getItem('negocioSlug') || '').toLowerCase().trim();
+          var nombre = (localStorage.getItem('negocioNombre') || '').trim();
+          if (!slug) return;
+          // Manifest admin servido por el Service Worker (mode=admin): start_url
+          // e id propios del panel, para poder instalar la app de clientas y la
+          // administrativa del mismo salón sin que una sustituya a la otra.
           var link = document.querySelector('link[rel="manifest"]');
-          if (link) link.href = URL.createObjectURL(blob);
+          if (link) link.href = 'manifest.json?mode=admin&s=' + encodeURIComponent(slug) + '&n=' + encodeURIComponent(nombre || slug);
         } catch(e) {}
       })();
     </script>
@@ -43,14 +33,28 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" id="apple-admin-title" content="Rservasroma Admin">
     <link rel="apple-touch-icon" href="icons/icon-192x192.png">
     <title>Panel de Administración</title>
     <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', function() {
-                navigator.serviceWorker.register('sw.js').catch(function() {});
-            });
-        }
+        (function() {
+            try {
+                // iOS toma el nombre del ícono de "Añadir a pantalla de inicio"
+                // de este meta y del título: personalizarlos con el salón de la
+                // sesión para que el ícono no diga "Panel de Administración".
+                var nombreSalon = (localStorage.getItem('negocioNombre') || '').trim();
+                if (nombreSalon) {
+                    document.title = nombreSalon + ' — Administración';
+                    var appleTitle = document.getElementById('apple-admin-title');
+                    if (appleTitle) appleTitle.setAttribute('content', nombreSalon);
+                }
+            } catch (e) {}
+            if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function() {
+                    navigator.serviceWorker.register('sw.js').catch(function() {});
+                });
+            }
+        })();
     </script>
     <script src="vendor/tailwind-browser.js"></script>
     <script src="vendor/react.production.min.js"></script>

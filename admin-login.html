@@ -322,7 +322,8 @@
         mensaje.textContent = window.t('✅ Bienvenida, {nombre}...', { nombre: negocio.nombre });
 
         setTimeout(function() {
-          window.location.href = negocio.configurado ? 'admin.html?s=' + negocio.slug : 'setup-wizard.html?s=' + negocio.slug;
+          var slugDestino = encodeURIComponent(negocio.slug);
+          window.location.href = negocio.configurado ? 'admin.html?s=' + slugDestino : 'setup-wizard.html?s=' + slugDestino;
         }, 900);
 
       } catch (error) {
