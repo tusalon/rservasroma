@@ -2837,6 +2837,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
         return filtradas;
     }, [bookingsVisiblesPorRol, filterDate, statusFilter]);
 
+
     const construirResumenGrupoVisual = (grupo) => {
         if (grupo.length <= 1) return grupo[0];
 
@@ -2905,6 +2906,60 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
 
     const filteredVisualBookings = agruparReservasVisuales(filteredBookings)
         .sort((a, b) => `${b.fecha || ''} ${b.hora_inicio || ''}`.localeCompare(`${a.fecha || ''} ${a.hora_inicio || ''}`));
+
+    // ── TURNOS DE MAÑANA: recordatorios manuales por WhatsApp ──
+    // (Va DESPUÉS de agruparReservasVisuales: es const, sin hoisting, y el
+    // useMemo se ejecuta sincrónicamente durante el render. No usa addDays
+    // porque esa const se declara más abajo.)
+    // Turnos activos de mañana (respeta el rol: cada profesional ve los suyos).
+    const fechaManana = (() => { const d = new Date(); d.setDate(d.getDate() + 1); return formatDate(d); })();
+    const turnosManana = React.useMemo(() => {
+        const activos = bookingsVisiblesPorRol.filter(b =>
+            b.fecha === fechaManana &&
+            ['Reservado', 'Confirmado', 'Pendiente'].includes(b.estado)
+        );
+        return agruparReservasVisuales(activos)
+            .sort((a, b) => String(a.hora_inicio || '').localeCompare(String(b.hora_inicio || '')));
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [bookingsVisiblesPorRol, fechaManana]);
+
+    // "Recordado" se guarda por dispositivo (localStorage) con la fecha del
+    // turno como valor, para poder limpiar las claves de días pasados.
+    const [recordatoriosEnviados, setRecordatoriosEnviados] = React.useState(() => {
+        const enviados = new Set();
+        try {
+            const hoy = getCurrentLocalDate();
+            for (let i = localStorage.length - 1; i >= 0; i--) {
+                const clave = localStorage.key(i);
+                if (!clave || !clave.startsWith('recordatorioManana:')) continue;
+                const fechaGuardada = localStorage.getItem(clave) || '';
+                if (fechaGuardada < hoy) localStorage.removeItem(clave);
+                else enviados.add(clave.slice('recordatorioManana:'.length));
+            }
+        } catch (e) {}
+        return enviados;
+    });
+
+    const enviarRecordatorioManana = (b) => {
+        const hora = formatTo12Hour(b.hora_inicio);
+        const fechaLegible = window.formatFechaCompleta ? window.formatFechaCompleta(b.fecha) : b.fecha;
+        const profesionalNombre = b.profesional_nombre || b.trabajador_nombre || '';
+        const lineas = [
+            `Hola ${String(b.cliente_nombre || '').trim()}! 💖 Te recordamos tu turno de MAÑANA en ${nombreNegocio}:`,
+            '',
+            `🗓️ ${fechaLegible}`,
+            `🕐 ${hora}`,
+            `💅 Servicio: ${b.servicio}`
+        ];
+        if (profesionalNombre) lineas.push(`👩‍🎨 Profesional: ${profesionalNombre}`);
+        lineas.push('', 'Si no puedes asistir, avísanos por aquí. ¡Te esperamos! ✨');
+
+        window.enviarWhatsApp?.(b.cliente_whatsapp, lineas.join('\n'));
+
+        const claveId = String(b._grupoVisualId || b.id);
+        try { localStorage.setItem('recordatorioManana:' + claveId, b.fecha); } catch (e) {}
+        setRecordatoriosEnviados(prev => new Set(prev).add(claveId));
+    };
 
     const startOfWeek = (date) => {
         const base = new Date(date);
@@ -4897,6 +4952,45 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                         {userRole === 'profesional' && profesional && (
                             <div className="bg-pink-50 border border-pink-200 rounded-lg p-4">
                                 <p className="text-pink-800 font-medium">{t('Hola {nombre} - Mostrando tus reservas ({n})', { nombre: profesional.nombre, n: filteredVisualBookings.length })}</p>
+                            </div>
+                        )}
+
+                        {/* TURNOS DE MAÑANA — recordatorios por WhatsApp */}
+                        {turnosManana.length > 0 && (
+                            <div className="bg-white rounded-xl shadow-sm border-l-4 border-l-amber-400 overflow-hidden">
+                                <div className="p-4 bg-gradient-to-r from-amber-50 to-white border-b border-amber-100">
+                                    <h3 className="font-bold text-gray-900 flex items-center gap-2">
+                                        <span className="text-xl">🔔</span>
+                                        {t('Turnos de mañana ({n})', { n: turnosManana.length })}
+                                    </h3>
+                                    <p className="text-xs text-gray-500 mt-1">{t('Envía el recordatorio por WhatsApp con un toque. Quedará marcado como recordado en este dispositivo.')}</p>
+                                </div>
+                                <div className="divide-y divide-gray-100">
+                                    {turnosManana.map(b => {
+                                        const claveId = String(b._grupoVisualId || b.id);
+                                        const yaRecordado = recordatoriosEnviados.has(claveId);
+                                        return (
+                                            <div key={claveId} className="p-3 sm:p-4 flex flex-wrap sm:flex-nowrap items-center gap-3">
+                                                <span className="shrink-0 text-sm font-bold bg-pink-100 text-pink-700 px-2.5 py-1 rounded-full">{formatTo12Hour(b.hora_inicio)}</span>
+                                                <div className="min-w-0 flex-1">
+                                                    <p className="font-semibold text-gray-900 truncate">{b.cliente_nombre}</p>
+                                                    <p className="text-xs text-gray-500 truncate">
+                                                        {b.servicio}{(b.profesional_nombre || b.trabajador_nombre) ? ` · ${b.profesional_nombre || b.trabajador_nombre}` : ''}
+                                                    </p>
+                                                </div>
+                                                <button
+                                                    onClick={() => enviarRecordatorioManana(b)}
+                                                    className={`shrink-0 px-3 py-2 rounded-lg text-sm font-bold transition ${yaRecordado
+                                                        ? 'bg-green-100 text-green-700 border border-green-200 hover:bg-green-200'
+                                                        : 'bg-green-600 text-white hover:bg-green-700 shadow-sm'}`}
+                                                    title={yaRecordado ? t('Ya se envió; puedes reenviarlo') : t('Enviar recordatorio por WhatsApp')}
+                                                >
+                                                    {yaRecordado ? '✅ ' + t('Recordado') : '💬 ' + t('Recordar')}
+                                                </button>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
                             </div>
                         )}
 

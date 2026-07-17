@@ -952,7 +952,15 @@
         'Salon de peluqueria': 'Hair salon',
         'Para cortes, color, peinados y tratamientos.': 'For cuts, color, styling, and treatments.',
         'Salon de lashes': 'Lash salon',
-        'Para pestanas, cejas y mirada.': 'For lashes, brows, and the eyes.'
+        'Para pestanas, cejas y mirada.': 'For lashes, brows, and the eyes.',
+
+        // admin-app.js — sección Turnos de mañana
+        'Turnos de mañana ({n})': "Tomorrow's appointments ({n})",
+        'Envía el recordatorio por WhatsApp con un toque. Quedará marcado como recordado en este dispositivo.': 'Send the WhatsApp reminder with one tap. It will be marked as reminded on this device.',
+        'Ya se envió; puedes reenviarlo': 'Already sent; you can resend it',
+        'Enviar recordatorio por WhatsApp': 'Send reminder via WhatsApp',
+        'Recordado': 'Reminded',
+        'Recordar': 'Remind'
     });
 
     function getIdioma() {
