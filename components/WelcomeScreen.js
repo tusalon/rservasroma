@@ -10,8 +10,7 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol }) {
     const [activandoPush, setActivandoPush] = React.useState(false);
     const [pushMensaje, setPushMensaje] = React.useState('');
 
-    // UI de push oculta por bandera (ver utils/push-config.js) hasta resolver
-    // el problema pendiente de Supabase.
+    // UI de push controlada por bandera (ver utils/push-config.js).
     const pushUIVisible = window.RSERVAS_PUSH_UI_VISIBLE === true;
 
     React.useEffect(() => {

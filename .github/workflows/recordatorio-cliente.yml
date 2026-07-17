@@ -1,0 +1,67 @@
+name: Recordatorio a clientas (push)
+
+on:
+  schedule:
+    # 8 PM Cuba (UTC-4) = 00:00 UTC del dia siguiente -> recordatorio "de manana"
+    - cron: '0 0 * * *'
+    # Cada 30 min -> recordatorio "1 hora antes"
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+    inputs:
+      tipo:
+        description: 'Tipo de recordatorio (dia u hora)'
+        required: false
+        default: 'dia'
+
+jobs:
+  enviar-recordatorio-dia:
+    if: github.event.schedule == '0 0 * * *' || (github.event_name == 'workflow_dispatch' && github.event.inputs.tipo == 'dia')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enviar recordatorio "manana tienes cita"
+        run: |
+          echo "Disparando recordatorio tipo=dia para $(date -u '+%Y-%m-%d %H:%M UTC')..."
+
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
+            "https://zorhclhvykikaachfrmp.supabase.co/functions/v1/recordatorio-cliente" \
+            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{"tipo":"dia"}')
+
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          BODY=$(echo "$RESPONSE" | head -1)
+
+          echo "HTTP: $HTTP_CODE"
+          echo "Respuesta: $BODY"
+
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "Error: $BODY"
+            exit 1
+          fi
+
+  enviar-recordatorio-hora:
+    if: github.event.schedule == '*/30 * * * *' || (github.event_name == 'workflow_dispatch' && github.event.inputs.tipo == 'hora')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enviar recordatorio "tu cita es en 1 hora"
+        run: |
+          echo "Disparando recordatorio tipo=hora para $(date -u '+%Y-%m-%d %H:%M UTC')..."
+
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
+            "https://zorhclhvykikaachfrmp.supabase.co/functions/v1/recordatorio-cliente" \
+            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{"tipo":"hora"}')
+
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          BODY=$(echo "$RESPONSE" | head -1)
+
+          echo "HTTP: $HTTP_CODE"
+          echo "Respuesta: $BODY"
+
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "Error: $BODY"
+            exit 1
+          fi

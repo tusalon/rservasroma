@@ -185,7 +185,8 @@ function instalarBotonNativePushAdmin() {
     document.body.appendChild(button);
 }
 
-// Botón nativo deshabilitado hasta que FCM esté configurado en Supabase
-// window.addEventListener('load', () => {
-//     setTimeout(instalarBotonNativePushAdmin, 1800);
-// });
+if (window.RSERVAS_PUSH_UI_VISIBLE === true) {
+    window.addEventListener('load', () => {
+        setTimeout(instalarBotonNativePushAdmin, 1800);
+    });
+}

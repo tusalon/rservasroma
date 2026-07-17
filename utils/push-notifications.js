@@ -302,11 +302,12 @@ window.enviarWebPushRservasRoma = async function({ title, body, url = '', role =
     }
 };
 
-// ─── Alias para compatibilidad con admin-app.js ───────────────────────────────
-// admin-app.js llama window.enviarNotificacionPush; la función real es enviarWebPushRservasRoma
-window.enviarNotificacionPush = function(title, body, tags, role) {
-    return window.enviarWebPushRservasRoma({ title, body, tags: tags || 'bell', role: role || 'admin' });
-};
+// NOTA: window.enviarNotificacionPush NO se redefine aquí. whatsapp-helper.js
+// (que carga antes que este archivo en admin.html/index.html) ya define la
+// versión real: envía por ntfy y además encadena a enviarWebPushRservasRoma
+// (definida arriba en este mismo archivo). Redefinirla aquí mataba el canal
+// ntfy y además confundía el 4to argumento (prioridad: 'default'/'high') con
+// un rol, rompiendo también el filtro de envío web push.
 
 // ─── Detección de contexto para mostrar la card correcta ─────────────────────
 function getPushContext() {
@@ -479,8 +480,8 @@ function _mostrarCardIOSInstrucciones() {
     document.getElementById('rservas-push-cerrar').onclick = () => _cerrarCard(card);
 }
 
-// Card de push deshabilitada hasta que FCM esté configurado en Supabase Edge Function
-// Reactivar cuando FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY estén en los secrets
-// window.addEventListener('load', () => {
-//     setTimeout(instalarCardPushAdmin, 2000);
-// });
+if (window.RSERVAS_PUSH_UI_VISIBLE === true) {
+    window.addEventListener('load', () => {
+        setTimeout(instalarCardPushAdmin, 2000);
+    });
+}
