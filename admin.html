@@ -3,29 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="manifest" href="manifest.json">
     <script>
       (function() {
         try {
-          // iOS no soporta manifests blob para "Añadir a pantalla de inicio":
-          // caía al manifest.json estático (orientado a clientas) y el ícono
-          // del admin abría la app de clientas. Sin <link rel="manifest">,
-          // iOS usa la URL ACTUAL (admin.html?s=slug) como inicio, que es
-          // exactamente lo que el ícono del panel debe abrir.
-          if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
-            var linkIOS = document.querySelector('link[rel="manifest"]');
-            if (linkIOS) linkIOS.remove();
-            return;
-          }
+          // CRÍTICO iOS: el <link rel="manifest"> se crea SOLO por JS y SOLO en
+          // no-iOS. Antes el link estaba estático en el HTML y un script lo
+          // quitaba en iOS — demasiado tarde: Safari ya lo había leído al
+          // parsearlo, se quedaba con el manifest de clientas (start_url sin
+          // slug) y el ícono del panel abría "esperando enlace". Sin link,
+          // iOS usa la URL ACTUAL (admin.html?s=slug) como inicio del ícono.
+          if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) return;
           var params = new URLSearchParams(window.location.search);
           var slug = (params.get('s') || localStorage.getItem('adminSlug') || localStorage.getItem('negocioSlug') || '').toLowerCase().trim();
-          var nombre = (localStorage.getItem('negocioNombre') || '').trim();
           if (!slug) return;
+          var nombre = (localStorage.getItem('negocioNombre') || '').trim();
           // Manifest admin servido por el Service Worker (mode=admin): start_url
           // e id propios del panel, para poder instalar la app de clientas y la
           // administrativa del mismo salón sin que una sustituya a la otra.
-          var link = document.querySelector('link[rel="manifest"]');
-          if (link) link.href = 'manifest.json?mode=admin&s=' + encodeURIComponent(slug) + '&n=' + encodeURIComponent(nombre || slug);
+          var link = document.createElement('link');
+          link.rel = 'manifest';
+          link.href = 'manifest.json?mode=admin&s=' + encodeURIComponent(slug) + '&n=' + encodeURIComponent(nombre || slug);
+          document.head.appendChild(link);
         } catch(e) {}
       })();
     </script>
