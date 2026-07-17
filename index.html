@@ -50,6 +50,31 @@
     <!-- PWA Meta Tags — el SW intercepta manifest.json?s=slug para hacerlo dinámico -->
     <script>
       (function() {
+        var esIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+        if (esIOS) {
+          // iOS no usa de forma fiable el manifest dinámico (?s=) servido por
+          // el Service Worker en "Añadir a pantalla de inicio": caía al
+          // estático sin slug y, como el PWA instalado tiene localStorage
+          // separado de Safari, abría "esperando enlace". Sin <link
+          // rel="manifest">, iOS usa la URL ACTUAL (index.html?s=salon) como
+          // inicio — mismo fix ya verificado del panel admin. El nombre del
+          // ícono sale de apple-mobile-web-app-title, personalizado aquí.
+          var aplicarNombreIOS = function(n) {
+            if (!n) return;
+            document.title = n;
+            var metaTitulo = document.querySelector('meta[name="apple-mobile-web-app-title"]');
+            if (metaTitulo) metaTitulo.setAttribute('content', n);
+          };
+          document.addEventListener('DOMContentLoaded', function() {
+            try { aplicarNombreIOS(localStorage.getItem('negocioNombre') || ''); } catch (e) {}
+          });
+          window.addEventListener('negocio-id-ready', function(ev) {
+            try { aplicarNombreIOS(ev.detail && ev.detail.nombre); } catch (e) {}
+          });
+          return;
+        }
+
         try {
           var params = new URLSearchParams(window.location.search);
           var slug = params.get('s') || localStorage.getItem('negocioSlug') || '';
