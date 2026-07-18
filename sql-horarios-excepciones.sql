@@ -1,26 +1,44 @@
--- Horarios temporales por rango de fechas para profesionales.
+-- Tabla para los HORARIOS DE EXCEPCIÓN por profesional (feriados, semanas
+-- especiales, vacaciones con horario reducido, etc.). Un rango de fechas con
+-- su propio horario_por_dia que sobreescribe el horario normal del profesional.
+--
+-- La usa components/admin/HorariosExcepcionPanel.js vía las funciones
+-- getExcepcionesProfesional / guardarExcepcion / eliminarExcepcion de
+-- utils/config.js. Sin esta tabla el panel da 404, por eso estaba oculto.
 
-CREATE TABLE IF NOT EXISTS public.horarios_excepciones_profesionales (
-    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    negocio_id uuid NOT NULL REFERENCES public.negocios(id) ON DELETE CASCADE,
-    profesional_id integer NOT NULL,
-    fecha_inicio date NOT NULL,
-    fecha_fin date NOT NULL,
-    horarios_por_dia jsonb NOT NULL DEFAULT '{}',
-    descansos_por_dia jsonb NOT NULL DEFAULT '{}',
-    created_at timestamptz DEFAULT now(),
-    CONSTRAINT horarios_excepciones_rango_valido CHECK (fecha_fin >= fecha_inicio)
+create table if not exists public.horarios_excepciones_profesionales (
+    id uuid primary key default gen_random_uuid(),
+    negocio_id uuid not null references public.negocios(id) on delete cascade,
+    -- profesional_id sin FK explícita para no depender del tipo exacto de
+    -- profesionales.id; la app siempre filtra por negocio_id + profesional_id.
+    profesional_id bigint not null,
+    fecha_inicio date not null,
+    fecha_fin date not null,
+    horarios_por_dia jsonb not null default '{}'::jsonb,
+    descansos_por_dia jsonb not null default '{}'::jsonb,
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now()
 );
 
-CREATE INDEX IF NOT EXISTS idx_horarios_excepciones_negocio_profesional_inicio
-ON public.horarios_excepciones_profesionales (negocio_id, profesional_id, fecha_inicio);
+create index if not exists hep_negocio_prof_fecha_idx
+    on public.horarios_excepciones_profesionales (negocio_id, profesional_id, fecha_inicio);
 
-ALTER TABLE public.horarios_excepciones_profesionales ENABLE ROW LEVEL SECURITY;
+alter table public.horarios_excepciones_profesionales enable row level security;
 
-DROP POLICY IF EXISTS "horarios_excepciones_acceso_por_negocio" ON public.horarios_excepciones_profesionales;
+-- Políticas permisivas (la app opera con la llave anónima, igual que
+-- horarios_profesionales / servicios / profesionales).
+drop policy if exists hep_select on public.horarios_excepciones_profesionales;
+create policy hep_select on public.horarios_excepciones_profesionales
+    for select using (true);
 
-CREATE POLICY "horarios_excepciones_acceso_por_negocio"
-ON public.horarios_excepciones_profesionales
-FOR ALL
-USING (negocio_id IS NOT NULL)
-WITH CHECK (negocio_id IS NOT NULL);
+drop policy if exists hep_insert on public.horarios_excepciones_profesionales;
+create policy hep_insert on public.horarios_excepciones_profesionales
+    for insert with check (true);
+
+drop policy if exists hep_update on public.horarios_excepciones_profesionales;
+create policy hep_update on public.horarios_excepciones_profesionales
+    for update using (true) with check (true);
+
+drop policy if exists hep_delete on public.horarios_excepciones_profesionales;
+create policy hep_delete on public.horarios_excepciones_profesionales
+    for delete using (true);
