@@ -94,7 +94,10 @@
     <script src="components/admin/ServiciosPanelCategorias.js?v=20260714-i18n" type="text/babel"></script>
     <script src="components/admin/ProfesionalesPanel.js?v=20260714-i18n" type="text/babel"></script>
     <script src="components/admin/HorariosPorDiaPanel.js?v=20260714-i18n" type="text/babel"></script>
-    <script src="components/admin/HorariosExcepcionPanel.js?v=20260714-i18n" type="text/babel"></script>
+    <!-- HorariosExcepcionPanel oculto: su uso está comentado en ConfigPanel.js
+         hasta que exista la tabla dias_cerrados en Supabase. No se carga para
+         no descargar código muerto. Reactivar junto con el bloque de ConfigPanel. -->
+    <!-- <script src="components/admin/HorariosExcepcionPanel.js?v=20260714-i18n" type="text/babel"></script> -->
     <script src="admin-app.js?v=20260716-recordatorios" type="text/babel"></script>
 
     <script>
