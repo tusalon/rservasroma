@@ -1,55 +1,110 @@
 // components/admin/SetupWizard.js
+// Wizard de arranque: deja el negocio FUNCIONAL (profesional + servicios +
+// horarios) con la configuración mínima, no solo con datos estéticos.
+
+const MONEDA_POR_PAIS = {
+    '53': 'CUP', // Cuba
+    '34': 'EUR', // España
+    '52': 'MXN', // México
+    '39': 'EUR', // Italia
+    '33': 'EUR', // Francia
+    '49': 'EUR', // Alemania
+    '351': 'EUR' // Portugal
+};
+
+// Convierte un rango horario "HH:MM"-"HH:MM" en los índices de 30 min que usa
+// el sistema (0=00:00, 1=00:30, ... 18=09:00, 36=18:00). Idéntico a la grilla
+// de HorariosPorDiaPanel para que el calendario los interprete igual.
+function rangoHorarioAIndices(horaInicio, horaFin) {
+    const aIndice = (hhmm) => {
+        const [h, m] = String(hhmm || '0:0').split(':').map(Number);
+        return (h || 0) * 2 + ((m || 0) >= 30 ? 1 : 0);
+    };
+    const ini = aIndice(horaInicio);
+    const fin = aIndice(horaFin);
+    const indices = [];
+    for (let i = ini; i < fin; i++) indices.push(i);
+    return indices;
+}
 
 function SetupWizard() {
     window.useIdioma();
     const t = window.t;
+    const idioma = window.getIdioma ? window.getIdioma() : 'es';
     const [step, setStep] = React.useState(1);
     const [negocioId, setNegocioId] = React.useState(null);
+    const [monedaSugerida, setMonedaSugerida] = React.useState('CUP');
     const [cargando, setCargando] = React.useState(true);
     const [guardando, setGuardando] = React.useState(false);
+    const [progresoGuardado, setProgresoGuardado] = React.useState('');
     const [error, setError] = React.useState('');
     const [exito, setExito] = React.useState(false);
+
+    const DIAS = idioma === 'en' ? [
+        { id: 'lunes', corto: 'Mon', nombre: 'Monday' },
+        { id: 'martes', corto: 'Tue', nombre: 'Tuesday' },
+        { id: 'miercoles', corto: 'Wed', nombre: 'Wednesday' },
+        { id: 'jueves', corto: 'Thu', nombre: 'Thursday' },
+        { id: 'viernes', corto: 'Fri', nombre: 'Friday' },
+        { id: 'sabado', corto: 'Sat', nombre: 'Saturday' },
+        { id: 'domingo', corto: 'Sun', nombre: 'Sunday' }
+    ] : [
+        { id: 'lunes', corto: 'Lun', nombre: 'Lunes' },
+        { id: 'martes', corto: 'Mar', nombre: 'Martes' },
+        { id: 'miercoles', corto: 'Mié', nombre: 'Miércoles' },
+        { id: 'jueves', corto: 'Jue', nombre: 'Jueves' },
+        { id: 'viernes', corto: 'Vie', nombre: 'Viernes' },
+        { id: 'sabado', corto: 'Sáb', nombre: 'Sábado' },
+        { id: 'domingo', corto: 'Dom', nombre: 'Domingo' }
+    ];
+
     const [config, setConfig] = React.useState({
-        // Paso 1: Datos básicos
+        // Paso 1: negocio
         nombre: '',
         telefono_whatsapp: '',
         email: '',
-        direccion: '',
-        
-        // Paso 2: Personalización visual
+        // Paso 2: profesional
+        profesional_nombre: '',
+        profesional_especialidad: '',
+        // Paso 3: servicios
+        servicios: [
+            { nombre: '', precio: '', duracion: '60' },
+            { nombre: '', precio: '', duracion: '60' },
+            { nombre: '', precio: '', duracion: '60' }
+        ],
+        // Paso 4: horarios
+        dias: { lunes: true, martes: true, miercoles: true, jueves: true, viernes: true, sabado: true, domingo: false },
+        hora_inicio: '09:00',
+        hora_fin: '18:00',
+        // Paso 5: estética (opcional)
         color_primario: '#c49b63',
         color_secundario: '#f59e0b',
+        imagen_fondo_tipo: 'unas',
         logo: null,
         logo_preview: '',
-        imagen_fondo_tipo: 'unas',
-        
-        // Paso 3: Mensajes
+        // Defaults conservados para el negocio (editables luego en el panel)
+        direccion: '',
         mensaje_bienvenida: '¡Bienvenido a nuestro salón!',
         mensaje_confirmacion: 'Tu turno ha sido reservado con éxito',
-        
-        // Paso 4: Redes
         instagram: '',
-        facebook: '',
-        horario_atencion: 'Lun-Vie 9:00-20:00, Sáb 9:00-18:00'
+        facebook: ''
     });
 
-    // Obtener negocio_id del localStorage
     React.useEffect(() => {
         const id = localStorage.getItem('negocioId');
         if (!id) {
-            window.location.href = 'admin-login.html';
+            const slug = (new URLSearchParams(window.location.search).get('s') || '').toLowerCase().trim();
+            window.location.href = 'admin-login.html' + (slug ? '?s=' + encodeURIComponent(slug) : '');
             return;
         }
         setNegocioId(id);
-        
-        // Cargar datos actuales del negocio
         cargarDatosNegocio(id);
     }, []);
 
     const cargarDatosNegocio = async (id) => {
         try {
             const response = await fetch(
-                `${window.SUPABASE_URL}/rest/v1/negocios?id=eq.${id}&select=nombre,telefono,email,imagen_fondo_tipo`,
+                `${window.SUPABASE_URL}/rest/v1/negocios?id=eq.${id}&select=nombre,telefono,email,imagen_fondo_tipo,codigo_pais`,
                 {
                     headers: {
                         'apikey': window.SUPABASE_ANON_KEY,
@@ -57,10 +112,11 @@ function SetupWizard() {
                     }
                 }
             );
-            
             if (response.ok) {
                 const data = await response.json();
                 if (data && data[0]) {
+                    const codigoPais = String(data[0].codigo_pais || '53');
+                    setMonedaSugerida(MONEDA_POR_PAIS[codigoPais] || 'CUP');
                     setConfig(prev => ({
                         ...prev,
                         nombre: data[0].nombre || '',
@@ -77,57 +133,69 @@ function SetupWizard() {
         }
     };
 
-    const handleNext = () => {
+    const precioNumerico = (valor) => window.parsePrecioServicio
+        ? window.parsePrecioServicio(valor, 0)
+        : (parseFloat(String(valor).replace(',', '.')) || 0);
+
+    const serviciosValidos = () => config.servicios.filter(
+        s => s.nombre.trim() && precioNumerico(s.precio) > 0
+    );
+
+    const diasSeleccionados = () => DIAS.filter(d => config.dias[d.id]).map(d => d.id);
+
+    const validarPaso = () => {
         if (step === 1) {
-            if (!config.nombre.trim()) {
-                setError(t('El nombre del negocio es obligatorio'));
-                return;
-            }
-            if (!config.telefono_whatsapp || config.telefono_whatsapp.length < 8) {
-                setError(t('El teléfono debe tener 8 dígitos'));
-                return;
-            }
-            if (config.email && !config.email.includes('@')) {
-                setError(t('El email no es válido'));
-                return;
-            }
+            if (!config.nombre.trim()) return t('El nombre del negocio es obligatorio');
+            if (!config.telefono_whatsapp || config.telefono_whatsapp.length < 8) return t('El teléfono debe tener 8 dígitos');
+            if (config.email && !config.email.includes('@')) return t('El email no es válido');
         }
+        if (step === 2) {
+            if (!config.profesional_nombre.trim()) return t('Escribe el nombre de quien atiende');
+        }
+        if (step === 3) {
+            if (serviciosValidos().length === 0) return t('Agrega al menos un servicio con nombre y precio');
+        }
+        if (step === 4) {
+            if (diasSeleccionados().length === 0) return t('Selecciona al menos un día de trabajo');
+            if (config.hora_fin <= config.hora_inicio) return t('La hora de cierre debe ser mayor que la de apertura');
+        }
+        return '';
+    };
+
+    const handleNext = () => {
+        const err = validarPaso();
+        if (err) { setError(err); return; }
         setError('');
         setStep(step + 1);
     };
 
-    const handlePrev = () => setStep(step - 1);
+    const handlePrev = () => { setError(''); setStep(step - 1); };
+
+    const actualizarServicio = (index, campo, valor) => {
+        const nuevos = config.servicios.map((s, i) => i === index ? { ...s, [campo]: valor } : s);
+        setConfig({ ...config, servicios: nuevos });
+    };
+
+    const toggleDia = (diaId) => {
+        setConfig({ ...config, dias: { ...config.dias, [diaId]: !config.dias[diaId] } });
+    };
 
     const handleLogoChange = (e) => {
         const file = e.target.files[0];
         if (file) {
-            if (!file.type.startsWith('image/')) {
-                setError(t('Solo se permiten imágenes'));
-                return;
-            }
-            if (file.size > 2 * 1024 * 1024) {
-                setError(t('La imagen no puede superar los 2MB'));
-                return;
-            }
+            if (!file.type.startsWith('image/')) { setError(t('Solo se permiten imágenes')); return; }
+            if (file.size > 2 * 1024 * 1024) { setError(t('La imagen no puede superar los 2MB')); return; }
             const reader = new FileReader();
-            reader.onloadend = () => {
-                setConfig({
-                    ...config,
-                    logo: file,
-                    logo_preview: reader.result
-                });
-            };
+            reader.onloadend = () => setConfig(prev => ({ ...prev, logo: file, logo_preview: reader.result }));
             reader.readAsDataURL(file);
         }
     };
 
     const subirLogo = async () => {
         if (!config.logo) return null;
-        
         try {
             const fileExt = config.logo.name.split('.').pop();
             const fileName = `logo-${negocioId}-${Date.now()}.${fileExt}`;
-            
             const response = await fetch(
                 `${window.SUPABASE_URL}/storage/v1/object/negocios-logos/${fileName}`,
                 {
@@ -139,13 +207,7 @@ function SetupWizard() {
                     body: config.logo
                 }
             );
-            
-            if (!response.ok) {
-                const error = await response.text();
-                console.error('Error subiendo logo:', error);
-                return null;
-            }
-            
+            if (!response.ok) { console.error('Error subiendo logo:', await response.text()); return null; }
             return `${window.SUPABASE_URL}/storage/v1/object/public/negocios-logos/${fileName}`;
         } catch (error) {
             console.error('Error:', error);
@@ -153,24 +215,105 @@ function SetupWizard() {
         }
     };
 
+    const guardarHorariosProfesional = async (profesionalId) => {
+        const horariosPorDia = {};
+        const dias = [];
+        const todasLasHoras = new Set();
+        DIAS.forEach(d => {
+            if (config.dias[d.id]) {
+                const indices = rangoHorarioAIndices(config.hora_inicio, config.hora_fin);
+                horariosPorDia[d.id] = indices;
+                dias.push(d.id);
+                indices.forEach(i => todasLasHoras.add(i));
+            } else {
+                horariosPorDia[d.id] = [];
+            }
+        });
+        const horas = Array.from(todasLasHoras).sort((a, b) => a - b);
+
+        // POST directo (negocio nuevo → nunca hay registro previo). Mismo
+        // formato que salonConfig.guardarHorariosPorDia, pero sin sus alert().
+        const response = await fetch(`${window.SUPABASE_URL}/rest/v1/horarios_profesionales`, {
+            method: 'POST',
+            headers: {
+                'apikey': window.SUPABASE_ANON_KEY,
+                'Authorization': `Bearer ${window.SUPABASE_ANON_KEY}`,
+                'Content-Type': 'application/json',
+                'Prefer': 'return=minimal'
+            },
+            body: JSON.stringify({
+                negocio_id: negocioId,
+                profesional_id: profesionalId,
+                horarios_por_dia: horariosPorDia,
+                horas,
+                dias
+            })
+        });
+        return response.ok;
+    };
+
+    const textoHorarioLegible = () => {
+        const sel = diasSeleccionados().map(id => DIAS.find(d => d.id === id).corto);
+        if (!sel.length) return '';
+        return `${sel.join(', ')} ${config.hora_inicio}-${config.hora_fin}`;
+    };
+
     const handleGuardar = async () => {
         setGuardando(true);
         setError('');
-        
         try {
-            // Subir logo si existe
+            // Forzar que TODAS las creaciones (salonProfesionales/salonServicios,
+            // que resuelven el negocio vía window.getNegocioId) usen el negocio de
+            // ESTA sesión. Sin esto, si el slug de la URL resolvió otro
+            // NEGOCIO_ID_POR_DEFECTO, los datos se crearían en el negocio
+            // equivocado. En el flujo normal ya coinciden; esto lo garantiza.
+            if (negocioId) window.NEGOCIO_ID_POR_DEFECTO = negocioId;
+
+            // 1. Profesional (quien atiende)
+            setProgresoGuardado(t('Creando profesional...'));
+            const prof = await window.salonProfesionales.crear({
+                nombre: config.profesional_nombre.trim(),
+                especialidad: config.profesional_especialidad.trim() || t('General'),
+                nivel: 1
+            });
+            if (!prof || !prof.id) throw new Error(t('No se pudo crear el profesional. Intenta de nuevo.'));
+
+            // 2. Servicios
+            setProgresoGuardado(t('Creando servicios...'));
+            const idsServicios = [];
+            for (const s of serviciosValidos()) {
+                const precio = precioNumerico(s.precio);
+                const creado = await window.salonServicios.crear({
+                    nombre: s.nombre.trim(),
+                    duracion: parseInt(s.duracion) || 60,
+                    precio,
+                    precio_desde: precio,
+                    precio_moneda: monedaSugerida,
+                    categoria: null
+                });
+                if (creado && creado.id) idsServicios.push(creado.id);
+            }
+
+            // 3. Asignar cada servicio al profesional
+            setProgresoGuardado(t('Vinculando servicios...'));
+            for (const sid of idsServicios) {
+                await window.asignarProfesionalAServicio(sid, prof.id);
+            }
+
+            // 4. Horarios del profesional
+            setProgresoGuardado(t('Guardando horarios...'));
+            await guardarHorariosProfesional(prof.id);
+
+            // 5. Logo (opcional)
             let logo_url = null;
             if (config.logo) {
+                setProgresoGuardado(t('Subiendo logo...'));
                 logo_url = await subirLogo();
-                if (!logo_url) {
-                    setError(t('Error al subir el logo. Intentá de nuevo.'));
-                    setGuardando(false);
-                    return;
-                }
             }
-            
-            // Preparar datos para actualizar
-            const datosActualizar = {
+
+            // 6. Datos del negocio + marcar configurado
+            setProgresoGuardado(t('Finalizando...'));
+            const datosNegocio = {
                 nombre: config.nombre,
                 telefono: config.telefono_whatsapp,
                 email: config.email || null,
@@ -180,18 +323,11 @@ function SetupWizard() {
                 imagen_fondo_tipo: config.imagen_fondo_tipo || 'unas',
                 mensaje_bienvenida: config.mensaje_bienvenida,
                 mensaje_confirmacion: config.mensaje_confirmacion,
-                instagram: config.instagram || null,
-                facebook: config.facebook || null,
-                horario_atencion: config.horario_atencion || null,
+                horario_atencion: textoHorarioLegible() || null,
                 configurado: true,
                 updated_at: new Date().toISOString()
             };
-
-            if (logo_url) {
-                datosActualizar.logo_url = logo_url;
-            }
-
-            console.log('📤 Guardando configuración:', datosActualizar);
+            if (logo_url) datosNegocio.logo_url = logo_url;
 
             const response = await fetch(
                 `${window.SUPABASE_URL}/rest/v1/negocios?id=eq.${negocioId}`,
@@ -201,30 +337,27 @@ function SetupWizard() {
                         'apikey': window.SUPABASE_ANON_KEY,
                         'Authorization': `Bearer ${window.SUPABASE_ANON_KEY}`,
                         'Content-Type': 'application/json',
-                        'Prefer': 'return=representation'
+                        'Prefer': 'return=minimal'
                     },
-                    body: JSON.stringify(datosActualizar)
+                    body: JSON.stringify(datosNegocio)
                 }
             );
-            
             if (!response.ok) {
-                const errorText = await response.text();
-                console.error('Error response:', errorText);
+                console.error('Error PATCH negocio:', await response.text());
                 throw new Error(t('Error guardando configuración'));
             }
-            
+
             setExito(true);
-            
-            // Redirigir al panel después de 2 segundos
+            const slug = (new URLSearchParams(window.location.search).get('s') || localStorage.getItem('adminSlug') || localStorage.getItem('negocioSlug') || '').toLowerCase().trim();
             setTimeout(() => {
-                window.location.href = 'admin.html';
+                window.location.href = 'admin.html' + (slug ? '?s=' + encodeURIComponent(slug) : '');
             }, 2000);
-            
-        } catch (error) {
-            console.error('Error:', error);
-            setError(t('Error al guardar la configuración'));
+        } catch (err) {
+            console.error('Error:', err);
+            setError(err.message || t('Error al guardar la configuración'));
         } finally {
             setGuardando(false);
+            setProgresoGuardado('');
         }
     };
 
@@ -240,23 +373,24 @@ function SetupWizard() {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-emerald-100">
                 <div className="bg-white p-8 rounded-2xl shadow-xl max-w-md text-center animate-fade-in">
-                    <div className="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-6">
-                        <i className="icon-check text-4xl text-white"></i>
-                    </div>
-                    <h2 className="text-2xl font-bold text-gray-900 mb-2">{t('¡Todo listo!')}</h2>
+                    <div className="text-6xl mb-4">🎉</div>
+                    <h2 className="text-2xl font-bold text-gray-900 mb-2">{t('¡Tu salón está listo!')}</h2>
                     <p className="text-gray-600 mb-4">
-                        {t('Tu negocio ha sido configurado correctamente.')}
+                        {t('Ya puedes recibir reservas. Redirigiendo al panel...')}
                     </p>
-                    <div className="bg-green-50 p-4 rounded-lg mb-4">
-                        <p className="text-sm text-green-700">
-                            {t('Redirigiendo al panel de administración...')}
-                        </p>
-                    </div>
                     <div className="animate-spin h-6 w-6 border-2 border-green-500 border-t-transparent rounded-full mx-auto"></div>
                 </div>
             </div>
         );
     }
+
+    const PASOS = [
+        t('Negocio'),
+        t('Profesional'),
+        t('Servicios'),
+        t('Horarios'),
+        t('Listo')
+    ];
 
     return (
         <div className="min-h-screen bg-gray-100 py-12 px-4">
@@ -264,24 +398,24 @@ function SetupWizard() {
                 <div className="flex justify-end mb-2">
                     <window.LanguageToggle />
                 </div>
-                {/* Header */}
+
                 <div className="text-center mb-8">
                     <div className="flex justify-center mb-4">
-                        <div className="w-16 h-16 bg-amber-600 rounded-2xl flex items-center justify-center">
-                            <i className="icon-settings text-3xl text-white"></i>
+                        <div className="w-16 h-16 bg-amber-600 rounded-2xl flex items-center justify-center text-3xl">
+                            💅
                         </div>
                     </div>
                     <h1 className="text-3xl font-bold text-gray-900">
-                        {t('Configura tu negocio')}
+                        {t('Configura tu salón')}
                     </h1>
                     <p className="text-gray-600 mt-2">
-                        {t('Completa estos datos para personalizar tu sistema de reservas')}
+                        {t('Unos pasos rápidos y empiezas a recibir reservas')}
                     </p>
                 </div>
 
-                {/* Progress Steps */}
+                {/* Progreso */}
                 <div className="flex justify-between mb-8">
-                    {[1, 2, 3, 4].map((s) => (
+                    {[1, 2, 3, 4, 5].map((s) => (
                         <div key={s} className="flex-1 text-center">
                             <div className={`
                                 w-10 h-10 rounded-full mx-auto flex items-center justify-center font-bold transition-all
@@ -290,60 +424,43 @@ function SetupWizard() {
                             `}>
                                 {s < step ? '✓' : s}
                             </div>
-                            <div className="text-xs mt-1 text-gray-600">
-                                {s === 1 && t('Datos básicos')}
-                                {s === 2 && t('Personalización')}
-                                {s === 3 && t('Mensajes')}
-                                {s === 4 && t('Finalizar')}
-                            </div>
+                            <div className="text-xs mt-1 text-gray-600">{PASOS[s - 1]}</div>
                         </div>
                     ))}
                 </div>
 
-                {/* Error message */}
                 {error && (
                     <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 animate-fade-in">
                         <div className="flex items-center gap-2">
-                            <i className="icon-alert-circle"></i>
+                            <span>⚠️</span>
                             <span>{error}</span>
                         </div>
                     </div>
                 )}
 
-                {/* Step 1: Datos básicos */}
+                {/* Paso 1: Negocio */}
                 {step === 1 && (
                     <div className="bg-white rounded-xl shadow-sm p-6 space-y-4 animate-fade-in">
-                        <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                            <i className="icon-building text-amber-500"></i>
-                            {t('Datos del negocio')}
-                        </h2>
-
+                        <h2 className="text-xl font-bold mb-4">🏠 {t('Datos del negocio')}</h2>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                {t('Nombre del negocio *')}
-                            </label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">{t('Nombre del negocio *')}</label>
                             <input
                                 type="text"
                                 value={config.nombre}
-                                onChange={(e) => setConfig({...config, nombre: e.target.value})}
+                                onChange={(e) => setConfig({ ...config, nombre: e.target.value })}
                                 className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
                                 placeholder={t('Ej: BennetSalón')}
                                 autoFocus
                             />
                         </div>
-
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                WhatsApp *
-                            </label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">WhatsApp *</label>
                             <div className="flex">
-                                <span className="inline-flex items-center px-3 rounded-l-lg border border-r-0 border-gray-300 bg-gray-50 text-gray-500">
-                                    +53
-                                </span>
+                                <span className="inline-flex items-center px-3 rounded-l-lg border border-r-0 border-gray-300 bg-gray-50 text-gray-500">+53</span>
                                 <input
                                     type="tel"
                                     value={config.telefono_whatsapp}
-                                    onChange={(e) => setConfig({...config, telefono_whatsapp: e.target.value.replace(/\D/g, '')})}
+                                    onChange={(e) => setConfig({ ...config, telefono_whatsapp: e.target.value.replace(/\D/g, '') })}
                                     className="w-full px-4 py-2 rounded-r-lg border border-gray-300 focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
                                     placeholder="54438629"
                                     maxLength="8"
@@ -351,348 +468,268 @@ function SetupWizard() {
                             </div>
                             <p className="text-xs text-gray-400 mt-1">{t('8 dígitos después del +53')}</p>
                         </div>
-
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Email
-                            </label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
                             <input
                                 type="email"
                                 value={config.email}
-                                onChange={(e) => setConfig({...config, email: e.target.value})}
+                                onChange={(e) => setConfig({ ...config, email: e.target.value })}
                                 className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-                                placeholder="gisellebenettlc@gmail.com"
+                                placeholder="salon@gmail.com"
                             />
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                {t('Dirección')}
-                            </label>
-                            <input
-                                type="text"
-                                value={config.direccion}
-                                onChange={(e) => setConfig({...config, direccion: e.target.value})}
-                                className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-                                placeholder={t('Calle Principal 123')}
-                            />
-                        </div>
-
-                        <div className="bg-blue-50 p-4 rounded-lg text-sm text-blue-700 mt-2">
-                            <div className="flex items-start gap-2">
-                                <i className="icon-info mt-0.5"></i>
-                                <span>{t('Puedes cambiar estos datos después desde el panel de configuración.')}</span>
-                            </div>
                         </div>
                     </div>
                 )}
 
-                {/* Step 2: Personalización visual */}
+                {/* Paso 2: Profesional */}
                 {step === 2 && (
                     <div className="bg-white rounded-xl shadow-sm p-6 space-y-4 animate-fade-in">
-                        <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                            <i className="icon-palette text-amber-500"></i>
-                            {t('Personalización')}
-                        </h2>
+                        <h2 className="text-xl font-bold mb-1">👩‍🎨 {t('¿Quién atiende?')}</h2>
+                        <p className="text-sm text-gray-500 mb-3">{t('Puede ser tu propio nombre. Después podrás agregar más profesionales.')}</p>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">{t('Nombre del profesional *')}</label>
+                            <input
+                                type="text"
+                                value={config.profesional_nombre}
+                                onChange={(e) => setConfig({ ...config, profesional_nombre: e.target.value })}
+                                className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                                placeholder={t('Ej: Glenda')}
+                                autoFocus
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">{t('Especialidad')}</label>
+                            <input
+                                type="text"
+                                value={config.profesional_especialidad}
+                                onChange={(e) => setConfig({ ...config, profesional_especialidad: e.target.value })}
+                                className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                                placeholder={t('Ej: Uñas, Pestañas, Cejas')}
+                            />
+                        </div>
+                    </div>
+                )}
 
+                {/* Paso 3: Servicios */}
+                {step === 3 && (
+                    <div className="bg-white rounded-xl shadow-sm p-6 space-y-4 animate-fade-in">
+                        <h2 className="text-xl font-bold mb-1">💅 {t('Tus servicios principales')}</h2>
+                        <p className="text-sm text-gray-500 mb-3">{t('Agrega al menos uno. Podrás sumar más desde el panel.')}</p>
+                        {config.servicios.map((s, i) => (
+                            <div key={i} className="border rounded-lg p-3 space-y-2 bg-gray-50">
+                                <div className="flex items-center gap-2">
+                                    <span className="text-xs font-bold text-amber-600 w-5">{i + 1}.</span>
+                                    <input
+                                        type="text"
+                                        value={s.nombre}
+                                        onChange={(e) => actualizarServicio(i, 'nombre', e.target.value)}
+                                        className="flex-1 border rounded-lg px-3 py-2 focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                                        placeholder={i === 0 ? t('Ej: Manicura semipermanente') : t('Nombre del servicio')}
+                                    />
+                                </div>
+                                <div className="grid grid-cols-2 gap-2 pl-7">
+                                    <div>
+                                        <label className="block text-xs text-gray-500 mb-1">{t('Precio')} ({monedaSugerida})</label>
+                                        <input
+                                            type="text"
+                                            inputMode="decimal"
+                                            value={s.precio}
+                                            onChange={(e) => actualizarServicio(i, 'precio', e.target.value)}
+                                            className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                                            placeholder="1500"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs text-gray-500 mb-1">{t('Duración')}</label>
+                                        <select
+                                            value={s.duracion}
+                                            onChange={(e) => actualizarServicio(i, 'duracion', e.target.value)}
+                                            className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 bg-white"
+                                        >
+                                            <option value="30">30 min</option>
+                                            <option value="45">45 min</option>
+                                            <option value="60">1 h</option>
+                                            <option value="90">1 h 30 min</option>
+                                            <option value="120">2 h</option>
+                                            <option value="180">3 h</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                {/* Paso 4: Horarios */}
+                {step === 4 && (
+                    <div className="bg-white rounded-xl shadow-sm p-6 space-y-4 animate-fade-in">
+                        <h2 className="text-xl font-bold mb-1">🕐 {t('¿Qué días y a qué hora trabajas?')}</h2>
+                        <p className="text-sm text-gray-500 mb-3">{t('Esto define cuándo las clientas pueden reservar. Lo ajustas en detalle después.')}</p>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">{t('Días de trabajo')}</label>
+                            <div className="flex flex-wrap gap-2">
+                                {DIAS.map(d => (
+                                    <button
+                                        key={d.id}
+                                        type="button"
+                                        onClick={() => toggleDia(d.id)}
+                                        className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                                            config.dias[d.id]
+                                                ? 'bg-amber-600 text-white shadow'
+                                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                        }`}
+                                    >
+                                        {d.corto}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    {t('Color principal')}
-                                </label>
-                                <div className="flex items-center gap-2">
-                                    <input
-                                        type="color"
-                                        value={config.color_primario}
-                                        onChange={(e) => setConfig({...config, color_primario: e.target.value})}
-                                        className="w-10 h-10 rounded border"
-                                    />
-                                    <input
-                                        type="text"
-                                        value={config.color_primario}
-                                        onChange={(e) => setConfig({...config, color_primario: e.target.value})}
-                                        className="flex-1 border rounded-lg px-3 py-2"
-                                        placeholder="#c49b63"
-                                    />
-                                </div>
-                                <p className="text-xs text-gray-400 mt-1">{t('Botones, headers')}</p>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">{t('Abre a las')}</label>
+                                <input
+                                    type="time"
+                                    value={config.hora_inicio}
+                                    onChange={(e) => setConfig({ ...config, hora_inicio: e.target.value })}
+                                    className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                                />
                             </div>
-
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    {t('Color secundario')}
-                                </label>
-                                <div className="flex items-center gap-2">
-                                    <input
-                                        type="color"
-                                        value={config.color_secundario}
-                                        onChange={(e) => setConfig({...config, color_secundario: e.target.value})}
-                                        className="w-10 h-10 rounded border"
-                                    />
-                                    <input
-                                        type="text"
-                                        value={config.color_secundario}
-                                        onChange={(e) => setConfig({...config, color_secundario: e.target.value})}
-                                        className="flex-1 border rounded-lg px-3 py-2"
-                                        placeholder="#f59e0b"
-                                    />
-                                </div>
-                                <p className="text-xs text-gray-400 mt-1">{t('Acentos, detalles')}</p>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">{t('Cierra a las')}</label>
+                                <input
+                                    type="time"
+                                    value={config.hora_fin}
+                                    onChange={(e) => setConfig({ ...config, hora_fin: e.target.value })}
+                                    className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                                />
+                            </div>
+                        </div>
+                        <div className="bg-blue-50 p-3 rounded-lg text-sm text-blue-700">
+                            {t('Se aplicará el mismo horario a todos los días marcados. Podrás personalizar cada día desde el panel.')}
+                        </div>
+                    </div>
+                )}
+
+                {/* Paso 5: Estética opcional + resumen */}
+                {step === 5 && (
+                    <div className="bg-white rounded-xl shadow-sm p-6 space-y-5 animate-fade-in">
+                        <h2 className="text-xl font-bold mb-1">✨ {t('Toque final (opcional)')}</h2>
+                        <p className="text-sm text-gray-500">{t('Puedes saltar esto y cambiarlo luego desde el panel.')}</p>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">{t('Color principal')}</label>
+                            <div className="flex items-center gap-2">
+                                <input
+                                    type="color"
+                                    value={config.color_primario}
+                                    onChange={(e) => setConfig({ ...config, color_primario: e.target.value })}
+                                    className="w-10 h-10 rounded border"
+                                />
+                                <input
+                                    type="text"
+                                    value={config.color_primario}
+                                    onChange={(e) => setConfig({ ...config, color_primario: e.target.value })}
+                                    className="flex-1 border rounded-lg px-3 py-2"
+                                    placeholder="#c49b63"
+                                />
                             </div>
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                {t('Logo del negocio')}
-                            </label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">{t('Logo del negocio')}</label>
                             <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-amber-500 transition cursor-pointer"
                                  onClick={() => document.getElementById('logo-input').click()}>
-                                <input
-                                    id="logo-input"
-                                    type="file"
-                                    accept="image/*"
-                                    onChange={handleLogoChange}
-                                    className="hidden"
-                                />
+                                <input id="logo-input" type="file" accept="image/*" onChange={handleLogoChange} className="hidden" />
                                 {config.logo_preview ? (
                                     <div className="space-y-2">
-                                        <img src={config.logo_preview} alt="Preview" className="h-24 object-contain mx-auto" />
+                                        <img src={config.logo_preview} alt="Preview" className="h-20 object-contain mx-auto" />
                                         <p className="text-xs text-gray-500">{t('Haz clic para cambiar')}</p>
                                     </div>
                                 ) : (
-                                    <div className="py-4">
-                                        <i className="icon-upload-cloud text-4xl text-gray-400 mb-2"></i>
-                                        <p className="text-gray-600">{t('Haz clic para subir un logo')}</p>
+                                    <div className="py-3">
+                                        <div className="text-3xl mb-1">🖼️</div>
+                                        <p className="text-gray-600 text-sm">{t('Haz clic para subir un logo')}</p>
                                         <p className="text-xs text-gray-400 mt-1">{t('PNG, JPG hasta 2MB')}</p>
                                     </div>
                                 )}
                             </div>
                         </div>
 
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                {t('Horario de atención')}
-                            </label>
-                            <input
-                                type="text"
-                                value={config.horario_atencion}
-                                onChange={(e) => setConfig({...config, horario_atencion: e.target.value})}
-                                className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-                                placeholder={t('Lun-Vie 9:00-20:00, Sáb 9:00-18:00')}
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                {t('Imagen de fondo para clientes')}
-                            </label>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                                {(window.HERO_BACKGROUND_OPTIONS || []).map((opcion) => (
-                                    <button
-                                        type="button"
-                                        key={opcion.id}
-                                        onClick={() => setConfig({...config, imagen_fondo_tipo: opcion.id})}
-                                        className={`overflow-hidden rounded-lg border-2 bg-white text-left transition ${
-                                            config.imagen_fondo_tipo === opcion.id
-                                                ? 'border-amber-600 ring-2 ring-amber-200'
-                                                : 'border-gray-200 hover:border-amber-300'
-                                        }`}
-                                    >
-                                        <img src={opcion.image} alt={opcion.label} className="h-24 w-full object-cover" />
-                                        <div className="p-3">
-                                            <p className="text-sm font-semibold text-gray-900">{t(opcion.label)}</p>
-                                            <p className="text-xs text-gray-500 mt-1">{t(opcion.description)}</p>
-                                        </div>
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {/* Step 3: Mensajes personalizados */}
-                {step === 3 && (
-                    <div className="bg-white rounded-xl shadow-sm p-6 space-y-4 animate-fade-in">
-                        <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                            <i className="icon-message-square text-amber-500"></i>
-                            {t('Mensajes')}
-                        </h2>
-
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                {t('Mensaje de bienvenida')}
-                            </label>
-                            <textarea
-                                value={config.mensaje_bienvenida}
-                                onChange={(e) => setConfig({...config, mensaje_bienvenida: e.target.value})}
-                                className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-                                rows="3"
-                                placeholder="¡Bienvenido a nuestro salón!"
-                            />
-                            <p className="text-xs text-gray-400 mt-1">{t('Se muestra al abrir la app')}</p>
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                {t('Confirmación de reserva')}
-                            </label>
-                            <textarea
-                                value={config.mensaje_confirmacion}
-                                onChange={(e) => setConfig({...config, mensaje_confirmacion: e.target.value})}
-                                className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-                                rows="3"
-                                placeholder={t('Tu turno ha sido reservado con éxito')}
-                            />
-                        </div>
-                        
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Instagram
-                            </label>
-                            <div className="flex">
-                                <span className="inline-flex items-center px-3 rounded-l-lg border border-r-0 border-gray-300 bg-gray-50">
-                                    @
-                                </span>
-                                <input
-                                    type="text"
-                                    value={config.instagram}
-                                    onChange={(e) => setConfig({...config, instagram: e.target.value})}
-                                    className="w-full px-4 py-2 rounded-r-lg border border-gray-300 focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-                                    placeholder="bennetsalon"
-                                />
-                            </div>
-                        </div>
-                        
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Facebook
-                            </label>
-                            <input
-                                type="text"
-                                value={config.facebook}
-                                onChange={(e) => setConfig({...config, facebook: e.target.value})}
-                                className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-                                placeholder="/bennetsalon"
-                            />
-                        </div>
-                    </div>
-                )}
-
-                {/* Step 4: Resumen */}
-                {step === 4 && (
-                    <div className="bg-white rounded-xl shadow-sm p-6 space-y-4 animate-fade-in">
-                        <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                            <i className="icon-check-circle text-green-500"></i>
-                            {t('Todo listo')}
-                        </h2>
-
-                        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                            <div className="flex items-start gap-3">
-                                <i className="icon-check-circle text-green-600 text-xl"></i>
-                                <div>
-                                    <p className="text-green-800 font-medium">
-                                        {t('Revisa que todos los datos sean correctos')}
-                                    </p>
-                                    <p className="text-sm text-green-600 mt-1">
-                                        {t('Después de guardar, podrás editar la configuración desde el panel.')}
-                                    </p>
+                        {(window.HERO_BACKGROUND_OPTIONS || []).length > 0 && (
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">{t('Imagen de fondo para clientes')}</label>
+                                <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+                                    {(window.HERO_BACKGROUND_OPTIONS || []).map((opcion) => (
+                                        <button
+                                            type="button"
+                                            key={opcion.id}
+                                            onClick={() => setConfig({ ...config, imagen_fondo_tipo: opcion.id })}
+                                            className={`overflow-hidden rounded-lg border-2 bg-white text-left transition ${
+                                                config.imagen_fondo_tipo === opcion.id
+                                                    ? 'border-amber-600 ring-2 ring-amber-200'
+                                                    : 'border-gray-200 hover:border-amber-300'
+                                            }`}
+                                        >
+                                            <img src={opcion.image} alt={opcion.label} className="h-20 w-full object-cover" />
+                                            <div className="p-2">
+                                                <p className="text-xs font-semibold text-gray-900">{t(opcion.label)}</p>
+                                            </div>
+                                        </button>
+                                    ))}
                                 </div>
                             </div>
-                        </div>
+                        )}
 
-                        <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+                        {/* Resumen */}
+                        <div className="bg-gray-50 rounded-lg p-4 space-y-2 text-sm">
                             <h3 className="font-semibold text-gray-700">📋 {t('Resumen')}</h3>
-
-                            <div className="grid grid-cols-2 gap-2 text-sm">
+                            <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
                                 <span className="text-gray-500">{t('Negocio:')}</span>
                                 <span className="font-medium">{config.nombre}</span>
-
-                                <span className="text-gray-500">WhatsApp:</span>
-                                <span className="font-medium">+53 {config.telefono_whatsapp}</span>
-
-                                <span className="text-gray-500">Email:</span>
-                                <span className="font-medium">{config.email || '—'}</span>
-
-                                <span className="text-gray-500">{t('Color principal:')}</span>
-                                <span className="flex items-center gap-2">
-                                    <span className="w-4 h-4 rounded" style={{backgroundColor: config.color_primario}}></span>
-                                    {config.color_primario}
-                                </span>
-
-                                <span className="text-gray-500">Instagram:</span>
-                                <span className="font-medium">@{config.instagram || '—'}</span>
+                                <span className="text-gray-500">{t('Profesional:')}</span>
+                                <span className="font-medium">{config.profesional_nombre}</span>
+                                <span className="text-gray-500">{t('Servicios:')}</span>
+                                <span className="font-medium">{serviciosValidos().map(s => s.nombre.trim()).join(', ') || '—'}</span>
+                                <span className="text-gray-500">{t('Horario:')}</span>
+                                <span className="font-medium">{textoHorarioLegible() || '—'}</span>
                             </div>
-
-                            {config.logo && (
-                                <div className="mt-2">
-                                    <span className="text-gray-500 text-sm">{t('Logo:')}</span>
-                                    <img src={config.logo_preview} alt="Logo" className="h-12 object-contain mt-1" />
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="bg-amber-50 p-4 rounded-lg">
-                            <p className="text-sm text-amber-700 flex items-center gap-2">
-                                <i className="icon-info"></i>
-                                {t('Al hacer clic en "Finalizar", se guardará toda la configuración.')}
-                            </p>
                         </div>
                     </div>
                 )}
 
-                {/* Navigation buttons */}
+                {/* Navegación */}
                 <div className="flex justify-between mt-6">
                     {step > 1 ? (
-                        <button
-                            onClick={handlePrev}
-                            className="px-6 py-2 border rounded-lg hover:bg-gray-100 transition flex items-center gap-2"
-                            disabled={guardando}
-                        >
-                            <i className="icon-arrow-left"></i>
-                            {t('Atrás')}
+                        <button onClick={handlePrev} className="px-6 py-2 border rounded-lg hover:bg-gray-100 transition" disabled={guardando}>
+                            ← {t('Atrás')}
                         </button>
-                    ) : (
-                        <div></div>
-                    )}
+                    ) : <div></div>}
 
-                    {step < 4 ? (
-                        <button
-                            onClick={handleNext}
-                            className="px-6 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition flex items-center gap-2"
-                            disabled={guardando}
-                        >
-                            {t('Continuar')}
-                            <i className="icon-arrow-right"></i>
+                    {step < 5 ? (
+                        <button onClick={handleNext} className="px-6 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition" disabled={guardando}>
+                            {t('Continuar')} →
                         </button>
                     ) : (
-                        <button
-                            onClick={handleGuardar}
-                            className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition flex items-center gap-2"
-                            disabled={guardando}
-                        >
+                        <button onClick={handleGuardar} className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition flex items-center gap-2" disabled={guardando}>
                             {guardando ? (
                                 <>
                                     <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
-                                    {t('Guardando...')}
+                                    {progresoGuardado || t('Guardando...')}
                                 </>
                             ) : (
-                                <>
-                                    <i className="icon-check"></i>
-                                    {t('Finalizar')}
-                                </>
+                                <>✓ {t('Finalizar y abrir mi salón')}</>
                             )}
                         </button>
                     )}
                 </div>
 
-                {/* Progress text */}
                 <div className="text-center mt-4 text-sm text-gray-500">
-                    {t('Paso {n} de 4', { n: step })}
+                    {t('Paso {n} de 5', { n: step })}
                 </div>
             </div>
         </div>
     );
 }
 
-// Renderizar
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(<SetupWizard />);
