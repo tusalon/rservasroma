@@ -360,6 +360,14 @@ function instalarCardPushAdmin() {
         return;
     }
 
+    // Ya instalada pero el sistema no tiene la API de notificaciones (ej. iOS
+    // anterior a 16.4, donde Apple agregó push para apps instaladas): no hay
+    // nada que "activar" — mostrar por qué en vez de un botón que nunca funciona.
+    if (ctx.permiso === 'unsupported') {
+        _mostrarCardNoSoportado();
+        return;
+    }
+
     // Push bloqueado por el usuario → mostrar mensaje de ayuda
     if (ctx.permiso === 'denied') {
         _mostrarCardBloqueado();
@@ -428,13 +436,17 @@ function _mostrarCardPermisoNormal() {
         this.textContent = 'Activando...';
         const permission = await pedirPermisoNotificacionesPush();
         const result = await window.solicitarPushRservasRoma({ defaultRole: getRolPush(), permission });
+        const permisoActual = ('Notification' in window) ? Notification.permission : 'unsupported';
         if (result?.ok) {
             card.style.transform = 'translateX(-50%) translateY(120px)';
             setTimeout(() => card.remove(), 400);
             mostrarToastPush('✅ Notificaciones activadas');
-        } else if (Notification.permission === 'denied') {
+        } else if (permisoActual === 'denied') {
             card.remove();
             _mostrarCardBloqueado();
+        } else if (permisoActual === 'unsupported') {
+            card.remove();
+            _mostrarCardNoSoportado();
         } else {
             this.disabled = false;
             this.textContent = 'Activar notificaciones';
@@ -455,6 +467,24 @@ function _mostrarCardBloqueado() {
             <div style="color:#9ca3af;font-size:13px;line-height:1.5">
                 Actívalas manualmente:<br>
                 <strong style="color:#d1d5db">Chrome → ⋮ → Configuración → Notificaciones del sitio</strong>
+            </div>
+        </div>
+    `;
+    document.getElementById('rservas-push-cerrar').onclick = () => _cerrarCard(card);
+}
+
+function _mostrarCardNoSoportado() {
+    const card = _crearCardBase();
+    card.innerHTML = `
+        <button id="rservas-push-cerrar" style="${CERRAR_BTN_STYLE}">✕</button>
+        <div style="font-size:28px;flex-shrink:0;line-height:1">⚠️</div>
+        <div style="flex:1;min-width:0">
+            <div style="color:#fff;font-size:15px;font-weight:700;margin-bottom:4px">
+                Tu iPhone no puede recibir notificaciones
+            </div>
+            <div style="color:#9ca3af;font-size:13px;line-height:1.5">
+                Apple agregó esta función a partir de <strong style="color:#d1d5db">iOS 16.4</strong>.
+                Actualiza tu iPhone en Ajustes → General → Actualización de Software.
             </div>
         </div>
     `;
