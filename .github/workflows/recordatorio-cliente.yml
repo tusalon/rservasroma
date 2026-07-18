@@ -13,6 +13,14 @@ on:
         required: false
         default: 'dia'
 
+# La anon key de Supabase es PUBLICA por diseno: el sitio ya la sirve en
+# utils/supabase-config.js, cualquiera puede leerla. Va aqui como variable y no
+# como secreto para no depender de un secreto inexistente (el repo solo tiene
+# SUPABASE_SERVICE_KEY, que da privilegios totales y no hace falta aqui: este
+# header solo sirve para pasar el gate de autenticacion de la Edge Function).
+env:
+  SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpvcmhjbGh2eWtpa2FhY2hmcm1wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIxNDQzMzUsImV4cCI6MjA4NzcyMDMzNX0.reauF3UfNTFJFZ3Mnzf8ctYH1d5p7C3msi7AvYJUaos
+
 jobs:
   enviar-recordatorio-dia:
     if: github.event.schedule == '0 0 * * *' || (github.event_name == 'workflow_dispatch' && github.event.inputs.tipo == 'dia')
@@ -24,8 +32,8 @@ jobs:
 
           RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
             "https://zorhclhvykikaachfrmp.supabase.co/functions/v1/recordatorio-cliente" \
-            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
-            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
+            -H "apikey: ${{ env.SUPABASE_ANON_KEY }}" \
+            -H "Authorization: Bearer ${{ env.SUPABASE_ANON_KEY }}" \
             -H "Content-Type: application/json" \
             -d '{"tipo":"dia"}')
 
@@ -50,8 +58,8 @@ jobs:
 
           RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
             "https://zorhclhvykikaachfrmp.supabase.co/functions/v1/recordatorio-cliente" \
-            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
-            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
+            -H "apikey: ${{ env.SUPABASE_ANON_KEY }}" \
+            -H "Authorization: Bearer ${{ env.SUPABASE_ANON_KEY }}" \
             -H "Content-Type: application/json" \
             -d '{"tipo":"hora"}')
 
