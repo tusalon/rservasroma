@@ -1,6 +1,6 @@
 // sw.js - Service Worker para Rservasroma
 
-const CACHE_NAME = 'rservasroma-v22';
+const CACHE_NAME = 'rservasroma-v23';
 const BASE = '/rservasroma';
 
 const urlsToCache = [
@@ -236,6 +236,18 @@ self.addEventListener('message', event => {
 // ============================================
 // WEB PUSH
 // ============================================
+// Numerito sobre el ícono de la app instalada (PWA en Android Chrome e iOS
+// 16.4+). El conteo es el número real de notificaciones del sistema aún sin
+// abrir de este SW — se recalcula solas, sin contador aparte que se desincronice.
+async function actualizarBadgeApp() {
+  try {
+    if (!navigator.setAppBadge) return;
+    const activas = await self.registration.getNotifications();
+    if (activas.length > 0) await navigator.setAppBadge(activas.length);
+    else if (navigator.clearAppBadge) await navigator.clearAppBadge();
+  } catch (e) { /* Badging API no soportada en esta plataforma */ }
+}
+
 self.addEventListener('push', event => {
   let payload = {};
   try {
@@ -244,13 +256,16 @@ self.addEventListener('push', event => {
     payload = { title: 'RservasRoma', body: event.data ? event.data.text() : 'Nueva notificación' };
   }
 
-  event.waitUntil(self.registration.showNotification(payload.title || 'RservasRoma', {
-    body: payload.body || 'Tienes una nueva notificación',
-    icon: `${BASE}/icons/icon-192x192.png`,
-    badge: `${BASE}/icons/badge.svg`,
-    tag: payload.tag || 'rservasroma',
-    data: { url: payload.url || `https://tusalon.github.io${BASE}/admin.html`, ...(payload.data || {}) },
-  }));
+  event.waitUntil((async () => {
+    await self.registration.showNotification(payload.title || 'RservasRoma', {
+      body: payload.body || 'Tienes una nueva notificación',
+      icon: `${BASE}/icons/icon-192x192.png`,
+      badge: `${BASE}/icons/badge.svg`,
+      tag: payload.tag || 'rservasroma',
+      data: { url: payload.url || `https://tusalon.github.io${BASE}/admin.html`, ...(payload.data || {}) },
+    });
+    await actualizarBadgeApp();
+  })());
 });
 
 self.addEventListener('notificationclick', event => {
@@ -261,12 +276,12 @@ self.addEventListener('notificationclick', event => {
     const scope = self.registration.scope || `https://tusalon.github.io${BASE}/`;
     targetUrl = scope.replace(/\/$/, '') + (targetUrl === '/' ? '' : targetUrl);
   }
-  event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
-      for (const c of list) {
-        if (c.url.includes(targetUrl) && 'focus' in c) return c.focus();
-      }
-      return clients.openWindow ? clients.openWindow(targetUrl) : null;
-    })
-  );
+  event.waitUntil((async () => {
+    await actualizarBadgeApp();
+    const list = await clients.matchAll({ type: 'window', includeUncontrolled: true });
+    for (const c of list) {
+      if (c.url.includes(targetUrl) && 'focus' in c) { await c.focus(); return; }
+    }
+    if (clients.openWindow) await clients.openWindow(targetUrl);
+  })());
 });

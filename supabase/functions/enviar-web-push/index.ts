@@ -87,6 +87,7 @@ async function sendFirebaseNotification({
   url,
   tags,
   data,
+  badgeCount,
 }: {
   projectId: string;
   accessToken: string;
@@ -96,6 +97,7 @@ async function sendFirebaseNotification({
   url: string;
   tags: string;
   data: Record<string, unknown>;
+  badgeCount: number;
 }) {
   const stringData: Record<string, string> = {
     url,
@@ -121,6 +123,11 @@ async function sendFirebaseNotification({
           notification: {
             channel_id: "default",
             tag: tags,
+            // Numerito sobre el ícono del APK. Solo lo respetan los
+            // launchers que soportan badges numéricos (ej. Samsung One UI);
+            // el resto muestra un punto o nada, que es su comportamiento
+            // normal de Android y no depende de este valor.
+            notification_count: badgeCount,
           },
         },
       },
@@ -154,6 +161,7 @@ Deno.serve(async (req) => {
   }
 
   const role = payload.role || "admin";
+  const badgeCount = Number.isFinite(payload.badge_count) ? Number(payload.badge_count) : 1;
   const selectUrl = new URL(`${supabaseUrl}/rest/v1/push_suscripciones`);
   selectUrl.searchParams.set("negocio_id", `eq.${payload.negocio_id}`);
   selectUrl.searchParams.set("activo", "eq.true");
@@ -216,6 +224,7 @@ Deno.serve(async (req) => {
         url: payload.url || "https://tusalon.github.io/rservasroma/admin.html",
         tags: payload.tags || "rservasroma",
         data: payload.data || {},
+        badgeCount,
       }))
     );
   }
