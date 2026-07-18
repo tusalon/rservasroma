@@ -12,9 +12,26 @@ const MONEDA_POR_PAIS = {
     '351': 'EUR' // Portugal
 };
 
-// Convierte un rango horario "HH:MM"-"HH:MM" en los índices de 30 min que usa
-// el sistema (0=00:00, 1=00:30, ... 18=09:00, 36=18:00). Idéntico a la grilla
-// de HorariosPorDiaPanel para que el calendario los interprete igual.
+// El sistema representa cada horario disponible como un índice de 30 min
+// (0=00:00, 1=00:30, ... 18=09:00, 36=18:00). horarios_por_dia guarda, por
+// día, la lista de esos índices que el profesional ofrece — igual que la
+// grilla de HorariosPorDiaPanel, donde cada hora se marca individualmente.
+
+// Los 48 slots del día, con su etiqueta legible (misma lógica que el panel).
+const SLOTS_DIA = (() => {
+    const slots = [];
+    for (let i = 0; i < 48; i++) {
+        const h = Math.floor(i / 2);
+        const m = i % 2 === 0 ? '00' : '30';
+        const ampm = h >= 12 ? 'PM' : 'AM';
+        const h12 = h % 12 || 12;
+        slots.push({ indice: i, label: `${h12}:${m} ${ampm}` });
+    }
+    return slots;
+})();
+
+// Prellenar de "HH:MM" a "HH:MM" (para arrancar cada día con horas típicas;
+// la dueña luego agrega o quita slots individuales).
 function rangoHorarioAIndices(horaInicio, horaFin) {
     const aIndice = (hhmm) => {
         const [h, m] = String(hhmm || '0:0').split(':').map(Number);
@@ -39,6 +56,7 @@ function SetupWizard() {
     const [progresoGuardado, setProgresoGuardado] = React.useState('');
     const [error, setError] = React.useState('');
     const [exito, setExito] = React.useState(false);
+    const [diaEditando, setDiaEditando] = React.useState('lunes');
 
     const DIAS = idioma === 'en' ? [
         { id: 'lunes', corto: 'Mon', nombre: 'Monday' },
@@ -72,15 +90,15 @@ function SetupWizard() {
             { nombre: '', precio: '', duracion: '60' },
             { nombre: '', precio: '', duracion: '60' }
         ],
-        // Paso 4: horarios — rango independiente por cada día
+        // Paso 4: horarios disponibles (lista de slots) independientes por día
         horarios_dias: {
-            lunes:     { activo: true,  inicio: '09:00', fin: '18:00' },
-            martes:    { activo: true,  inicio: '09:00', fin: '18:00' },
-            miercoles: { activo: true,  inicio: '09:00', fin: '18:00' },
-            jueves:    { activo: true,  inicio: '09:00', fin: '18:00' },
-            viernes:   { activo: true,  inicio: '09:00', fin: '18:00' },
-            sabado:    { activo: true,  inicio: '09:00', fin: '14:00' },
-            domingo:   { activo: false, inicio: '09:00', fin: '18:00' }
+            lunes:     { activo: true,  horas: rangoHorarioAIndices('09:00', '18:00') },
+            martes:    { activo: true,  horas: rangoHorarioAIndices('09:00', '18:00') },
+            miercoles: { activo: true,  horas: rangoHorarioAIndices('09:00', '18:00') },
+            jueves:    { activo: true,  horas: rangoHorarioAIndices('09:00', '18:00') },
+            viernes:   { activo: true,  horas: rangoHorarioAIndices('09:00', '18:00') },
+            sabado:    { activo: true,  horas: rangoHorarioAIndices('09:00', '14:00') },
+            domingo:   { activo: false, horas: [] }
         },
         // Paso 5: estética (opcional)
         color_primario: '#c49b63',
@@ -164,8 +182,8 @@ function SetupWizard() {
         if (step === 4) {
             const activos = diasActivos();
             if (activos.length === 0) return t('Selecciona al menos un día de trabajo');
-            const hayInvalido = activos.some(d => config.horarios_dias[d.id].fin <= config.horarios_dias[d.id].inicio);
-            if (hayInvalido) return t('En cada día, la hora de cierre debe ser mayor que la de apertura');
+            const sinHoras = activos.some(d => (config.horarios_dias[d.id].horas || []).length === 0);
+            if (sinHoras) return t('Cada día activo necesita al menos un horario disponible');
         }
         return '';
     };
@@ -186,21 +204,34 @@ function SetupWizard() {
 
     const toggleDiaActivo = (diaId) => {
         const actual = config.horarios_dias[diaId];
-        setConfig({ ...config, horarios_dias: { ...config.horarios_dias, [diaId]: { ...actual, activo: !actual.activo } } });
+        const activando = !actual.activo;
+        // Al activar un día que quedó sin horas, arrancar con un horario típico
+        // (9:00-18:00). La dueña luego marca/desmarca cada slot.
+        const horas = (activando && (actual.horas || []).length === 0)
+            ? rangoHorarioAIndices('09:00', '18:00')
+            : actual.horas;
+        setConfig({ ...config, horarios_dias: { ...config.horarios_dias, [diaId]: { activo: activando, horas } } });
+        if (activando) setDiaEditando(diaId);
     };
 
-    const setHoraDia = (diaId, campo, valor) => {
+    const toggleSlot = (diaId, indice) => {
         const actual = config.horarios_dias[diaId];
-        setConfig({ ...config, horarios_dias: { ...config.horarios_dias, [diaId]: { ...actual, [campo]: valor } } });
+        const horas = actual.horas.includes(indice)
+            ? actual.horas.filter(i => i !== indice)
+            : [...actual.horas, indice].sort((a, b) => a - b);
+        setConfig({ ...config, horarios_dias: { ...config.horarios_dias, [diaId]: { ...actual, horas } } });
     };
 
-    const aplicarHorarioATodos = (diaOrigen) => {
-        const base = config.horarios_dias[diaOrigen];
-        const nuevos = {};
-        DIAS.forEach(d => {
-            nuevos[d.id] = { ...config.horarios_dias[d.id], inicio: base.inicio, fin: base.fin };
-        });
-        setConfig({ ...config, horarios_dias: nuevos });
+    const limpiarHorasDia = (diaId) => {
+        const actual = config.horarios_dias[diaId];
+        setConfig({ ...config, horarios_dias: { ...config.horarios_dias, [diaId]: { ...actual, horas: [] } } });
+    };
+
+    const copiarHorasDia = (diaDestino, diaOrigen) => {
+        if (!diaOrigen || diaOrigen === diaDestino) return;
+        const origen = config.horarios_dias[diaOrigen];
+        const actual = config.horarios_dias[diaDestino];
+        setConfig({ ...config, horarios_dias: { ...config.horarios_dias, [diaDestino]: { ...actual, horas: [...origen.horas] } } });
     };
 
     const handleLogoChange = (e) => {
@@ -244,8 +275,8 @@ function SetupWizard() {
         const todasLasHoras = new Set();
         DIAS.forEach(d => {
             const cfg = config.horarios_dias[d.id];
-            if (cfg && cfg.activo && cfg.fin > cfg.inicio) {
-                const indices = rangoHorarioAIndices(cfg.inicio, cfg.fin);
+            if (cfg && cfg.activo && (cfg.horas || []).length > 0) {
+                const indices = [...cfg.horas].sort((a, b) => a - b);
                 horariosPorDia[d.id] = indices;
                 dias.push(d.id);
                 indices.forEach(i => todasLasHoras.add(i));
@@ -276,10 +307,21 @@ function SetupWizard() {
         return response.ok;
     };
 
+    const labelSlot = (indice) => {
+        const s = SLOTS_DIA.find(x => x.indice === indice);
+        return s ? s.label : '';
+    };
+
+    const resumenDia = (diaId) => {
+        const horas = (config.horarios_dias[diaId].horas || []).slice().sort((a, b) => a - b);
+        if (!horas.length) return '';
+        return `${labelSlot(horas[0])} – ${labelSlot(horas[horas.length - 1])} · ${horas.length} ${t('horarios')}`;
+    };
+
     const textoHorarioLegible = () => {
         const partes = DIAS
-            .filter(d => config.horarios_dias[d.id] && config.horarios_dias[d.id].activo)
-            .map(d => `${d.corto} ${config.horarios_dias[d.id].inicio}-${config.horarios_dias[d.id].fin}`);
+            .filter(d => config.horarios_dias[d.id] && config.horarios_dias[d.id].activo && config.horarios_dias[d.id].horas.length)
+            .map(d => `${d.corto} (${config.horarios_dias[d.id].horas.length})`);
         return partes.join(' · ');
     };
 
@@ -585,55 +627,82 @@ function SetupWizard() {
                     </div>
                 )}
 
-                {/* Paso 4: Horarios — rango independiente por día */}
+                {/* Paso 4: Horarios disponibles (grilla de slots) por día */}
                 {step === 4 && (
                     <div className="bg-white rounded-xl shadow-sm p-6 space-y-3 animate-fade-in">
-                        <h2 className="text-xl font-bold mb-1">🕐 {t('¿Qué días y a qué hora trabajas?')}</h2>
-                        <p className="text-sm text-gray-500 mb-3">{t('Activa cada día y ponle su propio horario. Ej: lunes 9:00-11:00, martes 14:00-18:00.')}</p>
+                        <h2 className="text-xl font-bold mb-1">🕐 {t('Horarios disponibles')}</h2>
+                        <p className="text-sm text-gray-500 mb-3">{t('Activa cada día y marca las horas en las que atiendes. Cada hora marcada es un turno que la clienta podrá reservar.')}</p>
 
                         {DIAS.map(d => {
                             const cfg = config.horarios_dias[d.id];
+                            const editando = diaEditando === d.id;
                             return (
-                                <div key={d.id} className={`rounded-lg border p-3 transition-all ${cfg.activo ? 'border-amber-200 bg-amber-50/40' : 'border-gray-200 bg-gray-50'}`}>
-                                    <div className="flex items-center gap-3">
+                                <div key={d.id} className={`rounded-lg border transition-all ${cfg.activo ? 'border-amber-200 bg-amber-50/40' : 'border-gray-200 bg-gray-50'}`}>
+                                    <div className="flex items-center gap-3 p-3">
                                         <button
                                             type="button"
                                             onClick={() => toggleDiaActivo(d.id)}
-                                            className={`w-16 shrink-0 px-2 py-2 rounded-lg text-sm font-bold transition-all ${
+                                            className={`w-14 shrink-0 px-2 py-2 rounded-lg text-sm font-bold transition-all ${
                                                 cfg.activo ? 'bg-amber-600 text-white shadow' : 'bg-gray-200 text-gray-500'
                                             }`}
                                         >
                                             {d.corto}
                                         </button>
                                         {cfg.activo ? (
-                                            <div className="flex items-center gap-2 flex-1">
-                                                <input
-                                                    type="time"
-                                                    value={cfg.inicio}
-                                                    onChange={(e) => setHoraDia(d.id, 'inicio', e.target.value)}
-                                                    className="flex-1 min-w-0 border rounded-lg px-2 py-2 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-                                                />
-                                                <span className="text-gray-400 text-sm">{t('a')}</span>
-                                                <input
-                                                    type="time"
-                                                    value={cfg.fin}
-                                                    onChange={(e) => setHoraDia(d.id, 'fin', e.target.value)}
-                                                    className="flex-1 min-w-0 border rounded-lg px-2 py-2 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-                                                />
+                                            <div className="flex-1 min-w-0">
+                                                <div className="text-sm text-gray-700 truncate">{resumenDia(d.id) || t('Sin horarios — toca «Editar»')}</div>
                                             </div>
                                         ) : (
                                             <span className="text-gray-400 text-sm flex-1">{t('Cerrado')}</span>
                                         )}
-                                    </div>
-                                    {cfg.activo && (
-                                        <div className="text-right mt-2">
+                                        {cfg.activo && (
                                             <button
                                                 type="button"
-                                                onClick={() => aplicarHorarioATodos(d.id)}
-                                                className="text-xs text-amber-700 hover:underline"
+                                                onClick={() => setDiaEditando(editando ? null : d.id)}
+                                                className="text-xs font-semibold text-amber-700 hover:underline shrink-0"
                                             >
-                                                {t('Aplicar este horario a todos los días')}
+                                                {editando ? t('Cerrar') : t('Editar')}
                                             </button>
+                                        )}
+                                    </div>
+
+                                    {cfg.activo && editando && (
+                                        <div className="px-3 pb-3">
+                                            <div className="flex flex-wrap items-center gap-2 mb-2">
+                                                <button type="button" onClick={() => limpiarHorasDia(d.id)} className="text-xs px-2 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">
+                                                    {t('Limpiar')}
+                                                </button>
+                                                <select
+                                                    value=""
+                                                    onChange={(e) => { copiarHorasDia(d.id, e.target.value); e.target.value = ''; }}
+                                                    className="text-xs border rounded px-2 py-1 bg-white"
+                                                >
+                                                    <option value="">{t('Copiar de…')}</option>
+                                                    {DIAS.filter(x => x.id !== d.id && config.horarios_dias[x.id].horas.length > 0).map(x => (
+                                                        <option key={x.id} value={x.id}>{x.nombre} ({config.horarios_dias[x.id].horas.length})</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                            <div className="grid grid-cols-4 sm:grid-cols-6 gap-1 max-h-60 overflow-y-auto p-1 border rounded-lg bg-white">
+                                                {SLOTS_DIA.map(slot => {
+                                                    const activa = cfg.horas.includes(slot.indice);
+                                                    return (
+                                                        <button
+                                                            key={slot.indice}
+                                                            type="button"
+                                                            onClick={() => toggleSlot(d.id, slot.indice)}
+                                                            className={`px-1 py-1 text-xs font-medium rounded transition-all ${
+                                                                activa
+                                                                    ? 'bg-amber-600 text-white shadow-sm'
+                                                                    : 'bg-white border border-gray-200 text-gray-600 hover:border-amber-400'
+                                                            }`}
+                                                        >
+                                                            {slot.label}
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                            <p className="text-xs text-gray-400 mt-1">{t('Cada franja es de 30 min. Marca solo las horas en que empiezas turnos.')}</p>
                                         </div>
                                     )}
                                 </div>
