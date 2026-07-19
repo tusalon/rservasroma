@@ -1,6 +1,6 @@
 // sw.js - Service Worker para Rservasroma
 
-const CACHE_NAME = 'rservasroma-v31';
+const CACHE_NAME = 'rservasroma-v32';
 const BASE = '/rservasroma';
 
 const urlsToCache = [
@@ -64,6 +64,7 @@ const urlsToCache = [
   `${BASE}/components/admin/HorariosPorDiaPanel.js`,
   `${BASE}/components/admin/HorariosExcepcionPanel.js`,
   `${BASE}/components/admin/ProfesionalesPanel.js`,
+  `${BASE}/components/admin/ImportarServicios.js`,
   `${BASE}/components/admin/ServiciosPanelCategorias.js`,
   `${BASE}/components/admin/SetupWizard.js`,
 

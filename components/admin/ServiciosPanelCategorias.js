@@ -73,6 +73,18 @@ function ServiciosPanel() {
     const [categoriaActiva, setCategoriaActiva] = React.useState('todos');
     const [servicioParaAsignar, setServicioParaAsignar] = React.useState(null);
     const [mostrarCategorias, setMostrarCategorias] = React.useState(false);
+    const [mostrarImportar, setMostrarImportar] = React.useState(false);
+    const [profesionalesDelNegocio, setProfesionalesDelNegocio] = React.useState([]);
+
+    // Se cargan para poder asignarles automaticamente los servicios importados:
+    // es el paso que mas se olvida al cargarlos a mano y sin el las clientas no
+    // pueden reservar ese servicio.
+    React.useEffect(() => {
+        if (!mostrarImportar || profesionalesDelNegocio.length) return;
+        window.salonProfesionales?.getAll(true)
+            .then(p => setProfesionalesDelNegocio(p || []))
+            .catch(() => setProfesionalesDelNegocio([]));
+    }, [mostrarImportar]);
     const formularioRef = React.useRef(null);
 
     React.useEffect(() => {
@@ -211,6 +223,9 @@ function ServiciosPanel() {
                         </p>
                     </div>
                     <div className="flex flex-col sm:flex-row gap-2">
+                        <button onClick={() => setMostrarImportar(true)} className="border border-amber-300 text-amber-700 px-4 py-3 rounded-lg hover:bg-amber-50 font-semibold" title={t('Pega tu lista de servicios y se crean solos')}>
+                            📋 {t('Importar lista')}
+                        </button>
                         <button onClick={() => setMostrarCategorias(!mostrarCategorias)} className="border border-pink-200 text-pink-700 px-4 py-3 rounded-lg hover:bg-pink-50 font-semibold">
                             ⚙️ {t('Categorías')}
                         </button>
@@ -323,6 +338,19 @@ function ServiciosPanel() {
 
             {servicioParaAsignar && (
                 <AsignarProfesionalesModal servicio={servicioParaAsignar} onClose={() => setServicioParaAsignar(null)} />
+            )}
+
+            {mostrarImportar && (
+                <ImportarServiciosModal
+                    monedaNegocio={servicios[0]?.precio_moneda || 'CUP'}
+                    profesionales={profesionalesDelNegocio}
+                    onCerrar={() => setMostrarImportar(false)}
+                    onImportado={(creados) => {
+                        setMostrarImportar(false);
+                        cargarDatos();
+                        alert(t('✅ Se crearon {n} servicios').replace('{n}', creados));
+                    }}
+                />
             )}
         </div>
     );
