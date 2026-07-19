@@ -16,6 +16,29 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    // Firma estable del APK.
+    //
+    // Antes se repartia el APK firmado con la clave de depuracion que el
+    // servidor de compilacion genera NUEVA en cada corrida. Como Android no
+    // deja reemplazar una app por otra de firma distinta, cada version daba
+    // "conflicto con un paquete" y habia que desinstalar a mano.
+    //
+    // Si el entorno trae la clave (compilacion en GitHub Actions) se usa esa
+    // para que todas las versiones compartan firma y se actualicen encima. Si
+    // no la trae (compilacion local), Android usa su clave de depuracion de
+    // siempre y todo sigue funcionando igual que antes.
+    signingConfigs {
+        debug {
+            def rutaKeystore = System.getenv("RSERVAS_KEYSTORE_PATH")
+            if (rutaKeystore) {
+                storeFile file(rutaKeystore)
+                storePassword System.getenv("RSERVAS_KEYSTORE_PASSWORD")
+                keyAlias System.getenv("RSERVAS_KEY_ALIAS")
+                keyPassword System.getenv("RSERVAS_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
             minifyEnabled false

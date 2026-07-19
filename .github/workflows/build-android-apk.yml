@@ -56,8 +56,31 @@ jobs:
       - name: Sync Capacitor Android
         run: npm run android:sync
 
+      # Firma estable: sin esto cada compilacion usa una clave de depuracion
+      # distinta y Android rechaza la actualizacion ("conflicto con un paquete").
+      - name: Restaurar keystore de firma
+        id: keystore
+        shell: powershell
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: |
+          if ($env:KEYSTORE_BASE64) {
+            $ruta = Join-Path $env:GITHUB_WORKSPACE "rservasroma-firma.keystore"
+            [IO.File]::WriteAllBytes($ruta, [Convert]::FromBase64String($env:KEYSTORE_BASE64))
+            "path=$ruta" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+            Write-Host "Keystore restaurado: la APK llevara firma estable"
+          } else {
+            "path=" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+            Write-Host "::warning::KEYSTORE_BASE64 no configurado. La APK se firmara con una clave temporal y dara conflicto al actualizar."
+          }
+
       - name: Build debug APK
         working-directory: android
+        env:
+          RSERVAS_KEYSTORE_PATH: ${{ steps.keystore.outputs.path }}
+          RSERVAS_KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          RSERVAS_KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          RSERVAS_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: .\gradlew.bat assembleDebug
 
       - name: Rename APK
@@ -71,6 +94,26 @@ jobs:
           }
           Write-Host "APK encontrado: $($apk.FullName)"
           Copy-Item $apk.FullName apk-output/rservasroma-admin-debug.apk
+
+      # Deja constancia de con que clave quedo firmada. Si sale la de
+      # depuracion generica ("CN=Android Debug"), esa APK dara conflicto al
+      # instalarse sobre una anterior: mejor enterarse aqui que en el grupo.
+      - name: Verificar firma de la APK
+        shell: powershell
+        run: |
+          $apksigner = Get-ChildItem -Path "$env:ANDROID_HOME\build-tools" -Recurse -Filter "apksigner.bat" -ErrorAction SilentlyContinue |
+                       Sort-Object FullName -Descending | Select-Object -First 1
+          if (-not $apksigner) {
+            Write-Host "::warning::No se encontro apksigner; no se pudo verificar la firma"
+            exit 0
+          }
+          $salida = & $apksigner.FullName verify --print-certs apk-output/rservasroma-admin-debug.apk 2>&1 | Out-String
+          Write-Host $salida
+          if ($salida -match "CN=Android Debug") {
+            Write-Host "::error::La APK quedo firmada con la clave de depuracion generica. Revisa el secreto KEYSTORE_BASE64: al instalarse sobre una version anterior dara 'conflicto con un paquete'."
+            exit 1
+          }
+          Write-Host "Firma estable confirmada."
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
