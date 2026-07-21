@@ -61,7 +61,9 @@ async function guardarTokenNativePush(token, role, profesionalId) {
     if (role === 'profesional' && profesionalId) payload.profesional_id = profesionalId;
     if (role === 'admin') payload.profesional_id = null;
 
-    let response = await fetch(`${window.SUPABASE_URL}/rest/v1/push_suscripciones`, {
+    const upsertUrl = `${window.SUPABASE_URL}/rest/v1/push_suscripciones?on_conflict=endpoint`;
+
+    let response = await fetch(upsertUrl, {
         method: 'POST',
         headers: {
             apikey: window.SUPABASE_ANON_KEY,
@@ -77,7 +79,7 @@ async function guardarTokenNativePush(token, role, profesionalId) {
         if (payload.profesional_id !== undefined && /profesional_id/i.test(errorText)) {
             console.warn('La columna profesional_id aun no existe; guardando token nativo sin filtro profesional.');
             delete payload.profesional_id;
-            response = await fetch(`${window.SUPABASE_URL}/rest/v1/push_suscripciones`, {
+            response = await fetch(upsertUrl, {
                 method: 'POST',
                 headers: {
                     apikey: window.SUPABASE_ANON_KEY,

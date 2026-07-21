@@ -175,7 +175,9 @@ async function guardarSuscripcionPush(subscription, role, clienteWhatsapp, profe
     console.log('[Push] endpoint:', subscription.endpoint?.substring(0, 60));
     console.log('[Push] SUPABASE_URL:', window.SUPABASE_URL);
 
-    let response = await fetch(`${window.SUPABASE_URL}/rest/v1/push_suscripciones`, {
+    const upsertUrl = `${window.SUPABASE_URL}/rest/v1/push_suscripciones?on_conflict=endpoint`;
+
+    let response = await fetch(upsertUrl, {
         method: 'POST',
         headers: {
             apikey: window.SUPABASE_ANON_KEY,
@@ -192,7 +194,7 @@ async function guardarSuscripcionPush(subscription, role, clienteWhatsapp, profe
         if (payload.profesional_id !== undefined && /profesional_id/i.test(errorText)) {
             console.warn('[Push] La columna profesional_id aun no existe; guardando suscripcion sin filtro profesional.');
             delete payload.profesional_id;
-            response = await fetch(`${window.SUPABASE_URL}/rest/v1/push_suscripciones`, {
+            response = await fetch(upsertUrl, {
                 method: 'POST',
                 headers: {
                     apikey: window.SUPABASE_ANON_KEY,
