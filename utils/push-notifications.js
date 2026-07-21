@@ -36,6 +36,18 @@ function getRolPush(defaultRole = 'cliente') {
     return defaultRole;
 }
 
+function getProfesionalIdPush() {
+    try {
+        if (localStorage.getItem('adminAuth')) return null;
+        const profesional = typeof window.getProfesionalAutenticado === 'function'
+            ? window.getProfesionalAutenticado()
+            : null;
+        return profesional?.id || null;
+    } catch (e) {
+        return null;
+    }
+}
+
 function pedirPermisoNotificacionesPush() {
     if (!('Notification' in window)) return Promise.resolve('unsupported');
     if (Notification.permission === 'granted' || Notification.permission === 'denied') {
@@ -122,9 +134,9 @@ async function getRegistroServiceWorkerPush() {
     return ready || null;
 }
 
-async function guardarSuscripcionPush(subscription, role, clienteWhatsapp) {
+async function guardarSuscripcionPush(subscription, role, clienteWhatsapp, profesionalId) {
     const negocioId = getNegocioIdPush();
-    console.log('[Push] guardarSuscripcionPush - negocioId:', negocioId, 'role:', role, 'cliente:', clienteWhatsapp || 'sin whatsapp');
+    console.log('[Push] guardarSuscripcionPush - negocioId:', negocioId, 'role:', role, 'cliente:', clienteWhatsapp || 'sin whatsapp', 'profesional:', profesionalId || 'sin profesional');
     if (!negocioId) throw new Error('No hay negocio_id para guardar la suscripcion push.');
 
     // CRÍTICO: eliminar cualquier suscripción previa del mismo endpoint en OTRO negocio.
@@ -157,11 +169,13 @@ async function guardarSuscripcionPush(subscription, role, clienteWhatsapp) {
     };
 
     if (clienteWhatsapp) payload.cliente_whatsapp = clienteWhatsapp;
+    if (role === 'profesional' && profesionalId) payload.profesional_id = profesionalId;
+    if (role === 'admin') payload.profesional_id = null;
 
     console.log('[Push] endpoint:', subscription.endpoint?.substring(0, 60));
     console.log('[Push] SUPABASE_URL:', window.SUPABASE_URL);
 
-    const response = await fetch(`${window.SUPABASE_URL}/rest/v1/push_suscripciones`, {
+    let response = await fetch(`${window.SUPABASE_URL}/rest/v1/push_suscripciones`, {
         method: 'POST',
         headers: {
             apikey: window.SUPABASE_ANON_KEY,
@@ -175,6 +189,26 @@ async function guardarSuscripcionPush(subscription, role, clienteWhatsapp) {
     console.log('[Push] respuesta HTTP:', response.status);
     if (!response.ok) {
         const errorText = await response.text();
+        if (payload.profesional_id !== undefined && /profesional_id/i.test(errorText)) {
+            console.warn('[Push] La columna profesional_id aun no existe; guardando suscripcion sin filtro profesional.');
+            delete payload.profesional_id;
+            response = await fetch(`${window.SUPABASE_URL}/rest/v1/push_suscripciones`, {
+                method: 'POST',
+                headers: {
+                    apikey: window.SUPABASE_ANON_KEY,
+                    Authorization: `Bearer ${window.SUPABASE_ANON_KEY}`,
+                    'Content-Type': 'application/json',
+                    Prefer: 'resolution=merge-duplicates,return=minimal'
+                },
+                body: JSON.stringify(payload)
+            });
+            if (response.ok) {
+                console.log('[Push] suscripcion guardada OK sin profesional_id');
+                localStorage.setItem('rservasPushActivo', 'true');
+                localStorage.setItem('rservasPushRole', role);
+                return true;
+            }
+        }
         console.error('[Push] error guardando:', errorText);
         throw new Error(`No se pudo guardar la suscripcion push: ${errorText}`);
     }
@@ -182,6 +216,11 @@ async function guardarSuscripcionPush(subscription, role, clienteWhatsapp) {
     console.log('[Push] suscripcion guardada OK');
     localStorage.setItem('rservasPushActivo', 'true');
     localStorage.setItem('rservasPushRole', role);
+    if (role === 'profesional' && profesionalId) {
+        localStorage.setItem('rservasPushProfesionalId', String(profesionalId));
+    } else {
+        localStorage.removeItem('rservasPushProfesionalId');
+    }
     return true;
 }
 
@@ -196,6 +235,7 @@ window.pushRservasDisponible = function() {
 
 window.solicitarPushRservasRoma = async function(options = {}) {
     const role = options.role || options.rol || getRolPush(options.defaultRole || 'cliente');
+    const profesionalId = options.profesionalId || options.profesional_id || getProfesionalIdPush();
 
     if (!pushKeyConfigurada()) {
         console.warn('Push: falta clave VAPID pública');
@@ -231,7 +271,7 @@ window.solicitarPushRservasRoma = async function(options = {}) {
             });
             console.log('[Push] suscripcion creada:', subscription.endpoint?.substring(0, 60));
         }
-        await guardarSuscripcionPush(subscription.toJSON ? subscription.toJSON() : subscription, role, options.clienteWhatsapp);
+        await guardarSuscripcionPush(subscription.toJSON ? subscription.toJSON() : subscription, role, options.clienteWhatsapp, profesionalId);
         return { ok: true };
     } catch (err) {
         console.error('[Push] error:', err.name, err.message);
@@ -265,7 +305,7 @@ window.enviarPushCliente = async function({ whatsapp, title, body, url = '' } = 
     }
 };
 
-window.enviarWebPushRservasRoma = async function({ title, body, url = '', role = 'admin', tags = 'bell', data = {} } = {}) {
+window.enviarWebPushRservasRoma = async function({ title, body, url = '', role = 'admin', tags = 'bell', data = {}, profesionalId = null, profesional_id = null } = {}) {
     try {
         if (!window.SUPABASE_URL || !window.SUPABASE_ANON_KEY) return false;
 
@@ -286,7 +326,8 @@ window.enviarWebPushRservasRoma = async function({ title, body, url = '', role =
                 body,
                 url,
                 tags,
-                data
+                data,
+                profesional_id: profesionalId || profesional_id || null
             })
         });
 
@@ -301,6 +342,25 @@ window.enviarWebPushRservasRoma = async function({ title, body, url = '', role =
         return false;
     }
 };
+
+async function refrescarSuscripcionPushActual() {
+    try {
+        if (!pushKeyConfigurada()) return;
+        if (!localStorage.getItem('adminAuth') && !localStorage.getItem('profesionalAuth')) return;
+        if (!('Notification' in window) || Notification.permission !== 'granted') return;
+        if (!('PushManager' in window) || !('serviceWorker' in navigator)) return;
+
+        const registration = await getRegistroServiceWorkerPush();
+        const subscription = await registration?.pushManager?.getSubscription?.();
+        if (!subscription) return;
+
+        const role = getRolPush('admin');
+        const profesionalId = getProfesionalIdPush();
+        await guardarSuscripcionPush(subscription.toJSON ? subscription.toJSON() : subscription, role, null, profesionalId);
+    } catch (error) {
+        console.warn('[Push] No se pudo refrescar la suscripcion actual:', error.message);
+    }
+}
 
 // NOTA: window.enviarNotificacionPush NO se redefine aquí. whatsapp-helper.js
 // (que carga antes que este archivo en admin.html/index.html) ya define la
@@ -512,6 +572,7 @@ function _mostrarCardIOSInstrucciones() {
 
 if (window.RSERVAS_PUSH_UI_VISIBLE === true) {
     window.addEventListener('load', () => {
+        setTimeout(refrescarSuscripcionPushActual, 1200);
         setTimeout(instalarCardPushAdmin, 2000);
     });
 }

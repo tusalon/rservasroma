@@ -28,7 +28,19 @@ function getRolNativePush(defaultRole = 'admin') {
     return defaultRole;
 }
 
-async function guardarTokenNativePush(token, role) {
+function getProfesionalIdNativePush() {
+    try {
+        if (localStorage.getItem('adminAuth')) return null;
+        const profesional = typeof window.getProfesionalAutenticado === 'function'
+            ? window.getProfesionalAutenticado()
+            : null;
+        return profesional?.id || null;
+    } catch (e) {
+        return null;
+    }
+}
+
+async function guardarTokenNativePush(token, role, profesionalId) {
     const negocioId = getNegocioIdNativePush();
     if (!negocioId) throw new Error('No hay negocio_id para guardar el token nativo.');
 
@@ -46,8 +58,10 @@ async function guardarTokenNativePush(token, role) {
         activo: true,
         updated_at: new Date().toISOString()
     };
+    if (role === 'profesional' && profesionalId) payload.profesional_id = profesionalId;
+    if (role === 'admin') payload.profesional_id = null;
 
-    const response = await fetch(`${window.SUPABASE_URL}/rest/v1/push_suscripciones`, {
+    let response = await fetch(`${window.SUPABASE_URL}/rest/v1/push_suscripciones`, {
         method: 'POST',
         headers: {
             apikey: window.SUPABASE_ANON_KEY,
@@ -60,11 +74,37 @@ async function guardarTokenNativePush(token, role) {
 
     if (!response.ok) {
         const errorText = await response.text();
+        if (payload.profesional_id !== undefined && /profesional_id/i.test(errorText)) {
+            console.warn('La columna profesional_id aun no existe; guardando token nativo sin filtro profesional.');
+            delete payload.profesional_id;
+            response = await fetch(`${window.SUPABASE_URL}/rest/v1/push_suscripciones`, {
+                method: 'POST',
+                headers: {
+                    apikey: window.SUPABASE_ANON_KEY,
+                    Authorization: `Bearer ${window.SUPABASE_ANON_KEY}`,
+                    'Content-Type': 'application/json',
+                    Prefer: 'resolution=merge-duplicates,return=minimal'
+                },
+                body: JSON.stringify(payload)
+            });
+            if (response.ok) {
+                localStorage.setItem('rservasNativePushActivo', 'true');
+                localStorage.setItem('rservasNativePushRole', role);
+                localStorage.setItem('rservasNativePushToken', token);
+                return true;
+            }
+        }
         throw new Error(`No se pudo guardar el token nativo: ${errorText}`);
     }
 
     localStorage.setItem('rservasNativePushActivo', 'true');
     localStorage.setItem('rservasNativePushRole', role);
+    localStorage.setItem('rservasNativePushToken', token);
+    if (role === 'profesional' && profesionalId) {
+        localStorage.setItem('rservasNativePushProfesionalId', String(profesionalId));
+    } else {
+        localStorage.removeItem('rservasNativePushProfesionalId');
+    }
     return true;
 }
 
@@ -80,6 +120,7 @@ function mostrarToastNativo(mensaje, tipo = 'ok') {
 
 window.solicitarNativePushRservasRoma = async function(options = {}) {
     const role = options.role || getRolNativePush(options.defaultRole || 'admin');
+    const profesionalId = options.profesionalId || options.profesional_id || getProfesionalIdNativePush();
     const PushNotifications = getNativePushPlugin();
 
     if (!isRservasNativeApp()) return false;
@@ -105,7 +146,7 @@ window.solicitarNativePushRservasRoma = async function(options = {}) {
 
             await PushNotifications.addListener('registration', async (token) => {
                 try {
-                    await guardarTokenNativePush(token.value, role);
+                    await guardarTokenNativePush(token.value, role, profesionalId);
                     mostrarToastNativo('✅ Notificaciones activadas');
                     finish(true);
                 } catch (error) {
@@ -136,6 +177,20 @@ window.solicitarNativePushRservasRoma = async function(options = {}) {
         }
     });
 };
+
+async function refrescarTokenNativePushActual() {
+    try {
+        if (!isRservasNativeApp()) return;
+        if (!localStorage.getItem('adminAuth') && !localStorage.getItem('profesionalAuth')) return;
+        const token = localStorage.getItem('rservasNativePushToken');
+        if (!token) return;
+        const role = getRolNativePush('admin');
+        const profesionalId = getProfesionalIdNativePush();
+        await guardarTokenNativePush(token, role, profesionalId);
+    } catch (error) {
+        console.warn('No se pudo refrescar el token nativo:', error.message);
+    }
+}
 
 // La card de push nativo se muestra desde push-notifications.js (instalarCardPushAdmin)
 // porque detecta isNative y delega a solicitarNativePushRservasRoma.
@@ -187,6 +242,7 @@ function instalarBotonNativePushAdmin() {
 
 if (window.RSERVAS_PUSH_UI_VISIBLE === true) {
     window.addEventListener('load', () => {
+        setTimeout(refrescarTokenNativePushActual, 1400);
         setTimeout(instalarBotonNativePushAdmin, 1800);
     });
 }

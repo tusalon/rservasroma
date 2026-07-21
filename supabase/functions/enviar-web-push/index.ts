@@ -170,6 +170,9 @@ Deno.serve(async (req) => {
   // Si viene cliente_whatsapp filtra por esa clienta específica, si no filtra por role
   if (payload.cliente_whatsapp) {
     selectUrl.searchParams.set("cliente_whatsapp", `eq.${payload.cliente_whatsapp}`);
+  } else if (payload.profesional_id) {
+    selectUrl.searchParams.set("role", "eq.profesional");
+    selectUrl.searchParams.set("profesional_id", `eq.${payload.profesional_id}`);
   } else {
     selectUrl.searchParams.set("role", `eq.${role}`);
   }
