@@ -23,8 +23,27 @@
         return (typeof window.t === 'function') ? window.t(txt) : txt;
     }
 
+    function parseFechaLocal(fecha) {
+        if (fecha instanceof Date) return fecha;
+        const texto = String(fecha || '').trim();
+        const match = texto.match(/^(\d{4})-(\d{2})-(\d{2})/);
+        if (match) {
+            return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+        }
+        return new Date(fecha);
+    }
+
+    function fechaLocalKey(fecha = new Date()) {
+        const d = parseFechaLocal(fecha);
+        return [
+            d.getFullYear(),
+            String(d.getMonth() + 1).padStart(2, '0'),
+            String(d.getDate()).padStart(2, '0')
+        ].join('-');
+    }
+
     function aMedianoche(fecha) {
-        const d = new Date(fecha);
+        const d = parseFechaLocal(fecha);
         return new Date(d.getFullYear(), d.getMonth(), d.getDate());
     }
 
@@ -65,7 +84,8 @@
     function evaluar(sus) {
         if (!sus) return { accion: 'nada' };
 
-        if (sus.estado === 'suspendida') {
+        const estado = String(sus.estado || '').toLowerCase().trim();
+        if (estado === 'suspendida' || estado === 'suspendido') {
             return { accion: 'bloqueo', motivo: 'suspendida' };
         }
         if (!sus.fecha_renovacion) return { accion: 'nada' };
@@ -79,7 +99,7 @@
 
     function formatearFecha(fechaISO) {
         try {
-            return new Date(fechaISO).toLocaleDateString('es-ES', {
+            return parseFechaLocal(fechaISO).toLocaleDateString('es-ES', {
                 day: 'numeric', month: 'long'
             });
         } catch (e) {
@@ -94,12 +114,12 @@
 
     // ── Aviso (cerrable, una vez al día) ─────────────────────────────────
     function yaSeAvisoHoy() {
-        const hoy = new Date().toISOString().slice(0, 10);
+        const hoy = fechaLocalKey();
         return localStorage.getItem('avisoPagoMostrado') === hoy;
     }
 
     function marcarAvisoMostrado() {
-        localStorage.setItem('avisoPagoMostrado', new Date().toISOString().slice(0, 10));
+        localStorage.setItem('avisoPagoMostrado', fechaLocalKey());
     }
 
     function mostrarAviso(dias, fecha) {
@@ -226,6 +246,8 @@
         evaluar,
         diasHasta,
         FECHA_CORTE,
+        parseFechaLocal,
+        fechaLocalKey,
         probarAviso: (dias) => mostrarAviso(dias || 3, new Date(Date.now() + (dias || 3) * 86400000).toISOString()),
         probarBloqueo: () => mostrarBloqueo('vencida', new Date().toISOString())
     };
