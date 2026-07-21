@@ -1,6 +1,6 @@
 // sw.js - Service Worker para Rservasroma
 
-const CACHE_NAME = 'rservasroma-v41';
+const CACHE_NAME = 'rservasroma-v42';
 const BASE = '/rservasroma';
 
 const urlsToCache = [
@@ -201,6 +201,26 @@ self.addEventListener('fetch', event => {
         }
         return response;
       }).catch(() => caches.match(event.request).then(cached => cached || new Response('Sin conexión', { status: 408 })))
+    );
+    return;
+  }
+
+  const esAssetCriticoAdmin = [
+    `${BASE}/admin-app.js`,
+    `${BASE}/utils/config-negocio-master.js`,
+    `${BASE}/utils/native-push-notifications.js`,
+    `${BASE}/utils/push-notifications.js`
+  ].some(path => reqUrl.pathname === path);
+
+  if (esAssetCriticoAdmin) {
+    event.respondWith(
+      fetch(event.request, { cache: 'no-store' }).then(response => {
+        if (response && response.status === 200) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+        }
+        return response;
+      }).catch(() => caches.match(event.request).then(cached => cached || new Response('Sin conexiÃ³n', { status: 408 })))
     );
     return;
   }
