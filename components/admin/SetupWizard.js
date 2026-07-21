@@ -6,6 +6,12 @@ const MONEDA_POR_PAIS = {
     '53': 'CUP', // Cuba
     '34': 'EUR', // España
     '52': 'MXN', // México
+    '1': 'USD',
+    '57': 'COP',
+    '58': 'USD',
+    '51': 'PEN',
+    '56': 'CLP',
+    '593': 'USD',
     '39': 'EUR', // Italia
     '33': 'EUR', // Francia
     '49': 'EUR', // Alemania
@@ -44,6 +50,34 @@ function rangoHorarioAIndices(horaInicio, horaFin) {
     return indices;
 }
 
+function crearProfesionalWizard() {
+    return {
+        nombre: '',
+        especialidad: '',
+        telefono: '',
+        password: '',
+        nivel: 1,
+        color: 'bg-amber-600',
+        avatar: '\uD83D\uDC64'
+    };
+}
+
+function crearServicioWizard(moneda = 'CUP') {
+    return {
+        nombre: '',
+        categoria: null,
+        descripcion: '',
+        duracion: '60',
+        precio_desde: '',
+        precio_hasta: '',
+        precio_moneda: moneda,
+        requiere_anticipo: false,
+        tipo_anticipo: 'fijo',
+        valor_anticipo: '',
+        horarios_permitidos: ''
+    };
+}
+
 function SetupWizard() {
     window.useIdioma();
     const t = window.t;
@@ -76,20 +110,20 @@ function SetupWizard() {
         { id: 'domingo', corto: 'Dom', nombre: 'Domingo' }
     ];
 
+    const PAISES_TELEFONO = window.PHONE_COUNTRIES || [
+        { id: 'CU', nombre: 'Cuba', bandera: '\uD83C\uDDE8\uD83C\uDDFA', codigo: '53', ejemplo: '53066647', localLength: 8 }
+    ];
+
     const [config, setConfig] = React.useState({
         // Paso 1: negocio
         nombre: '',
         telefono_whatsapp: '',
+        codigo_pais: '53',
         email: '',
-        // Paso 2: profesional
-        profesional_nombre: '',
-        profesional_especialidad: '',
+        // Paso 2: profesionales
+        profesionales: [crearProfesionalWizard()],
         // Paso 3: servicios
-        servicios: [
-            { nombre: '', precio: '', duracion: '60' },
-            { nombre: '', precio: '', duracion: '60' },
-            { nombre: '', precio: '', duracion: '60' }
-        ],
+        servicios: [crearServicioWizard('CUP')],
         // Paso 4: horarios disponibles (lista de slots) independientes por día
         horarios_dias: {
             lunes:     { activo: true,  horas: rangoHorarioAIndices('09:00', '18:00') },
@@ -140,11 +174,16 @@ function SetupWizard() {
                 const data = await response.json();
                 if (data && data[0]) {
                     const codigoPais = String(data[0].codigo_pais || '53');
+                    if (window.setCodigoPaisTelefono) window.setCodigoPaisTelefono(codigoPais);
+                    const telefonoLocal = window.normalizarTelefonoLocal
+                        ? window.normalizarTelefonoLocal(data[0].telefono || '', codigoPais)
+                        : String(data[0].telefono || '').replace(/\D/g, '');
                     setMonedaSugerida(MONEDA_POR_PAIS[codigoPais] || 'CUP');
                     setConfig(prev => ({
                         ...prev,
                         nombre: data[0].nombre || '',
-                        telefono_whatsapp: data[0].telefono || '',
+                        telefono_whatsapp: telefonoLocal,
+                        codigo_pais: codigoPais,
                         email: data[0].email || '',
                         imagen_fondo_tipo: data[0].imagen_fondo_tipo || 'unas'
                     }));
@@ -161,20 +200,46 @@ function SetupWizard() {
         ? window.parsePrecioServicio(valor, 0)
         : (parseFloat(String(valor).replace(',', '.')) || 0);
 
-    const serviciosValidos = () => config.servicios.filter(
-        s => s.nombre.trim() && precioNumerico(s.precio) > 0
+    const profesionalesValidos = () => config.profesionales.filter(
+        p => p.nombre.trim() && p.telefono.trim() && p.password.trim()
     );
+
+    const serviciosValidos = () => config.servicios.filter(
+        s => s.nombre.trim() && precioNumerico(s.precio_desde) >= 0 && parseInt(s.duracion, 10) >= 3
+    );
+
+    const paisTelefono = () => PAISES_TELEFONO.find(p => String(p.codigo) === String(config.codigo_pais)) || PAISES_TELEFONO[0];
 
     const diasActivos = () => DIAS.filter(d => config.horarios_dias[d.id] && config.horarios_dias[d.id].activo);
 
     const validarPaso = () => {
+        if (step === 1) {
+            const pais = paisTelefono();
+            if (!config.nombre.trim()) return t('El nombre del negocio es obligatorio');
+            if (!config.codigo_pais) return t('Selecciona el pais del telefono');
+            if (!config.telefono_whatsapp || config.telefono_whatsapp.length < Math.min(Number(pais.localLength || 8), 8)) return t('Ingresa un telefono valido');
+            if (config.email && !config.email.includes('@')) return t('El email no es valido');
+            return '';
+        }
+        if (step === 2) {
+            if (profesionalesValidos().length === 0) return t('Agrega al menos un profesional con WhatsApp y contrasena');
+            const incompleto = config.profesionales.find(p => p.nombre.trim() && (!p.telefono.trim() || !p.password.trim()));
+            if (incompleto) return t('Cada profesional con nombre necesita WhatsApp y contrasena');
+            return '';
+        }
+        if (step === 3) {
+            if (serviciosValidos().length === 0) return t('Agrega al menos un servicio con nombre y precio');
+            const anticipoInvalido = config.servicios.find(s => s.nombre.trim() && s.requiere_anticipo && precioNumerico(s.valor_anticipo) <= 0);
+            if (anticipoInvalido) return t('El anticipo del servicio debe ser mayor que cero');
+            return '';
+        }
         if (step === 1) {
             if (!config.nombre.trim()) return t('El nombre del negocio es obligatorio');
             if (!config.telefono_whatsapp || config.telefono_whatsapp.length < 8) return t('El teléfono debe tener 8 dígitos');
             if (config.email && !config.email.includes('@')) return t('El email no es válido');
         }
         if (step === 2) {
-            if (!config.profesional_nombre.trim()) return t('Escribe el nombre de quien atiende');
+            if (profesionalesValidos().length === 0) return t('Agrega al menos un profesional con WhatsApp y contrasena');
         }
         if (step === 3) {
             if (serviciosValidos().length === 0) return t('Agrega al menos un servicio con nombre y precio');
@@ -200,6 +265,49 @@ function SetupWizard() {
     const actualizarServicio = (index, campo, valor) => {
         const nuevos = config.servicios.map((s, i) => i === index ? { ...s, [campo]: valor } : s);
         setConfig({ ...config, servicios: nuevos });
+    };
+
+    const actualizarProfesional = (index, campo, valor) => {
+        const nuevos = config.profesionales.map((p, i) => i === index ? { ...p, [campo]: valor } : p);
+        setConfig({ ...config, profesionales: nuevos });
+    };
+
+    const agregarProfesional = () => {
+        setConfig({ ...config, profesionales: [...config.profesionales, crearProfesionalWizard()] });
+    };
+
+    const quitarProfesional = (index) => {
+        if (config.profesionales.length === 1) return;
+        setConfig({ ...config, profesionales: config.profesionales.filter((_, i) => i !== index) });
+    };
+
+    const agregarServicio = () => {
+        setConfig({ ...config, servicios: [...config.servicios, crearServicioWizard(monedaSugerida)] });
+    };
+
+    const quitarServicio = (index) => {
+        if (config.servicios.length === 1) return;
+        setConfig({ ...config, servicios: config.servicios.filter((_, i) => i !== index) });
+    };
+
+    const cambiarCodigoPais = (codigo) => {
+        const limpio = String(codigo || '53').replace(/\D/g, '') || '53';
+        const monedaAnterior = monedaSugerida;
+        const telefonoLocal = window.normalizarTelefonoLocal
+            ? window.normalizarTelefonoLocal(config.telefono_whatsapp, limpio)
+            : String(config.telefono_whatsapp || '').replace(/\D/g, '');
+        if (window.setCodigoPaisTelefono) window.setCodigoPaisTelefono(limpio);
+        const moneda = (window.getMonedaSugeridaPorCodigoPais && window.getMonedaSugeridaPorCodigoPais(limpio)) || MONEDA_POR_PAIS[limpio] || monedaSugerida || 'CUP';
+        setMonedaSugerida(moneda);
+        setConfig({
+            ...config,
+            codigo_pais: limpio,
+            telefono_whatsapp: telefonoLocal,
+            servicios: config.servicios.map(s => ({
+                ...s,
+                precio_moneda: (!s.precio_moneda || s.precio_moneda === monedaAnterior) ? moneda : s.precio_moneda
+            }))
+        });
     };
 
     const toggleDiaActivo = (diaId) => {
@@ -325,6 +433,49 @@ function SetupWizard() {
         return partes.join(' · ');
     };
 
+    const normalizarSetupTexto = (valor) => String(valor || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .trim();
+
+    const limpiarDatosDemo = async () => {
+        if (!negocioId || !window.SUPABASE_URL || !window.SUPABASE_ANON_KEY) return;
+
+        const headers = {
+            'apikey': window.SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${window.SUPABASE_ANON_KEY}`,
+            'Content-Type': 'application/json'
+        };
+
+        const [profRes, servRes] = await Promise.all([
+            fetch(`${window.SUPABASE_URL}/rest/v1/profesionales?negocio_id=eq.${negocioId}&select=id,nombre`, { headers }),
+            fetch(`${window.SUPABASE_URL}/rest/v1/servicios?negocio_id=eq.${negocioId}&select=id,nombre`, { headers })
+        ]);
+
+        const profesionales = profRes.ok ? await profRes.json() : [];
+        const servicios = servRes.ok ? await servRes.json() : [];
+        const idsProfesionalesDemo = profesionales
+            .filter(p => ['profesional principal', 'profesional de prueba'].includes(normalizarSetupTexto(p.nombre)))
+            .map(p => p.id);
+        const idsServiciosDemo = servicios
+            .filter(s => normalizarSetupTexto(s.nombre) === 'servicio de prueba')
+            .map(s => s.id);
+
+        if (idsProfesionalesDemo.length) {
+            const ids = idsProfesionalesDemo.join(',');
+            await fetch(`${window.SUPABASE_URL}/rest/v1/horarios_profesionales?negocio_id=eq.${negocioId}&profesional_id=in.(${ids})`, { method: 'DELETE', headers }).catch(() => {});
+            await fetch(`${window.SUPABASE_URL}/rest/v1/servicios_profesionales?negocio_id=eq.${negocioId}&profesional_id=in.(${ids})`, { method: 'DELETE', headers }).catch(() => {});
+            await fetch(`${window.SUPABASE_URL}/rest/v1/profesionales?negocio_id=eq.${negocioId}&id=in.(${ids})`, { method: 'DELETE', headers }).catch(() => {});
+        }
+
+        if (idsServiciosDemo.length) {
+            const ids = idsServiciosDemo.join(',');
+            await fetch(`${window.SUPABASE_URL}/rest/v1/servicios_profesionales?negocio_id=eq.${negocioId}&servicio_id=in.(${ids})`, { method: 'DELETE', headers }).catch(() => {});
+            await fetch(`${window.SUPABASE_URL}/rest/v1/servicios?negocio_id=eq.${negocioId}&id=in.(${ids})`, { method: 'DELETE', headers }).catch(() => {});
+        }
+    };
+
     const handleGuardar = async () => {
         setGuardando(true);
         setError('');
@@ -336,40 +487,69 @@ function SetupWizard() {
             // equivocado. En el flujo normal ya coinciden; esto lo garantiza.
             if (negocioId) window.NEGOCIO_ID_POR_DEFECTO = negocioId;
 
-            // 1. Profesional (quien atiende)
-            setProgresoGuardado(t('Creando profesional...'));
-            const prof = await window.salonProfesionales.crear({
-                nombre: config.profesional_nombre.trim(),
-                especialidad: config.profesional_especialidad.trim() || t('General'),
-                nivel: 1
-            });
-            if (!prof || !prof.id) throw new Error(t('No se pudo crear el profesional. Intenta de nuevo.'));
+            setProgresoGuardado(t('Limpiando datos de prueba...'));
+            await limpiarDatosDemo();
+
+            // 1. Profesionales
+            setProgresoGuardado(t('Creando profesionales...'));
+            const profesionalesCreados = [];
+            for (const p of profesionalesValidos()) {
+                const telefono = window.normalizarTelefonoLocal
+                    ? window.normalizarTelefonoLocal(p.telefono, config.codigo_pais)
+                    : String(p.telefono || '').replace(/\D/g, '');
+                const creado = await window.salonProfesionales.crear({
+                    nombre: p.nombre.trim(),
+                    especialidad: p.especialidad.trim() || t('General'),
+                    telefono,
+                    password: p.password,
+                    nivel: parseInt(p.nivel, 10) || 1,
+                    color: p.color || 'bg-amber-600',
+                    avatar: p.avatar || '\uD83D\uDC64'
+                });
+                if (creado && creado.id) profesionalesCreados.push(creado);
+            }
+            if (profesionalesCreados.length === 0) throw new Error(t('No se pudo crear el profesional. Intenta de nuevo.'));
 
             // 2. Servicios
             setProgresoGuardado(t('Creando servicios...'));
             const idsServicios = [];
             for (const s of serviciosValidos()) {
-                const precio = precioNumerico(s.precio);
+                const precioDesde = precioNumerico(s.precio_desde);
+                const precioHasta = String(s.precio_hasta || '').trim() ? precioNumerico(s.precio_hasta) : null;
+                const valorAnticipo = String(s.valor_anticipo || '').trim() ? precioNumerico(s.valor_anticipo) : null;
+                const horarios = String(s.horarios_permitidos || '').trim()
+                    ? String(s.horarios_permitidos).split(',').map(h => h.trim()).filter(h => h.match(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/))
+                    : [];
                 const creado = await window.salonServicios.crear({
                     nombre: s.nombre.trim(),
                     duracion: parseInt(s.duracion) || 60,
-                    precio,
-                    precio_desde: precio,
-                    precio_moneda: monedaSugerida,
-                    categoria: null
+                    precio: precioDesde,
+                    precio_desde: precioDesde,
+                    precio_hasta: precioHasta,
+                    precio_moneda: s.precio_moneda || monedaSugerida,
+                    categoria: s.categoria || null,
+                    descripcion: String(s.descripcion || '').trim(),
+                    requiere_anticipo: s.requiere_anticipo === true,
+                    tipo_anticipo: s.tipo_anticipo === 'porcentaje' ? 'porcentaje' : 'fijo',
+                    valor_anticipo: s.requiere_anticipo ? valorAnticipo : null,
+                    horarios_permitidos: horarios
                 });
                 if (creado && creado.id) idsServicios.push(creado.id);
             }
 
-            // 3. Asignar cada servicio al profesional
+            // 3. Asignar cada servicio a cada profesional creado
             setProgresoGuardado(t('Vinculando servicios...'));
             for (const sid of idsServicios) {
-                await window.asignarProfesionalAServicio(sid, prof.id);
+                for (const prof of profesionalesCreados) {
+                    await window.asignarProfesionalAServicio(sid, prof.id);
+                }
             }
 
-            // 4. Horarios del profesional
+            // 4. Horarios de cada profesional
             setProgresoGuardado(t('Guardando horarios...'));
-            await guardarHorariosProfesional(prof.id);
+            for (const prof of profesionalesCreados) {
+                await guardarHorariosProfesional(prof.id);
+            }
 
             // 5. Logo (opcional)
             let logo_url = null;
@@ -383,6 +563,7 @@ function SetupWizard() {
             const datosNegocio = {
                 nombre: config.nombre,
                 telefono: config.telefono_whatsapp,
+                codigo_pais: config.codigo_pais,
                 email: config.email || null,
                 direccion: config.direccion || null,
                 color_primario: config.color_primario,
@@ -511,39 +692,27 @@ function SetupWizard() {
                         <h2 className="text-xl font-bold mb-4">🏠 {t('Datos del negocio')}</h2>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">{t('Nombre del negocio *')}</label>
-                            <input
-                                type="text"
-                                value={config.nombre}
-                                onChange={(e) => setConfig({ ...config, nombre: e.target.value })}
-                                className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-                                placeholder={t('Ej: BennetSalón')}
-                                autoFocus
-                            />
+                            <input type="text" value={config.nombre} onChange={(e) => setConfig({ ...config, nombre: e.target.value })} className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-amber-500 focus:border-amber-500" placeholder={t('Ej: BennetSalon')} autoFocus />
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">WhatsApp *</label>
-                            <div className="flex">
-                                <span className="inline-flex items-center px-3 rounded-l-lg border border-r-0 border-gray-300 bg-gray-50 text-gray-500">+53</span>
+                            <div className="grid grid-cols-[minmax(130px,190px)_1fr] gap-2">
+                                <select value={config.codigo_pais} onChange={(e) => cambiarCodigoPais(e.target.value)} className="w-full border rounded-lg px-3 py-2 bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500">
+                                    {PAISES_TELEFONO.map(pais => <option key={pais.codigo} value={pais.codigo}>{pais.bandera || ''} {pais.nombre} +{pais.codigo}</option>)}
+                                </select>
                                 <input
                                     type="tel"
                                     value={config.telefono_whatsapp}
-                                    onChange={(e) => setConfig({ ...config, telefono_whatsapp: e.target.value.replace(/\D/g, '') })}
-                                    className="w-full px-4 py-2 rounded-r-lg border border-gray-300 focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-                                    placeholder="54438629"
-                                    maxLength="8"
+                                    onChange={(e) => setConfig({ ...config, telefono_whatsapp: window.normalizarTelefonoLocal ? window.normalizarTelefonoLocal(e.target.value, config.codigo_pais) : e.target.value.replace(/\D/g, '') })}
+                                    className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                                    placeholder={paisTelefono()?.ejemplo || '54438629'}
                                 />
                             </div>
-                            <p className="text-xs text-gray-400 mt-1">{t('8 dígitos después del +53')}</p>
+                            <p className="text-xs text-gray-400 mt-1">{t('Se usara como')} {window.formatearTelefono ? window.formatearTelefono(config.telefono_whatsapp, config.codigo_pais) : '+' + config.codigo_pais + ' ' + config.telefono_whatsapp}</p>
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                            <input
-                                type="email"
-                                value={config.email}
-                                onChange={(e) => setConfig({ ...config, email: e.target.value })}
-                                className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-                                placeholder="salon@gmail.com"
-                            />
+                            <input type="email" value={config.email} onChange={(e) => setConfig({ ...config, email: e.target.value })} className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-amber-500 focus:border-amber-500" placeholder="salon@gmail.com" />
                         </div>
                     </div>
                 )}
@@ -551,77 +720,88 @@ function SetupWizard() {
                 {/* Paso 2: Profesional */}
                 {step === 2 && (
                     <div className="bg-white rounded-xl shadow-sm p-6 space-y-4 animate-fade-in">
-                        <h2 className="text-xl font-bold mb-1">👩‍🎨 {t('¿Quién atiende?')}</h2>
-                        <p className="text-sm text-gray-500 mb-3">{t('Puede ser tu propio nombre. Después podrás agregar más profesionales.')}</p>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">{t('Nombre del profesional *')}</label>
-                            <input
-                                type="text"
-                                value={config.profesional_nombre}
-                                onChange={(e) => setConfig({ ...config, profesional_nombre: e.target.value })}
-                                className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-                                placeholder={t('Ej: Glenda')}
-                                autoFocus
-                            />
+                        <div className="flex items-start justify-between gap-4">
+                            <div>
+                                <h2 className="text-xl font-bold mb-1">👥 {t('Quien atiende')}</h2>
+                                <p className="text-sm text-gray-500 mb-3">{t('Agrega uno o varios profesionales con acceso al panel.')}</p>
+                            </div>
+                            <button type="button" onClick={agregarProfesional} className="px-3 py-2 bg-amber-600 text-white rounded-lg text-sm font-semibold hover:bg-amber-700">{t('Anadir profesional')}</button>
                         </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">{t('Especialidad')}</label>
-                            <input
-                                type="text"
-                                value={config.profesional_especialidad}
-                                onChange={(e) => setConfig({ ...config, profesional_especialidad: e.target.value })}
-                                className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-                                placeholder={t('Ej: Uñas, Pestañas, Cejas')}
-                            />
-                        </div>
+                        {config.profesionales.map((p, i) => (
+                            <div key={i} className="border rounded-xl p-4 space-y-3 bg-gray-50">
+                                <div className="flex items-center justify-between gap-3">
+                                    <h3 className="font-semibold text-gray-800">{t('Profesional')} {i + 1}</h3>
+                                    {config.profesionales.length > 1 && <button type="button" onClick={() => quitarProfesional(i)} className="text-sm text-red-600 hover:underline">{t('Quitar')}</button>}
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    <input type="text" value={p.nombre} onChange={(e) => actualizarProfesional(i, 'nombre', e.target.value)} className="w-full border rounded-lg px-3 py-2" placeholder={t('Nombre *')} />
+                                    <input type="text" value={p.especialidad} onChange={(e) => actualizarProfesional(i, 'especialidad', e.target.value)} className="w-full border rounded-lg px-3 py-2" placeholder={t('Especialidad')} />
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                    <select value={p.nivel} onChange={(e) => actualizarProfesional(i, 'nivel', parseInt(e.target.value, 10))} className="w-full border rounded-lg px-3 py-2 bg-white">
+                                        <option value="1">🔰 {t('Basico')}</option>
+                                        <option value="2">⭐ {t('Intermedio')}</option>
+                                        <option value="3">👑 {t('Avanzado')}</option>
+                                    </select>
+                                    <input type="tel" value={p.telefono} onChange={(e) => actualizarProfesional(i, 'telefono', window.normalizarTelefonoLocal ? window.normalizarTelefonoLocal(e.target.value, config.codigo_pais) : e.target.value.replace(/\D/g, ''))} className="w-full border rounded-lg px-3 py-2" placeholder={'WhatsApp +' + config.codigo_pais} />
+                                    <input type="password" value={p.password} onChange={(e) => actualizarProfesional(i, 'password', e.target.value)} className="w-full border rounded-lg px-3 py-2" placeholder={t('Contrasena de acceso *')} />
+                                </div>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <select value={p.avatar} onChange={(e) => actualizarProfesional(i, 'avatar', e.target.value)} className="w-full border rounded-lg px-3 py-2 bg-white">
+                                        {['👤','💇','💅','👑','⭐','🔰'].map(a => <option key={a} value={a}>{a}</option>)}
+                                    </select>
+                                    <select value={p.color} onChange={(e) => actualizarProfesional(i, 'color', e.target.value)} className="w-full border rounded-lg px-3 py-2 bg-white">
+                                        <option value="bg-amber-600">{t('Ambar')}</option>
+                                        <option value="bg-pink-500">{t('Rosa')}</option>
+                                        <option value="bg-purple-500">{t('Purpura')}</option>
+                                        <option value="bg-blue-500">{t('Azul')}</option>
+                                        <option value="bg-green-500">{t('Verde')}</option>
+                                    </select>
+                                </div>
+                            </div>
+                        ))}
                     </div>
                 )}
 
                 {/* Paso 3: Servicios */}
                 {step === 3 && (
                     <div className="bg-white rounded-xl shadow-sm p-6 space-y-4 animate-fade-in">
-                        <h2 className="text-xl font-bold mb-1">💅 {t('Tus servicios principales')}</h2>
-                        <p className="text-sm text-gray-500 mb-3">{t('Agrega al menos uno. Podrás sumar más desde el panel.')}</p>
+                        <div className="flex items-start justify-between gap-4">
+                            <div>
+                                <h2 className="text-xl font-bold mb-1">💅 {t('Servicios')}</h2>
+                                <p className="text-sm text-gray-500 mb-3">{t('Empieza con uno y agrega los que necesites con precio, duracion y reglas.')}</p>
+                            </div>
+                            <button type="button" onClick={agregarServicio} className="px-3 py-2 bg-pink-600 text-white rounded-lg text-sm font-semibold hover:bg-pink-700">{t('Anadir servicio')}</button>
+                        </div>
                         {config.servicios.map((s, i) => (
-                            <div key={i} className="border rounded-lg p-3 space-y-2 bg-gray-50">
-                                <div className="flex items-center gap-2">
-                                    <span className="text-xs font-bold text-amber-600 w-5">{i + 1}.</span>
-                                    <input
-                                        type="text"
-                                        value={s.nombre}
-                                        onChange={(e) => actualizarServicio(i, 'nombre', e.target.value)}
-                                        className="flex-1 border rounded-lg px-3 py-2 focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-                                        placeholder={i === 0 ? t('Ej: Manicura semipermanente') : t('Nombre del servicio')}
-                                    />
+                            <div key={i} className="border rounded-xl p-4 space-y-3 bg-gray-50">
+                                <div className="flex items-center justify-between gap-3">
+                                    <h3 className="font-semibold text-gray-800">{t('Servicio')} {i + 1}</h3>
+                                    {config.servicios.length > 1 && <button type="button" onClick={() => quitarServicio(i)} className="text-sm text-red-600 hover:underline">{t('Quitar')}</button>}
                                 </div>
-                                <div className="grid grid-cols-2 gap-2 pl-7">
-                                    <div>
-                                        <label className="block text-xs text-gray-500 mb-1">{t('Precio')} ({monedaSugerida})</label>
-                                        <input
-                                            type="text"
-                                            inputMode="decimal"
-                                            value={s.precio}
-                                            onChange={(e) => actualizarServicio(i, 'precio', e.target.value)}
-                                            className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-                                            placeholder="1500"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs text-gray-500 mb-1">{t('Duración')}</label>
-                                        <select
-                                            value={s.duracion}
-                                            onChange={(e) => actualizarServicio(i, 'duracion', e.target.value)}
-                                            className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 bg-white"
-                                        >
-                                            <option value="30">30 min</option>
-                                            <option value="45">45 min</option>
-                                            <option value="60">1 h</option>
-                                            <option value="90">1 h 30 min</option>
-                                            <option value="120">2 h</option>
-                                            <option value="180">3 h</option>
-                                        </select>
-                                    </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    <input type="text" value={s.nombre} onChange={(e) => actualizarServicio(i, 'nombre', e.target.value)} className="w-full border rounded-lg px-3 py-2" placeholder={t('Nombre del servicio *')} />
+                                    <input type="text" value={s.duracion} onChange={(e) => actualizarServicio(i, 'duracion', e.target.value.replace(/\D/g, ''))} className="w-full border rounded-lg px-3 py-2" placeholder={t('Duracion en minutos')} inputMode="numeric" />
                                 </div>
+                                <textarea value={s.descripcion} onChange={(e) => actualizarServicio(i, 'descripcion', e.target.value)} className="w-full border rounded-lg px-3 py-2" rows="3" placeholder={t('Descripcion')} />
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                    <select value={s.precio_moneda || monedaSugerida} onChange={(e) => actualizarServicio(i, 'precio_moneda', e.target.value)} className="w-full border rounded-lg px-3 py-2 bg-white">
+                                        <option value="CUP">CUP</option><option value="USD">USD</option><option value="EUR">EUR</option><option value="MXN">MXN</option><option value="COP">COP</option><option value="PEN">PEN</option><option value="CLP">CLP</option>
+                                    </select>
+                                    <input type="text" value={s.precio_desde} onChange={(e) => actualizarServicio(i, 'precio_desde', e.target.value.replace(/[^0-9.,]/g, ''))} className="w-full border rounded-lg px-3 py-2" placeholder={t('Precio desde *')} inputMode="decimal" />
+                                    <input type="text" value={s.precio_hasta} onChange={(e) => actualizarServicio(i, 'precio_hasta', e.target.value.replace(/[^0-9.,]/g, ''))} className="w-full border rounded-lg px-3 py-2" placeholder={t('Precio hasta opcional')} inputMode="decimal" />
+                                </div>
+                                <div className="rounded-lg border border-amber-100 bg-amber-50 p-3 space-y-3">
+                                    <label className="flex items-center justify-between gap-3 cursor-pointer"><span className="text-sm font-semibold text-amber-800">{t('Anticipo propio de este servicio')}</span><input type="checkbox" checked={s.requiere_anticipo} onChange={(e) => actualizarServicio(i, 'requiere_anticipo', e.target.checked)} className="w-5 h-5 text-amber-600" /></label>
+                                    {s.requiere_anticipo && (
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <select value={s.tipo_anticipo} onChange={(e) => actualizarServicio(i, 'tipo_anticipo', e.target.value)} className="w-full border border-amber-200 rounded-lg px-3 py-2 bg-white"><option value="fijo">{t('Monto fijo')}</option><option value="porcentaje">{t('Porcentaje')}</option></select>
+                                            <input value={s.valor_anticipo} onChange={(e) => actualizarServicio(i, 'valor_anticipo', e.target.value.replace(/[^0-9.,]/g, ''))} className="w-full border border-amber-200 rounded-lg px-3 py-2" placeholder={s.tipo_anticipo === 'porcentaje' ? t('Ej: 30') : t('Ej: 500')} inputMode="decimal" />
+                                        </div>
+                                    )}
+                                </div>
+                                <input value={s.horarios_permitidos} onChange={(e) => actualizarServicio(i, 'horarios_permitidos', e.target.value)} className="w-full border rounded-lg px-3 py-2" placeholder={t('Horarios permitidos: 09:00, 11:00')} />
+                                <p className="text-xs text-gray-400">{t('Dejalo vacio para usar todos los horarios del profesional.')}</p>
                             </div>
                         ))}
                     </div>
@@ -788,7 +968,7 @@ function SetupWizard() {
                                 <span className="text-gray-500">{t('Negocio:')}</span>
                                 <span className="font-medium">{config.nombre}</span>
                                 <span className="text-gray-500">{t('Profesional:')}</span>
-                                <span className="font-medium">{config.profesional_nombre}</span>
+                                <span className="font-medium">{profesionalesValidos().map(p => p.nombre.trim()).join(', ') || '—'}</span>
                                 <span className="text-gray-500">{t('Servicios:')}</span>
                                 <span className="font-medium">{serviciosValidos().map(s => s.nombre.trim()).join(', ') || '—'}</span>
                                 <span className="text-gray-500">{t('Horario:')}</span>
