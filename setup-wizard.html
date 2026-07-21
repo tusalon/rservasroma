@@ -83,6 +83,43 @@
                 return;
             }
 
+            function esConfiguradoTrue(valor) {
+                return valor === true || String(valor).toLowerCase().trim() === 'true';
+            }
+
+            async function negocioTieneBaseMinima(negocioId) {
+                if (!negocioId || !window.SUPABASE_URL || !window.SUPABASE_ANON_KEY) return true;
+
+                var headers = {
+                    apikey: window.SUPABASE_ANON_KEY,
+                    Authorization: 'Bearer ' + window.SUPABASE_ANON_KEY
+                };
+
+                var urls = [
+                    window.SUPABASE_URL + '/rest/v1/profesionales?negocio_id=eq.' + encodeURIComponent(negocioId) + '&select=id&limit=1',
+                    window.SUPABASE_URL + '/rest/v1/servicios?negocio_id=eq.' + encodeURIComponent(negocioId) + '&select=id&limit=1',
+                    window.SUPABASE_URL + '/rest/v1/horarios_profesionales?negocio_id=eq.' + encodeURIComponent(negocioId) + '&select=id&limit=1'
+                ];
+
+                try {
+                    var respuestas = await Promise.all(urls.map(function(url) {
+                        return fetch(url, { headers: headers });
+                    }));
+
+                    if (respuestas.some(function(res) { return !res.ok; })) return true;
+
+                    var datos = await Promise.all(respuestas.map(function(res) {
+                        return res.json();
+                    }));
+
+                    return datos.every(function(filas) {
+                        return Array.isArray(filas) && filas.length > 0;
+                    });
+                } catch (error) {
+                    return true;
+                }
+            }
+
             if (window.SUPABASE_URL && window.SUPABASE_ANON_KEY) {
                 fetch(window.SUPABASE_URL + '/rest/v1/negocios?id=eq.' + encodeURIComponent(negocioId) + '&select=configurado,slug', {
                     headers: {
@@ -92,9 +129,11 @@
                 }).then(function(res) {
                     if (!res.ok) return null;
                     return res.json();
-                }).then(function(rows) {
+                }).then(async function(rows) {
                     var negocio = rows && rows[0];
-                    if (!negocio || negocio.configurado !== true) return;
+                    if (!negocio) return;
+                    var puedeAbrirPanel = esConfiguradoTrue(negocio.configurado) && await negocioTieneBaseMinima(negocioId);
+                    if (!puedeAbrirPanel) return;
                     var slugPanel = slugURL || slugSesion || negocio.slug || '';
                     window.location.href = 'admin.html' + (slugPanel ? '?s=' + encodeURIComponent(slugPanel) : '');
                 }).catch(function() {});
