@@ -151,6 +151,27 @@
                 localStorage.removeItem('profesionalLoginTime');
                 const slugLogin = slugURL || slugSesion;
                 window.location.href = 'admin-login.html' + (slugLogin ? '?s=' + encodeURIComponent(slugLogin) : '');
+                return;
+            }
+
+            // Si una cuenta nueva entra directo al panel (favorito/PWA/enlace)
+            // sin pasar por admin-login, forzar el asistente inicial. El wizard
+            // marca configurado=true al terminar.
+            if (isValidAdminSession && window.SUPABASE_URL && window.SUPABASE_ANON_KEY) {
+                fetch(window.SUPABASE_URL + '/rest/v1/negocios?id=eq.' + encodeURIComponent(negocioId) + '&select=configurado,slug', {
+                    headers: {
+                        apikey: window.SUPABASE_ANON_KEY,
+                        Authorization: 'Bearer ' + window.SUPABASE_ANON_KEY
+                    }
+                }).then(function(res) {
+                    if (!res.ok) return null;
+                    return res.json();
+                }).then(function(rows) {
+                    var negocio = rows && rows[0];
+                    if (!negocio || negocio.configurado !== false) return;
+                    var slugSetup = slugURL || slugSesion || negocio.slug || '';
+                    window.location.href = 'setup-wizard.html' + (slugSetup ? '?s=' + encodeURIComponent(slugSetup) : '');
+                }).catch(function() {});
             }
         })();
     </script>

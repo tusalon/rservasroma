@@ -40,7 +40,7 @@
     <script type="text/babel" src="components/admin/SetupWizard.js?v=20260718-horarios-slots"></script>
 
     <script>
-        // Verificar que hay negocioId en localStorage
+        // Verificar sesión admin y negocioId en localStorage
         (function() {
             const negocioId = localStorage.getItem('negocioId');
 
@@ -64,6 +64,40 @@
             if (!negocioId) {
                 console.log('ðŸš« No hay negocioId, redirigiendo a login');
                 window.location.href = 'admin-login.html' + (slugURL ? '?s=' + encodeURIComponent(slugURL) : '');
+                return;
+            }
+
+            const ahora = Date.now();
+            const maxSesion = 8 * 60 * 60 * 1000;
+            const adminLoginTime = localStorage.getItem('adminLoginTime');
+            const isValidAdminSession = localStorage.getItem('adminAuth') === 'true' &&
+                adminLoginTime &&
+                (ahora - parseInt(adminLoginTime)) < maxSesion;
+
+            if (!isValidAdminSession) {
+                localStorage.removeItem('adminAuth');
+                localStorage.removeItem('adminLoginTime');
+                localStorage.removeItem('profesionalAuth');
+                localStorage.removeItem('profesionalLoginTime');
+                window.location.href = 'admin-login.html' + (slugURL ? '?s=' + encodeURIComponent(slugURL) : '');
+                return;
+            }
+
+            if (window.SUPABASE_URL && window.SUPABASE_ANON_KEY) {
+                fetch(window.SUPABASE_URL + '/rest/v1/negocios?id=eq.' + encodeURIComponent(negocioId) + '&select=configurado,slug', {
+                    headers: {
+                        apikey: window.SUPABASE_ANON_KEY,
+                        Authorization: 'Bearer ' + window.SUPABASE_ANON_KEY
+                    }
+                }).then(function(res) {
+                    if (!res.ok) return null;
+                    return res.json();
+                }).then(function(rows) {
+                    var negocio = rows && rows[0];
+                    if (!negocio || negocio.configurado !== true) return;
+                    var slugPanel = slugURL || slugSesion || negocio.slug || '';
+                    window.location.href = 'admin.html' + (slugPanel ? '?s=' + encodeURIComponent(slugPanel) : '');
+                }).catch(function() {});
             }
         })();
     </script>
