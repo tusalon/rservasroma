@@ -208,6 +208,7 @@ async function guardarSuscripcionPush(subscription, role, clienteWhatsapp, profe
                 console.log('[Push] suscripcion guardada OK sin profesional_id');
                 localStorage.setItem('rservasPushActivo', 'true');
                 localStorage.setItem('rservasPushRole', role);
+                window.dispatchEvent(new CustomEvent('rservas-push-status-changed'));
                 return true;
             }
         }
@@ -223,6 +224,7 @@ async function guardarSuscripcionPush(subscription, role, clienteWhatsapp, profe
     } else {
         localStorage.removeItem('rservasPushProfesionalId');
     }
+    window.dispatchEvent(new CustomEvent('rservas-push-status-changed'));
     return true;
 }
 
@@ -404,6 +406,142 @@ function mostrarToastPush(mensaje, tipo = 'ok') {
     setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 400); }, 3500);
 }
 
+function instalarIndicadorPushAdmin() {
+    if (!localStorage.getItem('adminAuth') && !localStorage.getItem('profesionalAuth')) return;
+
+    let button = document.getElementById('rservas-push-indicator');
+    if (!button) {
+        if (!document.getElementById('rservas-push-indicator-style')) {
+            const style = document.createElement('style');
+            style.id = 'rservas-push-indicator-style';
+            style.textContent = `
+                @keyframes rservasBellRing {
+                    0%, 100% { transform: rotate(0deg); }
+                    15% { transform: rotate(14deg); }
+                    30% { transform: rotate(-12deg); }
+                    45% { transform: rotate(9deg); }
+                    60% { transform: rotate(-7deg); }
+                    75% { transform: rotate(4deg); }
+                }
+                #rservas-push-indicator {
+                    position: fixed;
+                    top: calc(env(safe-area-inset-top, 0px) + 14px);
+                    right: 14px;
+                    width: 46px;
+                    height: 46px;
+                    border: 0;
+                    border-radius: 999px;
+                    background: #fff;
+                    color: #111827;
+                    box-shadow: 0 10px 30px rgba(15,23,42,.22);
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    z-index: 9997;
+                    cursor: pointer;
+                    transition: background .2s ease, color .2s ease, transform .2s ease, box-shadow .2s ease;
+                    -webkit-tap-highlight-color: transparent;
+                }
+                #rservas-push-indicator:disabled {
+                    cursor: wait;
+                    opacity: .75;
+                }
+                #rservas-push-indicator i {
+                    font-size: 22px;
+                    line-height: 1;
+                    transform-origin: 50% 0;
+                }
+                #rservas-push-indicator.is-active {
+                    background: #16a34a;
+                    color: #fff;
+                    box-shadow: 0 10px 30px rgba(22,163,74,.34);
+                }
+                #rservas-push-indicator.is-active i {
+                    animation: rservasBellRing 1.35s ease-in-out infinite;
+                }
+                #rservas-push-indicator.is-off {
+                    background: #fff;
+                    color: #6b7280;
+                }
+                #rservas-push-indicator.is-off::after {
+                    content: "";
+                    position: absolute;
+                    width: 28px;
+                    height: 3px;
+                    border-radius: 999px;
+                    background: #dc2626;
+                    transform: rotate(-42deg);
+                    box-shadow: 0 0 0 2px #fff;
+                }
+                #rservas-push-indicator:hover {
+                    transform: translateY(-1px);
+                }
+            `;
+            document.head.appendChild(style);
+        }
+
+        button = document.createElement('button');
+        button.id = 'rservas-push-indicator';
+        button.type = 'button';
+        button.innerHTML = '<i class="icon-bell"></i>';
+        document.body.appendChild(button);
+
+        button.addEventListener('click', async () => {
+            const ctx = getPushContext();
+            const activo = ctx.isNative ? ctx.suscritoNativo : (ctx.suscritoWeb && ctx.permiso === 'granted');
+            if (activo) {
+                mostrarToastPush('Notificaciones activas');
+                return;
+            }
+
+            button.disabled = true;
+            try {
+                const result = ctx.isNative && typeof window.solicitarNativePushRservasRoma === 'function'
+                    ? { ok: await window.solicitarNativePushRservasRoma({ defaultRole: getRolPush() }) }
+                    : await (async () => {
+                        const permission = await pedirPermisoNotificacionesPush();
+                        return window.solicitarPushRservasRoma({ defaultRole: getRolPush(), permission });
+                    })();
+
+                if (result?.ok) {
+                    localStorage.setItem('rservasPushCardDismissed', 'true');
+                    const card = document.getElementById('rservas-push-card');
+                    if (card) card.remove();
+                    mostrarToastPush('✅ Notificaciones activadas');
+                } else {
+                    mostrarToastPush('No se pudo activar. Intenta de nuevo.', 'error');
+                }
+            } catch (error) {
+                console.warn('[Push] No se pudo activar desde campana:', error.message);
+                mostrarToastPush(error.message || 'No se pudo activar.', 'error');
+            } finally {
+                button.disabled = false;
+                actualizarIndicadorPushAdmin();
+            }
+        });
+    }
+
+    actualizarIndicadorPushAdmin();
+}
+
+function actualizarIndicadorPushAdmin() {
+    const button = document.getElementById('rservas-push-indicator');
+    if (!button) return;
+
+    const ctx = getPushContext();
+    const activo = ctx.isNative ? ctx.suscritoNativo : (ctx.suscritoWeb && ctx.permiso === 'granted');
+    button.classList.toggle('is-active', activo);
+    button.classList.toggle('is-off', !activo);
+    button.title = activo ? 'Notificaciones activas' : 'Activar notificaciones';
+    button.setAttribute('aria-label', button.title);
+}
+
+window.actualizarIndicadorPushAdmin = actualizarIndicadorPushAdmin;
+window.addEventListener('rservas-push-status-changed', actualizarIndicadorPushAdmin);
+window.addEventListener('storage', (event) => {
+    if (/^rservas(Native)?Push/.test(event.key || '')) actualizarIndicadorPushAdmin();
+});
+
 function instalarCardPushAdmin() {
     if (document.getElementById('rservas-push-card')) return;
     if (!pushKeyConfigurada()) return;
@@ -580,6 +718,7 @@ function _mostrarCardIOSInstrucciones() {
 
 if (window.RSERVAS_PUSH_UI_VISIBLE === true) {
     window.addEventListener('load', () => {
+        setTimeout(instalarIndicadorPushAdmin, 800);
         setTimeout(refrescarSuscripcionPushActual, 1200);
         setTimeout(instalarCardPushAdmin, 2000);
     });

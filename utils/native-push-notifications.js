@@ -49,6 +49,7 @@ function marcarNativePushActivo(token, role, profesionalId) {
     } else {
         localStorage.removeItem('rservasNativePushProfesionalId');
     }
+    window.dispatchEvent(new CustomEvent('rservas-push-status-changed'));
 }
 
 function esDuplicadoEndpointPush(errorText) {
