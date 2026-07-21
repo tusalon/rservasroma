@@ -168,7 +168,7 @@
                     return res.json();
                 }).then(function(rows) {
                     var negocio = rows && rows[0];
-                    if (!negocio || negocio.configurado !== false) return;
+                    if (!negocio || negocio.configurado === true) return;
                     var slugSetup = slugURL || slugSesion || negocio.slug || '';
                     window.location.href = 'setup-wizard.html' + (slugSetup ? '?s=' + encodeURIComponent(slugSetup) : '');
                 }).catch(function() {});
