@@ -40,7 +40,7 @@ function getProfesionalIdNativePush() {
     }
 }
 
-function marcarNativePushActivo(token, role, profesionalId) {
+function marcarNativePushActivo(token, role, profesionalId, clienteWhatsapp, negocioId) {
     localStorage.setItem('rservasNativePushActivo', 'true');
     localStorage.setItem('rservasNativePushRole', role);
     localStorage.setItem('rservasNativePushToken', token);
@@ -49,6 +49,9 @@ function marcarNativePushActivo(token, role, profesionalId) {
     } else {
         localStorage.removeItem('rservasNativePushProfesionalId');
     }
+    if (role === 'cliente' && clienteWhatsapp && negocioId && typeof window.marcarClientePushActivoLocal === 'function') {
+        window.marcarClientePushActivoLocal(negocioId, clienteWhatsapp);
+    }
     window.dispatchEvent(new CustomEvent('rservas-push-status-changed'));
 }
 
@@ -56,7 +59,7 @@ function esDuplicadoEndpointPush(errorText) {
     return /23505|duplicate key|push_suscripciones_endpoint_key/i.test(errorText || '');
 }
 
-async function guardarTokenNativePush(token, role, profesionalId) {
+async function guardarTokenNativePush(token, role, profesionalId, clienteWhatsapp) {
     const negocioId = getNegocioIdNativePush();
     if (!negocioId) throw new Error('No hay negocio_id para guardar el token nativo.');
 
@@ -74,6 +77,7 @@ async function guardarTokenNativePush(token, role, profesionalId) {
         activo: true,
         updated_at: new Date().toISOString()
     };
+    if (role === 'cliente' && clienteWhatsapp) payload.cliente_whatsapp = clienteWhatsapp;
     if (role === 'profesional' && profesionalId) payload.profesional_id = profesionalId;
     if (role === 'admin') payload.profesional_id = null;
 
@@ -130,7 +134,7 @@ async function guardarTokenNativePush(token, role, profesionalId) {
                 console.warn('No se pudo actualizar el token duplicado; se marca activo porque el endpoint ya existe.', await response.text());
             }
 
-            marcarNativePushActivo(token, role, profesionalId);
+            marcarNativePushActivo(token, role, profesionalId, clienteWhatsapp, negocioId);
             return true;
         }
 
@@ -148,14 +152,14 @@ async function guardarTokenNativePush(token, role, profesionalId) {
                 body: JSON.stringify(payload)
             });
             if (response.ok) {
-                marcarNativePushActivo(token, role, profesionalId);
+                marcarNativePushActivo(token, role, profesionalId, clienteWhatsapp, negocioId);
                 return true;
             }
         }
         throw new Error(`No se pudo guardar el token nativo: ${errorText}`);
     }
 
-    marcarNativePushActivo(token, role, profesionalId);
+    marcarNativePushActivo(token, role, profesionalId, clienteWhatsapp, negocioId);
     return true;
 }
 
@@ -172,6 +176,7 @@ function mostrarToastNativo(mensaje, tipo = 'ok') {
 window.solicitarNativePushRservasRoma = async function(options = {}) {
     const role = options.role || getRolNativePush(options.defaultRole || 'admin');
     const profesionalId = options.profesionalId || options.profesional_id || getProfesionalIdNativePush();
+    const clienteWhatsapp = options.clienteWhatsapp || options.cliente_whatsapp || window.getClienteWhatsappPushActual?.() || null;
     const PushNotifications = getNativePushPlugin();
 
     if (!isRservasNativeApp()) return false;
@@ -197,7 +202,7 @@ window.solicitarNativePushRservasRoma = async function(options = {}) {
 
             await PushNotifications.addListener('registration', async (token) => {
                 try {
-                    await guardarTokenNativePush(token.value, role, profesionalId);
+                    await guardarTokenNativePush(token.value, role, profesionalId, clienteWhatsapp);
                     mostrarToastNativo('✅ Notificaciones activadas');
                     finish(true);
                 } catch (error) {

@@ -15,16 +15,19 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol }) {
 
     React.useEffect(() => {
         if (!pushUIVisible) return;
+        const isNative = Boolean(window.Capacitor?.isNativePlatform?.());
+        if (isNative) {
+            const activo = typeof window.clientePushActivo === 'function'
+                ? window.clientePushActivo()
+                : false;
+            setPushEstado(activo ? 'granted' : 'default');
+            return;
+        }
         if (!('Notification' in window)) { setPushEstado('unsupported'); return; }
         const permiso = Notification.permission;
         setPushEstado(permiso);
         // Si tiene permiso y whatsapp disponible, actualizar suscripción para vincular el numero
         if (permiso === 'granted' && cliente?.whatsapp) {
-            // APK nativa: usa push nativo de Capacitor
-            if (typeof window.solicitarNativePushRservasRoma === 'function' && window.Capacitor?.isNativePlatform?.()) {
-                window.solicitarNativePushRservasRoma({ defaultRole: 'cliente' }).catch(() => {});
-            }
-            // Web/PWA: usa web push VAPID
             if (typeof window.solicitarPushRservasRoma === 'function') {
                 window.solicitarPushRservasRoma({ permission: 'granted', defaultRole: 'cliente', clienteWhatsapp: cliente.whatsapp })
                     .catch(() => {});
@@ -32,7 +35,29 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol }) {
         }
     }, []);
 
-    const activarNotificaciones = () => {
+    const activarNotificaciones = async () => {
+        const isNative = Boolean(window.Capacitor?.isNativePlatform?.());
+        if (isNative) {
+            setActivandoPush(true);
+            setPushMensaje('');
+            try {
+                const ok = typeof window.solicitarNativePushRservasRoma === 'function' &&
+                    await window.solicitarNativePushRservasRoma({
+                        role: 'cliente',
+                        clienteWhatsapp: cliente?.whatsapp
+                    });
+                setPushEstado(ok ? 'granted' : 'default');
+                if (!ok) setPushMensaje(t('No se pudo activar. Instala la version mas reciente de la app.'));
+            } catch (error) {
+                console.warn('Push nativo cliente:', error);
+                setPushEstado('default');
+                setPushMensaje(t('No se pudo activar: {msg}', { msg: String(error.message || error).substring(0, 60) }));
+            } finally {
+                setActivandoPush(false);
+            }
+            return;
+        }
+
         if (!('Notification' in window)) { setPushEstado('unsupported'); return; }
         setActivandoPush(true);
         setPushMensaje('');

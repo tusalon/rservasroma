@@ -449,22 +449,34 @@ function marcarClientePushActivoLocal(negocioId, whatsapp) {
     localStorage.setItem('rservasPushClienteWhatsapp', String(whatsapp));
 }
 
+window.getClienteWhatsappPushActual = getClienteWhatsappPushActual;
+window.marcarClientePushActivoLocal = marcarClientePushActivoLocal;
+
 function clientePushActivo() {
     const negocioId = String(getNegocioIdPush() || '');
     const whatsappActual = normalizarWhatsappPush(getClienteWhatsappPushActual());
     const registro = negocioId ? getClientesPushPorNegocio()[negocioId] : null;
     const whatsappSuscrito = normalizarWhatsappPush(registro?.whatsapp);
+    const isNative = Boolean(window.Capacitor?.isNativePlatform?.());
+    const canalActivo = isNative
+        ? localStorage.getItem('rservasNativePushActivo') === 'true' && localStorage.getItem('rservasNativePushRole') === 'cliente'
+        : localStorage.getItem('rservasPushActivo') === 'true' && localStorage.getItem('rservasPushRole') === 'cliente';
+    const permisoActivo = isNative || !('Notification' in window) || Notification.permission === 'granted';
     return (
         Boolean(negocioId && registro) &&
+        canalActivo &&
         (!whatsappActual || whatsappActual === whatsappSuscrito) &&
-        (!('Notification' in window) || Notification.permission === 'granted')
+        permisoActivo
     );
 }
+
+window.clientePushActivo = clientePushActivo;
 
 function instalarIndicadorPushCliente() {
     if (localStorage.getItem('adminAuth') || localStorage.getItem('profesionalAuth')) return;
     if (!pushKeyConfigurada()) return;
-    if (!('Notification' in window) || !('PushManager' in window) || !('serviceWorker' in navigator)) return;
+    const isNative = Boolean(window.Capacitor?.isNativePlatform?.());
+    if (!isNative && (!('Notification' in window) || !('PushManager' in window) || !('serviceWorker' in navigator))) return;
 
     let button = document.getElementById('rservas-client-push-indicator');
     if (!button) {
@@ -547,17 +559,25 @@ function instalarIndicadorPushCliente() {
 
             button.disabled = true;
             try {
-                const permission = await pedirPermisoNotificacionesPush();
                 const whatsapp = getClienteWhatsappPushActual();
-                const result = await window.solicitarPushRservasRoma({
-                    defaultRole: 'cliente',
-                    permission,
-                    clienteWhatsapp: whatsapp || undefined
-                });
+                const native = Boolean(window.Capacitor?.isNativePlatform?.());
+                const result = native && typeof window.solicitarNativePushRservasRoma === 'function'
+                    ? { ok: await window.solicitarNativePushRservasRoma({
+                        role: 'cliente',
+                        clienteWhatsapp: whatsapp || undefined
+                    }) }
+                    : await (async () => {
+                        const permission = await pedirPermisoNotificacionesPush();
+                        return window.solicitarPushRservasRoma({
+                            defaultRole: 'cliente',
+                            permission,
+                            clienteWhatsapp: whatsapp || undefined
+                        });
+                    })();
 
                 if (result?.ok) {
                     mostrarToastPush('✅ Notificaciones activadas');
-                } else {
+                } else if (!native) {
                     mostrarToastPush('No se pudo activar. Intenta de nuevo.', 'error');
                 }
             } catch (error) {
