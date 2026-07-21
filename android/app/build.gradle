@@ -3,12 +3,20 @@ apply plugin: 'com.android.application'
 android {
     namespace = "com.rservasroma.admin"
     compileSdk = rootProject.ext.compileSdkVersion
+
+    def buildNumber = System.getenv("GITHUB_RUN_NUMBER") ?: System.getenv("BUILD_NUMBER") ?: "1"
+    def stableKeystorePath = System.getenv("RSERVAS_KEYSTORE_PATH")
+    def stableKeystorePassword = System.getenv("RSERVAS_KEYSTORE_PASSWORD")
+    def stableKeyAlias = System.getenv("RSERVAS_KEY_ALIAS")
+    def stableKeyPassword = System.getenv("RSERVAS_KEY_PASSWORD")
+    def hasStableSigning = stableKeystorePath && stableKeystorePassword && stableKeyAlias && stableKeyPassword
+
     defaultConfig {
         applicationId "com.rservasroma.admin"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode buildNumber.toInteger()
+        versionName "1.0.${buildNumber}"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -28,20 +36,27 @@ android {
     // no la trae (compilacion local), Android usa su clave de depuracion de
     // siempre y todo sigue funcionando igual que antes.
     signingConfigs {
-        debug {
-            def rutaKeystore = System.getenv("RSERVAS_KEYSTORE_PATH")
-            if (rutaKeystore) {
-                storeFile file(rutaKeystore)
-                storePassword System.getenv("RSERVAS_KEYSTORE_PASSWORD")
-                keyAlias System.getenv("RSERVAS_KEY_ALIAS")
-                keyPassword System.getenv("RSERVAS_KEY_PASSWORD")
+        stable {
+            if (hasStableSigning) {
+                storeFile file(stableKeystorePath)
+                storePassword stableKeystorePassword
+                keyAlias stableKeyAlias
+                keyPassword stableKeyPassword
             }
         }
     }
 
     buildTypes {
+        debug {
+            if (hasStableSigning) {
+                signingConfig signingConfigs.stable
+            }
+        }
         release {
             minifyEnabled false
+            if (hasStableSigning) {
+                signingConfig signingConfigs.stable
+            }
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
