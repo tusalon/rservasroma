@@ -165,7 +165,7 @@ Deno.serve(async (req) => {
   const dryRun = Boolean(body?.dry_run);
   const headers = { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` };
 
-  let reservasUrl = `${supabaseUrl}/rest/v1/reservas?fecha=eq.${fecha}&estado=neq.Cancelado&select=id,negocio_id,cliente_nombre,servicio,hora_inicio,profesional_id,profesional_nombre,trabajador_nombre,barbero_nombre`;
+  let reservasUrl = `${supabaseUrl}/rest/v1/reservas?fecha=eq.${fecha}&estado=neq.Cancelado&select=id,negocio_id,cliente_nombre,servicio,hora_inicio,profesional_id,profesional_nombre`;
   if (negocioFiltro) reservasUrl += `&negocio_id=eq.${negocioFiltro}`;
 
   const reservasResponse = await fetch(reservasUrl, { headers });
