@@ -175,7 +175,8 @@ function ClientAuthScreen({ onAccessGranted, onGoBack }) {
             }
 
             guardarNegocioEnSesion();
-            localStorage.removeItem('clienteAuth');
+            if (typeof window.borrarClienteAuthActual === 'function') window.borrarClienteAuthActual();
+            else localStorage.removeItem('clienteAuth');
             localStorage.removeItem('adminAuth');
             localStorage.removeItem('adminLoginTime');
             // adminSlug: el guard de admin.html compara este slug con el ?s=

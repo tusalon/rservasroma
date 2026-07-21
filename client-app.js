@@ -36,6 +36,60 @@ setTimeout(function() {
     try { sessionStorage.removeItem('recargasPorError'); } catch (err) {}
 }, 15000);
 
+function getClienteAuthScope() {
+    const slugUrl = new URLSearchParams(window.location.search).get('s');
+    const slug = window._rservasSlugActual || slugUrl || localStorage.getItem('negocioSlug') || '';
+    if (slug) return `slug:${String(slug).toLowerCase().trim()}`;
+    const negocioId = window.getNegocioId?.() || window.NEGOCIO_ID_POR_DEFECTO || '';
+    return negocioId ? `id:${negocioId}` : '';
+}
+
+function getClienteAuthStorageKey() {
+    const scope = getClienteAuthScope();
+    return scope ? `clienteAuth:${scope}` : 'clienteAuth';
+}
+
+window.getClienteAuthActual = function() {
+    const scope = getClienteAuthScope();
+    const scopedKey = getClienteAuthStorageKey();
+    const scoped = localStorage.getItem(scopedKey);
+    if (scoped) return JSON.parse(scoped);
+
+    const legacy = localStorage.getItem('clienteAuth');
+    if (!legacy) return null;
+    const cliente = JSON.parse(legacy);
+    if (cliente?.negocio_scope && cliente.negocio_scope !== scope) return null;
+
+    if (scope) {
+        const migrado = { ...cliente, negocio_scope: scope };
+        localStorage.setItem(scopedKey, JSON.stringify(migrado));
+        localStorage.setItem('clienteAuth', JSON.stringify(migrado));
+        return migrado;
+    }
+    return cliente;
+};
+
+window.guardarClienteAuthActual = function(cliente) {
+    const scope = getClienteAuthScope();
+    const scoped = { ...cliente, negocio_scope: scope || undefined };
+    localStorage.setItem(getClienteAuthStorageKey(), JSON.stringify(scoped));
+    localStorage.setItem('clienteAuth', JSON.stringify(scoped));
+    return scoped;
+};
+
+window.borrarClienteAuthActual = function() {
+    const scope = getClienteAuthScope();
+    localStorage.removeItem(getClienteAuthStorageKey());
+    try {
+        const legacy = JSON.parse(localStorage.getItem('clienteAuth') || 'null');
+        if (!legacy?.negocio_scope || legacy.negocio_scope === scope) {
+            localStorage.removeItem('clienteAuth');
+        }
+    } catch (error) {
+        localStorage.removeItem('clienteAuth');
+    }
+};
+
 function ClientApp() {
     const [step, setStep] = React.useState('auth');
     const [cliente, setCliente] = React.useState(null);
@@ -57,7 +111,7 @@ function ClientApp() {
         const esEntradaClienteMaster = Boolean(slugCliente && slugCliente.trim());
         const adminAuth = localStorage.getItem('adminAuth') === 'true';
         const profesionalAuth = localStorage.getItem('profesionalAuth');
-        const clienteAuth = localStorage.getItem('clienteAuth');
+        const clienteAuth = window.getClienteAuthActual?.();
         
         if (!esEntradaClienteMaster && adminAuth) {
             console.log('👑 Usuario admin detectado, redirigiendo a admin.html');
@@ -75,7 +129,7 @@ function ClientApp() {
         // botón atrás del teléfono navegue entre pasos en vez de salir de la app.
         if (clienteAuth) {
             try {
-                const clienteData = JSON.parse(clienteAuth);
+                const clienteData = clienteAuth;
                 setCliente(clienteData);
                 setUserRol('cliente');
                 // Deep link del acceso directo del ícono (manifest shortcuts):
@@ -91,7 +145,7 @@ function ClientApp() {
                 return;
             } catch (e) {
                 console.error('Error al parsear clienteAuth', e);
-                localStorage.removeItem('clienteAuth');
+                window.borrarClienteAuthActual?.();
             }
         }
         try { window.history.replaceState({ step: 'auth' }, ''); } catch (e) {}
@@ -167,10 +221,9 @@ function ClientApp() {
     // MANEJO DE ACCESO
     // ============================================
     const handleAccessGranted = (nombre, whatsapp) => {
-        const clienteData = { nombre, whatsapp };
+        const clienteData = window.guardarClienteAuthActual({ nombre, whatsapp });
         setCliente(clienteData);
         setUserRol('cliente');
-        localStorage.setItem('clienteAuth', JSON.stringify(clienteData));
         navigateTo('welcome');
     };
 
@@ -226,7 +279,7 @@ function ClientApp() {
 
     const handleLogout = () => {
         if (!confirm(window.t('¿Cerrar tu sesión?'))) return;
-        localStorage.removeItem('clienteAuth');
+        window.borrarClienteAuthActual?.();
         setCliente(null);
         setSelectedService(null);
         setSelectedProfesional(null);

@@ -139,25 +139,7 @@ async function guardarSuscripcionPush(subscription, role, clienteWhatsapp, profe
     console.log('[Push] guardarSuscripcionPush - negocioId:', negocioId, 'role:', role, 'cliente:', clienteWhatsapp || 'sin whatsapp', 'profesional:', profesionalId || 'sin profesional');
     if (!negocioId) throw new Error('No hay negocio_id para guardar la suscripcion push.');
 
-    // CRÍTICO: eliminar cualquier suscripción previa del mismo endpoint en OTRO negocio.
-    // Sin esto, un mismo dispositivo queda suscrito a múltiples salones y recibe
-    // notificaciones de salones ajenos.
-    try {
-        const endpointEncoded = encodeURIComponent(subscription.endpoint);
-        await fetch(
-            `${window.SUPABASE_URL}/rest/v1/push_suscripciones?endpoint=eq.${endpointEncoded}&negocio_id=neq.${negocioId}`,
-            {
-                method: 'DELETE',
-                headers: {
-                    apikey: window.SUPABASE_ANON_KEY,
-                    Authorization: `Bearer ${window.SUPABASE_ANON_KEY}`
-                }
-            }
-        );
-    } catch (e) {
-        console.warn('[Push] No se pudo limpiar suscripciones anteriores:', e.message);
-    }
-
+    // El endpoint puede pertenecer a varios negocios; negocio_id y role separan cada alta.
     const payload = {
         negocio_id: negocioId,
         role,
@@ -175,7 +157,8 @@ async function guardarSuscripcionPush(subscription, role, clienteWhatsapp, profe
     console.log('[Push] endpoint:', subscription.endpoint?.substring(0, 60));
     console.log('[Push] SUPABASE_URL:', window.SUPABASE_URL);
 
-    const upsertUrl = `${window.SUPABASE_URL}/rest/v1/push_suscripciones?on_conflict=endpoint`;
+    const upsertUrl = `${window.SUPABASE_URL}/rest/v1/push_suscripciones?on_conflict=endpoint,negocio_id,role`;
+    const legacyUpsertUrl = `${window.SUPABASE_URL}/rest/v1/push_suscripciones?on_conflict=endpoint`;
 
     let response = await fetch(upsertUrl, {
         method: 'POST',
@@ -187,6 +170,23 @@ async function guardarSuscripcionPush(subscription, role, clienteWhatsapp, profe
         },
         body: JSON.stringify(payload)
     });
+
+    if (!response.ok) {
+        const firstError = await response.clone().text();
+        if (/42P10|no unique or exclusion constraint/i.test(firstError)) {
+            console.warn('[Push] Falta aplicar el SQL multinegocio; usando compatibilidad temporal.');
+            response = await fetch(legacyUpsertUrl, {
+                method: 'POST',
+                headers: {
+                    apikey: window.SUPABASE_ANON_KEY,
+                    Authorization: `Bearer ${window.SUPABASE_ANON_KEY}`,
+                    'Content-Type': 'application/json',
+                    Prefer: 'resolution=merge-duplicates,return=minimal'
+                },
+                body: JSON.stringify(payload)
+            });
+        }
+    }
 
     console.log('[Push] respuesta HTTP:', response.status);
     if (!response.ok) {
@@ -209,7 +209,7 @@ async function guardarSuscripcionPush(subscription, role, clienteWhatsapp, profe
                 localStorage.setItem('rservasPushActivo', 'true');
                 localStorage.setItem('rservasPushRole', role);
                 if (role === 'cliente' && clienteWhatsapp) {
-                    localStorage.setItem('rservasPushClienteWhatsapp', String(clienteWhatsapp));
+                    marcarClientePushActivoLocal(negocioId, clienteWhatsapp);
                 }
                 window.dispatchEvent(new CustomEvent('rservas-push-status-changed'));
                 return true;
@@ -223,7 +223,7 @@ async function guardarSuscripcionPush(subscription, role, clienteWhatsapp, profe
     localStorage.setItem('rservasPushActivo', 'true');
     localStorage.setItem('rservasPushRole', role);
     if (role === 'cliente' && clienteWhatsapp) {
-        localStorage.setItem('rservasPushClienteWhatsapp', String(clienteWhatsapp));
+        marcarClientePushActivoLocal(negocioId, clienteWhatsapp);
     } else if (role !== 'cliente') {
         localStorage.removeItem('rservasPushClienteWhatsapp');
     }
@@ -416,20 +416,47 @@ function mostrarToastPush(mensaje, tipo = 'ok') {
 
 function getClienteWhatsappPushActual() {
     try {
-        const clienteAuth = JSON.parse(localStorage.getItem('clienteAuth') || 'null');
+        const clienteAuth = typeof window.getClienteAuthActual === 'function'
+            ? window.getClienteAuthActual()
+            : JSON.parse(localStorage.getItem('clienteAuth') || 'null');
         return clienteAuth?.whatsapp || clienteAuth?.telefono || localStorage.getItem('clienteWhatsapp') || '';
     } catch (error) {
         return localStorage.getItem('clienteWhatsapp') || '';
     }
 }
 
+function normalizarWhatsappPush(whatsapp) {
+    return String(whatsapp || '').replace(/[^0-9]/g, '');
+}
+
+function getClientesPushPorNegocio() {
+    try {
+        const value = JSON.parse(localStorage.getItem('rservasPushClientesPorNegocio') || '{}');
+        return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+    } catch (error) {
+        return {};
+    }
+}
+
+function marcarClientePushActivoLocal(negocioId, whatsapp) {
+    if (!negocioId || !whatsapp) return;
+    const clientes = getClientesPushPorNegocio();
+    clientes[String(negocioId)] = {
+        whatsapp: normalizarWhatsappPush(whatsapp),
+        updatedAt: new Date().toISOString()
+    };
+    localStorage.setItem('rservasPushClientesPorNegocio', JSON.stringify(clientes));
+    localStorage.setItem('rservasPushClienteWhatsapp', String(whatsapp));
+}
+
 function clientePushActivo() {
-    const whatsappActual = String(getClienteWhatsappPushActual() || '');
-    const whatsappSuscrito = String(localStorage.getItem('rservasPushClienteWhatsapp') || '');
+    const negocioId = String(getNegocioIdPush() || '');
+    const whatsappActual = normalizarWhatsappPush(getClienteWhatsappPushActual());
+    const registro = negocioId ? getClientesPushPorNegocio()[negocioId] : null;
+    const whatsappSuscrito = normalizarWhatsappPush(registro?.whatsapp);
     return (
-        localStorage.getItem('rservasPushActivo') === 'true' &&
-        localStorage.getItem('rservasPushRole') === 'cliente' &&
-        (!whatsappActual || !whatsappSuscrito || whatsappActual === whatsappSuscrito) &&
+        Boolean(negocioId && registro) &&
+        (!whatsappActual || whatsappActual === whatsappSuscrito) &&
         (!('Notification' in window) || Notification.permission === 'granted')
     );
 }

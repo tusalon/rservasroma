@@ -77,7 +77,8 @@ async function guardarTokenNativePush(token, role, profesionalId) {
     if (role === 'profesional' && profesionalId) payload.profesional_id = profesionalId;
     if (role === 'admin') payload.profesional_id = null;
 
-    const upsertUrl = `${window.SUPABASE_URL}/rest/v1/push_suscripciones?on_conflict=endpoint`;
+    const upsertUrl = `${window.SUPABASE_URL}/rest/v1/push_suscripciones?on_conflict=endpoint,negocio_id,role`;
+    const legacyUpsertUrl = `${window.SUPABASE_URL}/rest/v1/push_suscripciones?on_conflict=endpoint`;
 
     let response = await fetch(upsertUrl, {
         method: 'POST',
@@ -89,6 +90,23 @@ async function guardarTokenNativePush(token, role, profesionalId) {
         },
         body: JSON.stringify(payload)
     });
+
+    if (!response.ok) {
+        const firstError = await response.clone().text();
+        if (/42P10|no unique or exclusion constraint/i.test(firstError)) {
+            console.warn('Falta aplicar el SQL multinegocio; usando compatibilidad temporal.');
+            response = await fetch(legacyUpsertUrl, {
+                method: 'POST',
+                headers: {
+                    apikey: window.SUPABASE_ANON_KEY,
+                    Authorization: `Bearer ${window.SUPABASE_ANON_KEY}`,
+                    'Content-Type': 'application/json',
+                    Prefer: 'resolution=merge-duplicates,return=minimal'
+                },
+                body: JSON.stringify(payload)
+            });
+        }
+    }
 
     if (!response.ok) {
         const errorText = await response.text();

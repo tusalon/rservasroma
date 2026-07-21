@@ -1,6 +1,6 @@
 // sw.js - Service Worker para Rservasroma
 
-const CACHE_NAME = 'rservasroma-v44';
+const CACHE_NAME = 'rservasroma-v46';
 const BASE = '/rservasroma';
 
 const urlsToCache = [
@@ -16,7 +16,7 @@ const urlsToCache = [
   `${BASE}/manifest.json`,
 
   // App principal
-  `${BASE}/client-app.js`,
+  `${BASE}/client-app.js?v=20260721-cliente-multinegocio`,
   `${BASE}/admin-app.js?v=20260721-url-clientes-slug`,
 
   // Utils
@@ -33,7 +33,7 @@ const urlsToCache = [
   `${BASE}/utils/phone-utils.js`,
   `${BASE}/utils/profesionales.js`,
   `${BASE}/utils/push-config.js?v=20260717-push-activo`,
-  `${BASE}/utils/push-notifications.js?v=20260721-client-bell`,
+  `${BASE}/utils/push-notifications.js?v=20260721-client-multinegocio`,
   `${BASE}/utils/servicios.js`,
   `${BASE}/utils/storage.js`,
   `${BASE}/utils/suscripcion.js?v=20260721-fecha-local`,
@@ -45,7 +45,7 @@ const urlsToCache = [
   // Componentes cliente
   `${BASE}/components/BookingForm.js`,
   `${BASE}/components/Calendar.js`,
-  `${BASE}/components/ClientAuthScreen.js`,
+  `${BASE}/components/ClientAuthScreen.js?v=20260721-cliente-multinegocio`,
   `${BASE}/components/Confirmation.js`,
   `${BASE}/components/Header.js`,
   `${BASE}/components/InstallButton.js`,

@@ -14,7 +14,8 @@ create table if not exists public.push_suscripciones (
     negocio_id uuid not null references public.negocios(id) on delete cascade,
     role text not null default 'admin',
     profesional_id bigint,
-    endpoint text not null unique,
+    cliente_whatsapp text,
+    endpoint text not null,
     subscription jsonb not null,
     user_agent text,
     activo boolean not null default true,
@@ -22,11 +23,17 @@ create table if not exists public.push_suscripciones (
     updated_at timestamptz not null default now()
 );
 
+create unique index if not exists push_suscripciones_endpoint_negocio_role_key
+on public.push_suscripciones (endpoint, negocio_id, role);
+
 create index if not exists push_suscripciones_negocio_role_idx
 on public.push_suscripciones (negocio_id, role, activo);
 
 create index if not exists push_suscripciones_negocio_role_profesional_idx
 on public.push_suscripciones (negocio_id, role, profesional_id, activo);
+
+create index if not exists push_suscripciones_negocio_cliente_idx
+on public.push_suscripciones (negocio_id, cliente_whatsapp, activo);
 
 alter table public.push_suscripciones enable row level security;
 
