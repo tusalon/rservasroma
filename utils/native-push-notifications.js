@@ -40,6 +40,21 @@ function getProfesionalIdNativePush() {
     }
 }
 
+function marcarNativePushActivo(token, role, profesionalId) {
+    localStorage.setItem('rservasNativePushActivo', 'true');
+    localStorage.setItem('rservasNativePushRole', role);
+    localStorage.setItem('rservasNativePushToken', token);
+    if (role === 'profesional' && profesionalId) {
+        localStorage.setItem('rservasNativePushProfesionalId', String(profesionalId));
+    } else {
+        localStorage.removeItem('rservasNativePushProfesionalId');
+    }
+}
+
+function esDuplicadoEndpointPush(errorText) {
+    return /23505|duplicate key|push_suscripciones_endpoint_key/i.test(errorText || '');
+}
+
 async function guardarTokenNativePush(token, role, profesionalId) {
     const negocioId = getNegocioIdNativePush();
     if (!negocioId) throw new Error('No hay negocio_id para guardar el token nativo.');
@@ -76,6 +91,30 @@ async function guardarTokenNativePush(token, role, profesionalId) {
 
     if (!response.ok) {
         const errorText = await response.text();
+        if (esDuplicadoEndpointPush(errorText)) {
+            console.warn('El token nativo ya existia; actualizando registro por endpoint.');
+            const endpointEncoded = encodeURIComponent(payload.endpoint);
+            const updatePayload = { ...payload };
+            delete updatePayload.endpoint;
+            response = await fetch(`${window.SUPABASE_URL}/rest/v1/push_suscripciones?endpoint=eq.${endpointEncoded}`, {
+                method: 'PATCH',
+                headers: {
+                    apikey: window.SUPABASE_ANON_KEY,
+                    Authorization: `Bearer ${window.SUPABASE_ANON_KEY}`,
+                    'Content-Type': 'application/json',
+                    Prefer: 'return=minimal'
+                },
+                body: JSON.stringify(updatePayload)
+            });
+
+            if (!response.ok) {
+                console.warn('No se pudo actualizar el token duplicado; se marca activo porque el endpoint ya existe.', await response.text());
+            }
+
+            marcarNativePushActivo(token, role, profesionalId);
+            return true;
+        }
+
         if (payload.profesional_id !== undefined && /profesional_id/i.test(errorText)) {
             console.warn('La columna profesional_id aun no existe; guardando token nativo sin filtro profesional.');
             delete payload.profesional_id;
@@ -90,23 +129,14 @@ async function guardarTokenNativePush(token, role, profesionalId) {
                 body: JSON.stringify(payload)
             });
             if (response.ok) {
-                localStorage.setItem('rservasNativePushActivo', 'true');
-                localStorage.setItem('rservasNativePushRole', role);
-                localStorage.setItem('rservasNativePushToken', token);
+                marcarNativePushActivo(token, role, profesionalId);
                 return true;
             }
         }
         throw new Error(`No se pudo guardar el token nativo: ${errorText}`);
     }
 
-    localStorage.setItem('rservasNativePushActivo', 'true');
-    localStorage.setItem('rservasNativePushRole', role);
-    localStorage.setItem('rservasNativePushToken', token);
-    if (role === 'profesional' && profesionalId) {
-        localStorage.setItem('rservasNativePushProfesionalId', String(profesionalId));
-    } else {
-        localStorage.removeItem('rservasNativePushProfesionalId');
-    }
+    marcarNativePushActivo(token, role, profesionalId);
     return true;
 }
 

@@ -496,10 +496,16 @@ function _mostrarCardPermisoNormal() {
     document.getElementById('rservas-push-activar').addEventListener('click', async function() {
         this.disabled = true;
         this.textContent = 'Activando...';
-        const permission = await pedirPermisoNotificacionesPush();
-        const result = await window.solicitarPushRservasRoma({ defaultRole: getRolPush(), permission });
+        const ctx = getPushContext();
+        const result = ctx.isNative && typeof window.solicitarNativePushRservasRoma === 'function'
+            ? { ok: await window.solicitarNativePushRservasRoma({ defaultRole: getRolPush() }) }
+            : await (async () => {
+                const permission = await pedirPermisoNotificacionesPush();
+                return window.solicitarPushRservasRoma({ defaultRole: getRolPush(), permission });
+            })();
         const permisoActual = ('Notification' in window) ? Notification.permission : 'unsupported';
         if (result?.ok) {
+            localStorage.setItem('rservasPushCardDismissed', 'true');
             card.style.transform = 'translateX(-50%) translateY(120px)';
             setTimeout(() => card.remove(), 400);
             mostrarToastPush('✅ Notificaciones activadas');
