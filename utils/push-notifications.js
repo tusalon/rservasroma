@@ -208,6 +208,9 @@ async function guardarSuscripcionPush(subscription, role, clienteWhatsapp, profe
                 console.log('[Push] suscripcion guardada OK sin profesional_id');
                 localStorage.setItem('rservasPushActivo', 'true');
                 localStorage.setItem('rservasPushRole', role);
+                if (role === 'cliente' && clienteWhatsapp) {
+                    localStorage.setItem('rservasPushClienteWhatsapp', String(clienteWhatsapp));
+                }
                 window.dispatchEvent(new CustomEvent('rservas-push-status-changed'));
                 return true;
             }
@@ -219,6 +222,11 @@ async function guardarSuscripcionPush(subscription, role, clienteWhatsapp, profe
     console.log('[Push] suscripcion guardada OK');
     localStorage.setItem('rservasPushActivo', 'true');
     localStorage.setItem('rservasPushRole', role);
+    if (role === 'cliente' && clienteWhatsapp) {
+        localStorage.setItem('rservasPushClienteWhatsapp', String(clienteWhatsapp));
+    } else if (role !== 'cliente') {
+        localStorage.removeItem('rservasPushClienteWhatsapp');
+    }
     if (role === 'profesional' && profesionalId) {
         localStorage.setItem('rservasPushProfesionalId', String(profesionalId));
     } else {
@@ -406,6 +414,149 @@ function mostrarToastPush(mensaje, tipo = 'ok') {
     setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 400); }, 3500);
 }
 
+function getClienteWhatsappPushActual() {
+    try {
+        const clienteAuth = JSON.parse(localStorage.getItem('clienteAuth') || 'null');
+        return clienteAuth?.whatsapp || clienteAuth?.telefono || localStorage.getItem('clienteWhatsapp') || '';
+    } catch (error) {
+        return localStorage.getItem('clienteWhatsapp') || '';
+    }
+}
+
+function clientePushActivo() {
+    const whatsappActual = String(getClienteWhatsappPushActual() || '');
+    const whatsappSuscrito = String(localStorage.getItem('rservasPushClienteWhatsapp') || '');
+    return (
+        localStorage.getItem('rservasPushActivo') === 'true' &&
+        localStorage.getItem('rservasPushRole') === 'cliente' &&
+        (!whatsappActual || !whatsappSuscrito || whatsappActual === whatsappSuscrito) &&
+        (!('Notification' in window) || Notification.permission === 'granted')
+    );
+}
+
+function instalarIndicadorPushCliente() {
+    if (localStorage.getItem('adminAuth') || localStorage.getItem('profesionalAuth')) return;
+    if (!pushKeyConfigurada()) return;
+    if (!('Notification' in window) || !('PushManager' in window) || !('serviceWorker' in navigator)) return;
+
+    let button = document.getElementById('rservas-client-push-indicator');
+    if (!button) {
+        if (!document.getElementById('rservas-client-push-indicator-style')) {
+            const style = document.createElement('style');
+            style.id = 'rservas-client-push-indicator-style';
+            style.textContent = `
+                @keyframes rservasClientBellRing {
+                    0%, 100% { transform: rotate(0deg); }
+                    15% { transform: rotate(13deg); }
+                    30% { transform: rotate(-11deg); }
+                    45% { transform: rotate(8deg); }
+                    60% { transform: rotate(-6deg); }
+                    75% { transform: rotate(3deg); }
+                }
+                #rservas-client-push-indicator {
+                    position: fixed;
+                    top: calc(env(safe-area-inset-top, 0px) + 12px);
+                    right: 12px;
+                    width: 42px;
+                    height: 42px;
+                    border: 0;
+                    border-radius: 999px;
+                    background: rgba(255,255,255,.96);
+                    color: #111827;
+                    box-shadow: 0 10px 28px rgba(15,23,42,.20);
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    z-index: 9996;
+                    cursor: pointer;
+                    transition: background .2s ease, color .2s ease, transform .2s ease, box-shadow .2s ease;
+                    -webkit-tap-highlight-color: transparent;
+                }
+                #rservas-client-push-indicator:disabled {
+                    cursor: wait;
+                    opacity: .75;
+                }
+                #rservas-client-push-indicator i {
+                    font-size: 20px;
+                    line-height: 1;
+                    transform-origin: 50% 0;
+                }
+                #rservas-client-push-indicator.is-active {
+                    background: #16a34a;
+                    color: #fff;
+                    box-shadow: 0 10px 28px rgba(22,163,74,.30);
+                }
+                #rservas-client-push-indicator.is-active i {
+                    animation: rservasClientBellRing 1.45s ease-in-out infinite;
+                }
+                #rservas-client-push-indicator.is-off {
+                    color: #6b7280;
+                }
+                #rservas-client-push-indicator.is-off::after {
+                    content: "";
+                    position: absolute;
+                    width: 25px;
+                    height: 3px;
+                    border-radius: 999px;
+                    background: #dc2626;
+                    transform: rotate(-42deg);
+                    box-shadow: 0 0 0 2px #fff;
+                }
+            `;
+            document.head.appendChild(style);
+        }
+
+        button = document.createElement('button');
+        button.id = 'rservas-client-push-indicator';
+        button.type = 'button';
+        button.innerHTML = '<i class="icon-bell"></i>';
+        document.body.appendChild(button);
+
+        button.addEventListener('click', async () => {
+            if (clientePushActivo()) {
+                mostrarToastPush('Notificaciones activas');
+                return;
+            }
+
+            button.disabled = true;
+            try {
+                const permission = await pedirPermisoNotificacionesPush();
+                const whatsapp = getClienteWhatsappPushActual();
+                const result = await window.solicitarPushRservasRoma({
+                    defaultRole: 'cliente',
+                    permission,
+                    clienteWhatsapp: whatsapp || undefined
+                });
+
+                if (result?.ok) {
+                    mostrarToastPush('✅ Notificaciones activadas');
+                } else {
+                    mostrarToastPush('No se pudo activar. Intenta de nuevo.', 'error');
+                }
+            } catch (error) {
+                console.warn('[Push cliente] No se pudo activar desde campana:', error.message);
+                mostrarToastPush(error.message || 'No se pudo activar.', 'error');
+            } finally {
+                button.disabled = false;
+                actualizarIndicadorPushCliente();
+            }
+        });
+    }
+
+    actualizarIndicadorPushCliente();
+}
+
+function actualizarIndicadorPushCliente() {
+    const button = document.getElementById('rservas-client-push-indicator');
+    if (!button) return;
+
+    const activo = clientePushActivo();
+    button.classList.toggle('is-active', activo);
+    button.classList.toggle('is-off', !activo);
+    button.title = activo ? 'Notificaciones activas' : 'Activar notificaciones';
+    button.setAttribute('aria-label', button.title);
+}
+
 function instalarIndicadorPushAdmin() {
     if (!localStorage.getItem('adminAuth') && !localStorage.getItem('profesionalAuth')) return;
 
@@ -538,8 +689,12 @@ function actualizarIndicadorPushAdmin() {
 
 window.actualizarIndicadorPushAdmin = actualizarIndicadorPushAdmin;
 window.addEventListener('rservas-push-status-changed', actualizarIndicadorPushAdmin);
+window.addEventListener('rservas-push-status-changed', actualizarIndicadorPushCliente);
 window.addEventListener('storage', (event) => {
-    if (/^rservas(Native)?Push/.test(event.key || '')) actualizarIndicadorPushAdmin();
+    if (/^rservas(Native)?Push/.test(event.key || '')) {
+        actualizarIndicadorPushAdmin();
+        actualizarIndicadorPushCliente();
+    }
 });
 
 function instalarCardPushAdmin() {
@@ -718,6 +873,7 @@ function _mostrarCardIOSInstrucciones() {
 
 if (window.RSERVAS_PUSH_UI_VISIBLE === true) {
     window.addEventListener('load', () => {
+        setTimeout(instalarIndicadorPushCliente, 700);
         setTimeout(instalarIndicadorPushAdmin, 800);
         setTimeout(refrescarSuscripcionPushActual, 1200);
         setTimeout(instalarCardPushAdmin, 2000);
