@@ -163,6 +163,7 @@ Deno.serve(async (req) => {
   const fecha = tipo === "manana" ? getCubaDate(1) : getCubaDate(0);
   const negocioFiltro = body?.negocio_id || null;
   const dryRun = Boolean(body?.dry_run);
+  const maxDestinos = Number.isFinite(Number(body?.max_destinos)) ? Math.max(1, Number(body.max_destinos)) : 10;
   const headers = { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` };
 
   let reservasUrl = `${supabaseUrl}/rest/v1/reservas?fecha=eq.${fecha}&estado=neq.Cancelado&select=id,negocio_id,cliente_nombre,servicio,hora_inicio,profesional_id,profesional_nombre`;
@@ -191,6 +192,8 @@ Deno.serve(async (req) => {
 
   let enviados = 0;
   let saltados = 0;
+  let procesados = 0;
+  let pendientes = 0;
   const errores: string[] = [];
 
   for (const [negocioId, turnos] of Object.entries(porNegocio)) {
@@ -230,6 +233,11 @@ Deno.serve(async (req) => {
         saltados++;
         continue;
       }
+      if (!dryRun && procesados >= maxDestinos) {
+        pendientes++;
+        continue;
+      }
+      procesados++;
 
       const title = `${destino.role === "admin" ? nombreNegocio : "Tu agenda"}: ${destino.turnos.length} turno${destino.turnos.length === 1 ? "" : "s"} ${fechaBonita(fecha, tipo)}`;
       const pushPayload: Record<string, unknown> = {
@@ -274,6 +282,8 @@ Deno.serve(async (req) => {
     total_reservas: reservas.length,
     enviados,
     saltados,
+    procesados,
+    pendientes,
     errores: errores.length ? errores : undefined,
   }, errores.length ? 207 : 200);
 });
