@@ -267,6 +267,21 @@
       return valor === true || String(valor).toLowerCase().trim() === 'true';
     }
 
+    function normalizarSetupTexto(valor) {
+      return String(valor || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .trim();
+    }
+
+    function esRegistroDemo(tipo, item) {
+      var nombre = normalizarSetupTexto(item && item.nombre);
+      if (tipo === 'profesional') return nombre === 'profesional principal' || nombre === 'profesional de prueba';
+      if (tipo === 'servicio') return nombre === 'servicio de prueba';
+      return false;
+    }
+
     async function negocioTieneBaseMinima(negocioId) {
       if (!negocioId || !window.SUPABASE_URL || !window.SUPABASE_ANON_KEY) return true;
 
@@ -276,9 +291,9 @@
       };
 
       var urls = [
-        window.SUPABASE_URL + '/rest/v1/profesionales?negocio_id=eq.' + encodeURIComponent(negocioId) + '&select=id&limit=1',
-        window.SUPABASE_URL + '/rest/v1/servicios?negocio_id=eq.' + encodeURIComponent(negocioId) + '&select=id&limit=1',
-        window.SUPABASE_URL + '/rest/v1/horarios_profesionales?negocio_id=eq.' + encodeURIComponent(negocioId) + '&select=id&limit=1'
+        window.SUPABASE_URL + '/rest/v1/profesionales?negocio_id=eq.' + encodeURIComponent(negocioId) + '&select=id,nombre,activo',
+        window.SUPABASE_URL + '/rest/v1/servicios?negocio_id=eq.' + encodeURIComponent(negocioId) + '&select=id,nombre,activo',
+        window.SUPABASE_URL + '/rest/v1/horarios_profesionales?negocio_id=eq.' + encodeURIComponent(negocioId) + '&select=id,profesional_id'
       ];
 
       try {
@@ -292,9 +307,20 @@
           return res.json();
         }));
 
-        return datos.every(function(filas) {
-          return Array.isArray(filas) && filas.length > 0;
+        var profesionalesReales = (datos[0] || []).filter(function(profesional) {
+          return profesional.activo !== false && !esRegistroDemo('profesional', profesional);
         });
+        var serviciosReales = (datos[1] || []).filter(function(servicio) {
+          return servicio.activo !== false && !esRegistroDemo('servicio', servicio);
+        });
+        var idsProfesionalesReales = profesionalesReales.map(function(profesional) {
+          return String(profesional.id);
+        });
+        var tieneHorarioReal = (datos[2] || []).some(function(horario) {
+          return idsProfesionalesReales.indexOf(String(horario.profesional_id)) !== -1;
+        });
+
+        return profesionalesReales.length > 0 && serviciosReales.length > 0 && tieneHorarioReal;
       } catch (error) {
         return true;
       }
