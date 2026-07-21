@@ -320,17 +320,18 @@ function sanitizeNtfyHeader(value, fallback = '') {
     return cleanValue || fallback;
 }
 
-window.enviarNotificacionPush = async function(titulo, mensaje, etiquetas = 'bell', prioridad = 'default') {
+window.enviarNotificacionPush = async function(titulo, mensaje, etiquetas = 'bell', prioridad = 'default', options = {}) {
     try {
         const config = await getConfigNegocio();
         const topic = config.ntfyTopic || 'notificaciones';
         const safeTitle = sanitizeNtfyHeader(titulo, `${config.nombre || 'Reserva'} - Notificacion`);
         const safeTags = sanitizeNtfyHeader(etiquetas, 'bell');
         const safePriority = sanitizeNtfyHeader(prioridad, 'default');
+        const profesionalId = options.profesionalId || options.profesional_id || null;
 
         console.log(`📢 Enviando push a ntfy.sh/${topic}:`, titulo);
 
-        const response = await fetch(`https://ntfy.sh/${topic}`, {
+        const ntfyPromise = fetch(`https://ntfy.sh/${topic}`, {
             method: 'POST',
             body: mensaje,
             headers: {
@@ -340,22 +341,46 @@ window.enviarNotificacionPush = async function(titulo, mensaje, etiquetas = 'bel
             }
         });
 
-        if (response.ok) {
-            console.log('✅ Push enviado correctamente');
-            if (window.enviarWebPushRservasRoma) {
+        const pushPromises = [];
+        if (window.enviarWebPushRservasRoma) {
+            pushPromises.push(
                 window.enviarWebPushRservasRoma({
                     title: safeTitle,
                     body: mensaje,
                     role: 'admin',
                     tags: safeTags,
                     data: { priority: safePriority }
-                }).catch(error => console.warn('Web Push opcional no enviado:', error));
+                })
+            );
+            if (profesionalId) {
+                pushPromises.push(
+                    window.enviarWebPushRservasRoma({
+                        title: safeTitle,
+                        body: mensaje,
+                        role: 'profesional',
+                        profesional_id: profesionalId,
+                        tags: safeTags,
+                        data: { priority: safePriority }
+                    })
+                );
             }
-            return true;
         }
 
-        console.error('❌ Error en push:', await response.text());
-        return false;
+        const [ntfyResult, pushResult] = await Promise.allSettled([
+            ntfyPromise,
+            Promise.allSettled(pushPromises)
+        ]);
+
+        const ntfyOk = ntfyResult.status === 'fulfilled' && ntfyResult.value.ok;
+        const pushOk = pushResult.status === 'fulfilled' && pushResult.value.some(
+            result => result.status === 'fulfilled' && result.value === true
+        );
+
+        if (ntfyOk) console.log('✅ ntfy enviado correctamente');
+        else console.warn('ntfy no enviado:', ntfyResult.status === 'rejected' ? ntfyResult.reason : await ntfyResult.value.text());
+        if (!pushOk && pushPromises.length > 0) console.warn('Web/FCM push no enviado');
+
+        return ntfyOk || pushOk;
     } catch (error) {
         console.error('❌ Error enviando push:', error);
         return false;
@@ -627,7 +652,8 @@ ${lineaCalendario}
             `📅 ${config.nombre} - Nuevo turno`,
             mensajePush,
             'calendar',
-            'default'
+            'default',
+            { profesionalId: booking.profesional_id || booking.trabajador_id || booking.barbero_id }
         );
 
         // Push a la clienta: confirmación de su cita
@@ -718,7 +744,8 @@ ${lineaCalendario}
             `💰 ${configNegocio.nombre} - Pago pendiente`,
             mensajePush,
             'moneybag',
-            'high'
+            'high',
+            { profesionalId: booking.profesional_id || booking.trabajador_id || booking.barbero_id }
         );
 
         window.enviarWhatsApp(configNegocio.telefono, mensajeFinal);
@@ -778,7 +805,8 @@ Hola *${booking.cliente_nombre}*, lamentamos informarte que tu turno ha sido can
             await window.enviarNotificacionPush(
                 `❌ ${config.nombre} - Cancelación`,
                 `❌ ${booking.cliente_nombre} canceló\n💅 ${booking.servicio}\n📅 ${fechaConDia} ${horaFormateada}`,
-                'x', 'default'
+                'x', 'default',
+                { profesionalId: booking.profesional_id || booking.trabajador_id || booking.barbero_id }
             );
         } else {
             const telefonoCliente = booking.cliente_whatsapp.replace(/\D/g, '');
@@ -788,7 +816,8 @@ Hola *${booking.cliente_nombre}*, lamentamos informarte que tu turno ha sido can
             await window.enviarNotificacionPush(
                 `❌ ${config.nombre} - Cancelación`,
                 `❌ Cancelado: ${booking.cliente_nombre}\n💅 ${booking.servicio}\n📅 ${fechaConDia} ${horaFormateada}`,
-                'x', 'default'
+                'x', 'default',
+                { profesionalId: booking.profesional_id || booking.trabajador_id || booking.barbero_id }
             );
             if (window.enviarPushCliente) {
                 window.enviarPushCliente({

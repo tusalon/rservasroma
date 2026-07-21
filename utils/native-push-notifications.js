@@ -40,10 +40,33 @@ function getProfesionalIdNativePush() {
     }
 }
 
+function getNativePushContextKey(role = getRolNativePush('admin'), profesionalId = getProfesionalIdNativePush()) {
+    const negocioId = getNegocioIdNativePush();
+    if (!negocioId || !role) return '';
+    const sujeto = role === 'profesional' ? String(profesionalId || '') : 'all';
+    return `${negocioId}:${role}:${sujeto}`;
+}
+
+function nativePushActivoParaContexto() {
+    const role = getRolNativePush('admin');
+    const profesionalId = getProfesionalIdNativePush();
+    const contexto = getNativePushContextKey(role, profesionalId);
+    return Boolean(
+        contexto &&
+        localStorage.getItem('rservasNativePushActivo') === 'true' &&
+        localStorage.getItem('rservasNativePushToken') &&
+        localStorage.getItem('rservasNativePushRole') === role &&
+        localStorage.getItem('rservasNativePushContext') === contexto
+    );
+}
+
+window.nativePushActivoParaContexto = nativePushActivoParaContexto;
+
 function marcarNativePushActivo(token, role, profesionalId, clienteWhatsapp, negocioId) {
     localStorage.setItem('rservasNativePushActivo', 'true');
     localStorage.setItem('rservasNativePushRole', role);
     localStorage.setItem('rservasNativePushToken', token);
+    localStorage.setItem('rservasNativePushContext', getNativePushContextKey(role, profesionalId));
     if (role === 'profesional' && profesionalId) {
         localStorage.setItem('rservasNativePushProfesionalId', String(profesionalId));
     } else {
@@ -57,6 +80,27 @@ function marcarNativePushActivo(token, role, profesionalId, clienteWhatsapp, neg
 
 function esDuplicadoEndpointPush(errorText) {
     return /23505|duplicate key|push_suscripciones_endpoint_key/i.test(errorText || '');
+}
+
+async function desactivarOtrosPerfilesStaff(endpoint, role) {
+    if (role === 'cliente') return;
+    const endpointEncoded = encodeURIComponent(endpoint);
+    const response = await fetch(
+        `${window.SUPABASE_URL}/rest/v1/push_suscripciones?endpoint=eq.${endpointEncoded}&role=neq.cliente`,
+        {
+            method: 'PATCH',
+            headers: {
+                apikey: window.SUPABASE_ANON_KEY,
+                Authorization: `Bearer ${window.SUPABASE_ANON_KEY}`,
+                'Content-Type': 'application/json',
+                Prefer: 'return=minimal'
+            },
+            body: JSON.stringify({ activo: false, updated_at: new Date().toISOString() })
+        }
+    );
+    if (!response.ok) {
+        console.warn('No se pudieron desactivar perfiles push staff anteriores:', await response.text());
+    }
 }
 
 async function guardarTokenNativePush(token, role, profesionalId, clienteWhatsapp) {
@@ -80,6 +124,8 @@ async function guardarTokenNativePush(token, role, profesionalId, clienteWhatsap
     if (role === 'cliente' && clienteWhatsapp) payload.cliente_whatsapp = clienteWhatsapp;
     if (role === 'profesional' && profesionalId) payload.profesional_id = profesionalId;
     if (role === 'admin') payload.profesional_id = null;
+
+    await desactivarOtrosPerfilesStaff(payload.endpoint, role);
 
     const upsertUrl = `${window.SUPABASE_URL}/rest/v1/push_suscripciones?on_conflict=endpoint,negocio_id,role`;
     const legacyUpsertUrl = `${window.SUPABASE_URL}/rest/v1/push_suscripciones?on_conflict=endpoint`;
@@ -167,10 +213,72 @@ function mostrarToastNativo(mensaje, tipo = 'ok') {
     if (window.mostrarToastPush) { window.mostrarToastPush(mensaje, tipo); return; }
     const color = tipo === 'ok' ? '#16a34a' : tipo === 'error' ? '#dc2626' : '#0f766e';
     const t = document.createElement('div');
-    t.style.cssText = `position:fixed;top:20px;left:50%;transform:translateX(-50%);background:${color};color:#fff;padding:12px 20px;border-radius:12px;font-size:14px;font-weight:600;z-index:99999;box-shadow:0 8px 24px rgba(0,0,0,.35);font-family:system-ui,sans-serif;max-width:90vw;text-align:center;transition:opacity 0.4s`;
+    t.style.cssText = `position:fixed;top:20px;left:50%;transform:translateX(-50%);background:${color};color:#fff;padding:12px 20px;border-radius:12px;font-size:14px;font-weight:600;z-index:99999;box-shadow:0 8px 24px rgba(0,0,0,.35);font-family:system-ui,sans-serif;max-width:90vw;text-align:center;white-space:pre-line;transition:opacity 0.4s`;
     t.textContent = mensaje;
     document.body.appendChild(t);
     setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 400); }, 3500);
+}
+
+function mostrarPushNativoEnPrimerPlano(notification) {
+    const title = notification?.title || notification?.data?.title || 'Rservasroma';
+    const body = notification?.body || notification?.data?.body || 'Tienes una nueva notificacion';
+    mostrarToastNativo(`${title}\n${body}`, 'info');
+    try { navigator.vibrate?.([180, 90, 180]); } catch (error) {}
+    window.dispatchEvent(new CustomEvent('rservas-native-push-received', { detail: notification || {} }));
+}
+
+function abrirDestinoPushNativo(action) {
+    const notification = action?.notification || action || {};
+    const rawUrl = notification?.data?.url || '';
+    if (!rawUrl) return;
+    try {
+        const destino = new URL(rawUrl, window.location.href);
+        if (/\/admin(?:\.html)?\/?$/i.test(destino.pathname)) {
+            window.location.href = `admin.html${destino.search || ''}${destino.hash || ''}`;
+            return;
+        }
+        if (destino.origin === window.location.origin || destino.hostname === 'tusalon.github.io') {
+            window.location.href = destino.href;
+        }
+    } catch (error) {
+        console.warn('URL de push invalida:', rawUrl);
+    }
+}
+
+async function configurarListenersNativePush(PushNotifications, onRegistration, onRegistrationError) {
+    await PushNotifications.removeAllListeners();
+    await PushNotifications.addListener('pushNotificationReceived', mostrarPushNativoEnPrimerPlano);
+    await PushNotifications.addListener('pushNotificationActionPerformed', abrirDestinoPushNativo);
+    if (onRegistration) await PushNotifications.addListener('registration', onRegistration);
+    if (onRegistrationError) await PushNotifications.addListener('registrationError', onRegistrationError);
+}
+
+async function crearCanalNativePush(PushNotifications) {
+    try {
+        await PushNotifications.createChannel({
+            id: 'default',
+            name: 'Rservasroma',
+            description: 'Reservas, cancelaciones, pagos y resumenes de agenda',
+            importance: 5,
+            visibility: 1,
+            vibration: true,
+            lights: true,
+            lightColor: '#EC4899'
+        });
+    } catch (error) {
+        console.warn('No se pudo crear el canal de notificaciones:', error?.message || error);
+    }
+}
+
+async function instalarRecepcionNativePush() {
+    const PushNotifications = getNativePushPlugin();
+    if (!isRservasNativeApp() || !PushNotifications) return;
+    try {
+        await configurarListenersNativePush(PushNotifications);
+        await crearCanalNativePush(PushNotifications);
+    } catch (error) {
+        console.warn('No se pudieron instalar los listeners push nativos:', error?.message || error);
+    }
 }
 
 window.solicitarNativePushRservasRoma = async function(options = {}) {
@@ -198,9 +306,8 @@ window.solicitarNativePushRservasRoma = async function(options = {}) {
                 return;
             }
 
-            await PushNotifications.removeAllListeners();
-
-            await PushNotifications.addListener('registration', async (token) => {
+            await crearCanalNativePush(PushNotifications);
+            await configurarListenersNativePush(PushNotifications, async (token) => {
                 try {
                     await guardarTokenNativePush(token.value, role, profesionalId, clienteWhatsapp);
                     mostrarToastNativo('✅ Notificaciones activadas');
@@ -210,9 +317,7 @@ window.solicitarNativePushRservasRoma = async function(options = {}) {
                     mostrarToastNativo(error.message || 'No se pudo guardar el token.', 'error');
                     finish(false);
                 }
-            });
-
-            await PushNotifications.addListener('registrationError', (error) => {
+            }, (error) => {
                 console.error('Error registrando push nativo:', error);
                 mostrarToastNativo('Firebase no configurado en esta APK. Descarga la versión actualizada.', 'error');
                 finish(false);
@@ -256,7 +361,7 @@ function instalarBotonNativePushAdmin() {
     if (document.getElementById('rservas-native-push-button')) return;
     if (document.getElementById('rservas-push-card')) return; // la card web ya está
     if (!localStorage.getItem('adminAuth') && !localStorage.getItem('profesionalAuth')) return;
-    if (localStorage.getItem('rservasNativePushActivo') === 'true') return;
+    if (nativePushActivoParaContexto()) return;
 
     const button = document.createElement('button');
     button.id = 'rservas-native-push-button';
@@ -298,6 +403,7 @@ function instalarBotonNativePushAdmin() {
 
 if (window.RSERVAS_PUSH_UI_VISIBLE === true) {
     window.addEventListener('load', () => {
+        setTimeout(instalarRecepcionNativePush, 300);
         setTimeout(refrescarTokenNativePushActual, 1400);
         setTimeout(instalarBotonNativePushAdmin, 1800);
     });

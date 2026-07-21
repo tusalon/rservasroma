@@ -2109,7 +2109,8 @@ function AdminApp() {
                             window.enviarNotificacionPush(
                                 `${cfg.nombre || 'Salon'} - Reserva manual`,
                                 `👤 ${result.data.cliente_nombre}\n💅 ${result.data.servicio}\n📅 ${fecha} ${hora}`,
-                                'calendar', 'default'
+                                'calendar', 'default',
+                                { profesionalId: result.data.profesional_id || result.data.trabajador_id || result.data.barbero_id }
                             ).catch(e => console.warn('ntfy:', e));
                         }
                     }
@@ -2448,7 +2449,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
 
                 window.enviarWhatsApp(bookingData.cliente_whatsapp, mensajeCliente);
 
-                if (window.enviarNotificacionPush) window.enviarNotificacionPush(`${nombreNegocio} - Pago confirmado`, `✅ ${bookingData.cliente_nombre}\n💅 ${bookingData.servicio}\n📅 ${fechaConDia} ${horaFormateada}`, 'white_check_mark', 'default').catch(() => {});
+                if (window.enviarNotificacionPush) window.enviarNotificacionPush(`${nombreNegocio} - Pago confirmado`, `✅ ${bookingData.cliente_nombre}\n💅 ${bookingData.servicio}\n📅 ${fechaConDia} ${horaFormateada}`, 'white_check_mark', 'default', { profesionalId: bookingData.profesional_id || bookingData.trabajador_id || bookingData.barbero_id }).catch(() => {});
                 if (window.enviarPushCliente) window.enviarPushCliente({ whatsapp: bookingData.cliente_whatsapp, title: `✅ Pago confirmado — ${nombreNegocio}`, body: `Tu cita de ${bookingData.servicio} el ${fechaConDia} a las ${horaFormateada} está confirmada.` }).catch(() => {});
 
                 fetchBookings();
@@ -2510,7 +2511,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
 
             window.enviarWhatsApp(bookingData.cliente_whatsapp, mensajeCliente);
 
-            if (window.enviarNotificacionPush) window.enviarNotificacionPush(`${nombreNegocio} - Pago confirmado`, `✅ ${bookingData.cliente_nombre}\n💅 ${bookingData.servicio}\n📅 ${fechaConDia} ${horaFormateada}`, 'white_check_mark', 'default').catch(() => {});
+            if (window.enviarNotificacionPush) window.enviarNotificacionPush(`${nombreNegocio} - Pago confirmado`, `✅ ${bookingData.cliente_nombre}\n💅 ${bookingData.servicio}\n📅 ${fechaConDia} ${horaFormateada}`, 'white_check_mark', 'default', { profesionalId: bookingData.profesional_id || bookingData.trabajador_id || bookingData.barbero_id }).catch(() => {});
             if (window.enviarPushCliente) window.enviarPushCliente({ whatsapp: bookingData.cliente_whatsapp, title: `✅ Pago confirmado — ${nombreNegocio}`, body: `Tu cita de ${bookingData.servicio} el ${fechaConDia} a las ${horaFormateada} está confirmada.` }).catch(() => {});
 
             fetchBookings();

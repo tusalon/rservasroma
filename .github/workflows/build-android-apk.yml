@@ -50,7 +50,7 @@ jobs:
             $env:ANDROID_GOOGLE_SERVICES_JSON | Set-Content -Path android/app/google-services.json -Encoding UTF8
             Write-Host "google-services.json restaurado desde GitHub Secrets"
           } else {
-            Write-Host "ANDROID_GOOGLE_SERVICES_JSON no configurado; la APK compila sin Firebase push nativo"
+            throw "ANDROID_GOOGLE_SERVICES_JSON no configurado; se cancela el build para no publicar una APK sin push nativo"
           }
 
       - name: Sync Capacitor Android

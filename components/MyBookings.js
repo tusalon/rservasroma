@@ -264,7 +264,7 @@ function MyBookings({ cliente, onVolver }) {
             const hA = window.formatTo12Hour ? window.formatTo12Hour(anterior.hora_inicio) : anterior.hora_inicio;
             const hN = window.formatTo12Hour ? window.formatTo12Hour(nuevo.hora_inicio) : nuevo.hora_inicio;
             const msg = `CITA REPROGRAMADA - ${config?.nombre || 'Salón'}\n\nCliente: ${nuevo.cliente_nombre}\nWhatsApp: ${nuevo.cliente_whatsapp}\nServicio: ${nuevo.servicio}\nProfesional: ${nuevo.profesional_nombre || 'No asignada'}\n\nAntes: ${fA} a las ${hA}\nAhora: ${fN} a las ${hN}`;
-            if (window.enviarNotificacionPush) await window.enviarNotificacionPush(`${config?.nombre || 'Salón'} - Cita reprogramada`, msg, 'calendar', 'default');
+            if (window.enviarNotificacionPush) await window.enviarNotificacionPush(`${config?.nombre || 'Salón'} - Cita reprogramada`, msg, 'calendar', 'default', { profesionalId: nuevo.profesional_id || nuevo.trabajador_id || nuevo.barbero_id });
             if (window.enviarWhatsApp && config?.telefono) window.enviarWhatsApp(config.telefono, msg);
             // Push al admin cuando clienta reprograma (ya enviado arriba vía enviarNotificacionPush)
             // Push a la clienta cuando admin reprograma — se detecta si el que reprograma es admin

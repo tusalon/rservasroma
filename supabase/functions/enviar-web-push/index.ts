@@ -230,6 +230,14 @@ Deno.serve(async (req) => {
         badgeCount,
       }))
     );
+
+    fcmResults.forEach((result, index) => {
+      if (result.status !== "rejected") return;
+      const errorText = String(result.reason?.message || result.reason || "");
+      if (/UNREGISTERED|registration-token-not-registered/i.test(errorText)) {
+        inactiveIds.push(fcmSubscriptions[index].id);
+      }
+    });
   }
 
   if (inactiveIds.length > 0) {

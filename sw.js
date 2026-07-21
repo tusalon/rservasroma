@@ -1,6 +1,6 @@
 // sw.js - Service Worker para Rservasroma
 
-const CACHE_NAME = 'rservasroma-v47';
+const CACHE_NAME = 'rservasroma-v48';
 const BASE = '/rservasroma';
 
 const urlsToCache = [
@@ -17,7 +17,7 @@ const urlsToCache = [
 
   // App principal
   `${BASE}/client-app.js?v=20260721-cliente-multinegocio`,
-  `${BASE}/admin-app.js?v=20260721-url-clientes-slug`,
+  `${BASE}/admin-app.js?v=20260721-admin-push-v2`,
 
   // Utils
   `${BASE}/utils/api.js`,
@@ -26,20 +26,20 @@ const urlsToCache = [
   `${BASE}/utils/config.js`,
   `${BASE}/utils/dias-cerrados.js`,
   `${BASE}/utils/hero-backgrounds.js`,
-  `${BASE}/utils/native-push-notifications.js?v=20260721-client-native`,
+  `${BASE}/utils/native-push-notifications.js?v=20260721-admin-push-v2`,
   `${BASE}/utils/offline-panel.js`,
   `${BASE}/utils/config-negocio-master.js?v=20260721-url-clientes-slug`,
   `${BASE}/utils/i18n.js`,
   `${BASE}/utils/phone-utils.js`,
   `${BASE}/utils/profesionales.js`,
   `${BASE}/utils/push-config.js?v=20260717-push-activo`,
-  `${BASE}/utils/push-notifications.js?v=20260721-client-native`,
+  `${BASE}/utils/push-notifications.js?v=20260721-admin-push-v2`,
   `${BASE}/utils/servicios.js`,
   `${BASE}/utils/storage.js`,
   `${BASE}/utils/suscripcion.js?v=20260721-fecha-local`,
   `${BASE}/utils/supabase-config.js`,
   `${BASE}/utils/timeLogic.js`,
-  `${BASE}/utils/whatsapp-helper.js`,
+  `${BASE}/utils/whatsapp-helper.js?v=20260721-admin-push-v2`,
   `${BASE}/utils/legacy-ios-fallback.css`,
 
   // Componentes cliente
@@ -51,7 +51,7 @@ const urlsToCache = [
   `${BASE}/components/InstallButton.js`,
   `${BASE}/components/MultiProfesionalSelector.js`,
   `${BASE}/components/MultiTimeSlots.js`,
-  `${BASE}/components/MyBookings.js`,
+  `${BASE}/components/MyBookings.js?v=20260721-admin-push-v2`,
   `${BASE}/components/ProfesionalSelector.js`,
   `${BASE}/components/ServiceSelectionCategorias.js`,
   `${BASE}/components/TimeSlots.js`,

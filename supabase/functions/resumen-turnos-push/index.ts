@@ -256,7 +256,7 @@ Deno.serve(async (req) => {
         const result = dryRun ? { ok: true, sent: 0, dry_run: true } : await enviarWebPush({ supabaseUrl, serviceKey, payload: pushPayload });
         const sent = Number(result?.sent || 0);
         enviados += sent;
-        if (!dryRun) {
+        if (!dryRun && sent > 0) {
           await marcarEnviado({
             supabaseUrl,
             headers,
@@ -268,6 +268,8 @@ Deno.serve(async (req) => {
             totalTurnos: destino.turnos.length,
             sent,
           });
+        } else if (!dryRun) {
+          errores.push(`${negocioId}/${destino.role}/${destino.profesionalId || "all"}: ninguna suscripcion recibio el resumen`);
         }
       } catch (error: any) {
         errores.push(`${negocioId}/${destino.role}/${destino.profesionalId || "all"}: ${error?.message || error}`);

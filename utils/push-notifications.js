@@ -134,6 +134,27 @@ async function getRegistroServiceWorkerPush() {
     return ready || null;
 }
 
+async function desactivarOtrosPerfilesWebStaff(endpoint, role) {
+    if (role === 'cliente') return;
+    const endpointEncoded = encodeURIComponent(endpoint);
+    const response = await fetch(
+        `${window.SUPABASE_URL}/rest/v1/push_suscripciones?endpoint=eq.${endpointEncoded}&role=neq.cliente`,
+        {
+            method: 'PATCH',
+            headers: {
+                apikey: window.SUPABASE_ANON_KEY,
+                Authorization: `Bearer ${window.SUPABASE_ANON_KEY}`,
+                'Content-Type': 'application/json',
+                Prefer: 'return=minimal'
+            },
+            body: JSON.stringify({ activo: false, updated_at: new Date().toISOString() })
+        }
+    );
+    if (!response.ok) {
+        console.warn('[Push] No se pudieron desactivar perfiles staff anteriores:', await response.text());
+    }
+}
+
 async function guardarSuscripcionPush(subscription, role, clienteWhatsapp, profesionalId) {
     const negocioId = getNegocioIdPush();
     console.log('[Push] guardarSuscripcionPush - negocioId:', negocioId, 'role:', role, 'cliente:', clienteWhatsapp || 'sin whatsapp', 'profesional:', profesionalId || 'sin profesional');
@@ -153,6 +174,8 @@ async function guardarSuscripcionPush(subscription, role, clienteWhatsapp, profe
     if (clienteWhatsapp) payload.cliente_whatsapp = clienteWhatsapp;
     if (role === 'profesional' && profesionalId) payload.profesional_id = profesionalId;
     if (role === 'admin') payload.profesional_id = null;
+
+    await desactivarOtrosPerfilesWebStaff(payload.endpoint, role);
 
     console.log('[Push] endpoint:', subscription.endpoint?.substring(0, 60));
     console.log('[Push] SUPABASE_URL:', window.SUPABASE_URL);
@@ -297,6 +320,11 @@ window.enviarPushCliente = async function({ whatsapp, title, body, url = '' } = 
         if (!whatsapp || !title) return false;
         const negocioId = getNegocioIdPush();
         if (!negocioId || !window.SUPABASE_URL || !window.SUPABASE_ANON_KEY) return false;
+        let destinoUrl = url;
+        if (!destinoUrl && typeof window.construirUrlClientesNegocio === 'function') {
+            const config = await window.cargarConfiguracionNegocio?.().catch(() => null);
+            destinoUrl = window.construirUrlClientesNegocio(config || {});
+        }
 
         const response = await fetch(`${window.SUPABASE_URL}/functions/v1/${window.RSERVAS_PUSH_FUNCTION}`, {
             method: 'POST',
@@ -305,7 +333,7 @@ window.enviarPushCliente = async function({ whatsapp, title, body, url = '' } = 
                 Authorization: `Bearer ${window.SUPABASE_ANON_KEY}`,
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ negocio_id: negocioId, cliente_whatsapp: whatsapp, title, body, url })
+            body: JSON.stringify({ negocio_id: negocioId, cliente_whatsapp: whatsapp, title, body, url: destinoUrl })
         });
 
         const result = await response.json().catch(() => ({}));
@@ -348,6 +376,11 @@ window.enviarWebPushRservasRoma = async function({ title, body, url = '', role =
             return false;
         }
 
+        const result = await response.json().catch(() => ({}));
+        if (Number(result?.sent || 0) === 0) {
+            console.warn('Web/FCM Push procesado sin destinatarios activos');
+            return false;
+        }
         return true;
     } catch (error) {
         console.warn('Web Push opcional fallo:', error);
@@ -388,7 +421,9 @@ function getPushContext() {
     const isNative = Boolean(window.Capacitor?.isNativePlatform?.());
     const permiso = 'Notification' in window ? Notification.permission : 'unsupported';
     const suscritoWeb = localStorage.getItem('rservasPushActivo') === 'true';
-    const suscritoNativo = localStorage.getItem('rservasNativePushActivo') === 'true';
+    const suscritoNativo = typeof window.nativePushActivoParaContexto === 'function'
+        ? window.nativePushActivoParaContexto()
+        : localStorage.getItem('rservasNativePushActivo') === 'true';
     return { isIOS, isStandalone, isNative, permiso, suscritoWeb, suscritoNativo };
 }
 
