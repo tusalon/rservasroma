@@ -701,9 +701,12 @@ function AdminApp() {
                 setLogoNegocio(configData.logo_url);
                 localStorage.setItem('negocioLogo', configData.logo_url);
             }
-            if (configData?.url_clientes) {
-                setUrlCliente(configData.url_clientes);
-                localStorage.setItem('negocioUrlClientes', configData.url_clientes);
+            const urlClientesActual = window.construirUrlClientesNegocio
+                ? window.construirUrlClientesNegocio(configData)
+                : (await window.getUrlClientes?.());
+            if (urlClientesActual) {
+                setUrlCliente(urlClientesActual);
+                localStorage.setItem('negocioUrlClientes', urlClientesActual);
             }
         } catch (error) {
             console.error('Error cargando config:', error);

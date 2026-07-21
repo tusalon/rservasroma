@@ -315,16 +315,28 @@ window.getRequiereAnticipo = async function() {
     const c = await window.cargarConfiguracionNegocio();
     return c?.requiere_anticipo || false;
 };
+function construirUrlClientesNegocio(config = null) {
+    const slug = (
+        window._rservasSlugActual ||
+        config?.slug ||
+        localStorage.getItem('adminSlug') ||
+        localStorage.getItem('negocioSlug') ||
+        ''
+    ).toLowerCase().trim();
+
+    if (slug) return 'https://tusalon.github.io/rservasroma/?s=' + encodeURIComponent(slug);
+    return config?.url_clientes || '';
+}
+window.construirUrlClientesNegocio = construirUrlClientesNegocio;
+
 window.getUrlClientes = async function() {
     const c = await window.cargarConfiguracionNegocio();
-    const slug = window._rservasSlugActual || localStorage.getItem('negocioSlug') || '';
     // Sin url_clientes en la BD, el enlace se arma contra la app maestra
     // (/rservasroma/?s=slug). El fallback anterior apuntaba a una carpeta
     // propia por salón (/slug/), que es una copia aparte y no recibe las
     // mejoras de la app; los salones nuevos terminaban compartiendo ese
     // formato en vez del de la app maestra.
-    return c?.url_clientes ||
-           (slug ? 'https://tusalon.github.io/rservasroma/?s=' + slug : '');
+    return construirUrlClientesNegocio(c);
 };
 window.negocioConfigurado = async function() {
     const c = await window.cargarConfiguracionNegocio();
