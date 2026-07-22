@@ -3389,6 +3389,15 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
         const ticketPromedio = estados.Completado > 0 ? cobroReal / estados.Completado : 0;
         const totalCitas = citasVisuales.length;
 
+        // Valoración de la experiencia de reserva (estrellas que deja la clienta
+        // en la pantalla de confirmación). Se promedia sobre las reservas del
+        // periodo que tengan valoración.
+        const reservasValoradas = reservasPeriodo.filter(reserva => Number(reserva.valoracion) > 0);
+        const valoracionesCount = reservasValoradas.length;
+        const valoracionPromedio = valoracionesCount
+            ? reservasValoradas.reduce((total, reserva) => total + Number(reserva.valoracion), 0) / valoracionesCount
+            : 0;
+
         return {
             rango,
             reservasPeriodo,
@@ -3400,6 +3409,8 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
             ingresoEstimado,
             diferenciaCobro: cobroReal - ingresoEstimado,
             ticketPromedio,
+            valoracionPromedio,
+            valoracionesCount,
             citasSinCobro,
             tasaCompletadas: totalCitas ? Math.round((estados.Completado / totalCitas) * 100) : 0,
             tasaCanceladas: totalCitas ? Math.round((estados.Cancelado / totalCitas) * 100) : 0,
@@ -3418,6 +3429,9 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
             t('Cobro real: {monto}', { monto: formatMoneyEstadistica(stats.cobroReal) }),
             t('Ingreso estimado: {monto}', { monto: formatMoneyEstadistica(stats.ingresoEstimado) }),
             t('Ticket promedio: {monto}', { monto: formatMoneyEstadistica(stats.ticketPromedio) }),
+            stats.valoracionesCount
+                ? t('Valoracion de reserva: {promedio}/5 ({n} valoraciones)', { promedio: stats.valoracionPromedio.toFixed(1), n: stats.valoracionesCount })
+                : t('Valoracion de reserva: sin datos'),
             '',
             t('Citas: {n}', { n: stats.totalCitas }),
             t('Completadas: {n}', { n: stats.estados.Completado }),
@@ -3487,7 +3501,8 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
             { label: t('Completadas'), value: stats.estados.Completado, tone: 'text-blue-700 bg-blue-50 border-blue-100' },
             { label: t('Canceladas'), value: stats.estados.Cancelado, tone: 'text-red-700 bg-red-50 border-red-100' },
             { label: t('Ausentes'), value: stats.estados.Ausente, tone: 'text-slate-700 bg-slate-50 border-slate-100' },
-            { label: t('Sin cobro'), value: stats.citasSinCobro, tone: 'text-amber-700 bg-amber-50 border-amber-100' }
+            { label: t('Sin cobro'), value: stats.citasSinCobro, tone: 'text-amber-700 bg-amber-50 border-amber-100' },
+            { label: t('Valoracion'), value: stats.valoracionesCount ? `⭐ ${stats.valoracionPromedio.toFixed(1)} (${stats.valoracionesCount})` : t('Sin datos'), tone: 'text-yellow-700 bg-yellow-50 border-yellow-100' }
         ];
 
         return (
@@ -3540,7 +3555,8 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                                 [t('Completadas'), `${stats.estados.Completado} (${stats.tasaCompletadas}%)`],
                                 [t('Canceladas'), `${stats.estados.Cancelado} (${stats.tasaCanceladas}%)`],
                                 [t('Ausentes'), `${stats.estados.Ausente} (${stats.tasaAusentes}%)`],
-                                [t('Ticket promedio real'), formatMoneyEstadistica(stats.ticketPromedio)]
+                                [t('Ticket promedio real'), formatMoneyEstadistica(stats.ticketPromedio)],
+                                [t('Valoracion de reserva'), stats.valoracionesCount ? `⭐ ${stats.valoracionPromedio.toFixed(1)} / 5 (${stats.valoracionesCount})` : t('Sin datos')]
                             ].map(([label, value]) => (
                                 <div key={label} className="flex justify-between gap-3 text-sm border-b border-gray-100 pb-2 last:border-b-0">
                                     <span className="text-gray-500">{label}</span>
@@ -4242,6 +4258,17 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                                     <div className="flex items-center justify-between p-4"><span className="font-semibold text-gray-800">{t('Total pendiente')}</span><span className="font-bold text-gray-900">{formatMoneyEstadistica(resumen.pendiente)}</span></div>
                                     <div className="flex items-center justify-between p-4"><span className="font-semibold text-gray-800">{t('Cobro real')}</span><span className="font-bold text-emerald-700">{resumen.cobroReal > 0 ? formatMoneyEstadistica(resumen.cobroReal) : t('Sin registrar')}</span></div>
                                 </div>
+
+                                {Number(agendaDetalleBooking.valoracion) > 0 && (
+                                    <div className="mt-5 rounded-xl border border-yellow-200 bg-yellow-50 p-4">
+                                        <p className="text-xs font-bold uppercase text-yellow-600 mb-1">{t('Valoracion de la clienta')}</p>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-2xl leading-none">{'⭐'.repeat(Number(agendaDetalleBooking.valoracion))}</span>
+                                            <span className="font-bold text-gray-900">{Number(agendaDetalleBooking.valoracion)}/5</span>
+                                        </div>
+                                        <p className="text-xs text-gray-500 mt-1">{t('Sobre la experiencia de reservar en la app')}</p>
+                                    </div>
+                                )}
 
                                 {serviciosDetalle.length > 1 && (
                                     <div className="mt-5 rounded-xl border border-pink-100 bg-pink-50 p-4">
