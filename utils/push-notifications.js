@@ -428,15 +428,18 @@ async function refrescarSuscripcionPushActual() {
 
 // ─── Detección de contexto para mostrar la card correcta ─────────────────────
 function getPushContext() {
-    const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+    const userAgent = navigator.userAgent || '';
+    const isIOS = /iPhone|iPad|iPod/i.test(userAgent);
+    const isAndroid = /Android/i.test(userAgent);
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
-    const isNative = Boolean(window.Capacitor?.isNativePlatform?.());
+    const nativePlatform = window.Capacitor?.getPlatform?.() || '';
+    const isNative = Boolean(window.Capacitor?.isNativePlatform?.()) || nativePlatform === 'android' || nativePlatform === 'ios';
     const permiso = 'Notification' in window ? Notification.permission : 'unsupported';
     const suscritoWeb = localStorage.getItem('rservasPushActivo') === 'true';
     const suscritoNativo = typeof window.nativePushActivoParaContexto === 'function'
         ? window.nativePushActivoParaContexto()
         : localStorage.getItem('rservasNativePushActivo') === 'true';
-    return { isIOS, isStandalone, isNative, permiso, suscritoWeb, suscritoNativo };
+    return { isIOS, isAndroid, isStandalone, isNative, nativePlatform, permiso, suscritoWeb, suscritoNativo };
 }
 
 function mostrarToastPush(mensaje, tipo = 'ok') {
@@ -803,6 +806,13 @@ function instalarCardPushAdmin() {
     if (ctx.isNative && ctx.suscritoNativo) return;
     if (!ctx.isNative && ctx.suscritoWeb && ctx.permiso === 'granted') return;
 
+    // Las WebViews nativas no exponen la API web Notification. Eso no significa
+    // que sean incompatibles: Android/iOS usan el plugin FCM/APNs de Capacitor.
+    if (ctx.isNative) {
+        _mostrarCardPermisoNormal();
+        return;
+    }
+
     // iOS sin standalone → mostrar instrucciones de "Añadir a inicio"
     if (ctx.isIOS && !ctx.isStandalone) {
         _mostrarCardIOSInstrucciones();
@@ -813,7 +823,7 @@ function instalarCardPushAdmin() {
     // anterior a 16.4, donde Apple agregó push para apps instaladas): no hay
     // nada que "activar" — mostrar por qué en vez de un botón que nunca funciona.
     if (ctx.permiso === 'unsupported') {
-        _mostrarCardNoSoportado();
+        _mostrarCardNoSoportado(ctx);
         return;
     }
 
@@ -896,12 +906,16 @@ function _mostrarCardPermisoNormal() {
             card.style.transform = 'translateX(-50%) translateY(120px)';
             setTimeout(() => card.remove(), 400);
             mostrarToastPush('✅ Notificaciones activadas');
+        } else if (ctx.isNative) {
+            this.disabled = false;
+            this.textContent = 'Activar notificaciones';
+            mostrarToastPush('No se pudo activar el canal nativo. Cierra y vuelve a abrir la APK.', 'error');
         } else if (permisoActual === 'denied') {
             card.remove();
             _mostrarCardBloqueado();
         } else if (permisoActual === 'unsupported') {
             card.remove();
-            _mostrarCardNoSoportado();
+            _mostrarCardNoSoportado(ctx);
         } else {
             this.disabled = false;
             this.textContent = 'Activar notificaciones';
@@ -928,18 +942,24 @@ function _mostrarCardBloqueado() {
     document.getElementById('rservas-push-cerrar').onclick = () => _cerrarCard(card);
 }
 
-function _mostrarCardNoSoportado() {
+function _mostrarCardNoSoportado(ctx = getPushContext()) {
     const card = _crearCardBase();
+    const esIOS = ctx.isIOS;
+    const titulo = esIOS
+        ? 'Tu iPhone no puede recibir notificaciones'
+        : 'Este navegador no admite notificaciones';
+    const detalle = esIOS
+        ? 'Apple agregó esta función a partir de <strong style="color:#d1d5db">iOS 16.4</strong>. Actualiza tu iPhone en Ajustes → General → Actualización de Software.'
+        : 'Abre el enlace con Chrome actualizado o utiliza la APK de Rservasroma.';
     card.innerHTML = `
         <button id="rservas-push-cerrar" style="${CERRAR_BTN_STYLE}">✕</button>
         <div style="font-size:28px;flex-shrink:0;line-height:1">⚠️</div>
         <div style="flex:1;min-width:0">
             <div style="color:#fff;font-size:15px;font-weight:700;margin-bottom:4px">
-                Tu iPhone no puede recibir notificaciones
+                ${titulo}
             </div>
             <div style="color:#9ca3af;font-size:13px;line-height:1.5">
-                Apple agregó esta función a partir de <strong style="color:#d1d5db">iOS 16.4</strong>.
-                Actualiza tu iPhone en Ajustes → General → Actualización de Software.
+                ${detalle}
             </div>
         </div>
     `;
