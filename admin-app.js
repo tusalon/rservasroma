@@ -2872,6 +2872,9 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
             monto_cobrado: montoCobradoTotal || primera.monto_cobrado,
             notas_cobro: notasCobro || primera.notas_cobro,
             cobro_registrado_at: ordenadas.find(b => b.cobro_registrado_at)?.cobro_registrado_at || primera.cobro_registrado_at,
+            // La clienta valora una sola vez el combo: la estrella queda en el
+            // primer tramo, pero se busca en todo el grupo por si acaso.
+            valoracion: ordenadas.find(b => Number(b.valoracion) > 0)?.valoracion ?? primera.valoracion,
             estado: primera.estado
         };
     };
@@ -4823,7 +4826,10 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                                                 >
                                                     <div className="flex h-full flex-col gap-1">
                                                         <div className="min-w-0">
-                                                            <p className="text-[11px] font-bold leading-tight opacity-90">{formatTo12Hour(booking.hora_inicio)} - {formatTo12Hour(booking.hora_fin || calculateEndTime(booking.hora_inicio, booking.duracion || 60))}</p>
+                                                            <p className="text-[11px] font-bold leading-tight opacity-90">
+                                                                {formatTo12Hour(booking.hora_inicio)} - {formatTo12Hour(booking.hora_fin || calculateEndTime(booking.hora_inicio, booking.duracion || 60))}
+                                                                {Number(booking.valoracion) > 0 && <span className="ml-1" title={t('Valoracion de la clienta')}>⭐{Number(booking.valoracion)}</span>}
+                                                            </p>
                                                             {!isShort && <p className="text-sm font-bold truncate">{booking.cliente_nombre}</p>}
                                                             {!isShort && <p className="text-xs truncate opacity-90">{booking._grupoVisual ? `${booking._reservasGrupo.length} servicios - ${booking.servicio}` : booking.servicio}</p>}
                                                             {!isShort && <p className="text-[11px] truncate opacity-80">{booking.profesional_nombre || booking.trabajador_nombre || t('Sin profesional')}</p>}
@@ -4898,7 +4904,10 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                                                         >
                                                             <div className="flex h-full flex-col gap-1">
                                                                 <div className="min-w-0">
-                                                                    <p className="text-xs font-bold leading-tight">{formatTo12Hour(booking.hora_inicio)} - {formatTo12Hour(booking.hora_fin || calculateEndTime(booking.hora_inicio, booking.duracion || 60))}</p>
+                                                                    <p className="text-xs font-bold leading-tight">
+                                                                        {formatTo12Hour(booking.hora_inicio)} - {formatTo12Hour(booking.hora_fin || calculateEndTime(booking.hora_inicio, booking.duracion || 60))}
+                                                                        {Number(booking.valoracion) > 0 && <span className="ml-1" title={t('Valoracion de la clienta')}>⭐{Number(booking.valoracion)}</span>}
+                                                                    </p>
                                                                     {!isShort && <p className="font-bold text-sm truncate">{booking.cliente_nombre}</p>}
                                                                     {!isShort && <p className="text-xs truncate opacity-90">{booking._grupoVisual ? `${booking._reservasGrupo.length} servicios - ${booking.servicio}` : booking.servicio}</p>}
                                                                     {!isShort && <p className="text-xs truncate opacity-80">{booking.profesional_nombre || booking.trabajador_nombre || 'Sin profesional'}</p>}
@@ -5097,8 +5106,15 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                                                 )}
                                             </div>
                                             <div className="flex justify-between items-center mt-3 pt-2 border-t">
-                                                <span className={`px-2 py-1 rounded-full text-xs font-semibold ${b.estado === 'Reservado' ? 'bg-pink-100 text-pink-700' : b.estado === 'Pendiente' ? 'bg-yellow-100 text-yellow-700' : b.estado === 'Completado' ? 'bg-green-100 text-green-700' : b.estado === 'Ausente' ? 'bg-slate-100 text-slate-700' : 'bg-red-100 text-red-700'}`}>
-                                                    {t(b.estado)}
+                                                <span className="flex items-center gap-2">
+                                                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${b.estado === 'Reservado' ? 'bg-pink-100 text-pink-700' : b.estado === 'Pendiente' ? 'bg-yellow-100 text-yellow-700' : b.estado === 'Completado' ? 'bg-green-100 text-green-700' : b.estado === 'Ausente' ? 'bg-slate-100 text-slate-700' : 'bg-red-100 text-red-700'}`}>
+                                                        {t(b.estado)}
+                                                    </span>
+                                                    {Number(b.valoracion) > 0 && (
+                                                        <span className="px-2 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700 whitespace-nowrap" title={t('Valoracion de la clienta')}>
+                                                            ⭐ {Number(b.valoracion)}
+                                                        </span>
+                                                    )}
                                                 </span>
                                                 <div className="flex flex-wrap justify-end gap-2">
                                                     {puedeEditarReserva(b) && (b.estado === 'Pendiente' || b.estado === 'Reservado') && (
