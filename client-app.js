@@ -324,11 +324,12 @@ function ClientApp() {
             
             case 'welcome':
                 return (
-                    <WelcomeScreen 
+                    <WelcomeScreen
                         onStart={handleStartBooking}
                         onGoBack={goBack}
                         cliente={cliente}
                         userRol={userRol}
+                        onMisReservas={goToMyBookings}
                     />
                 );
             

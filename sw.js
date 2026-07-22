@@ -1,6 +1,6 @@
 // sw.js - Service Worker para Rservasroma
 
-const CACHE_NAME = 'rservasroma-v52';
+const CACHE_NAME = 'rservasroma-v53';
 const BASE = '/rservasroma';
 
 const urlsToCache = [
@@ -16,7 +16,7 @@ const urlsToCache = [
   `${BASE}/manifest.json`,
 
   // App principal
-  `${BASE}/client-app.js?v=20260721-cliente-multinegocio`,
+  `${BASE}/client-app.js?v=20260722-mejora-cliente`,
   `${BASE}/admin-app.js?v=20260721-admin-push-v2`,
 
   // Utils
@@ -44,10 +44,10 @@ const urlsToCache = [
   `${BASE}/utils/legacy-ios-fallback.css`,
 
   // Componentes cliente
-  `${BASE}/components/BookingForm.js`,
+  `${BASE}/components/BookingForm.js?v=20260722-mejora-cliente`,
   `${BASE}/components/Calendar.js`,
   `${BASE}/components/ClientAuthScreen.js?v=20260721-cliente-multinegocio`,
-  `${BASE}/components/Confirmation.js`,
+  `${BASE}/components/Confirmation.js?v=20260722-mejora-cliente`,
   `${BASE}/components/Header.js`,
   `${BASE}/components/InstallButton.js`,
   `${BASE}/components/MultiProfesionalSelector.js`,
@@ -56,7 +56,7 @@ const urlsToCache = [
   `${BASE}/components/ProfesionalSelector.js`,
   `${BASE}/components/ServiceSelectionCategorias.js`,
   `${BASE}/components/TimeSlots.js`,
-  `${BASE}/components/WelcomeScreen.js?v=20260721-client-native`,
+  `${BASE}/components/WelcomeScreen.js?v=20260722-mejora-cliente`,
   `${BASE}/components/WhatsAppButton.js`,
 
   // Componentes admin

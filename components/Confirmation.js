@@ -3,8 +3,11 @@
 function Confirmation({ booking, onReset }) {
     window.useIdioma();
     const t = window.t;
-    const [telefonoDuenno, setTelefonoDuenno] = React.useState('55002272');
-    const [nombreNegocio, setNombreNegocio] = React.useState('Negocio de Prueba');
+    // Sin defaults de prueba: si la config tarda o falla, no mostramos un
+    // número/nombre inventado a la clienta (antes se veía "Negocio de Prueba"
+    // y "+55002272" como contacto real).
+    const [telefonoDuenno, setTelefonoDuenno] = React.useState('');
+    const [nombreNegocio, setNombreNegocio] = React.useState('');
     const [estrellas, setEstrellas] = React.useState(0);
     const [valoracionEnviada, setValoracionEnviada] = React.useState(false);
     const [hoverEstrella, setHoverEstrella] = React.useState(0);
@@ -29,7 +32,24 @@ function Confirmation({ booking, onReset }) {
     const enviarValoracion = (n) => {
         setEstrellas(n);
         setValoracionEnviada(true);
-        if (booking?.id) localStorage.setItem(`val_${booking.id}`, String(n));
+        if (!booking?.id) return;
+        // Guarda local (evita volver a pedir la valoración de esta reserva)...
+        localStorage.setItem(`val_${booking.id}`, String(n));
+        // ...y la persiste en la reserva para que el salón realmente la vea.
+        // Antes la valoración solo vivía en localStorage y nunca llegaba al negocio.
+        // Si la columna aún no existe (falta correr la migración), el PATCH falla
+        // en silencio y la UI sigue funcionando igual.
+        try {
+            fetch(`${window.SUPABASE_URL}/rest/v1/reservas?id=eq.${encodeURIComponent(booking.id)}`, {
+                method: 'PATCH',
+                headers: {
+                    apikey: window.SUPABASE_ANON_KEY,
+                    Authorization: `Bearer ${window.SUPABASE_ANON_KEY}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ valoracion: n, valoracion_at: new Date().toISOString() })
+            }).catch(() => {});
+        } catch (e) {}
     };
 
     // ⚡ ELIMINADO: useEffect con setTimeout que causaba problemas en iOS
@@ -216,10 +236,12 @@ function Confirmation({ booking, onReset }) {
                     <span>💅</span>
                 </button>
 
-                <div className="text-sm text-pink-600 bg-white/80 backdrop-blur-sm p-4 rounded-lg flex items-center justify-center gap-2 border border-pink-300">
-                   <span className="text-pink-500 text-xl">📱</span>
-                   <span>{t('Contacto:')} {telefonoContacto}</span>
-                </div>
+                {telefonoDuenno && (
+                    <div className="text-sm text-pink-600 bg-white/80 backdrop-blur-sm p-4 rounded-lg flex items-center justify-center gap-2 border border-pink-300">
+                       <span className="text-pink-500 text-xl">📱</span>
+                       <span>{t('Contacto:')} {telefonoContacto}</span>
+                    </div>
+                )}
             </div>
         </div>
     );

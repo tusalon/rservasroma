@@ -1,6 +1,6 @@
 // components/WelcomeScreen.js - Versión con REDES SOCIALES (CORREGIDA - SIN DESBORDAMIENTO)
 
-function WelcomeScreen({ onStart, onGoBack, cliente, userRol }) {
+function WelcomeScreen({ onStart, onGoBack, cliente, userRol, onMisReservas }) {
     window.useIdioma();
     const t = window.t;
     const [config, setConfig] = React.useState(null);
@@ -357,6 +357,17 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol }) {
                             <span>{t('Reservar Turno')}</span>
                             <span>✨</span>
                         </button>
+
+                        {/* Acceso directo a Mis Reservas: una clienta que vuelve
+                            solo para ver/cancelar/reprogramar ya no tiene que entrar
+                            al flujo de reserva para llegar aquí. */}
+                        {cliente && onMisReservas && (
+                            <button onClick={onMisReservas}
+                                className="w-full text-white/90 font-medium py-2.5 rounded-full border border-white/30 hover:bg-white/10 transition flex items-center justify-center gap-2">
+                                <i className="icon-calendar"></i>
+                                <span>{t('Mis Reservas')}</span>
+                            </button>
+                        )}
 
                         {/* Horario */}
                         {config?.horario_atencion && (
