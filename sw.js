@@ -1,6 +1,6 @@
 // sw.js - Service Worker para Rservasroma
 
-const CACHE_NAME = 'rservasroma-v48';
+const CACHE_NAME = 'rservasroma-v49';
 const BASE = '/rservasroma';
 
 const urlsToCache = [
@@ -26,14 +26,14 @@ const urlsToCache = [
   `${BASE}/utils/config.js`,
   `${BASE}/utils/dias-cerrados.js`,
   `${BASE}/utils/hero-backgrounds.js`,
-  `${BASE}/utils/native-push-notifications.js?v=20260721-admin-push-v2`,
+  `${BASE}/utils/native-push-notifications.js?v=20260721-client-push-v3`,
   `${BASE}/utils/offline-panel.js`,
-  `${BASE}/utils/config-negocio-master.js?v=20260721-url-clientes-slug`,
+  `${BASE}/utils/config-negocio-master.js?v=20260721-pwa-slug-v3`,
   `${BASE}/utils/i18n.js`,
   `${BASE}/utils/phone-utils.js`,
   `${BASE}/utils/profesionales.js`,
   `${BASE}/utils/push-config.js?v=20260717-push-activo`,
-  `${BASE}/utils/push-notifications.js?v=20260721-admin-push-v2`,
+  `${BASE}/utils/push-notifications.js?v=20260721-client-push-v3`,
   `${BASE}/utils/servicios.js`,
   `${BASE}/utils/storage.js`,
   `${BASE}/utils/suscripcion.js?v=20260721-fecha-local`,
@@ -185,7 +185,7 @@ self.addEventListener('fetch', event => {
       ];
     }
     event.respondWith(new Response(JSON.stringify(manifest), {
-      headers: { 'Content-Type': 'application/manifest+json', 'Cache-Control': 'no-cache' }
+      headers: { 'Content-Type': 'application/manifest+json', 'Cache-Control': 'no-store' }
     }));
     return;
   }

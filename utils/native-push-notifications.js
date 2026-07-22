@@ -177,7 +177,8 @@ async function guardarTokenNativePush(token, role, profesionalId, clienteWhatsap
             });
 
             if (!response.ok) {
-                console.warn('No se pudo actualizar el token duplicado; se marca activo porque el endpoint ya existe.', await response.text());
+                const updateError = await response.text();
+                throw new Error(`No se pudo actualizar el token duplicado: ${updateError}`);
             }
 
             marcarNativePushActivo(token, role, profesionalId, clienteWhatsapp, negocioId);
@@ -282,6 +283,10 @@ async function instalarRecepcionNativePush() {
 }
 
 window.solicitarNativePushRservasRoma = async function(options = {}) {
+    if (window.__rservasNativePushActivacion) {
+        return window.__rservasNativePushActivacion;
+    }
+
     const role = options.role || getRolNativePush(options.defaultRole || 'admin');
     const profesionalId = options.profesionalId || options.profesional_id || getProfesionalIdNativePush();
     const clienteWhatsapp = options.clienteWhatsapp || options.cliente_whatsapp || window.getClienteWhatsappPushActual?.() || null;
@@ -294,7 +299,7 @@ window.solicitarNativePushRservasRoma = async function(options = {}) {
         return false;
     }
 
-    return new Promise(async (resolve) => {
+    const activacion = new Promise(async (resolve) => {
         let finished = false;
         const finish = (ok) => { if (finished) return; finished = true; resolve(ok); };
 
@@ -310,44 +315,86 @@ window.solicitarNativePushRservasRoma = async function(options = {}) {
             await configurarListenersNativePush(PushNotifications, async (token) => {
                 try {
                     await guardarTokenNativePush(token.value, role, profesionalId, clienteWhatsapp);
-                    mostrarToastNativo('✅ Notificaciones activadas');
-                    finish(true);
+                    if (!finished) {
+                        mostrarToastNativo('✅ Notificaciones activadas');
+                        finish(true);
+                    }
                 } catch (error) {
                     console.error('No se pudo guardar token nativo:', error);
-                    mostrarToastNativo(error.message || 'No se pudo guardar el token.', 'error');
-                    finish(false);
+                    if (!finished) {
+                        mostrarToastNativo(error.message || 'No se pudo guardar el token.', 'error');
+                        finish(false);
+                    }
                 }
             }, (error) => {
                 console.error('Error registrando push nativo:', error);
-                mostrarToastNativo('Firebase no configurado en esta APK. Descarga la versión actualizada.', 'error');
-                finish(false);
+                if (!finished) {
+                    mostrarToastNativo('Firebase no configurado en esta APK. Descarga la versión actualizada.', 'error');
+                    finish(false);
+                }
             });
 
             await PushNotifications.register();
+
+            // Si Android ya habia entregado un token en una activacion anterior,
+            // reintentar el alta de inmediato mientras Firebase refresca el token.
+            const tokenGuardado = localStorage.getItem('rservasNativePushToken');
+            if (tokenGuardado) {
+                try {
+                    await guardarTokenNativePush(tokenGuardado, role, profesionalId, clienteWhatsapp);
+                    if (!finished) {
+                        mostrarToastNativo('✅ Notificaciones activadas');
+                        finish(true);
+                    }
+                } catch (error) {
+                    console.warn('El token guardado no se pudo reactivar; esperando uno nuevo:', error.message);
+                }
+            }
 
             setTimeout(() => {
                 if (!finished) {
                     mostrarToastNativo('No se recibió token. Verifica que Firebase esté configurado.', 'error');
                     finish(false);
                 }
-            }, 12000);
+            }, 30000);
         } catch (error) {
             console.error('Error solicitando push nativo:', error);
             mostrarToastNativo(error.message || 'No se pudo activar las notificaciones.', 'error');
             finish(false);
         }
     });
+
+    window.__rservasNativePushActivacion = activacion;
+    try {
+        return await activacion;
+    } finally {
+        if (window.__rservasNativePushActivacion === activacion) {
+            window.__rservasNativePushActivacion = null;
+        }
+    }
 };
 
 async function refrescarTokenNativePushActual() {
     try {
         if (!isRservasNativeApp()) return;
-        if (!localStorage.getItem('adminAuth') && !localStorage.getItem('profesionalAuth')) return;
+        if (!window._negocioIdResuelto && window._negocioResolvePromise) {
+            await window._negocioResolvePromise;
+        }
         const token = localStorage.getItem('rservasNativePushToken');
         if (!token) return;
-        const role = getRolNativePush('admin');
-        const profesionalId = getProfesionalIdNativePush();
-        await guardarTokenNativePush(token, role, profesionalId);
+
+        const esStaff = Boolean(localStorage.getItem('adminAuth') || localStorage.getItem('profesionalAuth'));
+        if (esStaff) {
+            const role = getRolNativePush('admin');
+            const profesionalId = getProfesionalIdNativePush();
+            await guardarTokenNativePush(token, role, profesionalId);
+            return;
+        }
+
+        const clienteWhatsapp = window.getClienteWhatsappPushActual?.() || '';
+        if (clienteWhatsapp) {
+            await guardarTokenNativePush(token, 'cliente', null, clienteWhatsapp);
+        }
     } catch (error) {
         console.warn('No se pudo refrescar el token nativo:', error.message);
     }

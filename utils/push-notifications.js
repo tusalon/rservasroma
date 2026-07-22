@@ -391,17 +391,29 @@ window.enviarWebPushRservasRoma = async function({ title, body, url = '', role =
 async function refrescarSuscripcionPushActual() {
     try {
         if (!pushKeyConfigurada()) return;
-        if (!localStorage.getItem('adminAuth') && !localStorage.getItem('profesionalAuth')) return;
         if (!('Notification' in window) || Notification.permission !== 'granted') return;
         if (!('PushManager' in window) || !('serviceWorker' in navigator)) return;
+        if (!window._negocioIdResuelto && window._negocioResolvePromise) {
+            await window._negocioResolvePromise;
+        }
 
         const registration = await getRegistroServiceWorkerPush();
         const subscription = await registration?.pushManager?.getSubscription?.();
         if (!subscription) return;
 
-        const role = getRolPush('admin');
-        const profesionalId = getProfesionalIdPush();
-        await guardarSuscripcionPush(subscription.toJSON ? subscription.toJSON() : subscription, role, null, profesionalId);
+        const serializada = subscription.toJSON ? subscription.toJSON() : subscription;
+        const esStaff = Boolean(localStorage.getItem('adminAuth') || localStorage.getItem('profesionalAuth'));
+        if (esStaff) {
+            const role = getRolPush('admin');
+            const profesionalId = getProfesionalIdPush();
+            await guardarSuscripcionPush(serializada, role, null, profesionalId);
+            return;
+        }
+
+        const clienteWhatsapp = getClienteWhatsappPushActual();
+        if (clienteWhatsapp) {
+            await guardarSuscripcionPush(serializada, 'cliente', clienteWhatsapp, null);
+        }
     } catch (error) {
         console.warn('[Push] No se pudo refrescar la suscripcion actual:', error.message);
     }

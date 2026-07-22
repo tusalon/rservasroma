@@ -37,6 +37,29 @@ console.log('🌐 config-negocio-master.js cargado');
     console.log('🔍 Slug detectado:', window._rservasSlugActual || '(ninguno — modo admin o raíz)');
 })();
 
+function getNombreNegocioGuardadoPorSlug(slug = window._rservasSlugActual) {
+    const actual = String(slug || '').toLowerCase().trim();
+    if (!actual) return '';
+    try {
+        const scoped = localStorage.getItem('negocioNombre:' + actual) || '';
+        if (scoped) return scoped;
+        const slugGuardado = String(localStorage.getItem('negocioSlug') || '').toLowerCase().trim();
+        return slugGuardado === actual ? (localStorage.getItem('negocioNombre') || '') : '';
+    } catch (error) {
+        return '';
+    }
+}
+
+function guardarNombreNegocioPorSlug(slug, nombre) {
+    const actual = String(slug || '').toLowerCase().trim();
+    const valor = String(nombre || '').trim();
+    if (!actual || !valor) return;
+    localStorage.setItem('negocioNombre:' + actual, valor);
+    localStorage.setItem('negocioNombre', valor);
+}
+
+window.getNombreNegocioGuardadoPorSlug = getNombreNegocioGuardadoPorSlug;
+
 // ============================================================
 // 2. RESOLUCIÓN SINCRÓNICA DEL NEGOCIO_ID
 //    Admin: lee localStorage (seteado por admin-login.html)
@@ -98,6 +121,7 @@ console.log('🌐 config-negocio-master.js cargado');
             localStorage.setItem(CACHE_ID_KEY, id);
             localStorage.setItem(CACHE_TTL_KEY, String(Date.now()));
             localStorage.setItem('negocioSlug', negocio.slug);
+            guardarNombreNegocioPorSlug(negocio.slug, negocio.nombre);
             window.NEGOCIO_ID_POR_DEFECTO = id;
             window._negocioIdResuelto = true;
             console.log('✅ [cliente] negocio_id resuelto:', id, '—', negocio.nombre);
@@ -223,6 +247,7 @@ window.cargarConfiguracionNegocio = async function(forceRefresh = false) {
     if (!forceRefresh && configCache && (Date.now() - ultimaActualizacion) < CACHE_DURATION) {
         console.log('📦 Usando caché de configuración');
         aplicarTemaNegocio(configCache);
+        window.actualizarManifestPWA?.(configCache);
         return configCache;
     }
 
@@ -255,6 +280,11 @@ window.cargarConfiguracionNegocio = async function(forceRefresh = false) {
                 window.setCodigoPaisTelefono(configCache.codigo_pais || configCache.codigo_pais_telefono || '53');
             }
             aplicarTemaNegocio(configCache);
+            if (window._rservasSlugActual) {
+                localStorage.setItem('negocioSlug', window._rservasSlugActual);
+                guardarNombreNegocioPorSlug(window._rservasSlugActual, configCache.nombre);
+                window.actualizarManifestPWA?.(configCache);
+            }
             console.log('✅ Config cargada:', configCache.nombre);
             // Actualizar localStorage del admin con el ID confirmado
             if (!localStorage.getItem('negocioId')) {
@@ -383,6 +413,7 @@ window.actualizarManifestPWA = function(config) {
     const startUrl = window.location.origin + window.location.pathname + '?s=' + slug;
 
     const manifestData = {
+        id: startUrl,
         name: nombre,
         short_name: shortName,
         description: 'Reserva tu turno en ' + nombre,
@@ -414,10 +445,19 @@ window.actualizarManifestPWA = function(config) {
             link.rel = 'manifest';
             document.head.appendChild(link);
         }
+        const anterior = window.__rservasManifestBlobUrl;
         link.href = url;
+        link.dataset.negocioSlug = slug;
+        window.__rservasManifestBlobUrl = url;
+        if (anterior) setTimeout(() => URL.revokeObjectURL(anterior), 1000);
         const themeMeta = document.querySelector('meta[name="theme-color"]');
         if (themeMeta) themeMeta.setAttribute('content', color);
-        if (nombre) document.title = nombre + ' - Reserva de Turnos';
+        if (nombre) {
+            guardarNombreNegocioPorSlug(slug, nombre);
+            document.title = nombre + ' - Reserva de Turnos';
+            document.querySelector('meta[name="apple-mobile-web-app-title"]')?.setAttribute('content', shortName);
+        }
+        window.dispatchEvent(new CustomEvent('rservas-manifest-ready', { detail: { slug, nombre } }));
         console.log('📱 Manifest PWA actualizado para:', nombre);
     } catch (e) {
         console.warn('⚠️ No se pudo actualizar el manifest:', e);
