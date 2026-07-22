@@ -28,18 +28,9 @@
   </style>
 </head>
 <body>
-  <script>
-    // Si mientras tanto ya hay un salón guardado (p. ej. la clienta tocó su
-    // enlace en otra pestaña de la app), volver a la app del salón.
-    try {
-      var slugGuardado = localStorage.getItem('negocioSlug');
-      if (slugGuardado) {
-        window.location.replace('./?s=' + encodeURIComponent(slugGuardado));
-      }
-    } catch (e) {}
-  </script>
   <img class="logo" src="icons/icon-192x192.png" alt="Rservasroma">
-  <h1>Rservasroma</h1>
-  <p>Pide a tu salón el enlace de reservas y ábrelo desde WhatsApp para ver tu perfil aquí.</p>
+  <h1>Esperando enlace</h1>
+  <p>Abre desde WhatsApp el enlace de reservas que te envió tu salón.</p>
+  <script src="utils/client-native-links.js?v=20260721-native-origin-v1"></script>
 </body>
 </html>

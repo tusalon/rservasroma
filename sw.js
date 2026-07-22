@@ -1,6 +1,6 @@
 // sw.js - Service Worker para Rservasroma
 
-const CACHE_NAME = 'rservasroma-v49';
+const CACHE_NAME = 'rservasroma-v50';
 const BASE = '/rservasroma';
 
 const urlsToCache = [
@@ -24,6 +24,7 @@ const urlsToCache = [
   `${BASE}/utils/auth-clients.js`,
   `${BASE}/utils/auth-profesionales.js`,
   `${BASE}/utils/config.js`,
+  `${BASE}/utils/client-native-links.js?v=20260721-native-origin-v1`,
   `${BASE}/utils/dias-cerrados.js`,
   `${BASE}/utils/hero-backgrounds.js`,
   `${BASE}/utils/native-push-notifications.js?v=20260721-client-push-v3`,
