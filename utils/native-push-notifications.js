@@ -306,7 +306,7 @@ window.solicitarNativePushRservasRoma = async function(options = {}) {
         try {
             const permission = await PushNotifications.requestPermissions();
             if (permission.receive !== 'granted') {
-                mostrarToastNativo('Permiso de notificaciones denegado por Android.', 'error');
+                mostrarToastNativo('Permiso de notificaciones denegado. Actívalo en los ajustes del teléfono → esta app → Notificaciones.', 'error');
                 finish(false);
                 return;
             }
@@ -329,7 +329,7 @@ window.solicitarNativePushRservasRoma = async function(options = {}) {
             }, (error) => {
                 console.error('Error registrando push nativo:', error);
                 if (!finished) {
-                    mostrarToastNativo('Firebase no configurado en esta APK. Descarga la versión actualizada.', 'error');
+                    mostrarToastNativo('No se pudo registrar el canal de notificaciones. Descarga la versión más reciente de la app.', 'error');
                     finish(false);
                 }
             });
@@ -338,8 +338,10 @@ window.solicitarNativePushRservasRoma = async function(options = {}) {
 
             // Si Android ya habia entregado un token en una activacion anterior,
             // reintentar el alta de inmediato mientras Firebase refresca el token.
+            // Solo si el listener 'registration' aún no completó: evita un
+            // upsert redundante cuando Android ya entregó el token nuevo.
             const tokenGuardado = localStorage.getItem('rservasNativePushToken');
-            if (tokenGuardado) {
+            if (tokenGuardado && !finished) {
                 try {
                     await guardarTokenNativePush(tokenGuardado, role, profesionalId, clienteWhatsapp);
                     if (!finished) {
@@ -353,7 +355,7 @@ window.solicitarNativePushRservasRoma = async function(options = {}) {
 
             setTimeout(() => {
                 if (!finished) {
-                    mostrarToastNativo('No se recibió token. Verifica que Firebase esté configurado.', 'error');
+                    mostrarToastNativo('No se pudo completar el registro de notificaciones. Descarga la versión más reciente de la app.', 'error');
                     finish(false);
                 }
             }, 30000);

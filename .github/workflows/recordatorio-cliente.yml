@@ -4,6 +4,12 @@ on:
   schedule:
     # 8 PM Cuba (UTC-4) = 00:00 UTC del dia siguiente -> recordatorio "de manana"
     - cron: '0 0 * * *'
+    # Respaldos del "de manana": los crons de GitHub Actions son best-effort y
+    # pueden retrasarse o saltarse. Sin respaldo, una sola corrida fallida deja
+    # a las clientas de manana sin aviso del dia antes. El flag
+    # push_recordatorio_dia_enviado evita duplicados si mas de una corre.
+    - cron: '30 0 * * *'
+    - cron: '0 1 * * *'
     # Cada 30 min -> recordatorio "1 hora antes"
     - cron: '*/30 * * * *'
   workflow_dispatch:
@@ -23,7 +29,7 @@ env:
 
 jobs:
   enviar-recordatorio-dia:
-    if: github.event.schedule == '0 0 * * *' || (github.event_name == 'workflow_dispatch' && github.event.inputs.tipo == 'dia')
+    if: github.event.schedule == '0 0 * * *' || github.event.schedule == '30 0 * * *' || github.event.schedule == '0 1 * * *' || (github.event_name == 'workflow_dispatch' && github.event.inputs.tipo == 'dia')
     runs-on: ubuntu-latest
     steps:
       - name: Enviar recordatorio "manana tienes cita"

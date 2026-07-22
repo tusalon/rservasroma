@@ -347,6 +347,18 @@ WhatsApp: ${espera.cliente_whatsapp}`;
             window.enviarWhatsApp(config.telefono, mensaje);
         }
 
+        // Push directo a la clienta en espera: antes solo se avisaba al admin y
+        // la entrada quedaba marcada como "notificada" sin que la clienta se
+        // enterara. Ahora recibe el aviso de que su turno se liberó.
+        if (window.enviarPushCliente && espera.cliente_whatsapp) {
+            const nombreNegocioEspera = config?.nombre || espera.negocio_nombre || 'Tu salón';
+            await window.enviarPushCliente({
+                whatsapp: espera.cliente_whatsapp,
+                title: `🔔 Se liberó un turno — ${nombreNegocioEspera}`,
+                body: `Hola ${espera.cliente_nombre || ''}! Se liberó el turno de ${espera.servicio || 'tu servicio'} el ${fecha} a las ${hora}. Reserva desde la app antes de que se ocupe.`,
+            }).catch(() => {});
+        }
+
         await fetch(
             `${window.SUPABASE_URL}/rest/v1/lista_espera?negocio_id=eq.${negocioId}&id=eq.${espera.id}`,
             {

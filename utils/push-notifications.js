@@ -626,9 +626,20 @@ function instalarIndicadorPushCliente() {
                     })();
 
                 if (result?.ok) {
-                    mostrarToastPush('✅ Notificaciones activadas');
+                    mostrarToastPush('✅ Recordatorios activados');
                 } else if (!native) {
-                    mostrarToastPush('No se pudo activar. Intenta de nuevo.', 'error');
+                    // En web, enrutar al mensaje correcto en vez de un toast genérico.
+                    const permisoActual = ('Notification' in window) ? Notification.permission : 'unsupported';
+                    const ctx = getPushContext();
+                    if (ctx.isIOS && !ctx.isStandalone) {
+                        _mostrarCardIOSInstruccionesCliente();
+                    } else if (permisoActual === 'denied') {
+                        _mostrarCardBloqueado(ctx);
+                    } else if (permisoActual === 'unsupported') {
+                        _mostrarCardNoSoportado(ctx);
+                    } else {
+                        mostrarToastPush('No se pudo activar. Intenta de nuevo.', 'error');
+                    }
                 }
             } catch (error) {
                 console.warn('[Push cliente] No se pudo activar desde campana:', error.message);
@@ -924,8 +935,13 @@ function _mostrarCardPermisoNormal() {
     });
 }
 
-function _mostrarCardBloqueado() {
+function _mostrarCardBloqueado(ctx = getPushContext()) {
     const card = _crearCardBase();
+    // Los pasos para desbloquear dependen de la plataforma: en iPhone (PWA) el
+    // permiso se gestiona en Ajustes de iOS, no en el menú de Chrome.
+    const pasos = ctx.isIOS
+        ? 'Ajustes de iOS → Notificaciones → busca esta app → activa <strong style="color:#d1d5db">Permitir notificaciones</strong>.'
+        : 'Chrome → ⋮ → Configuración → Configuración de sitios → <strong style="color:#d1d5db">Notificaciones</strong>.';
     card.innerHTML = `
         <button id="rservas-push-cerrar" style="${CERRAR_BTN_STYLE}">✕</button>
         <div style="font-size:28px;flex-shrink:0;line-height:1">🚫</div>
@@ -935,7 +951,7 @@ function _mostrarCardBloqueado() {
             </div>
             <div style="color:#9ca3af;font-size:13px;line-height:1.5">
                 Actívalas manualmente:<br>
-                <strong style="color:#d1d5db">Chrome → ⋮ → Configuración → Notificaciones del sitio</strong>
+                ${pasos}
             </div>
         </div>
     `;
@@ -985,11 +1001,123 @@ function _mostrarCardIOSInstrucciones() {
     document.getElementById('rservas-push-cerrar').onclick = () => _cerrarCard(card);
 }
 
+// ─── Card de activación para CLIENTAS ────────────────────────────────────────
+// Antes las clientas solo veían la campanita, sin ninguna guía: en iOS sin
+// instalar ni siquiera aparecía, dejándolas sin vía ni mensaje. Esta card
+// espeja la de staff pero con copy de clienta y activa push rol 'cliente'.
+
+// La clienta descarta con su propia llave para no chocar con la card de staff.
+function _cerrarCardCliente(card) {
+    card.style.transform = 'translateX(-50%) translateY(120px)';
+    setTimeout(() => card.remove(), 400);
+    localStorage.setItem('rservasPushCardClienteDismissed', 'true');
+}
+
+function _mostrarCardIOSInstruccionesCliente() {
+    const card = _crearCardBase();
+    card.innerHTML = `
+        <button id="rservas-push-cerrar" style="${CERRAR_BTN_STYLE}">✕</button>
+        <div style="font-size:28px;flex-shrink:0;line-height:1">📲</div>
+        <div style="flex:1;min-width:0">
+            <div style="color:#fff;font-size:15px;font-weight:700;margin-bottom:4px">
+                Recibe recordatorios de tu cita
+            </div>
+            <div style="color:#9ca3af;font-size:13px;line-height:1.5">
+                En iPhone, toca <strong style="color:#d1d5db">Compartir</strong> →
+                <strong style="color:#d1d5db">Agregar a pantalla de inicio</strong>.
+                Luego abre la app desde ahí y activa las notificaciones.
+            </div>
+        </div>
+    `;
+    document.getElementById('rservas-push-cerrar').onclick = () => _cerrarCardCliente(card);
+}
+
+function _mostrarCardPermisoNormalCliente() {
+    const card = _crearCardBase();
+    card.innerHTML = `
+        <button id="rservas-push-cerrar" style="${CERRAR_BTN_STYLE}">✕</button>
+        <div style="font-size:28px;flex-shrink:0;line-height:1">🔔</div>
+        <div style="flex:1;min-width:0">
+            <div style="color:#fff;font-size:15px;font-weight:700;margin-bottom:4px">
+                Activa los recordatorios de tu cita
+            </div>
+            <div style="color:#9ca3af;font-size:13px;line-height:1.4;margin-bottom:14px">
+                Te avisamos 24 h y 1 h antes de tu turno, y si hay algún cambio o cancelación.
+            </div>
+            <button id="rservas-push-activar" style="
+                background:#FF1493;color:#fff;border:none;border-radius:10px;
+                padding:10px 18px;font-size:13px;font-weight:700;cursor:pointer;
+                width:100%;font-family:inherit
+            ">Activar recordatorios</button>
+        </div>
+    `;
+    document.getElementById('rservas-push-cerrar').onclick = () => _cerrarCardCliente(card);
+    document.getElementById('rservas-push-activar').addEventListener('click', async function() {
+        this.disabled = true;
+        this.textContent = 'Activando...';
+        const ctx = getPushContext();
+        const whatsapp = getClienteWhatsappPushActual();
+        const result = ctx.isNative && typeof window.solicitarNativePushRservasRoma === 'function'
+            ? { ok: await window.solicitarNativePushRservasRoma({ role: 'cliente', clienteWhatsapp: whatsapp || undefined }) }
+            : await (async () => {
+                const permission = await pedirPermisoNotificacionesPush();
+                return window.solicitarPushRservasRoma({ defaultRole: 'cliente', permission, clienteWhatsapp: whatsapp || undefined });
+            })();
+        const permisoActual = ('Notification' in window) ? Notification.permission : 'unsupported';
+        if (result?.ok) {
+            localStorage.setItem('rservasPushCardClienteDismissed', 'true');
+            card.style.transform = 'translateX(-50%) translateY(120px)';
+            setTimeout(() => card.remove(), 400);
+            mostrarToastPush('✅ Recordatorios activados');
+            actualizarIndicadorPushCliente();
+        } else if (ctx.isNative) {
+            this.disabled = false;
+            this.textContent = 'Activar recordatorios';
+            mostrarToastPush('No se pudo activar. Cierra y vuelve a abrir la app.', 'error');
+        } else if (permisoActual === 'denied') {
+            card.remove();
+            _mostrarCardBloqueado(ctx);
+        } else if (permisoActual === 'unsupported') {
+            card.remove();
+            _mostrarCardNoSoportado(ctx);
+        } else {
+            this.disabled = false;
+            this.textContent = 'Activar recordatorios';
+            mostrarToastPush('No se pudo activar. Intenta de nuevo.', 'error');
+        }
+    });
+}
+
+function instalarCardPushCliente() {
+    if (document.getElementById('rservas-push-card')) return; // ya hay una card (staff o cliente)
+    if (localStorage.getItem('adminAuth') || localStorage.getItem('profesionalAuth')) return; // solo clientas
+    if (!pushKeyConfigurada()) return;
+    if (localStorage.getItem('rservasPushCardClienteDismissed') === 'true') return;
+    if (clientePushActivo()) return; // ya suscrita (cubre web y nativo cliente)
+
+    const ctx = getPushContext();
+
+    // WebView nativa (APK): usa FCM/APNs vía Capacitor, aunque no exponga la API web.
+    if (ctx.isNative) { _mostrarCardPermisoNormalCliente(); return; }
+
+    // iOS sin instalar → primero hay que agregar a inicio (única vía en iPhone).
+    if (ctx.isIOS && !ctx.isStandalone) { _mostrarCardIOSInstruccionesCliente(); return; }
+
+    // Instalada pero sin API de notificaciones (iOS < 16.4): explicar por qué.
+    if (ctx.permiso === 'unsupported') { _mostrarCardNoSoportado(ctx); return; }
+
+    // Permiso bloqueado por la usuaria → ayuda para desbloquear.
+    if (ctx.permiso === 'denied') { _mostrarCardBloqueado(ctx); return; }
+
+    _mostrarCardPermisoNormalCliente();
+}
+
 if (window.RSERVAS_PUSH_UI_VISIBLE === true) {
     window.addEventListener('load', () => {
         setTimeout(instalarIndicadorPushCliente, 700);
         setTimeout(instalarIndicadorPushAdmin, 800);
         setTimeout(refrescarSuscripcionPushActual, 1200);
         setTimeout(instalarCardPushAdmin, 2000);
+        setTimeout(instalarCardPushCliente, 2200);
     });
 }

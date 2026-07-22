@@ -514,60 +514,9 @@ ${lineaCalendario}
     }
 };
 
-window.enviarConfirmacionPago = async function(booking, configNegocio) {
-    try {
-        if (!booking) {
-            console.error('❌ No hay datos de reserva');
-            return false;
-        }
-
-        console.log('🎉 Enviando confirmación de pago al cliente...');
-
-        if (!configNegocio) {
-            configNegocio = await window.cargarConfiguracionNegocio();
-        }
-
-        const { fechaConDia, horaFormateada } = getFechaHora(booking);
-        const totalReserva = await calcularTotalReserva(booking);
-        const lineaTotalReserva = generarLineaTotalReserva(totalReserva, configNegocio);
-        const nombreNegocio = configNegocio?.nombre || 'Mi Salón';
-        const lineaCalendario = generarLineaCalendarioCliente(booking);
-        const lineaDireccion = generarLineaDireccion(configNegocio);
-
-        const mensajeConfirmacion =
-`💅 *${nombreNegocio} - Turno Confirmado* 🎉
-
-Hola *${booking.cliente_nombre}*, ¡tu turno ha sido CONFIRMADO!
-
-📅 *Fecha:* ${fechaConDia}
-⏰ *Hora:* ${horaFormateada}
-💅 *Servicio:* ${booking.servicio}
-👩‍🎨 *Profesional:* ${getProfesional(booking)}
-${lineaTotalReserva}
-${lineaDireccion}
-
-✅ *Pago recibido correctamente*
-${lineaCalendario}
-Te esperamos ❤️
-Cualquier cambio, puedes cancelarlo desde la app.`;
-
-        window.enviarWhatsApp(booking.cliente_whatsapp, mensajeConfirmacion);
-
-        if (window.enviarPushCliente) {
-            window.enviarPushCliente({
-                whatsapp: booking.cliente_whatsapp,
-                title: `✅ Pago confirmado — ${nombreNegocio}`,
-                body: `Tu turno de ${booking.servicio} el ${fechaConDia} a las ${horaFormateada} está confirmado.`,
-            }).catch(() => {});
-        }
-
-        console.log('✅ Mensaje de confirmación de pago enviado');
-        return true;
-    } catch (error) {
-        console.error('Error en enviarConfirmacionPago:', error);
-        return false;
-    }
-};
+// (enviarConfirmacionPago eliminada: era codigo muerto sin call-sites. El push
+// real de "pago confirmado" a la clienta se envia inline desde admin-app.js
+// via enviarNotificacionPush + enviarPushCliente.)
 
 window.enviarMensajeInasistencia = async function(booking, configNegocio) {
     try {

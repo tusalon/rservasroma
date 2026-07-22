@@ -1,6 +1,6 @@
 // sw.js - Service Worker para Rservasroma
 
-const CACHE_NAME = 'rservasroma-v51';
+const CACHE_NAME = 'rservasroma-v52';
 const BASE = '/rservasroma';
 
 const urlsToCache = [
@@ -20,7 +20,7 @@ const urlsToCache = [
   `${BASE}/admin-app.js?v=20260721-admin-push-v2`,
 
   // Utils
-  `${BASE}/utils/api.js`,
+  `${BASE}/utils/api.js?v=20260722-lista-espera-cliente`,
   `${BASE}/utils/auth-clients.js`,
   `${BASE}/utils/auth-profesionales.js`,
   `${BASE}/utils/config.js`,
@@ -40,7 +40,7 @@ const urlsToCache = [
   `${BASE}/utils/suscripcion.js?v=20260721-fecha-local`,
   `${BASE}/utils/supabase-config.js`,
   `${BASE}/utils/timeLogic.js`,
-  `${BASE}/utils/whatsapp-helper.js?v=20260721-admin-push-v2`,
+  `${BASE}/utils/whatsapp-helper.js?v=20260722-lista-espera-cliente`,
   `${BASE}/utils/legacy-ios-fallback.css`,
 
   // Componentes cliente

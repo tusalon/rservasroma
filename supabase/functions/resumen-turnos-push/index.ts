@@ -88,7 +88,12 @@ async function yaEnviado({
   return rows.length > 0;
 }
 
-async function marcarEnviado({
+// Reserva el slot de envio ANTES de mandar el push. El indice unico
+// (negocio_id, role, coalesce(profesional_id,-1), fecha_resumen, tipo) hace que
+// si dos corridas (GitHub + pg_cron) se solapan, solo una gane el INSERT; la
+// otra recibe 409 y no reenvia. Devuelve el id de la fila reservada, o null si
+// otra corrida ya la tomo. Asi el resumen no llega dos veces al mismo admin.
+async function reservarEnvio({
   supabaseUrl,
   headers,
   negocioId,
@@ -97,7 +102,6 @@ async function marcarEnviado({
   fecha,
   tipo,
   totalTurnos,
-  sent,
 }: {
   supabaseUrl: string;
   headers: Record<string, string>;
@@ -107,11 +111,10 @@ async function marcarEnviado({
   fecha: string;
   tipo: string;
   totalTurnos: number;
-  sent: number;
-}) {
-  await fetch(`${supabaseUrl}/rest/v1/push_resumenes_enviados`, {
+}): Promise<string | null> {
+  const response = await fetch(`${supabaseUrl}/rest/v1/push_resumenes_enviados`, {
     method: "POST",
-    headers: { ...headers, "Content-Type": "application/json", Prefer: "return=minimal" },
+    headers: { ...headers, "Content-Type": "application/json", Prefer: "return=representation" },
     body: JSON.stringify({
       negocio_id: negocioId,
       role,
@@ -119,9 +122,49 @@ async function marcarEnviado({
       fecha_resumen: fecha,
       tipo,
       total_turnos: totalTurnos,
-      sent_count: sent,
+      sent_count: 0,
       sent_at: new Date().toISOString(),
     }),
+  });
+  if (response.status === 409) return null; // otra corrida ya reservo este destino
+  if (!response.ok) throw new Error(`reservarEnvio fallo: ${await response.text()}`);
+  const rows = await response.json().catch(() => []);
+  return Array.isArray(rows) && rows[0]?.id ? String(rows[0].id) : null;
+}
+
+// Confirma el envio: guarda cuantas suscripciones lo recibieron.
+async function confirmarEnvio({
+  supabaseUrl,
+  headers,
+  id,
+  sent,
+}: {
+  supabaseUrl: string;
+  headers: Record<string, string>;
+  id: string;
+  sent: number;
+}) {
+  await fetch(`${supabaseUrl}/rest/v1/push_resumenes_enviados?id=eq.${id}`, {
+    method: "PATCH",
+    headers: { ...headers, "Content-Type": "application/json", Prefer: "return=minimal" },
+    body: JSON.stringify({ sent_count: sent, sent_at: new Date().toISOString() }),
+  });
+}
+
+// Libera la reserva si el envio fallo o no llego a nadie, para que un cron
+// posterior lo reintente en lugar de quedar marcado como enviado en falso.
+async function liberarEnvio({
+  supabaseUrl,
+  headers,
+  id,
+}: {
+  supabaseUrl: string;
+  headers: Record<string, string>;
+  id: string;
+}) {
+  await fetch(`${supabaseUrl}/rest/v1/push_resumenes_enviados?id=eq.${id}`, {
+    method: "DELETE",
+    headers: { ...headers, Prefer: "return=minimal" },
   });
 }
 
@@ -163,7 +206,10 @@ Deno.serve(async (req) => {
   const fecha = tipo === "manana" ? getCubaDate(1) : getCubaDate(0);
   const negocioFiltro = body?.negocio_id || null;
   const dryRun = Boolean(body?.dry_run);
-  const maxDestinos = Number.isFinite(Number(body?.max_destinos)) ? Math.max(1, Number(body.max_destinos)) : 10;
+  // Sin max_destinos explicito se cubren TODOS los negocios con agenda. El
+  // tope viejo de 10 dejaba fuera, en silencio (contados como "pendientes"),
+  // a todos los admins a partir del negocio 11 cuando el cron corre global.
+  const maxDestinos = Number.isFinite(Number(body?.max_destinos)) ? Math.max(1, Number(body.max_destinos)) : Number.MAX_SAFE_INTEGER;
   const headers = { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` };
 
   let reservasUrl = `${supabaseUrl}/rest/v1/reservas?fecha=eq.${fecha}&estado=neq.Cancelado&select=id,negocio_id,cliente_nombre,servicio,hora_inicio,profesional_id,profesional_nombre`;
@@ -252,27 +298,48 @@ Deno.serve(async (req) => {
       };
       if (destino.profesionalId) pushPayload.profesional_id = destino.profesionalId;
 
+      const etiquetaDestino = `${negocioId}/${destino.role}/${destino.profesionalId || "all"}`;
+
+      if (dryRun) {
+        continue;
+      }
+
+      // Reservar ANTES de enviar: si otra corrida ya lo tomo, no reenviamos.
+      let reservaId: string | null;
       try {
-        const result = dryRun ? { ok: true, sent: 0, dry_run: true } : await enviarWebPush({ supabaseUrl, serviceKey, payload: pushPayload });
+        reservaId = await reservarEnvio({
+          supabaseUrl,
+          headers,
+          negocioId,
+          role: destino.role,
+          profesionalId: destino.profesionalId,
+          fecha,
+          tipo,
+          totalTurnos: destino.turnos.length,
+        });
+      } catch (error: any) {
+        errores.push(`${etiquetaDestino}: ${error?.message || error}`);
+        continue;
+      }
+      if (!reservaId) {
+        saltados++;
+        continue;
+      }
+
+      try {
+        const result = await enviarWebPush({ supabaseUrl, serviceKey, payload: pushPayload });
         const sent = Number(result?.sent || 0);
-        enviados += sent;
-        if (!dryRun && sent > 0) {
-          await marcarEnviado({
-            supabaseUrl,
-            headers,
-            negocioId,
-            role: destino.role,
-            profesionalId: destino.profesionalId,
-            fecha,
-            tipo,
-            totalTurnos: destino.turnos.length,
-            sent,
-          });
-        } else if (!dryRun) {
-          errores.push(`${negocioId}/${destino.role}/${destino.profesionalId || "all"}: ninguna suscripcion recibio el resumen`);
+        if (sent > 0) {
+          enviados += sent;
+          await confirmarEnvio({ supabaseUrl, headers, id: reservaId, sent });
+        } else {
+          // Nadie lo recibio: liberar para reintentar en la proxima corrida.
+          await liberarEnvio({ supabaseUrl, headers, id: reservaId });
+          errores.push(`${etiquetaDestino}: ninguna suscripcion recibio el resumen`);
         }
       } catch (error: any) {
-        errores.push(`${negocioId}/${destino.role}/${destino.profesionalId || "all"}: ${error?.message || error}`);
+        await liberarEnvio({ supabaseUrl, headers, id: reservaId }).catch(() => {});
+        errores.push(`${etiquetaDestino}: ${error?.message || error}`);
       }
     }
   }
