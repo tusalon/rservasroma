@@ -62,6 +62,7 @@ function ServiceSelection({ onSelect, selectedService }) {
     const [categoriaActiva, setCategoriaActiva] = React.useState('todos');
     const [serviciosSeleccionados, setServiciosSeleccionados] = React.useState([]);
     const [busqueda, setBusqueda] = React.useState('');
+    const [imagenAmpliada, setImagenAmpliada] = React.useState(null);
 
     React.useEffect(() => {
         cargarDatos();
@@ -290,13 +291,25 @@ function ServiceSelection({ onSelect, selectedService }) {
                                         <div className="flex items-start justify-between gap-3">
                                             <div className="flex items-start gap-2 min-w-0">
                                                 {service.imagen ? (
-                                                    <img
-                                                        src={service.imagen}
-                                                        alt={service.nombre}
-                                                        loading="lazy"
-                                                        decoding="async"
-                                                        className="h-12 w-12 rounded-lg object-cover border border-pink-100 shrink-0"
-                                                    />
+                                                    <span
+                                                        role="button"
+                                                        tabIndex={0}
+                                                        onClick={(e) => { e.stopPropagation(); setImagenAmpliada({ url: service.imagen, nombre: service.nombre }); }}
+                                                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); setImagenAmpliada({ url: service.imagen, nombre: service.nombre }); } }}
+                                                        className="relative h-12 w-12 rounded-lg overflow-hidden border border-pink-100 shrink-0 cursor-zoom-in group/img"
+                                                        aria-label={t('Ver foto de {nombre}', { nombre: service.nombre })}
+                                                    >
+                                                        <img
+                                                            src={service.imagen}
+                                                            alt={service.nombre}
+                                                            loading="lazy"
+                                                            decoding="async"
+                                                            className="h-full w-full object-cover"
+                                                        />
+                                                        <span className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover/img:bg-black/25 transition-colors">
+                                                            <span className="text-white text-xs opacity-0 group-hover/img:opacity-100 transition-opacity">🔍</span>
+                                                        </span>
+                                                    </span>
                                                 ) : (
                                                     <span className="text-2xl shrink-0">{catIcono(categoria)}</span>
                                                 )}
@@ -346,6 +359,33 @@ function ServiceSelection({ onSelect, selectedService }) {
                         >
                             {t('Continuar')}
                         </button>
+                    </div>
+                </div>
+            )}
+
+            {imagenAmpliada && (
+                <div
+                    className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+                    onClick={() => setImagenAmpliada(null)}
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label={imagenAmpliada.nombre}
+                >
+                    <button
+                        type="button"
+                        onClick={() => setImagenAmpliada(null)}
+                        className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/90 text-pink-700 text-xl font-bold flex items-center justify-center shadow-lg"
+                        aria-label={t('Cerrar')}
+                    >
+                        ✕
+                    </button>
+                    <div className="max-w-lg w-full" onClick={(e) => e.stopPropagation()}>
+                        <img
+                            src={imagenAmpliada.url}
+                            alt={imagenAmpliada.nombre}
+                            className="w-full max-h-[75vh] object-contain rounded-2xl shadow-2xl"
+                        />
+                        <p className="mt-3 text-center text-white font-semibold text-lg drop-shadow">{imagenAmpliada.nombre}</p>
                     </div>
                 </div>
             )}

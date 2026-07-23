@@ -48,6 +48,7 @@ function ServiceSelection({ onSelect, selectedService }) {
   const [categoriaActiva, setCategoriaActiva] = React.useState("todos");
   const [serviciosSeleccionados, setServiciosSeleccionados] = React.useState([]);
   const [busqueda, setBusqueda] = React.useState("");
+  const [imagenAmpliada, setImagenAmpliada] = React.useState(null);
   React.useEffect(() => {
     cargarDatos();
     const refresh = () => cargarDatos();
@@ -203,14 +204,35 @@ function ServiceSelection({ onSelect, selectedService }) {
         className: `p-4 rounded-xl border-2 text-left transition-all duration-200 transform hover:scale-[1.02] ${estaSeleccionado ? "border-pink-500 bg-pink-50 ring-2 ring-pink-300 shadow-md" : "border-pink-200 bg-white/80 backdrop-blur-sm hover:border-pink-400 hover:bg-pink-50/50 hover:shadow-sm"}`
       },
       /* @__PURE__ */ React.createElement("div", { className: "space-y-3" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-start justify-between gap-3" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-start gap-2 min-w-0" }, service.imagen ? /* @__PURE__ */ React.createElement(
-        "img",
+        "span",
         {
-          src: service.imagen,
-          alt: service.nombre,
-          loading: "lazy",
-          decoding: "async",
-          className: "h-12 w-12 rounded-lg object-cover border border-pink-100 shrink-0"
-        }
+          role: "button",
+          tabIndex: 0,
+          onClick: (e) => {
+            e.stopPropagation();
+            setImagenAmpliada({ url: service.imagen, nombre: service.nombre });
+          },
+          onKeyDown: (e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              e.stopPropagation();
+              setImagenAmpliada({ url: service.imagen, nombre: service.nombre });
+            }
+          },
+          className: "relative h-12 w-12 rounded-lg overflow-hidden border border-pink-100 shrink-0 cursor-zoom-in group/img",
+          "aria-label": t("Ver foto de {nombre}", { nombre: service.nombre })
+        },
+        /* @__PURE__ */ React.createElement(
+          "img",
+          {
+            src: service.imagen,
+            alt: service.nombre,
+            loading: "lazy",
+            decoding: "async",
+            className: "h-full w-full object-cover"
+          }
+        ),
+        /* @__PURE__ */ React.createElement("span", { className: "absolute inset-0 flex items-center justify-center bg-black/0 group-hover/img:bg-black/25 transition-colors" }, /* @__PURE__ */ React.createElement("span", { className: "text-white text-xs opacity-0 group-hover/img:opacity-100 transition-opacity" }, "🔍"))
       ) : /* @__PURE__ */ React.createElement("span", { className: "text-2xl shrink-0" }, catIcono(categoria)), /* @__PURE__ */ React.createElement("div", { className: "min-w-0" }, /* @__PURE__ */ React.createElement("span", { className: "font-medium text-pink-800 text-lg block leading-snug break-words" }, service.nombre), /* @__PURE__ */ React.createElement("span", { className: "text-xs text-pink-500" }, catNombre(categoria)))), /* @__PURE__ */ React.createElement("span", { className: `text-xs px-2 py-1 rounded-full border ${estaSeleccionado ? "bg-pink-600 text-white border-pink-600" : "bg-white text-pink-600 border-pink-200"}` }, estaSeleccionado ? "✓ " + t("Elegido") : t("Agregar"))), service.descripcion && /* @__PURE__ */ React.createElement("p", { className: "text-sm text-pink-600/70 ml-8 leading-relaxed break-words" }, service.descripcion), /* @__PURE__ */ React.createElement("div", { className: "ml-8 flex flex-wrap items-center gap-2" }, /* @__PURE__ */ React.createElement("span", { className: "max-w-full text-pink-600 font-bold text-base sm:text-lg leading-tight break-words" }, window.formatearPrecioServicio ? window.formatearPrecioServicio(service) : `$${service.precio}`), /* @__PURE__ */ React.createElement("span", { className: "flex items-center text-pink-500 text-xs bg-pink-50 px-2 py-1 rounded-full border border-pink-200" }, service.duracion, " min")))
     );
   }))), serviciosSeleccionados.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "sticky bottom-3 z-20 bg-white border border-pink-200 shadow-xl rounded-2xl p-3" }, /* @__PURE__ */ React.createElement("div", { className: "flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("p", { className: "font-bold text-pink-800" }, t("{n} servicio{s} · {duracion} min · {precio} {moneda}", {
@@ -227,5 +249,32 @@ function ServiceSelection({ onSelect, selectedService }) {
       className: "bg-pink-600 text-white px-5 py-3 rounded-xl font-bold hover:bg-pink-700 transition"
     },
     t("Continuar")
-  ))));
+  ))), imagenAmpliada && /* @__PURE__ */ React.createElement(
+    "div",
+    {
+      className: "fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4",
+      onClick: () => setImagenAmpliada(null),
+      role: "dialog",
+      "aria-modal": "true",
+      "aria-label": imagenAmpliada.nombre
+    },
+    /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        type: "button",
+        onClick: () => setImagenAmpliada(null),
+        className: "absolute top-4 right-4 w-10 h-10 rounded-full bg-white/90 text-pink-700 text-xl font-bold flex items-center justify-center shadow-lg",
+        "aria-label": t("Cerrar")
+      },
+      "✕"
+    ),
+    /* @__PURE__ */ React.createElement("div", { className: "max-w-lg w-full", onClick: (e) => e.stopPropagation() }, /* @__PURE__ */ React.createElement(
+      "img",
+      {
+        src: imagenAmpliada.url,
+        alt: imagenAmpliada.nombre,
+        className: "w-full max-h-[75vh] object-contain rounded-2xl shadow-2xl"
+      }
+    ), /* @__PURE__ */ React.createElement("p", { className: "mt-3 text-center text-white font-semibold text-lg drop-shadow" }, imagenAmpliada.nombre))
+  ));
 }
