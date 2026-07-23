@@ -360,31 +360,9 @@ async function marcarTurnosCompletados() {
 }
 // timeToMinutes, indiceToHoraLegible, variantesHorarioPermitido, servicioPermiteHorario
 // y slotTieneDescanso viven en utils/timeLogic.js (cargado antes que admin-app.js).
+// formatTo12Hour, calculateEndTime y getCurrentLocalDate también vienen de timeLogic.js:
+// redeclararlas aquí como const rompe el script compilado (SyntaxError por identificador global duplicado).
 // estaDentroBloqueTrabajo se eliminó: no tenía ningún sitio de llamada en el archivo (código muerto).
-
-const formatTo12Hour = (time) => {
-    const [hours, minutes] = time.split(':');
-    const h = parseInt(hours);
-    const ampm = h >= 12 ? 'PM' : 'AM';
-    const h12 = h % 12 || 12;
-    return `${h12}:${minutes} ${ampm}`;
-};
-
-const calculateEndTime = (startTime, duration) => {
-    const [hours, minutes] = startTime.split(':').map(Number);
-    const totalMinutes = hours * 60 + minutes + duration;
-    const endHours = Math.floor(totalMinutes / 60);
-    const endMinutes = totalMinutes % 60;
-    return `${endHours.toString().padStart(2, '0')}:${endMinutes.toString().padStart(2, '0')}`;
-};
-
-const getCurrentLocalDate = () => {
-    const ahora = new Date();
-    const year = ahora.getFullYear();
-    const month = (ahora.getMonth() + 1).toString().padStart(2, '0');
-    const day = ahora.getDate().toString().padStart(2, '0');
-    return `${year}-${month}-${day}`;
-};
 
 const getCurrentLocalMinutes = () => {
     const ahora = new Date();
