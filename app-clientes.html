@@ -19,18 +19,107 @@
       text-align: center;
     }
     .logo {
-      width: 96px; height: 96px;
-      border-radius: 24px;
-      margin-bottom: 24px;
+      width: 80px; height: 80px;
+      border-radius: 20px;
+      margin-bottom: 16px;
     }
-    h1 { font-size: 22px; margin-bottom: 12px; }
-    p  { color: #999; font-size: 15px; line-height: 1.5; max-width: 280px; }
+    h1 { font-size: 22px; margin-bottom: 8px; }
+    p.hint { color: #999; font-size: 14px; line-height: 1.5; max-width: 300px; }
+    .lista { width: 100%; max-width: 340px; margin: 20px 0 10px; display: none; }
+    .item {
+      display: flex; align-items: center; gap: 12px;
+      background: #262626; border: 1px solid #3a3a3a; border-radius: 14px;
+      padding: 12px 14px; margin-bottom: 10px;
+      text-decoration: none; color: #fff;
+    }
+    .item:active { background: #303030; }
+    .avatar {
+      width: 44px; height: 44px; border-radius: 12px; flex: none;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 18px; color: #fff; background: #ec4899;
+      overflow: hidden;
+    }
+    .avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .info { flex: 1; text-align: left; min-width: 0; }
+    .nombre { font-weight: 600; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sub { color: #8a8a8a; font-size: 12px; }
+    .quitar { flex: none; background: none; border: none; color: #666; font-size: 18px; padding: 6px 8px; cursor: pointer; }
   </style>
 </head>
 <body>
   <img class="logo" src="icons/icon-192x192.png" alt="Rservasroma">
-  <h1>Esperando enlace</h1>
-  <p>Abre desde WhatsApp el enlace de reservas que te envió tu salón.</p>
+  <h1 id="titulo">Esperando enlace</h1>
+  <div class="lista" id="lista"></div>
+  <p class="hint" id="hint">Abre desde WhatsApp el enlace de reservas que te envió tu salón.</p>
+  <script>
+    // Selector de salones recientes: los registra config-negocio-master.js
+    // (clave negociosRecientes) cada vez que la clienta visita un salón.
+    // Con lista vacía, la pantalla queda como el "Esperando enlace" clásico.
+    // DOM con textContent (nunca innerHTML): nombre y logo vienen de la BD.
+    (function () {
+      var KEY = 'negociosRecientes';
+      var lista = [];
+      try { lista = JSON.parse(localStorage.getItem(KEY) || '[]'); } catch (e) {}
+      lista = (Array.isArray(lista) ? lista : []).filter(function (x) { return x && x.slug; });
+      if (!lista.length) return;
+
+      document.getElementById('titulo').textContent = 'Elige tu salón';
+      document.getElementById('hint').textContent = '¿Salón nuevo? Abre el enlace que te enviaron por WhatsApp y quedará guardado aquí.';
+      var cont = document.getElementById('lista');
+      cont.style.display = 'block';
+
+      function guardar(l) { try { localStorage.setItem(KEY, JSON.stringify(l)); } catch (e) {} }
+
+      lista.forEach(function (n) {
+        var a = document.createElement('a');
+        a.className = 'item';
+        a.href = './?s=' + encodeURIComponent(n.slug);
+
+        var av = document.createElement('div');
+        av.className = 'avatar';
+        if (n.color && /^#[0-9a-fA-F]{6}$/.test(n.color)) av.style.background = n.color;
+        var inicial = String(n.nombre || n.slug).charAt(0).toUpperCase();
+        if (n.logo && /^https?:\/\//i.test(n.logo)) {
+          var img = document.createElement('img');
+          img.alt = '';
+          img.onerror = function () { img.remove(); av.textContent = inicial; };
+          img.src = n.logo;
+          av.appendChild(img);
+        } else {
+          av.textContent = inicial;
+        }
+
+        var info = document.createElement('div');
+        info.className = 'info';
+        var nom = document.createElement('div');
+        nom.className = 'nombre';
+        nom.textContent = n.nombre || n.slug;
+        var sub = document.createElement('div');
+        sub.className = 'sub';
+        sub.textContent = 'Toca para abrir';
+        info.appendChild(nom);
+        info.appendChild(sub);
+
+        var q = document.createElement('button');
+        q.className = 'quitar';
+        q.textContent = '✕';
+        q.title = 'Quitar de la lista';
+        q.addEventListener('click', function (ev) {
+          ev.preventDefault();
+          ev.stopPropagation();
+          lista = lista.filter(function (x) { return x.slug !== n.slug; });
+          guardar(lista);
+          a.remove();
+          if (!lista.length) location.reload();
+        });
+
+        a.appendChild(av);
+        a.appendChild(info);
+        a.appendChild(q);
+        cont.appendChild(a);
+      });
+    })();
+  </script>
   <script src="utils/client-native-links.js?v=20260721-native-origin-v1"></script>
 </body>
 </html>

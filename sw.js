@@ -1,6 +1,6 @@
 // sw.js - Service Worker para Rservasroma
 
-const CACHE_NAME = 'rservasroma-v57';
+const CACHE_NAME = 'rservasroma-v58';
 const BASE = '/rservasroma';
 
 const urlsToCache = [
@@ -29,7 +29,7 @@ const urlsToCache = [
   `${BASE}/utils/hero-backgrounds.js`,
   `${BASE}/utils/native-push-notifications.js?v=20260722-platform-v4`,
   `${BASE}/utils/offline-panel.js`,
-  `${BASE}/utils/config-negocio-master.js?v=20260721-pwa-slug-v3`,
+  `${BASE}/utils/config-negocio-master.js?v=20260723-arranque-rapido`,
   `${BASE}/utils/i18n.js`,
   `${BASE}/utils/phone-utils.js`,
   `${BASE}/utils/profesionales.js`,
@@ -56,7 +56,7 @@ const urlsToCache = [
   `${BASE}/components/ProfesionalSelector.js`,
   `${BASE}/components/ServiceSelectionCategorias.js`,
   `${BASE}/components/TimeSlots.js?v=20260722-toast-espera`,
-  `${BASE}/components/WelcomeScreen.js?v=20260722-mejora-cliente`,
+  `${BASE}/components/WelcomeScreen.js?v=20260723-cambiar-salon`,
   `${BASE}/components/WhatsAppButton.js`,
 
   // Componentes admin
@@ -191,17 +191,32 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // Documento HTML (navegación real del navegador/WebView): red primero.
+  // Documento HTML (navegación real del navegador/WebView): red primero CON
+  // TOPE DE ESPERA. La red-primero pura hacía que en conexiones lentas cada
+  // apertura esperara la descarga completa del HTML aunque hubiera copia en
+  // caché. Ahora: si hay caché y la red tarda más del tope, se responde la
+  // caché al instante y la respuesta de red (cuando llegue) actualiza la
+  // caché en segundo plano — los arreglos críticos llegan como mucho una
+  // apertura después. Sin caché previa se espera a la red como antes.
   const esNavegacion = event.request.mode === 'navigate' || event.request.destination === 'document';
   if (esNavegacion) {
+    const NAV_TIMEOUT_MS = 2500;
+    const red = fetch(event.request).then(response => {
+      if (response && response.status === 200) {
+        const clone = response.clone();
+        caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+      }
+      return response;
+    });
+    event.waitUntil(red.then(() => {}, () => {}));
     event.respondWith(
-      fetch(event.request).then(response => {
-        if (response && response.status === 200) {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
-        }
-        return response;
-      }).catch(() => caches.match(event.request).then(cached => cached || new Response('Sin conexión', { status: 408 })))
+      caches.match(event.request).then(cached => {
+        if (!cached) return red.catch(() => new Response('Sin conexión', { status: 408 }));
+        return Promise.race([
+          red.catch(() => cached),
+          new Promise(resolve => setTimeout(() => resolve(cached), NAV_TIMEOUT_MS))
+        ]);
+      })
     );
     return;
   }
@@ -214,14 +229,25 @@ self.addEventListener('fetch', event => {
   ].some(path => reqUrl.pathname === path);
 
   if (esAssetCriticoAdmin) {
+    // Mismo patrón que la navegación: red primero con tope; con caché previa
+    // no se bloquea el arranque en conexiones lentas.
+    const ASSET_TIMEOUT_MS = 3000;
+    const redAsset = fetch(event.request, { cache: 'no-store' }).then(response => {
+      if (response && response.status === 200) {
+        const clone = response.clone();
+        caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+      }
+      return response;
+    });
+    event.waitUntil(redAsset.then(() => {}, () => {}));
     event.respondWith(
-      fetch(event.request, { cache: 'no-store' }).then(response => {
-        if (response && response.status === 200) {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
-        }
-        return response;
-      }).catch(() => caches.match(event.request).then(cached => cached || new Response('Sin conexiÃ³n', { status: 408 })))
+      caches.match(event.request).then(cached => {
+        if (!cached) return redAsset.catch(() => new Response('Sin conexión', { status: 408 }));
+        return Promise.race([
+          redAsset.catch(() => cached),
+          new Promise(resolve => setTimeout(() => resolve(cached), ASSET_TIMEOUT_MS))
+        ]);
+      })
     );
     return;
   }

@@ -227,6 +227,41 @@ window.getPreferenciasWhatsAppNegocio = function(config = null) {
 };
 
 // ============================================================
+// 6b. NEGOCIOS RECIENTES (multi-salón)
+//     Lista de salones visitados para que la APK de clientas pueda
+//     ofrecerlos al abrir sin depender del enlace de WhatsApp.
+//     La lee app-clientes.html. Sobrevive al cambio de salón porque
+//     usa una clave propia (limpiarRutaAnterior no la toca).
+// ============================================================
+function registrarNegocioReciente(slug, config) {
+    try {
+        const limpio = String(slug || '').toLowerCase().trim();
+        if (!limpio) return;
+        const KEY = 'negociosRecientes';
+        let lista = [];
+        try { lista = JSON.parse(localStorage.getItem(KEY) || '[]'); } catch (e) {}
+        lista = (Array.isArray(lista) ? lista : []).filter(item => item && item.slug && item.slug !== limpio);
+        lista.unshift({
+            slug: limpio,
+            nombre: config?.nombre || limpio,
+            logo: config?.logo_url || '',
+            color: config?.color_primario || '',
+            ts: Date.now()
+        });
+        localStorage.setItem(KEY, JSON.stringify(lista.slice(0, 8)));
+    } catch (e) {}
+}
+
+window.getNegociosRecientes = function() {
+    try {
+        const lista = JSON.parse(localStorage.getItem('negociosRecientes') || '[]');
+        return Array.isArray(lista) ? lista.filter(item => item && item.slug) : [];
+    } catch (e) {
+        return [];
+    }
+};
+
+// ============================================================
 // 7. CARGA DE CONFIGURACIÓN DEL NEGOCIO
 //    Espera a que el negocio_id esté disponible si es primera visita
 // ============================================================
@@ -251,6 +286,34 @@ window.cargarConfiguracionNegocio = async function(forceRefresh = false) {
         return configCache;
     }
 
+    // — Arranque rápido (solo ruta cliente): la primera llamada de la sesión
+    //   usa la copia guardada de la última visita y refresca desde la red en
+    //   segundo plano. En conexiones lentas esto elimina el spinner inicial
+    //   de las pantallas de la clienta; si el salón cambió algo, llega con el
+    //   refresco. La ruta admin no usa esta copia (edita la config en vivo). —
+    const LS_CFG_KEY = 'rsmcfg:' + negocioId;
+    if (!forceRefresh && !configCache && window._rservasSlugActual) {
+        let almacenada = null;
+        try { almacenada = JSON.parse(localStorage.getItem(LS_CFG_KEY) || 'null'); } catch (e) {}
+        if (almacenada && almacenada.nombre) {
+            configCache = almacenada;
+            ultimaActualizacion = Date.now();
+            if (window.setCodigoPaisTelefono) {
+                window.setCodigoPaisTelefono(configCache.codigo_pais || configCache.codigo_pais_telefono || '53');
+            }
+            aplicarTemaNegocio(configCache);
+            window.actualizarManifestPWA?.(configCache);
+            registrarNegocioReciente(window._rservasSlugActual, configCache);
+            console.log('⚡ Config desde copia local; refrescando en segundo plano');
+            cargarConfigNegocioDesdeRed(negocioId, LS_CFG_KEY).catch(() => {});
+            return configCache;
+        }
+    }
+
+    return cargarConfigNegocioDesdeRed(negocioId, LS_CFG_KEY);
+};
+
+async function cargarConfigNegocioDesdeRed(negocioId, LS_CFG_KEY) {
     try {
         console.log('🌐 Cargando configuración del negocio desde Supabase...', negocioId);
         const url = `${window.SUPABASE_URL}/rest/v1/negocios?id=eq.${negocioId}&select=*`;
@@ -284,7 +347,10 @@ window.cargarConfiguracionNegocio = async function(forceRefresh = false) {
                 localStorage.setItem('negocioSlug', window._rservasSlugActual);
                 guardarNombreNegocioPorSlug(window._rservasSlugActual, configCache.nombre);
                 window.actualizarManifestPWA?.(configCache);
+                registrarNegocioReciente(window._rservasSlugActual, configCache);
             }
+            // Copia local para el arranque rápido de la próxima visita (ruta cliente)
+            try { localStorage.setItem(LS_CFG_KEY, JSON.stringify(configCache)); } catch (e) {}
             console.log('✅ Config cargada:', configCache.nombre);
             // Actualizar localStorage del admin con el ID confirmado
             if (!localStorage.getItem('negocioId')) {
@@ -296,7 +362,7 @@ window.cargarConfiguracionNegocio = async function(forceRefresh = false) {
         console.error('❌ Error cargando configuración:', error);
         return null;
     }
-};
+}
 
 // ============================================================
 // 8. HELPERS DE DATOS (idénticos al original)

@@ -13,6 +13,22 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol, onMisReservas }) {
     // UI de push controlada por bandera (ver utils/push-config.js).
     const pushUIVisible = window.RSERVAS_PUSH_UI_VISIBLE === true;
 
+    // "Cambiar de salón" solo en la APK de clientas (origen remoto + marcador
+    // de WebView/Capacitor) y con salones recientes guardados. En la PWA
+    // instalada de un salón concreto no se muestra: sería anti-marca.
+    const esApkConRecientes = React.useMemo(() => {
+        try {
+            const ua = navigator.userAgent || '';
+            const esApk = window.location.hostname === 'tusalon.github.io' &&
+                (ua.indexOf('RservasromaClientes') !== -1 || /\bwv\b/.test(ua) || !!window.Capacitor);
+            if (!esApk) return false;
+            const recientes = window.getNegociosRecientes ? window.getNegociosRecientes() : [];
+            return recientes.length > 0;
+        } catch (e) {
+            return false;
+        }
+    }, []);
+
     React.useEffect(() => {
         if (!pushUIVisible) return;
         const isNative = Boolean(window.Capacitor?.isNativePlatform?.());
@@ -374,6 +390,15 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol, onMisReservas }) {
                             <p className="text-xs text-white/70">
                                 🕐 {config.horario_atencion}
                             </p>
+                        )}
+
+                        {/* Cambiar de salón (solo APK de clientas) */}
+                        {esApkConRecientes && (
+                            <button
+                                onClick={() => { window.location.href = 'app-clientes.html'; }}
+                                className="text-white/50 text-xs hover:text-white/80 transition mx-auto block underline underline-offset-2">
+                                🔄 {t('Cambiar de salón')}
+                            </button>
                         )}
                     </div>
                 </div>
