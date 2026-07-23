@@ -2875,6 +2875,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
             // La clienta valora una sola vez el combo: la estrella queda en el
             // primer tramo, pero se busca en todo el grupo por si acaso.
             valoracion: ordenadas.find(b => Number(b.valoracion) > 0)?.valoracion ?? primera.valoracion,
+            valoracion_servicio: ordenadas.find(b => Number(b.valoracion_servicio) > 0)?.valoracion_servicio ?? primera.valoracion_servicio,
             estado: primera.estado
         };
     };
@@ -3401,6 +3402,14 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
             ? reservasValoradas.reduce((total, reserva) => total + Number(reserva.valoracion), 0) / valoracionesCount
             : 0;
 
+        // Valoración del SERVICIO (post-visita, se pide en Mis Reservas cuando
+        // el turno queda Completado). Es la métrica de calidad del salón.
+        const servicioValorado = reservasPeriodo.filter(reserva => Number(reserva.valoracion_servicio) > 0);
+        const valoracionServicioCount = servicioValorado.length;
+        const valoracionServicioPromedio = valoracionServicioCount
+            ? servicioValorado.reduce((total, reserva) => total + Number(reserva.valoracion_servicio), 0) / valoracionServicioCount
+            : 0;
+
         return {
             rango,
             reservasPeriodo,
@@ -3414,6 +3423,8 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
             ticketPromedio,
             valoracionPromedio,
             valoracionesCount,
+            valoracionServicioPromedio,
+            valoracionServicioCount,
             citasSinCobro,
             tasaCompletadas: totalCitas ? Math.round((estados.Completado / totalCitas) * 100) : 0,
             tasaCanceladas: totalCitas ? Math.round((estados.Cancelado / totalCitas) * 100) : 0,
@@ -3435,6 +3446,9 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
             stats.valoracionesCount
                 ? t('Valoracion de reserva: {promedio}/5 ({n} valoraciones)', { promedio: stats.valoracionPromedio.toFixed(1), n: stats.valoracionesCount })
                 : t('Valoracion de reserva: sin datos'),
+            stats.valoracionServicioCount
+                ? t('Valoracion del servicio: {promedio}/5 ({n} valoraciones)', { promedio: stats.valoracionServicioPromedio.toFixed(1), n: stats.valoracionServicioCount })
+                : t('Valoracion del servicio: sin datos'),
             '',
             t('Citas: {n}', { n: stats.totalCitas }),
             t('Completadas: {n}', { n: stats.estados.Completado }),
@@ -3505,7 +3519,8 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
             { label: t('Canceladas'), value: stats.estados.Cancelado, tone: 'text-red-700 bg-red-50 border-red-100' },
             { label: t('Ausentes'), value: stats.estados.Ausente, tone: 'text-slate-700 bg-slate-50 border-slate-100' },
             { label: t('Sin cobro'), value: stats.citasSinCobro, tone: 'text-amber-700 bg-amber-50 border-amber-100' },
-            { label: t('Valoracion'), value: stats.valoracionesCount ? `⭐ ${stats.valoracionPromedio.toFixed(1)} (${stats.valoracionesCount})` : t('Sin datos'), tone: 'text-yellow-700 bg-yellow-50 border-yellow-100' }
+            { label: t('Valoracion'), value: stats.valoracionesCount ? `⭐ ${stats.valoracionPromedio.toFixed(1)} (${stats.valoracionesCount})` : t('Sin datos'), tone: 'text-yellow-700 bg-yellow-50 border-yellow-100' },
+            { label: t('Servicio'), value: stats.valoracionServicioCount ? `💅 ${stats.valoracionServicioPromedio.toFixed(1)} (${stats.valoracionServicioCount})` : t('Sin datos'), tone: 'text-pink-700 bg-pink-50 border-pink-100' }
         ];
 
         return (
@@ -3537,7 +3552,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                     </div>
                 </div>
 
-                <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                     {cards.map(card => (
                         <div key={card.label} className={`rounded-xl border p-4 ${card.tone}`}>
                             <p className="text-xs font-semibold uppercase">{card.label}</p>
@@ -3559,7 +3574,8 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                                 [t('Canceladas'), `${stats.estados.Cancelado} (${stats.tasaCanceladas}%)`],
                                 [t('Ausentes'), `${stats.estados.Ausente} (${stats.tasaAusentes}%)`],
                                 [t('Ticket promedio real'), formatMoneyEstadistica(stats.ticketPromedio)],
-                                [t('Valoracion de reserva'), stats.valoracionesCount ? `⭐ ${stats.valoracionPromedio.toFixed(1)} / 5 (${stats.valoracionesCount})` : t('Sin datos')]
+                                [t('Valoracion de reserva'), stats.valoracionesCount ? `⭐ ${stats.valoracionPromedio.toFixed(1)} / 5 (${stats.valoracionesCount})` : t('Sin datos')],
+                                [t('Valoracion del servicio'), stats.valoracionServicioCount ? `💅 ${stats.valoracionServicioPromedio.toFixed(1)} / 5 (${stats.valoracionServicioCount})` : t('Sin datos')]
                             ].map(([label, value]) => (
                                 <div key={label} className="flex justify-between gap-3 text-sm border-b border-gray-100 pb-2 last:border-b-0">
                                     <span className="text-gray-500">{label}</span>
@@ -4261,6 +4277,17 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                                     <div className="flex items-center justify-between p-4"><span className="font-semibold text-gray-800">{t('Total pendiente')}</span><span className="font-bold text-gray-900">{formatMoneyEstadistica(resumen.pendiente)}</span></div>
                                     <div className="flex items-center justify-between p-4"><span className="font-semibold text-gray-800">{t('Cobro real')}</span><span className="font-bold text-emerald-700">{resumen.cobroReal > 0 ? formatMoneyEstadistica(resumen.cobroReal) : t('Sin registrar')}</span></div>
                                 </div>
+
+                                {Number(agendaDetalleBooking.valoracion_servicio) > 0 && (
+                                    <div className="mt-5 rounded-xl border border-pink-200 bg-pink-50 p-4">
+                                        <p className="text-xs font-bold uppercase text-pink-600 mb-1">{t('Valoracion del servicio')}</p>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-2xl leading-none">{'⭐'.repeat(Number(agendaDetalleBooking.valoracion_servicio))}</span>
+                                            <span className="font-bold text-gray-900">{Number(agendaDetalleBooking.valoracion_servicio)}/5</span>
+                                        </div>
+                                        <p className="text-xs text-gray-500 mt-1">{t('La clienta valoró su visita al salón')}</p>
+                                    </div>
+                                )}
 
                                 {Number(agendaDetalleBooking.valoracion) > 0 && (
                                     <div className="mt-5 rounded-xl border border-yellow-200 bg-yellow-50 p-4">
@@ -5113,6 +5140,11 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                                                     {Number(b.valoracion) > 0 && (
                                                         <span className="px-2 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700 whitespace-nowrap" title={t('Valoracion de la clienta')}>
                                                             ⭐ {Number(b.valoracion)}
+                                                        </span>
+                                                    )}
+                                                    {Number(b.valoracion_servicio) > 0 && (
+                                                        <span className="px-2 py-1 rounded-full text-xs font-semibold bg-pink-100 text-pink-700 whitespace-nowrap" title={t('Valoracion del servicio')}>
+                                                            💅 {Number(b.valoracion_servicio)}
                                                         </span>
                                                     )}
                                                 </span>

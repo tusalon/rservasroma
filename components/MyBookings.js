@@ -29,6 +29,29 @@ function MyBookings({ cliente, onVolver }) {
     // Toast de éxito/error inline
     const [toast, setToast] = React.useState(null);
 
+    // Valoración post-visita: la clienta puntúa el SERVICIO recibido en turnos
+    // Completados (distinta de `valoracion`, que califica la experiencia de
+    // reservar y se pide en la pantalla de confirmación).
+    const [guardandoValoracion, setGuardandoValoracion] = React.useState(null);
+
+    const valorarServicio = async (booking, n) => {
+        if (guardandoValoracion) return;
+        setGuardandoValoracion(booking.id);
+        try {
+            const res = await fetch(
+                `${window.SUPABASE_URL}/rest/v1/reservas?negocio_id=eq.${negocioId}&id=eq.${booking.id}`,
+                { method: 'PATCH', headers: { 'apikey': window.SUPABASE_ANON_KEY, 'Authorization': `Bearer ${window.SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ valoracion_servicio: n, valoracion_servicio_at: new Date().toISOString() }) }
+            );
+            if (!res.ok) throw new Error();
+            setBookings(prev => prev.map(b => b.id === booking.id ? { ...b, valoracion_servicio: n } : b));
+            mostrarToast('ok', t('¡Gracias por valorar tu visita!'));
+        } catch {
+            mostrarToast('error', t('No se pudo guardar la valoración. Intenta de nuevo.'));
+        } finally {
+            setGuardandoValoracion(null);
+        }
+    };
+
     const mostrarToast = (tipo, texto) => {
         setToast({ tipo, texto });
         setTimeout(() => setToast(null), 3500);
@@ -483,12 +506,47 @@ function MyBookings({ cliente, onVolver }) {
                                             </div>
                                         </div>
 
-                                        {booking.estado !== 'Cancelado' && (
+                                        {booking.estado !== 'Cancelado' && booking.estado !== 'Completado' && (
                                             <div className={`text-xs p-2 rounded-lg mb-3 flex items-center gap-2
                                                 ${puedeCancelarBooking ? 'bg-pink-50 text-pink-700 border border-pink-200' : 'bg-pink-100 text-pink-700 border border-pink-300'}`}>
                                                 <span>{puedeCancelarBooking ? '💡' : '⚠️'}</span>
                                                 <span>{tiempoRestante}</span>
                                             </div>
+                                        )}
+
+                                        {/* Valoración post-visita: solo en turnos completados */}
+                                        {booking.estado === 'Completado' && (
+                                            Number(booking.valoracion_servicio) > 0 ? (
+                                                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-3 text-center">
+                                                    <p className="text-xs text-yellow-700 font-medium mb-1">{t('Tu valoración de esta visita')}</p>
+                                                    <div className="text-xl leading-none">
+                                                        {[1,2,3,4,5].map(n => (
+                                                            <span key={n} style={{ filter: Number(booking.valoracion_servicio) >= n ? 'none' : 'grayscale(1) opacity(0.3)' }}>⭐</span>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-3 text-center">
+                                                    <p className="text-sm text-yellow-800 font-semibold mb-0.5">{t('¿Cómo estuvo tu visita?')}</p>
+                                                    <p className="text-xs text-yellow-600 mb-2">{t('Tu opinión ayuda al salón a mejorar')}</p>
+                                                    <div className="flex justify-center gap-1.5">
+                                                        {[1,2,3,4,5].map(n => (
+                                                            <button key={n} type="button"
+                                                                onClick={() => valorarServicio(booking, n)}
+                                                                disabled={guardandoValoracion !== null}
+                                                                className="text-2xl transition-transform active:scale-95 disabled:opacity-50"
+                                                                style={{ filter: 'grayscale(1) opacity(0.45)' }}
+                                                                onMouseEnter={(e) => { e.currentTarget.style.filter = 'none'; }}
+                                                                onMouseLeave={(e) => { e.currentTarget.style.filter = 'grayscale(1) opacity(0.45)'; }}>
+                                                                ⭐
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                    {guardandoValoracion === booking.id && (
+                                                        <p className="text-xs text-yellow-600 mt-2">{t('Guardando...')}</p>
+                                                    )}
+                                                </div>
+                                            )
                                         )}
 
                                         {booking.estado !== 'Cancelado' && calendarLink && (
