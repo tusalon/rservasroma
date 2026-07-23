@@ -306,9 +306,27 @@ function ServicioFormCategorias({ servicio, categorias, onGuardar, onCancelar })
     tipo_anticipo: servicio?.tipo_anticipo || "fijo",
     valor_anticipo: String(servicio?.valor_anticipo ?? ""),
     descripcion: servicio?.descripcion || "",
+    imagen: servicio?.imagen || "",
     horarios_permitidos: servicio?.horarios_permitidos || []
   });
   const [horariosStr, setHorariosStr] = React.useState(servicio?.horarios_permitidos ? servicio.horarios_permitidos.join(", ") : "");
+  const [subiendoImagen, setSubiendoImagen] = React.useState(false);
+  const handleImagenChange = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!window.subirImagenServicio) {
+      alert(t("No se cargó el subidor de imágenes. Recarga la página."));
+      return;
+    }
+    setSubiendoImagen(true);
+    try {
+      const resultado = await window.subirImagenServicio(file, form.nombre || "servicio");
+      if (resultado?.url) setForm((actual) => ({ ...actual, imagen: resultado.url }));
+    } finally {
+      setSubiendoImagen(false);
+    }
+  };
   const submit = (e) => {
     e.preventDefault();
     const duracion = parseInt(form.duracion, 10);
@@ -329,6 +347,7 @@ function ServicioFormCategorias({ servicio, categorias, onGuardar, onCancelar })
       ...form,
       nombre: form.nombre.trim(),
       descripcion: form.descripcion.trim(),
+      imagen: form.imagen || null,
       duracion,
       precio: precioDesde,
       precio_desde: precioDesde,
@@ -340,7 +359,24 @@ function ServicioFormCategorias({ servicio, categorias, onGuardar, onCancelar })
       horarios_permitidos: horarios
     });
   };
-  return /* @__PURE__ */ React.createElement("form", { onSubmit: submit, className: "bg-white rounded-xl border border-pink-100 shadow-sm p-5" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-start justify-between gap-4 mb-5" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h3", { className: "text-lg font-bold text-gray-900" }, servicio ? "✏️ " + t("Editar servicio") : "➕ " + t("Nuevo servicio")), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500 mt-1" }, t("Completa la información que verá la clienta al reservar."))), /* @__PURE__ */ React.createElement("button", { type: "button", onClick: onCancelar, className: "text-gray-400 hover:text-gray-700 text-2xl leading-none" }, "×")), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-1 lg:grid-cols-2 gap-4" }, /* @__PURE__ */ React.createElement("section", { className: "space-y-3" }, /* @__PURE__ */ React.createElement("h4", { className: "font-semibold text-gray-800" }, t("Información básica")), /* @__PURE__ */ React.createElement("input", { value: form.nombre, onChange: (e) => setForm({ ...form, nombre: e.target.value }), className: "w-full border border-gray-200 rounded-lg px-3 py-2", placeholder: t("Nombre del servicio"), required: true }), /* @__PURE__ */ React.createElement("select", { value: form.categoria, onChange: (e) => setForm({ ...form, categoria: e.target.value }), className: "w-full border border-gray-200 rounded-lg px-3 py-2 bg-white" }, categorias.filter((c) => c.activo !== false).map((categoria) => /* @__PURE__ */ React.createElement("option", { key: categoriaId(categoria), value: categoriaId(categoria) }, categoriaIcono(categoria), " ", categoriaNombre(categoria)))), /* @__PURE__ */ React.createElement("textarea", { value: form.descripcion, onChange: (e) => setForm({ ...form, descripcion: e.target.value }), className: "w-full border border-gray-200 rounded-lg px-3 py-2", rows: "4", placeholder: t("Descripción") })), /* @__PURE__ */ React.createElement("section", { className: "space-y-3" }, /* @__PURE__ */ React.createElement("h4", { className: "font-semibold text-gray-800" }, t("Precio, duración y disponibilidad")), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 gap-3" }, /* @__PURE__ */ React.createElement("input", { value: form.duracion, onChange: (e) => setForm({ ...form, duracion: e.target.value.replace(/\D/g, "") }), className: "w-full border border-gray-200 rounded-lg px-3 py-2", placeholder: t("Duración"), inputMode: "numeric" }), /* @__PURE__ */ React.createElement("select", { value: form.precio_moneda, onChange: (e) => setForm({ ...form, precio_moneda: e.target.value }), className: "w-full border border-gray-200 rounded-lg px-3 py-2 bg-white" }, /* @__PURE__ */ React.createElement("option", { value: "CUP" }, "CUP"), /* @__PURE__ */ React.createElement("option", { value: "USD" }, "USD"), /* @__PURE__ */ React.createElement("option", { value: "EUR" }, "EUR"), /* @__PURE__ */ React.createElement("option", { value: "MXN" }, "MXN"))), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 gap-3" }, /* @__PURE__ */ React.createElement("input", { value: form.precio_desde, onChange: (e) => setForm({ ...form, precio_desde: e.target.value.replace(/[^0-9.,]/g, "") }), className: "w-full border border-gray-200 rounded-lg px-3 py-2", placeholder: t("Precio desde"), inputMode: "decimal" }), /* @__PURE__ */ React.createElement("input", { value: form.precio_hasta, onChange: (e) => setForm({ ...form, precio_hasta: e.target.value.replace(/[^0-9.,]/g, "") }), className: "w-full border border-gray-200 rounded-lg px-3 py-2", placeholder: t("Precio hasta opcional"), inputMode: "decimal" })), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400" }, t('Si no hay rango, deja vacío "precio hasta". El cálculo usa el precio desde.')), /* @__PURE__ */ React.createElement("div", { className: "rounded-lg border border-amber-100 bg-amber-50 p-3 space-y-3" }, /* @__PURE__ */ React.createElement("label", { className: "flex items-center justify-between gap-3 cursor-pointer" }, /* @__PURE__ */ React.createElement("span", { className: "text-sm font-semibold text-amber-800" }, t("Anticipo propio de este servicio")), /* @__PURE__ */ React.createElement(
+  return /* @__PURE__ */ React.createElement("form", { onSubmit: submit, className: "bg-white rounded-xl border border-pink-100 shadow-sm p-5" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-start justify-between gap-4 mb-5" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h3", { className: "text-lg font-bold text-gray-900" }, servicio ? "✏️ " + t("Editar servicio") : "➕ " + t("Nuevo servicio")), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500 mt-1" }, t("Completa la información que verá la clienta al reservar."))), /* @__PURE__ */ React.createElement("button", { type: "button", onClick: onCancelar, className: "text-gray-400 hover:text-gray-700 text-2xl leading-none" }, "×")), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-1 lg:grid-cols-2 gap-4" }, /* @__PURE__ */ React.createElement("section", { className: "space-y-3" }, /* @__PURE__ */ React.createElement("h4", { className: "font-semibold text-gray-800" }, t("Información básica")), /* @__PURE__ */ React.createElement("input", { value: form.nombre, onChange: (e) => setForm({ ...form, nombre: e.target.value }), className: "w-full border border-gray-200 rounded-lg px-3 py-2", placeholder: t("Nombre del servicio"), required: true }), /* @__PURE__ */ React.createElement("select", { value: form.categoria, onChange: (e) => setForm({ ...form, categoria: e.target.value }), className: "w-full border border-gray-200 rounded-lg px-3 py-2 bg-white" }, categorias.filter((c) => c.activo !== false).map((categoria) => /* @__PURE__ */ React.createElement("option", { key: categoriaId(categoria), value: categoriaId(categoria) }, categoriaIcono(categoria), " ", categoriaNombre(categoria)))), /* @__PURE__ */ React.createElement("textarea", { value: form.descripcion, onChange: (e) => setForm({ ...form, descripcion: e.target.value }), className: "w-full border border-gray-200 rounded-lg px-3 py-2", rows: "4", placeholder: t("Descripción") }), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3 pt-1" }, /* @__PURE__ */ React.createElement("div", { className: "h-16 w-16 shrink-0 rounded-lg overflow-hidden bg-gray-100 border border-gray-200 flex items-center justify-center" }, subiendoImagen ? /* @__PURE__ */ React.createElement("span", { className: "text-[10px] text-gray-500" }, t("Subiendo")) : form.imagen ? /* @__PURE__ */ React.createElement("img", { src: form.imagen, alt: t("Foto del servicio"), className: "h-full w-full object-cover" }) : /* @__PURE__ */ React.createElement("span", { className: "text-xl" }, "📷")), /* @__PURE__ */ React.createElement("div", { className: "min-w-0 flex-1" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mb-1.5" }, t("Foto del servicio (opcional)")), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-2" }, /* @__PURE__ */ React.createElement("input", { id: "servicio-imagen-input", type: "file", accept: "image/*", onChange: handleImagenChange, className: "hidden" }), /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      type: "button",
+      onClick: () => document.getElementById("servicio-imagen-input").click(),
+      disabled: subiendoImagen,
+      className: "px-3 py-1.5 text-xs font-semibold rounded-lg bg-pink-600 text-white hover:bg-pink-700 disabled:opacity-60"
+    },
+    subiendoImagen ? t("Subiendo...") : form.imagen ? t("Cambiar foto") : t("Subir foto")
+  ), form.imagen && /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      type: "button",
+      onClick: () => setForm({ ...form, imagen: "" }),
+      className: "px-3 py-1.5 text-xs rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50"
+    },
+    t("Quitar")
+  ))))), /* @__PURE__ */ React.createElement("section", { className: "space-y-3" }, /* @__PURE__ */ React.createElement("h4", { className: "font-semibold text-gray-800" }, t("Precio, duración y disponibilidad")), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 gap-3" }, /* @__PURE__ */ React.createElement("input", { value: form.duracion, onChange: (e) => setForm({ ...form, duracion: e.target.value.replace(/\D/g, "") }), className: "w-full border border-gray-200 rounded-lg px-3 py-2", placeholder: t("Duración"), inputMode: "numeric" }), /* @__PURE__ */ React.createElement("select", { value: form.precio_moneda, onChange: (e) => setForm({ ...form, precio_moneda: e.target.value }), className: "w-full border border-gray-200 rounded-lg px-3 py-2 bg-white" }, /* @__PURE__ */ React.createElement("option", { value: "CUP" }, "CUP"), /* @__PURE__ */ React.createElement("option", { value: "USD" }, "USD"), /* @__PURE__ */ React.createElement("option", { value: "EUR" }, "EUR"), /* @__PURE__ */ React.createElement("option", { value: "MXN" }, "MXN"))), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 gap-3" }, /* @__PURE__ */ React.createElement("input", { value: form.precio_desde, onChange: (e) => setForm({ ...form, precio_desde: e.target.value.replace(/[^0-9.,]/g, "") }), className: "w-full border border-gray-200 rounded-lg px-3 py-2", placeholder: t("Precio desde"), inputMode: "decimal" }), /* @__PURE__ */ React.createElement("input", { value: form.precio_hasta, onChange: (e) => setForm({ ...form, precio_hasta: e.target.value.replace(/[^0-9.,]/g, "") }), className: "w-full border border-gray-200 rounded-lg px-3 py-2", placeholder: t("Precio hasta opcional"), inputMode: "decimal" })), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400" }, t('Si no hay rango, deja vacío "precio hasta". El cálculo usa el precio desde.')), /* @__PURE__ */ React.createElement("div", { className: "rounded-lg border border-amber-100 bg-amber-50 p-3 space-y-3" }, /* @__PURE__ */ React.createElement("label", { className: "flex items-center justify-between gap-3 cursor-pointer" }, /* @__PURE__ */ React.createElement("span", { className: "text-sm font-semibold text-amber-800" }, t("Anticipo propio de este servicio")), /* @__PURE__ */ React.createElement(
     "input",
     {
       type: "checkbox",

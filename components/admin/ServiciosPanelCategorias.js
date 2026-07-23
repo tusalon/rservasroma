@@ -488,9 +488,29 @@ function ServicioFormCategorias({ servicio, categorias, onGuardar, onCancelar })
         tipo_anticipo: servicio?.tipo_anticipo || 'fijo',
         valor_anticipo: String(servicio?.valor_anticipo ?? ''),
         descripcion: servicio?.descripcion || '',
+        imagen: servicio?.imagen || '',
         horarios_permitidos: servicio?.horarios_permitidos || []
     });
     const [horariosStr, setHorariosStr] = React.useState(servicio?.horarios_permitidos ? servicio.horarios_permitidos.join(', ') : '');
+    const [subiendoImagen, setSubiendoImagen] = React.useState(false);
+
+    // La foto va a Cloudinary, no a Supabase Storage.
+    const handleImagenChange = async (e) => {
+        const file = e.target.files?.[0];
+        e.target.value = '';
+        if (!file) return;
+        if (!window.subirImagenServicio) {
+            alert(t('No se cargó el subidor de imágenes. Recarga la página.'));
+            return;
+        }
+        setSubiendoImagen(true);
+        try {
+            const resultado = await window.subirImagenServicio(file, form.nombre || 'servicio');
+            if (resultado?.url) setForm(actual => ({ ...actual, imagen: resultado.url }));
+        } finally {
+            setSubiendoImagen(false);
+        }
+    };
 
     const submit = (e) => {
         e.preventDefault();
@@ -514,6 +534,7 @@ function ServicioFormCategorias({ servicio, categorias, onGuardar, onCancelar })
             ...form,
             nombre: form.nombre.trim(),
             descripcion: form.descripcion.trim(),
+            imagen: form.imagen || null,
             duracion,
             precio: precioDesde,
             precio_desde: precioDesde,
@@ -546,6 +567,41 @@ function ServicioFormCategorias({ servicio, categorias, onGuardar, onCancelar })
                         ))}
                     </select>
                     <textarea value={form.descripcion} onChange={(e) => setForm({...form, descripcion: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2" rows="4" placeholder={t('Descripción')} />
+
+                    <div className="flex items-center gap-3 pt-1">
+                        <div className="h-16 w-16 shrink-0 rounded-lg overflow-hidden bg-gray-100 border border-gray-200 flex items-center justify-center">
+                            {subiendoImagen ? (
+                                <span className="text-[10px] text-gray-500">{t('Subiendo')}</span>
+                            ) : form.imagen ? (
+                                <img src={form.imagen} alt={t('Foto del servicio')} className="h-full w-full object-cover" />
+                            ) : (
+                                <span className="text-xl">📷</span>
+                            )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                            <p className="text-xs text-gray-500 mb-1.5">{t('Foto del servicio (opcional)')}</p>
+                            <div className="flex flex-wrap gap-2">
+                                <input id="servicio-imagen-input" type="file" accept="image/*" onChange={handleImagenChange} className="hidden" />
+                                <button
+                                    type="button"
+                                    onClick={() => document.getElementById('servicio-imagen-input').click()}
+                                    disabled={subiendoImagen}
+                                    className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-pink-600 text-white hover:bg-pink-700 disabled:opacity-60"
+                                >
+                                    {subiendoImagen ? t('Subiendo...') : form.imagen ? t('Cambiar foto') : t('Subir foto')}
+                                </button>
+                                {form.imagen && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setForm({...form, imagen: ''})}
+                                        className="px-3 py-1.5 text-xs rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50"
+                                    >
+                                        {t('Quitar')}
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    </div>
                 </section>
                 <section className="space-y-3">
                     <h4 className="font-semibold text-gray-800">{t('Precio, duración y disponibilidad')}</h4>

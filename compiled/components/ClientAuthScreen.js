@@ -210,7 +210,10 @@ function ClientAuthScreen({ onAccessGranted, onGoBack }) {
   const logoUrl = config?.logo_url;
   const paisTelefono = window.getPhoneCountryConfig ? window.getPhoneCountryConfig({ codigo_pais: codigoPaisCliente }) : { codigo: "53", bandera: "🇨🇺", ejemplo: "51234567", localLength: 8 };
   const paisesTelefono = window.PHONE_COUNTRIES || [paisTelefono];
-  const fondoPortada = window.getHeroBackgroundOption ? window.getHeroBackgroundOption(config?.imagen_fondo_tipo) : { image: "https://images.unsplash.com/photo-1604654894610-df63bc536371?q=60&w=800&auto=format&fit=crop", label: "Fondo de salon" };
+  const fondoPortada = {
+    image: window.getHeroBackgroundImage ? window.getHeroBackgroundImage(config) : config?.imagen_fondo_url || "https://images.unsplash.com/photo-1604654894610-df63bc536371?q=60&w=800&auto=format&fit=crop",
+    label: "Fondo de salon"
+  };
   const especialidad = (config?.especialidad || "").toLowerCase();
   const sticker = especialidad.includes("uña") ? "💅" : especialidad.includes("pelo") ? "💇‍♀️" : especialidad.includes("belleza") ? "🌸" : "💖";
   return /* @__PURE__ */ React.createElement("div", { className: "client-auth-screen min-h-screen flex items-center justify-center p-4 relative overflow-hidden" }, /* @__PURE__ */ React.createElement("div", { className: "client-auth-background absolute inset-0 z-0 bg-gradient-to-br from-pink-200 via-pink-300 to-pink-400" }, /* @__PURE__ */ React.createElement(

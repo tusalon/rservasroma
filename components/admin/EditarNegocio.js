@@ -8,6 +8,7 @@ function EditarNegocio() {
     const [monedaEditadaManualmente, setMonedaEditadaManualmente] = React.useState(false);
     const [cargando, setCargando] = React.useState(true);
     const [guardando, setGuardando] = React.useState(false);
+    const [subiendoFondo, setSubiendoFondo] = React.useState(false);
     const [error, setError] = React.useState('');
     const [exito, setExito] = React.useState(false);
     const [config, setConfig] = React.useState({
@@ -24,6 +25,7 @@ function EditarNegocio() {
         color_primario: '#ec4899',
         color_secundario: '#f9a8d4',
         imagen_fondo_tipo: 'unas',
+        imagen_fondo_url: '',
         mensaje_bienvenida: '',
         mensaje_confirmacion: '',
         mensaje_inasistencia: 'Hola {cliente}, registramos que no asististe a tu turno en {nombre_negocio}.\n\nServicio: {servicio}\nFecha: {fecha}\nHora: {hora}\nProfesional: {profesional}\n\nSi necesitas reprogramar, por favor escribenos por este WhatsApp.',
@@ -100,6 +102,7 @@ function EditarNegocio() {
                     color_primario: configData.color_primario || '#ec4899',
                     color_secundario: configData.color_secundario || '#f9a8d4',
                     imagen_fondo_tipo: configData.imagen_fondo_tipo || 'unas',
+                    imagen_fondo_url: configData.imagen_fondo_url || '',
                     mensaje_bienvenida: configData.mensaje_bienvenida || '¡Bienvenido!',
                     mensaje_confirmacion: configData.mensaje_confirmacion || 'Tu turno ha sido reservado',
                     mensaje_inasistencia: configData.mensaje_inasistencia || 'Hola {cliente}, registramos que no asististe a tu turno en {nombre_negocio}.\n\nServicio: {servicio}\nFecha: {fecha}\nHora: {hora}\nProfesional: {profesional}\n\nSi necesitas reprogramar, por favor escribenos por este WhatsApp.',
@@ -149,6 +152,31 @@ function EditarNegocio() {
                 });
             };
             reader.readAsDataURL(file);
+        }
+    };
+
+    // La imagen de fondo va a Cloudinary (no a Supabase Storage) y se guarda
+    // ya subida: asi la clienta la ve aunque el negocio no toque "Guardar".
+    const handleFondoChange = async (e) => {
+        const file = e.target.files?.[0];
+        e.target.value = '';
+        if (!file) return;
+        if (!window.subirImagenFondo) {
+            setError(t('No se cargó el subidor de imágenes. Recarga la página.'));
+            return;
+        }
+        setSubiendoFondo(true);
+        setError('');
+        try {
+            const resultado = await window.subirImagenFondo(file, negocioId);
+            if (resultado?.url) {
+                setConfig(actual => ({ ...actual, imagen_fondo_url: resultado.url }));
+            }
+        } catch (err) {
+            console.error('❌ Error subiendo fondo:', err);
+            setError(t('No se pudo subir la imagen de fondo.'));
+        } finally {
+            setSubiendoFondo(false);
         }
     };
 
@@ -227,6 +255,7 @@ function EditarNegocio() {
                 color_primario: config.color_primario || '#ec4899',
                 color_secundario: config.color_secundario || '#f9a8d4',
                 imagen_fondo_tipo: config.imagen_fondo_tipo || 'unas',
+                imagen_fondo_url: config.imagen_fondo_url || null,
                 // 🆕 INCLUIR CAMPOS DE ANTICIPO
                 requiere_anticipo: config.requiere_anticipo,
                 anticipos_por_servicio: config.anticipos_por_servicio === true,
@@ -266,12 +295,13 @@ function EditarNegocio() {
             if (!response.ok) {
                 const errorText = await response.text();
                 console.error('❌ Error response:', errorText);
-                if (errorText.includes('codigo_pais') || errorText.includes('whatsapp_moneda') || errorText.includes('whatsapp_mostrar_costos') || errorText.includes('anticipos_por_servicio') || errorText.includes('municipio') || errorText.includes('provincia')) {
+                if (errorText.includes('codigo_pais') || errorText.includes('whatsapp_moneda') || errorText.includes('whatsapp_mostrar_costos') || errorText.includes('anticipos_por_servicio') || errorText.includes('municipio') || errorText.includes('provincia') || errorText.includes('imagen_fondo_url')) {
                     const datosCompatibles = { ...datosActualizar };
                     if (errorText.includes('codigo_pais')) delete datosCompatibles.codigo_pais;
                     if (errorText.includes('anticipos_por_servicio')) delete datosCompatibles.anticipos_por_servicio;
                     if (errorText.includes('municipio')) delete datosCompatibles.municipio;
                     if (errorText.includes('provincia')) delete datosCompatibles.provincia;
+                    if (errorText.includes('imagen_fondo_url')) delete datosCompatibles.imagen_fondo_url;
                     if (errorText.includes('whatsapp_moneda') || errorText.includes('whatsapp_mostrar_costos')) {
                         delete datosCompatibles.whatsapp_moneda;
                         delete datosCompatibles.whatsapp_mostrar_costos;
@@ -587,7 +617,62 @@ function EditarNegocio() {
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
                                     {t('Imagen de fondo para clientes')}
                                 </label>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+
+                                {/* Foto propia del negocio: si existe, manda sobre la categoría */}
+                                <div className={`rounded-lg border-2 p-3 mb-4 transition ${
+                                    config.imagen_fondo_url ? 'border-amber-600 ring-2 ring-amber-200 bg-amber-50/40' : 'border-dashed border-gray-300'
+                                }`}>
+                                    <div className="flex items-center gap-3">
+                                        <div className="h-20 w-28 shrink-0 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center">
+                                            {subiendoFondo ? (
+                                                <span className="text-xs text-gray-500">{t('Subiendo...')}</span>
+                                            ) : config.imagen_fondo_url ? (
+                                                <img src={config.imagen_fondo_url} alt={t('Tu foto de fondo')} className="h-full w-full object-cover" />
+                                            ) : (
+                                                <span className="text-2xl">🖼️</span>
+                                            )}
+                                        </div>
+                                        <div className="min-w-0 flex-1">
+                                            <p className="text-sm font-semibold text-gray-900">{t('Tu propia foto')}</p>
+                                            <p className="text-xs text-gray-500 mt-1">
+                                                {config.imagen_fondo_url
+                                                    ? t('Se está usando tu foto. Las opciones de abajo quedan desactivadas.')
+                                                    : t('Sube una foto de tu salón o tu trabajo. Se verá mejor que las genéricas.')}
+                                            </p>
+                                            <div className="flex flex-wrap gap-2 mt-2">
+                                                <input
+                                                    id="fondo-input"
+                                                    type="file"
+                                                    accept="image/*"
+                                                    onChange={handleFondoChange}
+                                                    className="hidden"
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => document.getElementById('fondo-input').click()}
+                                                    disabled={subiendoFondo}
+                                                    className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-amber-600 text-white hover:bg-amber-700 disabled:opacity-60"
+                                                >
+                                                    {subiendoFondo ? t('Subiendo...') : config.imagen_fondo_url ? t('Cambiar foto') : t('Subir foto')}
+                                                </button>
+                                                {config.imagen_fondo_url && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setConfig({...config, imagen_fondo_url: ''})}
+                                                        className="px-3 py-1.5 text-xs rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50"
+                                                    >
+                                                        {t('Quitar')}
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <p className="text-xs font-medium text-gray-600 mb-2">
+                                    {config.imagen_fondo_url ? t('O vuelve a una imagen genérica (quita tu foto primero)') : t('O elige una imagen genérica')}
+                                </p>
+                                <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 ${config.imagen_fondo_url ? 'opacity-50 pointer-events-none' : ''}`}>
                                     {(window.HERO_BACKGROUND_OPTIONS || []).map((opcion) => (
                                         <button
                                             type="button"

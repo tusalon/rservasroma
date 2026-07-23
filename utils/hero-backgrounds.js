@@ -41,7 +41,16 @@
         return HERO_BACKGROUND_OPTIONS.find(option => option.id === normalizedId) || HERO_BACKGROUND_OPTIONS[0];
     }
 
+    // Imagen de fondo final para la clienta: si el negocio subio su propia
+    // foto (imagen_fondo_url) esa manda; si no, la generica de su categoria.
+    function getHeroBackgroundImage(config) {
+        const propia = String(config?.imagen_fondo_url || '').trim();
+        if (propia) return propia;
+        return getHeroBackgroundOption(config?.imagen_fondo_tipo).image;
+    }
+
     window.DEFAULT_HERO_BACKGROUND = DEFAULT_HERO_BACKGROUND;
     window.HERO_BACKGROUND_OPTIONS = HERO_BACKGROUND_OPTIONS;
     window.getHeroBackgroundOption = getHeroBackgroundOption;
+    window.getHeroBackgroundImage = getHeroBackgroundImage;
 })();

@@ -1,6 +1,6 @@
 // sw.js - Service Worker para Rservasroma
 
-const CACHE_NAME = 'rservasroma-v61';
+const CACHE_NAME = 'rservasroma-v62';
 const BASE = '/rservasroma';
 
 const urlsToCache = [
@@ -17,7 +17,7 @@ const urlsToCache = [
 
   // App principal (JSX pre-compilado en compiled/ — ver scripts/build-jsx.sh)
   `${BASE}/compiled/client-app.js?v=20260723-jsx1`,
-  `${BASE}/compiled/admin-app.js?v=20260723-jsx1`,
+  `${BASE}/compiled/admin-app.js?v=20260723-jsx2`,
 
   // Utils
   `${BASE}/utils/api.js?v=20260722-lista-espera-cliente`,
@@ -26,7 +26,7 @@ const urlsToCache = [
   `${BASE}/utils/config.js`,
   `${BASE}/utils/client-native-links.js?v=20260721-native-origin-v1`,
   `${BASE}/utils/dias-cerrados.js`,
-  `${BASE}/utils/hero-backgrounds.js`,
+  `${BASE}/utils/hero-backgrounds.js?v=20260723-fotos`,
   `${BASE}/utils/native-push-notifications.js?v=20260722-platform-v4`,
   `${BASE}/utils/offline-panel.js`,
   `${BASE}/utils/config-negocio-master.js?v=20260723-arranque-rapido`,
@@ -36,9 +36,9 @@ const urlsToCache = [
   `${BASE}/utils/push-config.js?v=20260717-push-activo`,
   `${BASE}/utils/push-notifications.js?v=20260722-platform-v4`,
   `${BASE}/utils/servicios.js`,
-  `${BASE}/utils/storage.js`,
+  `${BASE}/utils/storage.js?v=20260723-fotos`,
   `${BASE}/utils/suscripcion.js?v=20260721-fecha-local`,
-  `${BASE}/utils/supabase-config.js`,
+  `${BASE}/utils/supabase-config.js?v=20260723-fotos`,
   `${BASE}/utils/timeLogic.js`,
   `${BASE}/utils/whatsapp-helper.js?v=20260722-lista-espera-cliente`,
   `${BASE}/utils/legacy-ios-fallback.css`,
@@ -46,7 +46,7 @@ const urlsToCache = [
   // Componentes cliente (compilados)
   `${BASE}/compiled/components/BookingForm.js?v=20260723-jsx1`,
   `${BASE}/compiled/components/Calendar.js?v=20260723-jsx1`,
-  `${BASE}/compiled/components/ClientAuthScreen.js?v=20260723-jsx1`,
+  `${BASE}/compiled/components/ClientAuthScreen.js?v=20260723-fotos`,
   `${BASE}/compiled/components/Confirmation.js?v=20260723-jsx1`,
   `${BASE}/compiled/components/Header.js?v=20260723-jsx1`,
   `${BASE}/compiled/components/InstallButton.js?v=20260723-jsx1`,
@@ -56,17 +56,17 @@ const urlsToCache = [
   `${BASE}/compiled/components/ProfesionalSelector.js?v=20260723-jsx1`,
   `${BASE}/compiled/components/ServiceSelectionCategorias.js?v=20260723-jsx1`,
   `${BASE}/compiled/components/TimeSlots.js?v=20260723-jsx1`,
-  `${BASE}/compiled/components/WelcomeScreen.js?v=20260723-jsx1`,
+  `${BASE}/compiled/components/WelcomeScreen.js?v=20260723-fotos`,
   `${BASE}/compiled/components/WhatsAppButton.js?v=20260723-jsx1`,
 
   // Componentes admin (compilados)
   `${BASE}/compiled/components/admin/ConfigPanel.js?v=20260723-jsx1`,
-  `${BASE}/compiled/components/admin/EditarNegocio.js?v=20260723-jsx1`,
+  `${BASE}/compiled/components/admin/EditarNegocio.js?v=20260723-fotos`,
   `${BASE}/compiled/components/admin/HorariosPorDiaPanel.js?v=20260723-jsx1`,
   `${BASE}/compiled/components/admin/HorariosExcepcionPanel.js?v=20260723-jsx1`,
   `${BASE}/compiled/components/admin/ProfesionalesPanel.js?v=20260723-jsx1`,
   `${BASE}/compiled/components/admin/ImportarServicios.js?v=20260723-jsx1`,
-  `${BASE}/compiled/components/admin/ServiciosPanelCategorias.js?v=20260723-jsx1`,
+  `${BASE}/compiled/components/admin/ServiciosPanelCategorias.js?v=20260723-fotos`,
   `${BASE}/compiled/components/admin/SetupWizard.js?v=20260723-jsx1`,
 
   // Vendors (sin babel.min.js: ya no se transpila en el navegador)

@@ -24,9 +24,18 @@
 
 console.log('storage.js cargado (Cloudinary)');
 
-const CLOUDINARY_MAX_ORIGINAL_MB = 8;
+// 25MB y no 8: los celulares de 48MP+ sacan fotos de 8-15MB y el limite se
+// mide ANTES de comprimir, asi que un tope bajo rechazaba fotos legitimas que
+// habrian terminado pesando ~200KB. Si el telefono no puede con una imagen
+// enorme, el try/catch de abajo lo avisa en vez de fallar en silencio.
+const CLOUDINARY_MAX_ORIGINAL_MB = 25;
 const CLOUDINARY_MAX_DIMENSION = 1200;
 const CLOUDINARY_IMAGE_QUALITY = 0.75;
+
+// Carpetas dentro de la cuenta de Cloudinary. Un mismo upload preset sin
+// firma sirve para todas: la carpeta se manda en cada subida.
+const CLOUDINARY_FOLDER_SERVICIOS = 'rservasroma/servicios';
+const CLOUDINARY_FOLDER_FONDOS = 'rservasroma/fondos';
 
 function getCloudinaryConfig() {
     return {
@@ -60,9 +69,10 @@ function cargarImagenEnCanvas(file) {
     });
 }
 
-async function comprimirImagenServicio(file) {
+async function comprimirImagenServicio(file, maxDimension) {
+    const limite = maxDimension || CLOUDINARY_MAX_DIMENSION;
     const image = await cargarImagenEnCanvas(file);
-    const scale = Math.min(1, CLOUDINARY_MAX_DIMENSION / Math.max(image.width, image.height));
+    const scale = Math.min(1, limite / Math.max(image.width, image.height));
     const width = Math.max(1, Math.round(image.width * scale));
     const height = Math.max(1, Math.round(image.height * scale));
     const canvas = document.createElement('canvas');
@@ -78,7 +88,16 @@ async function comprimirImagenServicio(file) {
     });
 }
 
-window.subirImagenServicio = async function(file, servicioId) {
+// Sube una imagen a Cloudinary comprimiendola antes en el navegador.
+// Devuelve { url, publicId, width, height, bytes } o null si algo falla
+// (los errores se avisan con alert, igual que el resto del panel).
+async function subirImagenACloudinary(file, opciones) {
+    const config = opciones || {};
+    const folder = config.folder || CLOUDINARY_FOLDER_SERVICIOS;
+    const etiqueta = config.etiqueta || 'imagen';
+    const tags = config.tags || 'rservasroma';
+    const maxDimension = config.maxDimension || CLOUDINARY_MAX_DIMENSION;
+
     try {
         if (!file) {
             console.error('No se proporciono archivo');
@@ -101,14 +120,14 @@ window.subirImagenServicio = async function(file, servicioId) {
             return null;
         }
 
-        const imagenComprimida = await comprimirImagenServicio(file);
+        const imagenComprimida = await comprimirImagenServicio(file, maxDimension);
         const formData = new FormData();
-        formData.append('file', imagenComprimida, `${slugArchivoImagen(servicioId)}.jpg`);
+        formData.append('file', imagenComprimida, `${slugArchivoImagen(etiqueta)}-${Date.now()}.jpg`);
         formData.append('upload_preset', uploadPreset);
-        formData.append('folder', 'servicios');
-        formData.append('tags', 'servicio,exoticnailsbyyuly');
+        formData.append('folder', folder);
+        formData.append('tags', tags);
 
-        console.log('Subiendo imagen de servicio a Cloudinary');
+        console.log(`Subiendo imagen a Cloudinary (${folder})`);
 
         const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
             method: 'POST',
@@ -118,7 +137,7 @@ window.subirImagenServicio = async function(file, servicioId) {
         if (!response.ok) {
             const error = await response.text();
             console.error('Error al subir imagen:', error);
-            alert('No se pudo subir la imagen a Cloudinary.');
+            alert('No se pudo subir la imagen. Revisa tu conexion e intenta de nuevo.');
             return null;
         }
 
@@ -133,10 +152,34 @@ window.subirImagenServicio = async function(file, servicioId) {
             bytes: data.bytes
         };
     } catch (error) {
-        console.error('Error en subirImagenServicio:', error);
+        console.error('Error en subirImagenACloudinary:', error);
         alert('Error al procesar la imagen.');
         return null;
     }
+}
+
+window.subirImagenACloudinary = subirImagenACloudinary;
+
+// Foto de un servicio (se ve como miniatura en el panel y al reservar).
+window.subirImagenServicio = function(file, servicioId) {
+    return subirImagenACloudinary(file, {
+        folder: CLOUDINARY_FOLDER_SERVICIOS,
+        etiqueta: servicioId || 'servicio',
+        tags: 'rservasroma,servicio',
+        maxDimension: 1000
+    });
+};
+
+// Imagen de fondo propia del negocio (pantalla de bienvenida y acceso de la
+// clienta). 1200px basta: se muestra a pantalla completa pero detras de una
+// capa oscura, y en Cuba pesa mas la velocidad que el detalle.
+window.subirImagenFondo = function(file, negocioId) {
+    return subirImagenACloudinary(file, {
+        folder: CLOUDINARY_FOLDER_FONDOS,
+        etiqueta: negocioId || 'fondo',
+        tags: 'rservasroma,fondo',
+        maxDimension: 1200
+    });
 };
 
 window.eliminarImagenServicio = async function() {

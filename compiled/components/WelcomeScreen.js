@@ -125,7 +125,10 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol, onMisReservas }) {
     const b = parseInt(limpio.slice(4, 6), 16);
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
   };
-  const fondoPortada = window.getHeroBackgroundOption ? window.getHeroBackgroundOption(config?.imagen_fondo_tipo) : { image: "https://images.unsplash.com/photo-1604654894610-df63bc536371?q=60&w=800&auto=format&fit=crop", label: "Fondo de salon" };
+  const fondoPortada = {
+    image: window.getHeroBackgroundImage ? window.getHeroBackgroundImage(config) : config?.imagen_fondo_url || "https://images.unsplash.com/photo-1604654894610-df63bc536371?q=60&w=800&auto=format&fit=crop",
+    label: "Fondo de salon"
+  };
   const sticker = config?.especialidad?.toLowerCase().includes("uñas") ? "💅" : config?.especialidad?.toLowerCase().includes("pelo") ? "💇‍♀️" : config?.especialidad?.toLowerCase().includes("belleza") ? "🌸" : "💖";
   const abrirWhatsApp = () => {
     if (!config?.telefono) {
