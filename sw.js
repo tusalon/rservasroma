@@ -1,6 +1,6 @@
 // sw.js - Service Worker para Rservasroma
 
-const CACHE_NAME = 'rservasroma-v55';
+const CACHE_NAME = 'rservasroma-v56';
 const BASE = '/rservasroma';
 
 const urlsToCache = [
@@ -55,7 +55,7 @@ const urlsToCache = [
   `${BASE}/components/MyBookings.js?v=20260721-admin-push-v2`,
   `${BASE}/components/ProfesionalSelector.js`,
   `${BASE}/components/ServiceSelectionCategorias.js`,
-  `${BASE}/components/TimeSlots.js`,
+  `${BASE}/components/TimeSlots.js?v=20260722-toast-espera`,
   `${BASE}/components/WelcomeScreen.js?v=20260722-mejora-cliente`,
   `${BASE}/components/WhatsAppButton.js`,
 

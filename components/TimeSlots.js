@@ -16,6 +16,22 @@ function TimeSlots({ service, date, profesional, cliente, onTimeSelect, selected
     const [maxAntelacionDias, setMaxAntelacionDias] = React.useState(30);
     const [minAntelacionHoras, setMinAntelacionHoras] = React.useState(2);
 
+    // Toast propio en vez de alert() nativo: el alert bloquea la app y muestra
+    // el dominio ("...github.io dice:"), lo que rompe la marca del salón.
+    // Mismo patrón que ya usa MyBookings.
+    const [toast, setToast] = React.useState(null);
+    const toastTimerRef = React.useRef(null);
+
+    const mostrarToast = (tipo, texto) => {
+        setToast({ tipo, texto });
+        if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+        toastTimerRef.current = setTimeout(() => setToast(null), 3500);
+    };
+
+    React.useEffect(() => () => {
+        if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    }, []);
+
     // indiceToHoraLegible, timeToMinutes, variantesHorarioPermitido, servicioPermiteHorario
     // y slotTieneDescanso viven en utils/timeLogic.js (cargado antes que este componente).
 
@@ -262,11 +278,11 @@ function TimeSlots({ service, date, profesional, cliente, onTimeSelect, selected
 
     const handleUnirseListaEspera = async (slot) => {
         if (!cliente?.nombre || !cliente?.whatsapp) {
-            alert(t('Necesitas ingresar con tu WhatsApp para anotarte en lista de espera.'));
+            mostrarToast('error', t('Necesitas ingresar con tu WhatsApp para anotarte en lista de espera.'));
             return;
         }
         if (!window.unirseListaEspera) {
-            alert(t('La lista de espera todavia no esta disponible.'));
+            mostrarToast('error', t('La lista de espera todavia no esta disponible.'));
             return;
         }
 
@@ -286,12 +302,12 @@ function TimeSlots({ service, date, profesional, cliente, onTimeSelect, selected
 
             if (result.success) {
                 setWaitlistSlots(prev => ({ ...prev, [slot.hora]: result.data }));
-                alert(t('Listo. Quedaste en lista de espera para ese turno.'));
+                mostrarToast('ok', t('Listo. Quedaste en lista de espera para ese turno.'));
             } else if (result.reason === 'occupied') {
-                alert(t('Ese turno ya tiene una clienta en lista de espera.'));
+                mostrarToast('error', t('Ese turno ya tiene una clienta en lista de espera.'));
                 setWaitlistSlots(prev => ({ ...prev, [slot.hora]: result.data || true }));
             } else {
-                alert(t('No se pudo anotarte en lista de espera. Intenta de nuevo.'));
+                mostrarToast('error', t('No se pudo anotarte en lista de espera. Intenta de nuevo.'));
             }
         } finally {
             setJoiningWaitlist('');
@@ -342,6 +358,15 @@ function TimeSlots({ service, date, profesional, cliente, onTimeSelect, selected
 
     return (
         <div className="space-y-4 animate-fade-in">
+            {toast && (
+                <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-[9999] px-4 py-3 rounded-xl shadow-lg text-sm font-medium flex items-center gap-2
+                    ${toast.tipo === 'ok' ? 'bg-green-600 text-white' : 'bg-red-600 text-white'}`}
+                    style={{ maxWidth: '90vw' }}>
+                    <span>{toast.tipo === 'ok' ? '✅' : '❌'}</span>
+                    <span>{toast.texto}</span>
+                </div>
+            )}
+
             <h2 className="text-lg font-semibold text-pink-700 flex items-center gap-2">
                 <span className="text-2xl">⏰</span>
                 {t('4. Elige un horario con {nombre}', { nombre: profesional.nombre })}
