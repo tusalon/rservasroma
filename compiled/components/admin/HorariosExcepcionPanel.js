@@ -1,0 +1,252 @@
+function HorariosExcepcionPanel({ profesionalId, profesionalNombre, onCerrar }) {
+  const idioma = window.useIdioma();
+  const t = window.t;
+  const dias = idioma === "en" ? [
+    { id: "lunes", nombre: "Monday" },
+    { id: "martes", nombre: "Tuesday" },
+    { id: "miercoles", nombre: "Wednesday" },
+    { id: "jueves", nombre: "Thursday" },
+    { id: "viernes", nombre: "Friday" },
+    { id: "sabado", nombre: "Saturday" },
+    { id: "domingo", nombre: "Sunday" }
+  ] : [
+    { id: "lunes", nombre: "Lunes" },
+    { id: "martes", nombre: "Martes" },
+    { id: "miercoles", nombre: "Miércoles" },
+    { id: "jueves", nombre: "Jueves" },
+    { id: "viernes", nombre: "Viernes" },
+    { id: "sabado", nombre: "Sábado" },
+    { id: "domingo", nombre: "Domingo" }
+  ];
+  const [excepciones, setExcepciones] = React.useState([]);
+  const [cargando, setCargando] = React.useState(false);
+  const [modoFormulario, setModoFormulario] = React.useState(false);
+  const [editando, setEditando] = React.useState(null);
+  const [error, setError] = React.useState("");
+  const [reservasAviso, setReservasAviso] = React.useState([]);
+  const [reservasAvisoError, setReservasAvisoError] = React.useState(false);
+  const [diaSeleccionado, setDiaSeleccionado] = React.useState("lunes");
+  const [form, setForm] = React.useState({
+    fechaInicio: "",
+    fechaFin: "",
+    horariosPorDia: {},
+    descansosPorDia: {}
+  });
+  const [nuevoDescanso, setNuevoDescanso] = React.useState({ inicio: "13:00", fin: "14:00" });
+  const formatearHora = (hora) => window.formatTo12Hour ? window.formatTo12Hour(hora) : hora;
+  const todasLasHoras = React.useMemo(() => {
+    const horas = [];
+    for (let i = 0; i < 48; i++) {
+      const hora = Math.floor(i / 2);
+      const minutos = i % 2 === 0 ? "00" : "30";
+      const valor = `${String(hora).padStart(2, "0")}:${minutos}`;
+      horas.push({ indice: i, valor, label: formatearHora(valor) });
+    }
+    return horas;
+  }, []);
+  React.useEffect(() => {
+    cargarExcepciones();
+  }, [profesionalId]);
+  React.useEffect(() => {
+    cargarReservasEnRango();
+  }, [form.fechaInicio, form.fechaFin, profesionalId]);
+  const inicializarDias = (horarios = {}, descansos = {}) => {
+    const horariosIniciales = {};
+    const descansosIniciales = {};
+    dias.forEach((dia) => {
+      horariosIniciales[dia.id] = horarios[dia.id] || [];
+      descansosIniciales[dia.id] = descansos[dia.id] || [];
+    });
+    return { horariosIniciales, descansosIniciales };
+  };
+  const cargarExcepciones = async () => {
+    if (!profesionalId) return;
+    setCargando(true);
+    try {
+      const data = await window.salonConfig.getExcepcionesProfesional(profesionalId);
+      setExcepciones(data || []);
+    } catch (err) {
+      setError(err.message || t("No se pudieron cargar las excepciones."));
+    } finally {
+      setCargando(false);
+    }
+  };
+  const abrirNuevo = () => {
+    const base = inicializarDias();
+    setEditando(null);
+    setError("");
+    setReservasAviso([]);
+    setDiaSeleccionado("lunes");
+    setForm({
+      fechaInicio: "",
+      fechaFin: "",
+      horariosPorDia: base.horariosIniciales,
+      descansosPorDia: base.descansosIniciales
+    });
+    setModoFormulario(true);
+  };
+  const abrirEditar = (excepcion) => {
+    const base = inicializarDias(excepcion.horarios_por_dia || {}, excepcion.descansos_por_dia || {});
+    setEditando(excepcion);
+    setError("");
+    setDiaSeleccionado("lunes");
+    setForm({
+      fechaInicio: excepcion.fecha_inicio,
+      fechaFin: excepcion.fecha_fin,
+      horariosPorDia: base.horariosIniciales,
+      descansosPorDia: base.descansosIniciales
+    });
+    setModoFormulario(true);
+  };
+  const cargarReservasEnRangoRef = React.useRef(0);
+  const cargarReservasEnRango = async () => {
+    setReservasAvisoError(false);
+    if (!form.fechaInicio || !form.fechaFin || form.fechaFin < form.fechaInicio || !profesionalId) {
+      setReservasAviso([]);
+      return;
+    }
+    const peticionId = ++cargarReservasEnRangoRef.current;
+    try {
+      const negocioId = window.getNegocioIdFromConfig ? window.getNegocioIdFromConfig() : localStorage.getItem("negocioId");
+      const url = `${window.SUPABASE_URL}/rest/v1/reservas?negocio_id=eq.${negocioId}&profesional_id=eq.${profesionalId}&fecha=gte.${form.fechaInicio}&fecha=lte.${form.fechaFin}&estado=eq.Reservado&select=fecha,hora_inicio,cliente_nombre&order=fecha.asc,hora_inicio.asc`;
+      const response = await fetch(url, {
+        headers: {
+          "apikey": window.SUPABASE_ANON_KEY,
+          "Authorization": `Bearer ${window.SUPABASE_ANON_KEY}`
+        }
+      });
+      if (peticionId !== cargarReservasEnRangoRef.current) return;
+      if (!response.ok) {
+        setReservasAviso([]);
+        setReservasAvisoError(true);
+        return;
+      }
+      setReservasAviso(await response.json());
+    } catch {
+      if (peticionId !== cargarReservasEnRangoRef.current) return;
+      setReservasAviso([]);
+      setReservasAvisoError(true);
+    }
+  };
+  const toggleHora = (indice) => {
+    const actuales = form.horariosPorDia[diaSeleccionado] || [];
+    const nuevas = actuales.includes(indice) ? actuales.filter((item) => item !== indice) : [...actuales, indice].sort((a, b) => a - b);
+    setForm({
+      ...form,
+      horariosPorDia: {
+        ...form.horariosPorDia,
+        [diaSeleccionado]: nuevas
+      }
+    });
+  };
+  const limpiarDia = () => {
+    setForm({
+      ...form,
+      horariosPorDia: {
+        ...form.horariosPorDia,
+        [diaSeleccionado]: []
+      }
+    });
+  };
+  const copiarDia = (desdeDia) => {
+    if (!desdeDia) return;
+    setForm({
+      ...form,
+      horariosPorDia: {
+        ...form.horariosPorDia,
+        [diaSeleccionado]: [...form.horariosPorDia[desdeDia] || []]
+      },
+      descansosPorDia: {
+        ...form.descansosPorDia,
+        [diaSeleccionado]: [...form.descansosPorDia[desdeDia] || []]
+      }
+    });
+  };
+  const agregarDescanso = () => {
+    if (!nuevoDescanso.inicio || !nuevoDescanso.fin || nuevoDescanso.inicio >= nuevoDescanso.fin) {
+      setError(t("El descanso debe tener una hora final mayor que la inicial."));
+      return;
+    }
+    const actuales = form.descansosPorDia[diaSeleccionado] || [];
+    setForm({
+      ...form,
+      descansosPorDia: {
+        ...form.descansosPorDia,
+        [diaSeleccionado]: [...actuales, { ...nuevoDescanso }]
+      }
+    });
+    setError("");
+  };
+  const eliminarDescanso = (index) => {
+    const actuales = form.descansosPorDia[diaSeleccionado] || [];
+    setForm({
+      ...form,
+      descansosPorDia: {
+        ...form.descansosPorDia,
+        [diaSeleccionado]: actuales.filter((_, i) => i !== index)
+      }
+    });
+  };
+  const guardar = async () => {
+    setError("");
+    if (!form.fechaInicio || !form.fechaFin) {
+      setError(t("Selecciona fecha de inicio y fecha de fin."));
+      return;
+    }
+    if (form.fechaFin < form.fechaInicio) {
+      setError(t("La fecha final no puede ser anterior a la fecha inicial."));
+      return;
+    }
+    try {
+      await window.salonConfig.guardarExcepcion(profesionalId, {
+        id: editando?.id,
+        fechaInicio: form.fechaInicio,
+        fechaFin: form.fechaFin,
+        horariosPorDia: form.horariosPorDia,
+        descansosPorDia: form.descansosPorDia
+      });
+      await cargarExcepciones();
+      setModoFormulario(false);
+      setEditando(null);
+    } catch (err) {
+      setError(err.message || t("No se pudo guardar la excepción."));
+    }
+  };
+  const eliminar = async (excepcion) => {
+    if (!confirm(t("¿Eliminar la excepción del {inicio} al {fin}?", { inicio: excepcion.fecha_inicio, fin: excepcion.fecha_fin }))) return;
+    try {
+      await window.salonConfig.eliminarExcepcion(excepcion.id);
+      await cargarExcepciones();
+    } catch (err) {
+      setError(err.message || t("No se pudo eliminar la excepción."));
+    }
+  };
+  const resumenDias = (excepcion) => {
+    const horarios = excepcion.horarios_por_dia || {};
+    const activos = dias.filter((dia) => (horarios[dia.id] || []).length > 0).map((dia) => `${dia.nombre}: ${(horarios[dia.id] || []).length}`);
+    return activos.length ? activos.join(" · ") : t("Sin horarios configurados");
+  };
+  if (modoFormulario) {
+    const horasDia = form.horariosPorDia[diaSeleccionado] || [];
+    const descansosDia = form.descansosPorDia[diaSeleccionado] || [];
+    return /* @__PURE__ */ React.createElement("div", { className: "bg-amber-50 border border-amber-200 rounded-xl p-4 mt-6" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-start justify-between gap-3 mb-4" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h3", { className: "font-bold text-lg text-amber-900" }, editando ? t("Editar excepción") : t("Añadir excepción")), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-amber-800" }, profesionalNombre)), /* @__PURE__ */ React.createElement("button", { onClick: () => setModoFormulario(false), className: "text-gray-500 hover:text-gray-800" }, t("Cerrar"))), error && /* @__PURE__ */ React.createElement("div", { className: "bg-red-50 border border-red-200 text-red-700 rounded-lg p-3 mb-4 text-sm" }, error), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-1 md:grid-cols-2 gap-3 mb-4" }, /* @__PURE__ */ React.createElement("label", { className: "block" }, /* @__PURE__ */ React.createElement("span", { className: "text-sm font-semibold text-gray-700" }, t("Fecha inicio")), /* @__PURE__ */ React.createElement("input", { type: "date", value: form.fechaInicio, onChange: (e) => setForm({ ...form, fechaInicio: e.target.value }), className: "w-full border rounded-lg px-3 py-2 mt-1" })), /* @__PURE__ */ React.createElement("label", { className: "block" }, /* @__PURE__ */ React.createElement("span", { className: "text-sm font-semibold text-gray-700" }, t("Fecha fin")), /* @__PURE__ */ React.createElement("input", { type: "date", value: form.fechaFin, onChange: (e) => setForm({ ...form, fechaFin: e.target.value }), className: "w-full border rounded-lg px-3 py-2 mt-1" }))), reservasAvisoError && /* @__PURE__ */ React.createElement("div", { className: "bg-red-50 border border-red-300 rounded-lg p-3 mb-4 text-sm text-red-900" }, /* @__PURE__ */ React.createElement("p", { className: "font-bold" }, t("No se pudo verificar si hay reservas en este rango. Revísalo manualmente antes de guardar."))), reservasAviso.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "bg-yellow-50 border border-yellow-300 rounded-lg p-3 mb-4 text-sm text-yellow-900" }, /* @__PURE__ */ React.createElement("p", { className: "font-bold" }, t("Hay {n} reservas en este rango. Revísalas antes de continuar.", { n: reservasAviso.length })), /* @__PURE__ */ React.createElement("div", { className: "mt-2 space-y-1 max-h-32 overflow-auto" }, reservasAviso.map((reserva, index) => /* @__PURE__ */ React.createElement("p", { key: index }, reserva.fecha, " · ", formatearHora(reserva.hora_inicio), " · ", reserva.cliente_nombre || t("Cliente"))))), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-1 md:grid-cols-4 gap-4" }, /* @__PURE__ */ React.createElement("div", { className: "space-y-2" }, dias.map((dia) => /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        key: dia.id,
+        onClick: () => setDiaSeleccionado(dia.id),
+        className: `w-full text-left px-3 py-2 rounded-lg ${diaSeleccionado === dia.id ? "bg-amber-600 text-white" : "bg-white border text-gray-700"}`
+      },
+      dia.nombre,
+      (form.horariosPorDia[dia.id] || []).length > 0 && /* @__PURE__ */ React.createElement("span", { className: "float-right text-xs" }, (form.horariosPorDia[dia.id] || []).length)
+    ))), /* @__PURE__ */ React.createElement("div", { className: "md:col-span-3" }, /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap items-center justify-between gap-2 mb-3" }, /* @__PURE__ */ React.createElement("h4", { className: "font-semibold" }, t("Horarios de {dia}", { dia: dias.find((d) => d.id === diaSeleccionado)?.nombre })), /* @__PURE__ */ React.createElement("div", { className: "flex gap-2" }, /* @__PURE__ */ React.createElement("select", { onChange: (e) => copiarDia(e.target.value), value: "", className: "border rounded-lg px-2 py-1 text-sm" }, /* @__PURE__ */ React.createElement("option", { value: "" }, t("Copiar de...")), dias.filter((d) => d.id !== diaSeleccionado).map((dia) => /* @__PURE__ */ React.createElement("option", { key: dia.id, value: dia.id }, dia.nombre))), /* @__PURE__ */ React.createElement("button", { onClick: limpiarDia, className: "px-3 py-1 text-sm rounded-lg bg-red-100 text-red-700" }, t("Limpiar")))), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2 max-h-64 overflow-auto p-2 bg-white rounded-lg border" }, todasLasHoras.map((hora) => /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        key: hora.indice,
+        onClick: () => toggleHora(hora.indice),
+        className: `px-2 py-2 rounded-lg text-sm ${horasDia.includes(hora.indice) ? "bg-amber-600 text-white" : "bg-gray-100 text-gray-700"}`
+      },
+      hora.label
+    ))), /* @__PURE__ */ React.createElement("div", { className: "mt-4 bg-white border rounded-lg p-3" }, /* @__PURE__ */ React.createElement("h4", { className: "font-semibold mb-2" }, t("Descansos del día")), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-2 mb-3" }, /* @__PURE__ */ React.createElement("input", { type: "time", value: nuevoDescanso.inicio, onChange: (e) => setNuevoDescanso({ ...nuevoDescanso, inicio: e.target.value }), className: "border rounded-lg px-2 py-1" }), /* @__PURE__ */ React.createElement("input", { type: "time", value: nuevoDescanso.fin, onChange: (e) => setNuevoDescanso({ ...nuevoDescanso, fin: e.target.value }), className: "border rounded-lg px-2 py-1" }), /* @__PURE__ */ React.createElement("button", { onClick: agregarDescanso, className: "bg-amber-600 text-white rounded-lg px-3 py-1" }, t("Añadir descanso"))), descansosDia.length === 0 ? /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500" }, t("Sin descansos.")) : descansosDia.map((descanso, index) => /* @__PURE__ */ React.createElement("div", { key: index, className: "flex justify-between items-center text-sm bg-gray-50 rounded-lg px-3 py-2 mb-2" }, /* @__PURE__ */ React.createElement("span", null, formatearHora(descanso.inicio), " - ", formatearHora(descanso.fin)), /* @__PURE__ */ React.createElement("button", { onClick: () => eliminarDescanso(index), className: "text-red-600" }, t("Eliminar"))))))), /* @__PURE__ */ React.createElement("div", { className: "flex justify-end gap-2 mt-4" }, /* @__PURE__ */ React.createElement("button", { onClick: () => setModoFormulario(false), className: "px-4 py-2 rounded-lg border" }, t("Cancelar")), /* @__PURE__ */ React.createElement("button", { onClick: guardar, className: "px-4 py-2 rounded-lg bg-amber-600 text-white hover:bg-amber-700" }, t("Guardar excepción"))));
+  }
+  return /* @__PURE__ */ React.createElement("div", { className: "bg-white border border-amber-200 rounded-xl p-4 mt-6" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between gap-3 mb-4" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h3", { className: "font-bold text-lg" }, t("Horarios de excepción")), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-600" }, t("Rangos temporales para {nombre}.", { nombre: profesionalNombre }))), /* @__PURE__ */ React.createElement("button", { onClick: abrirNuevo, className: "bg-amber-600 text-white px-3 py-2 rounded-lg hover:bg-amber-700" }, "+ ", t("Añadir excepción"))), error && /* @__PURE__ */ React.createElement("div", { className: "bg-red-50 border border-red-200 text-red-700 rounded-lg p-3 mb-4 text-sm" }, error), cargando ? /* @__PURE__ */ React.createElement("p", { className: "text-gray-500" }, t("Cargando excepciones...")) : excepciones.length === 0 ? /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500" }, t("No hay horarios de excepción configurados.")) : /* @__PURE__ */ React.createElement("div", { className: "space-y-3" }, excepciones.map((excepcion) => /* @__PURE__ */ React.createElement("div", { key: excepcion.id, className: "border rounded-lg p-3" }, /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap justify-between gap-2" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("p", { className: "font-semibold" }, excepcion.fecha_inicio, " - ", excepcion.fecha_fin), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-600" }, resumenDias(excepcion))), /* @__PURE__ */ React.createElement("div", { className: "flex gap-2" }, /* @__PURE__ */ React.createElement("button", { onClick: () => abrirEditar(excepcion), className: "px-3 py-1 rounded-lg bg-blue-100 text-blue-700" }, t("Editar")), /* @__PURE__ */ React.createElement("button", { onClick: () => eliminar(excepcion), className: "px-3 py-1 rounded-lg bg-red-100 text-red-700" }, t("Eliminar"))))))));
+}

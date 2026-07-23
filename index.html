@@ -184,10 +184,11 @@
         }
     </script>
     
-    <!-- Scripts externos -->
+    <!-- Scripts externos. Sin babel.min.js: el JSX se pre-compila a
+         compiled/ con scripts/build-jsx.sh (3.1 MB menos en la primera carga
+         y cero transpilación en el teléfono). -->
     <script src="vendor/react.production.min.js"></script>
     <script src="vendor/react-dom.production.min.js"></script>
-    <script src="vendor/babel.min.js"></script>
     <script src="vendor/tailwind-browser.js"></script>
     <link href="vendor/lucide/lucide.css" rel="stylesheet">
     <link href="utils/legacy-ios-fallback.css?v=20260619-ios15" rel="stylesheet">
@@ -660,24 +661,24 @@
     <script src="utils/client-native-links.js?v=20260721-native-origin-v1"></script>
      <script src="utils/dias-cerrados.js"></script>
 
-    <!-- Componentes -->
-    <script src="components/Header.js?v=20260714-i18n" type="text/babel"></script>
-    <script src="components/ServiceSelectionCategorias.js?v=20260714-i18n" type="text/babel"></script>
-    <script src="components/ProfesionalSelector.js?v=20260714-i18n" type="text/babel"></script>
-    <script src="components/MultiProfesionalSelector.js?v=20260714-i18n" type="text/babel"></script>
-    <script src="components/Calendar.js?v=20260714-i18n" type="text/babel"></script>
-    <script src="components/TimeSlots.js?v=20260722-toast-espera" type="text/babel"></script>
-    <script src="components/MultiTimeSlots.js?v=20260714-i18n" type="text/babel"></script>
-    <script src="components/BookingForm.js?v=20260722-mejora-cliente" type="text/babel"></script>
-    <script src="components/Confirmation.js?v=20260722-mejora-cliente" type="text/babel"></script>
-    <script src="components/WelcomeScreen.js?v=20260723-cambiar-salon" type="text/babel"></script>
-    <script src="components/WhatsAppButton.js?v=20260714-i18n" type="text/babel"></script>
-    <script src="components/ClientAuthScreen.js?v=20260721-cliente-multinegocio" type="text/babel"></script>
-    <script src="components/MyBookings.js?v=20260722-valoracion-visita" type="text/babel"></script>
-    <script src="components/InstallButton.js" type="text/babel"></script>
-    
+    <!-- Componentes (JSX pre-compilado en compiled/ — ver scripts/build-jsx.sh) -->
+    <script src="compiled/components/Header.js?v=20260723-jsx1"></script>
+    <script src="compiled/components/ServiceSelectionCategorias.js?v=20260723-jsx1"></script>
+    <script src="compiled/components/ProfesionalSelector.js?v=20260723-jsx1"></script>
+    <script src="compiled/components/MultiProfesionalSelector.js?v=20260723-jsx1"></script>
+    <script src="compiled/components/Calendar.js?v=20260723-jsx1"></script>
+    <script src="compiled/components/TimeSlots.js?v=20260723-jsx1"></script>
+    <script src="compiled/components/MultiTimeSlots.js?v=20260723-jsx1"></script>
+    <script src="compiled/components/BookingForm.js?v=20260723-jsx1"></script>
+    <script src="compiled/components/Confirmation.js?v=20260723-jsx1"></script>
+    <script src="compiled/components/WelcomeScreen.js?v=20260723-jsx1"></script>
+    <script src="compiled/components/WhatsAppButton.js?v=20260723-jsx1"></script>
+    <script src="compiled/components/ClientAuthScreen.js?v=20260723-jsx1"></script>
+    <script src="compiled/components/MyBookings.js?v=20260723-jsx1"></script>
+    <script src="compiled/components/InstallButton.js?v=20260723-jsx1"></script>
+
     <!-- App de clientes -->
-    <script src="client-app.js?v=20260722-mejora-cliente" type="text/babel"></script>
+    <script src="compiled/client-app.js?v=20260723-jsx1"></script>
     
     <script>
         // Actualizar título dinámico desde la base de datos

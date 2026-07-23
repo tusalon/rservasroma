@@ -1,6 +1,6 @@
 // sw.js - Service Worker para Rservasroma
 
-const CACHE_NAME = 'rservasroma-v58';
+const CACHE_NAME = 'rservasroma-v59';
 const BASE = '/rservasroma';
 
 const urlsToCache = [
@@ -15,9 +15,9 @@ const urlsToCache = [
   `${BASE}/editar-negocio.html`,
   `${BASE}/manifest.json`,
 
-  // App principal
-  `${BASE}/client-app.js?v=20260722-mejora-cliente`,
-  `${BASE}/admin-app.js?v=20260722-valoracion-visita`,
+  // App principal (JSX pre-compilado en compiled/ — ver scripts/build-jsx.sh)
+  `${BASE}/compiled/client-app.js?v=20260723-jsx1`,
+  `${BASE}/compiled/admin-app.js?v=20260723-jsx1`,
 
   // Utils
   `${BASE}/utils/api.js?v=20260722-lista-espera-cliente`,
@@ -43,36 +43,35 @@ const urlsToCache = [
   `${BASE}/utils/whatsapp-helper.js?v=20260722-lista-espera-cliente`,
   `${BASE}/utils/legacy-ios-fallback.css`,
 
-  // Componentes cliente
-  `${BASE}/components/BookingForm.js?v=20260722-mejora-cliente`,
-  `${BASE}/components/Calendar.js`,
-  `${BASE}/components/ClientAuthScreen.js?v=20260721-cliente-multinegocio`,
-  `${BASE}/components/Confirmation.js?v=20260722-mejora-cliente`,
-  `${BASE}/components/Header.js`,
-  `${BASE}/components/InstallButton.js`,
-  `${BASE}/components/MultiProfesionalSelector.js`,
-  `${BASE}/components/MultiTimeSlots.js`,
-  `${BASE}/components/MyBookings.js?v=20260722-valoracion-visita`,
-  `${BASE}/components/ProfesionalSelector.js`,
-  `${BASE}/components/ServiceSelectionCategorias.js`,
-  `${BASE}/components/TimeSlots.js?v=20260722-toast-espera`,
-  `${BASE}/components/WelcomeScreen.js?v=20260723-cambiar-salon`,
-  `${BASE}/components/WhatsAppButton.js`,
+  // Componentes cliente (compilados)
+  `${BASE}/compiled/components/BookingForm.js?v=20260723-jsx1`,
+  `${BASE}/compiled/components/Calendar.js?v=20260723-jsx1`,
+  `${BASE}/compiled/components/ClientAuthScreen.js?v=20260723-jsx1`,
+  `${BASE}/compiled/components/Confirmation.js?v=20260723-jsx1`,
+  `${BASE}/compiled/components/Header.js?v=20260723-jsx1`,
+  `${BASE}/compiled/components/InstallButton.js?v=20260723-jsx1`,
+  `${BASE}/compiled/components/MultiProfesionalSelector.js?v=20260723-jsx1`,
+  `${BASE}/compiled/components/MultiTimeSlots.js?v=20260723-jsx1`,
+  `${BASE}/compiled/components/MyBookings.js?v=20260723-jsx1`,
+  `${BASE}/compiled/components/ProfesionalSelector.js?v=20260723-jsx1`,
+  `${BASE}/compiled/components/ServiceSelectionCategorias.js?v=20260723-jsx1`,
+  `${BASE}/compiled/components/TimeSlots.js?v=20260723-jsx1`,
+  `${BASE}/compiled/components/WelcomeScreen.js?v=20260723-jsx1`,
+  `${BASE}/compiled/components/WhatsAppButton.js?v=20260723-jsx1`,
 
-  // Componentes admin
-  `${BASE}/components/admin/ConfigPanel.js`,
-  `${BASE}/components/admin/EditarNegocio.js`,
-  `${BASE}/components/admin/HorariosPorDiaPanel.js`,
-  `${BASE}/components/admin/HorariosExcepcionPanel.js`,
-  `${BASE}/components/admin/ProfesionalesPanel.js`,
-  `${BASE}/components/admin/ImportarServicios.js`,
-  `${BASE}/components/admin/ServiciosPanelCategorias.js`,
-  `${BASE}/components/admin/SetupWizard.js`,
+  // Componentes admin (compilados)
+  `${BASE}/compiled/components/admin/ConfigPanel.js?v=20260723-jsx1`,
+  `${BASE}/compiled/components/admin/EditarNegocio.js?v=20260723-jsx1`,
+  `${BASE}/compiled/components/admin/HorariosPorDiaPanel.js?v=20260723-jsx1`,
+  `${BASE}/compiled/components/admin/HorariosExcepcionPanel.js?v=20260723-jsx1`,
+  `${BASE}/compiled/components/admin/ProfesionalesPanel.js?v=20260723-jsx1`,
+  `${BASE}/compiled/components/admin/ImportarServicios.js?v=20260723-jsx1`,
+  `${BASE}/compiled/components/admin/ServiciosPanelCategorias.js?v=20260723-jsx1`,
+  `${BASE}/compiled/components/admin/SetupWizard.js?v=20260723-jsx1`,
 
-  // Vendors
+  // Vendors (sin babel.min.js: ya no se transpila en el navegador)
   `${BASE}/vendor/react.production.min.js`,
   `${BASE}/vendor/react-dom.production.min.js`,
-  `${BASE}/vendor/babel.min.js`,
   `${BASE}/vendor/bcrypt.min.js`,
   `${BASE}/vendor/tailwind-browser.js`,
   `${BASE}/vendor/lucide/lucide.css`,
@@ -222,7 +221,7 @@ self.addEventListener('fetch', event => {
   }
 
   const esAssetCriticoAdmin = [
-    `${BASE}/admin-app.js`,
+    `${BASE}/compiled/admin-app.js`,
     `${BASE}/utils/config-negocio-master.js`,
     `${BASE}/utils/native-push-notifications.js`,
     `${BASE}/utils/push-notifications.js`

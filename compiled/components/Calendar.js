@@ -1,0 +1,331 @@
+function Calendar({ onDateSelect, selectedDate, profesional, profesionalCompleto, service, onHorariosCargados }) {
+  const idioma = window.useIdioma();
+  const t = window.t;
+  const [currentDate, setCurrentDate] = React.useState(/* @__PURE__ */ new Date());
+  const [diasLaborales, setDiasLaborales] = React.useState([]);
+  const [diasCerrados, setDiasCerrados] = React.useState([]);
+  const [cargandoHorarios, setCargandoHorarios] = React.useState(false);
+  const [fechasLibresProfesional, setFechasLibresProfesional] = React.useState([]);
+  const [horariosPorDia, setHorariosPorDia] = React.useState({});
+  const [descansosPorDia, setDescansosPorDia] = React.useState({});
+  const [fechasConHorariosConfigurados, setFechasConHorariosConfigurados] = React.useState([]);
+  const [fechasSinDisponibilidad, setFechasSinDisponibilidad] = React.useState([]);
+  const [cargandoDisponibilidad, setCargandoDisponibilidad] = React.useState(false);
+  const [disponibilidadVerificada, setDisponibilidadVerificada] = React.useState(false);
+  const [minAntelacionHoras, setMinAntelacionHoras] = React.useState(2);
+  const [maxAntelacionDias, setMaxAntelacionDias] = React.useState(30);
+  const timeToMinutes = (timeStr) => {
+    const [hours, minutes] = String(timeStr || "00:00").split(":").map(Number);
+    return (hours || 0) * 60 + (minutes || 0);
+  };
+  const formatDate = (date) => {
+    const y = date.getFullYear();
+    const m = (date.getMonth() + 1).toString().padStart(2, "0");
+    const d = date.getDate().toString().padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  };
+  const getNegocioIdLocal = () => {
+    if (typeof window.getNegocioIdFromConfig === "function") return window.getNegocioIdFromConfig();
+    if (typeof window.getNegocioId === "function") return window.getNegocioId();
+    return localStorage.getItem("negocioId");
+  };
+  const getTodayLocalString = () => formatDate(/* @__PURE__ */ new Date());
+  const getReservasPorFechaProfesional = async (negocioId, profesionalId, fechaInicio, fechaFin) => {
+    const response = await fetch(
+      `${window.SUPABASE_URL}/rest/v1/reservas?negocio_id=eq.${negocioId}&fecha=gte.${fechaInicio}&fecha=lte.${fechaFin}&profesional_id=eq.${profesionalId}&estado=neq.Cancelado&select=fecha,hora_inicio,hora_fin`,
+      {
+        headers: {
+          "apikey": window.SUPABASE_ANON_KEY,
+          "Authorization": `Bearer ${window.SUPABASE_ANON_KEY}`
+        }
+      }
+    );
+    const reservas = response.ok ? await response.json() : [];
+    return (reservas || []).reduce((acc, reserva) => {
+      if (!acc[reserva.fecha]) acc[reserva.fecha] = [];
+      acc[reserva.fecha].push(reserva);
+      return acc;
+    }, {});
+  };
+  const slotDisponible = ({ slotStr, duracion, descansosDelDia, reservasDia, fechaHoraSlot, minFechaPermitida }) => {
+    const slotStart = timeToMinutes(slotStr);
+    const slotEnd = slotStart + (parseInt(duracion, 10) || 60);
+    if (fechaHoraSlot < minFechaPermitida) return false;
+    if (slotTieneDescanso(slotStart, slotEnd, descansosDelDia)) return false;
+    return !reservasDia.some((reserva) => {
+      const reservaStart = timeToMinutes(reserva.hora_inicio);
+      const reservaEnd = timeToMinutes(reserva.hora_fin);
+      return slotStart < reservaEnd && slotEnd > reservaStart;
+    });
+  };
+  React.useEffect(() => {
+    if (!profesional) return;
+    const cargarDisponibilidad = async () => {
+      setCargandoHorarios(true);
+      try {
+        const config = window.salonConfig ? await window.salonConfig.get() : {};
+        setMinAntelacionHoras(config?.min_antelacion_horas ?? 2);
+        setMaxAntelacionDias(config?.max_antelacion_dias ?? 30);
+        const horarios = await window.salonConfig.getHorariosProfesional(profesional.id);
+        const porDia = horarios.horariosPorDia || {};
+        const descansos = window.salonConfig.getDescansosPorDia ? await window.salonConfig.getDescansosPorDia(profesional.id) : {};
+        setDiasLaborales(horarios.dias || []);
+        setHorariosPorDia(porDia);
+        setDescansosPorDia(descansos || {});
+        if (onHorariosCargados) onHorariosCargados(porDia);
+        const diasCerradosList = await window.getDiasCerrados();
+        setDiasCerrados((diasCerradosList || []).map((d) => d.fecha));
+        setFechasLibresProfesional(profesional.fechas_libres || []);
+        await verificarDisponibilidadMes(porDia, descansos || {}, config);
+      } catch (error) {
+        console.error("Error cargando disponibilidad:", error);
+        setDiasLaborales([]);
+        setDiasCerrados([]);
+        setFechasLibresProfesional([]);
+        setHorariosPorDia({});
+        setDescansosPorDia({});
+      } finally {
+        setCargandoHorarios(false);
+      }
+    };
+    cargarDisponibilidad();
+    const handleActualizacion = () => cargarDisponibilidad();
+    window.addEventListener("diasCerradosActualizados", handleActualizacion);
+    return () => {
+      window.removeEventListener("diasCerradosActualizados", handleActualizacion);
+    };
+  }, [profesional, service]);
+  React.useEffect(() => {
+    if (Object.keys(horariosPorDia).length > 0) {
+      verificarDisponibilidadMes(horariosPorDia, descansosPorDia);
+    }
+  }, [currentDate, service]);
+  React.useEffect(() => {
+    if (!selectedDate || cargandoDisponibilidad || !disponibilidadVerificada) return;
+  }, [selectedDate, fechasSinDisponibilidad, cargandoDisponibilidad, disponibilidadVerificada]);
+  const peticionMesRef = React.useRef(0);
+  const verificarDisponibilidadMes = async (horarios, descansos = {}, configOverride = null) => {
+    if (!service || !profesional) {
+      setFechasSinDisponibilidad([]);
+      setDisponibilidadVerificada(false);
+      return;
+    }
+    const miPeticion = ++peticionMesRef.current;
+    setCargandoDisponibilidad(true);
+    setDisponibilidadVerificada(false);
+    try {
+      const negocioId = getNegocioIdLocal();
+      const year = currentDate.getFullYear();
+      const month = currentDate.getMonth();
+      const diasEnMes = new Date(year, month + 1, 0).getDate();
+      const fechaInicio = formatDate(new Date(year, month, 1));
+      const fechaFin = formatDate(new Date(year, month + 1, 0));
+      const minHoras = configOverride?.min_antelacion_horas ?? minAntelacionHoras;
+      const maxDias = configOverride?.max_antelacion_dias ?? maxAntelacionDias;
+      const asignacionesMultiples = service?.esMultiple && profesionalCompleto?.esMultiple ? profesionalCompleto.asignaciones || [] : [];
+      const fechasDelMes = [];
+      for (let d = 1; d <= diasEnMes; d++) {
+        fechasDelMes.push(formatDate(new Date(year, month, d)));
+      }
+      const datosMultiples = asignacionesMultiples.length > 0 ? await Promise.all(asignacionesMultiples.map(async (item) => {
+        const [reservasItem, horariosPorFechaItem] = await Promise.all([
+          getReservasPorFechaProfesional(negocioId, item.profesional.id, fechaInicio, fechaFin),
+          window.salonConfig.getHorariosProfesionalParaFechas(item.profesional.id, fechasDelMes)
+        ]);
+        return { ...item, reservasPorFecha: reservasItem || {}, horariosPorFecha: horariosPorFechaItem || {} };
+      })) : [];
+      const [reservasPorFecha, horariosPorFechaProfesional] = asignacionesMultiples.length > 0 ? [{}, {}] : await Promise.all([
+        getReservasPorFechaProfesional(negocioId, profesional.id, fechaInicio, fechaFin),
+        window.salonConfig.getHorariosProfesionalParaFechas(profesional.id, fechasDelMes)
+      ]);
+      const diasSemana = ["domingo", "lunes", "martes", "miercoles", "jueves", "viernes", "sabado"];
+      const sinDisponibilidad = [];
+      const conHorariosConfigurados = [];
+      const ahora = /* @__PURE__ */ new Date();
+      const minFechaPermitida = new Date(Date.now() + minHoras * 60 * 60 * 1e3);
+      for (let d = 1; d <= diasEnMes; d++) {
+        const fecha = new Date(year, month, d);
+        const fechaStr = formatDate(fecha);
+        const diaSemana = diasSemana[fecha.getDay()];
+        const diffDias = Math.ceil((/* @__PURE__ */ new Date(`${fechaStr}T00:00:00`) - /* @__PURE__ */ new Date(formatDate(ahora) + "T00:00:00")) / (1e3 * 60 * 60 * 24));
+        const horariosFecha = horariosPorFechaProfesional[fechaStr] || {};
+        const horariosFechaPorDia = horariosFecha.horariosPorDia || {};
+        const descansosFechaPorDia = horariosFecha.descansosPorDia || {};
+        let baseSlots = (horariosFechaPorDia[diaSemana] || []).map(indiceToHoraLegible);
+        if (!service?.esMultiple && service?.horarios_permitidos?.length) {
+          baseSlots = baseSlots.filter((slot) => servicioPermiteHorario(service, slot));
+        }
+        if (Number(maxDias) > 0 && diffDias > Number(maxDias)) {
+          sinDisponibilidad.push(fechaStr);
+          continue;
+        }
+        if (datosMultiples.length === 0 && baseSlots.length === 0) {
+          sinDisponibilidad.push(fechaStr);
+          continue;
+        }
+        let tieneHorarioFuturo = false;
+        if (datosMultiples.length > 0) {
+          const primerItem = datosMultiples[0];
+          const primerHorario = primerItem.horariosPorFecha[fechaStr] || {};
+          baseSlots = ((primerHorario.horariosPorDia || {})[diaSemana] || []).map(indiceToHoraLegible);
+          if (primerItem.servicio?.horarios_permitidos?.length) {
+            baseSlots = baseSlots.filter((slot) => servicioPermiteHorario(primerItem.servicio, slot));
+          }
+          if (baseSlots.length === 0) {
+            sinDisponibilidad.push(fechaStr);
+            continue;
+          }
+          conHorariosConfigurados.push(fechaStr);
+          for (const slotStr of baseSlots) {
+            let cursor = timeToMinutes(slotStr);
+            const fechaHoraSlot = new Date(year, month, d, Math.floor(cursor / 60), cursor % 60, 0);
+            if (fechaHoraSlot < minFechaPermitida) continue;
+            let slotCompletoDisponible = true;
+            for (const item of datosMultiples) {
+              const horarioItem = item.horariosPorFecha[fechaStr] || {};
+              const horariosItemPorDia = horarioItem.horariosPorDia || {};
+              const descansosItemPorDia = horarioItem.descansosPorDia || {};
+              const duracion = parseInt(item.servicio?.duracion, 10) || 60;
+              const inicio = cursor;
+              const fin = inicio + duracion;
+              const slotsDia = horariosItemPorDia[diaSemana] || [];
+              if (slotsDia.length === 0 || slotTieneDescanso(inicio, fin, descansosItemPorDia[diaSemana] || [])) {
+                slotCompletoDisponible = false;
+                break;
+              }
+              const conflicto = (item.reservasPorFecha[fechaStr] || []).some((reserva) => {
+                const reservaStart = timeToMinutes(reserva.hora_inicio);
+                const reservaEnd = timeToMinutes(reserva.hora_fin);
+                return inicio < reservaEnd && fin > reservaStart;
+              });
+              if (conflicto) {
+                slotCompletoDisponible = false;
+                break;
+              }
+              cursor = fin;
+            }
+            if (slotCompletoDisponible) {
+              tieneHorarioFuturo = true;
+              break;
+            }
+          }
+        } else {
+          conHorariosConfigurados.push(fechaStr);
+          tieneHorarioFuturo = baseSlots.some((slotStr) => {
+            const slotStart = timeToMinutes(slotStr);
+            const fechaHoraSlot = new Date(year, month, d, Math.floor(slotStart / 60), slotStart % 60, 0);
+            return slotDisponible({
+              slotStr,
+              duracion: service.duracion,
+              slotsDia: baseSlots,
+              descansosDelDia: descansosFechaPorDia[diaSemana] || [],
+              reservasDia: reservasPorFecha[fechaStr] || [],
+              fechaHoraSlot,
+              minFechaPermitida
+            });
+          });
+        }
+        if (!tieneHorarioFuturo) {
+          sinDisponibilidad.push(fechaStr);
+        }
+      }
+      if (peticionMesRef.current !== miPeticion) return;
+      setFechasSinDisponibilidad(sinDisponibilidad);
+      setFechasConHorariosConfigurados(conHorariosConfigurados);
+      setDisponibilidadVerificada(true);
+    } catch (error) {
+      console.error("Error verificando disponibilidad real del mes:", error);
+      if (peticionMesRef.current !== miPeticion) return;
+      setFechasSinDisponibilidad([]);
+      setDisponibilidadVerificada(true);
+    } finally {
+      if (peticionMesRef.current === miPeticion) setCargandoDisponibilidad(false);
+    }
+  };
+  const isPastDate = (date) => {
+    const today = /* @__PURE__ */ new Date();
+    today.setHours(0, 0, 0, 0);
+    return date < today;
+  };
+  const profesionalTrabajaEsteDia = (date) => {
+    if (!profesional || diasLaborales.length === 0) return true;
+    const diasSemana = ["domingo", "lunes", "martes", "miercoles", "jueves", "viernes", "sabado"];
+    return diasLaborales.includes(diasSemana[date.getDay()]);
+  };
+  const esDiaCerrado = (date) => diasCerrados.includes(formatDate(date));
+  const esDiaLibreProfesional = (date) => (fechasLibresProfesional || []).includes(formatDate(date));
+  const esDiaSinDisponibilidad = (date) => fechasSinDisponibilidad.includes(formatDate(date));
+  const estaDentroDeAntelacion = (date) => {
+    if (Number(maxAntelacionDias) <= 0) return true;
+    const hoy = /* @__PURE__ */ new Date();
+    hoy.setHours(0, 0, 0, 0);
+    const fecha = new Date(date);
+    fecha.setHours(0, 0, 0, 0);
+    const diffDias = Math.ceil((fecha - hoy) / (1e3 * 60 * 60 * 24));
+    return diffDias <= Number(maxAntelacionDias);
+  };
+  const tieneHorariosConfigurados = (date) => {
+    return fechasConHorariosConfigurados.includes(formatDate(date));
+  };
+  const nextMonth = () => {
+    const next = new Date(currentDate);
+    next.setMonth(currentDate.getMonth() + 1);
+    setCurrentDate(next);
+  };
+  const prevMonth = () => {
+    const prev = new Date(currentDate);
+    prev.setMonth(currentDate.getMonth() - 1);
+    setCurrentDate(prev);
+  };
+  const getDaysInMonth = () => {
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const days2 = [];
+    for (let i = 0; i < firstDay.getDay(); i++) days2.push(null);
+    for (let i = 1; i <= lastDay.getDate(); i++) days2.push(new Date(year, month, i));
+    return days2;
+  };
+  const days = getDaysInMonth();
+  const monthNames = idioma === "en" ? ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"] : ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+  if (cargandoHorarios) {
+    return /* @__PURE__ */ React.createElement("div", { className: "space-y-4 animate-fade-in" }, /* @__PURE__ */ React.createElement("h2", { className: "text-lg font-semibold text-pink-700 flex items-center gap-2" }, /* @__PURE__ */ React.createElement("span", { className: "text-2xl" }, "📅"), t("3. Selecciona una fecha"), profesional && /* @__PURE__ */ React.createElement("span", { className: "text-sm bg-pink-100 text-pink-700 px-3 py-1 rounded-full ml-2" }, t("con {nombre}", { nombre: profesional.nombre }))), /* @__PURE__ */ React.createElement("div", { className: "text-center py-8" }, /* @__PURE__ */ React.createElement("div", { className: "animate-spin h-8 w-8 border-b-2 border-pink-500 rounded-full mx-auto" }), /* @__PURE__ */ React.createElement("p", { className: "text-pink-400 mt-4" }, t("Cargando disponibilidad..."))));
+  }
+  return /* @__PURE__ */ React.createElement("div", { className: "space-y-4 animate-fade-in" }, /* @__PURE__ */ React.createElement("h2", { className: "text-lg font-semibold text-pink-700 flex items-center gap-2" }, /* @__PURE__ */ React.createElement("span", { className: "text-2xl" }, "📅"), t("3. Selecciona una fecha"), profesional && /* @__PURE__ */ React.createElement("span", { className: "text-sm bg-pink-100 text-pink-700 px-3 py-1 rounded-full ml-2" }, t("con {nombre}", { nombre: profesional.nombre })), selectedDate && /* @__PURE__ */ React.createElement("span", { className: "text-xs bg-pink-100 text-pink-700 px-2 py-1 rounded-full ml-2" }, t("Fecha seleccionada")), cargandoDisponibilidad && /* @__PURE__ */ React.createElement("span", { className: "text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full ml-2 animate-pulse" }, t("Verificando..."))), /* @__PURE__ */ React.createElement("div", { className: "bg-white/90 backdrop-blur-sm rounded-xl border-2 border-pink-200 shadow-sm overflow-hidden" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between p-4 bg-gradient-to-r from-pink-50 to-pink-100 border-b border-pink-200" }, /* @__PURE__ */ React.createElement("button", { onClick: prevMonth, className: "p-2 hover:bg-white/50 rounded-full transition-colors text-pink-600", title: t("Mes anterior") }, "◀"), /* @__PURE__ */ React.createElement("span", { className: "font-bold text-pink-800 text-lg capitalize" }, monthNames[currentDate.getMonth()], " ", currentDate.getFullYear()), /* @__PURE__ */ React.createElement("button", { onClick: nextMonth, className: "p-2 hover:bg-white/50 rounded-full transition-colors text-pink-600", title: t("Mes siguiente") }, "▶")), /* @__PURE__ */ React.createElement("div", { className: "p-4" }, /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-7 mb-2 text-center" }, (idioma === "en" ? ["S", "M", "T", "W", "T", "F", "S"] : ["D", "L", "M", "M", "J", "V", "S"]).map((d, i) => /* @__PURE__ */ React.createElement("div", { key: i, className: `text-xs font-medium py-1 ${i === 0 ? "text-pink-400" : "text-pink-600"}` }, d))), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-7 gap-1" }, days.map((date, idx) => {
+    if (!date) return /* @__PURE__ */ React.createElement("div", { key: idx, className: "h-10" });
+    const dateStr = formatDate(date);
+    const past = isPastDate(date);
+    const selected = selectedDate === dateStr;
+    const profesionalTrabaja = profesionalTrabajaEsteDia(date);
+    const cerrado = esDiaCerrado(date);
+    const diaLibreProfesional = esDiaLibreProfesional(date);
+    const sinDisponibilidad = esDiaSinDisponibilidad(date);
+    const tieneHorarios = tieneHorariosConfigurados(date);
+    const dentroDeAntelacion = estaDentroDeAntelacion(date);
+    const puedeListaEspera = disponibilidadVerificada && !cargandoDisponibilidad && !past && !cerrado && !diaLibreProfesional && sinDisponibilidad && tieneHorarios && dentroDeAntelacion;
+    const available = disponibilidadVerificada && !cargandoDisponibilidad && !past && !cerrado && !diaLibreProfesional && !sinDisponibilidad && tieneHorarios && dentroDeAntelacion;
+    const selectable = available || puedeListaEspera;
+    const verificandoDia = (cargandoDisponibilidad || !disponibilidadVerificada) && !past && !cerrado && !diaLibreProfesional && dentroDeAntelacion;
+    let className = "h-10 w-full flex items-center justify-center rounded-lg text-sm font-medium transition-all relative";
+    if (selected) className += " bg-pink-500 text-white shadow-md scale-105 ring-2 ring-pink-300";
+    else if (verificandoDia) className += " text-gray-400 bg-gray-100 animate-pulse cursor-wait";
+    else if (puedeListaEspera) className += " text-amber-700 bg-amber-50 border border-amber-200 hover:bg-amber-100 hover:scale-105 cursor-pointer";
+    else if (!selectable) className += " text-pink-300 cursor-not-allowed bg-pink-50/50";
+    else className += " text-pink-700 hover:bg-pink-100 hover:text-pink-600 hover:scale-105 cursor-pointer";
+    let title = "";
+    if (cerrado) title = t("Dia cerrado");
+    else if (diaLibreProfesional) title = t("{nombre} no trabaja este dia", { nombre: profesional?.nombre });
+    else if (puedeListaEspera) title = t("Dia lleno: puedes anotarte en lista de espera");
+    else if (sinDisponibilidad) title = t("Sin horarios disponibles para este servicio");
+    else if (!disponibilidadVerificada || cargandoDisponibilidad) title = t("Verificando disponibilidad");
+    else if (past && dateStr === getTodayLocalString()) title = t("Hoy ya no hay horarios disponibles");
+    else if (past) title = t("Fecha pasada");
+    else if (!profesionalTrabaja && profesional && !tieneHorarios) {
+      const diasSemana = idioma === "en" ? ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"] : ["domingos", "lunes", "martes", "miercoles", "jueves", "viernes", "sabados"];
+      title = t("{nombre} no trabaja los {dia}", { nombre: profesional.nombre, dia: diasSemana[date.getDay()] });
+    } else if (!tieneHorarios) title = t("No hay horarios configurados para este dia");
+    else title = t("Disponible");
+    return /* @__PURE__ */ React.createElement("button", { key: idx, onClick: () => selectable && onDateSelect(dateStr), disabled: !selectable, className, title }, date.getDate(), cerrado && /* @__PURE__ */ React.createElement("span", { className: "absolute top-0 right-0 text-[10px] text-red-500" }, "×"), diaLibreProfesional && !cerrado && /* @__PURE__ */ React.createElement("span", { className: "absolute top-0 right-0 text-[10px] text-orange-500" }, "○"), puedeListaEspera && /* @__PURE__ */ React.createElement("span", { className: "absolute top-0 right-0 text-[10px] text-amber-500" }, "!"), sinDisponibilidad && !puedeListaEspera && !cerrado && !diaLibreProfesional && /* @__PURE__ */ React.createElement("span", { className: "absolute top-0 right-0 text-[10px] text-red-500" }, "×"), available && !selected && /* @__PURE__ */ React.createElement("span", { className: "absolute bottom-0.5 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-pink-400 rounded-full" }), puedeListaEspera && !selected && /* @__PURE__ */ React.createElement("span", { className: "absolute bottom-0.5 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-amber-400 rounded-full" }));
+  })))), profesional && /* @__PURE__ */ React.createElement("div", { className: "text-xs text-pink-600 bg-pink-50 p-3 rounded-lg border border-pink-200" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2" }, /* @__PURE__ */ React.createElement("span", { className: "text-pink-400 text-lg" }, "📅"), /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("strong", null, t("Dias que trabaja {nombre}:", { nombre: profesional.nombre })), " ", diasLaborales.length > 0 ? diasLaborales.map((d) => d.charAt(0).toUpperCase() + d.slice(1)).join(", ") : t("Todos los dias (sin configuracion especifica)"))), fechasLibresProfesional.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2 mt-2" }, /* @__PURE__ */ React.createElement("span", { className: "text-orange-500 text-lg" }, "○"), /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("strong", null, t("Dias libres:")), " ", t("{n} dia(s) no disponible(s)", { n: fechasLibresProfesional.length }))), diasCerrados.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2 mt-2" }, /* @__PURE__ */ React.createElement("span", { className: "text-red-400 text-lg" }, "×"), /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("strong", null, t("Dias cerrados del local:")), " ", t("{n} dia(s) no disponible(s)", { n: diasCerrados.length })))));
+}

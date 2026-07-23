@@ -1,0 +1,45 @@
+name: Compilar JSX
+
+# Red de seguridad: si un push a main toca código JSX (componentes o *-app.js)
+# sin traer compiled/ actualizado, este workflow lo compila y lo commitea.
+# El flujo normal es correr scripts/build-jsx.sh en local y commitear
+# compiled/ en el MISMO commit que el código fuente (así el deploy es atómico).
+# El commit del bot solo toca compiled/, que no está en `paths`, por lo que
+# no se re-dispara a sí mismo.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'client-app.js'
+      - 'admin-app.js'
+      - 'components/**'
+      - 'scripts/build-jsx.sh'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Compilar JSX
+        run: bash scripts/build-jsx.sh
+
+      - name: Commit si compiled/ quedó desactualizado
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add compiled
+          if git diff --cached --quiet; then
+            echo "compiled/ ya estaba al día — nada que hacer"
+          else
+            git commit -m "build: compilar JSX (red de seguridad)"
+            git push
+          fi

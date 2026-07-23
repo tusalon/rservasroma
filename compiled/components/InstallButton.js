@@ -1,0 +1,3 @@
+function InstallButton() {
+  return null;
+}

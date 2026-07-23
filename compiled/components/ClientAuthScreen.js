@@ -1,0 +1,310 @@
+function ClientAuthScreen({ onAccessGranted, onGoBack }) {
+  window.useIdioma();
+  const t = window.t;
+  const [config, setConfig] = React.useState(null);
+  const [cargando, setCargando] = React.useState(true);
+  const [imagenCargada, setImagenCargada] = React.useState(false);
+  const [nombre, setNombre] = React.useState("");
+  const [whatsapp, setWhatsapp] = React.useState("");
+  const [error, setError] = React.useState("");
+  const [clienteBloqueado, setClienteBloqueado] = React.useState(null);
+  const [verificando, setVerificando] = React.useState(false);
+  const [necesitaNombre, setNecesitaNombre] = React.useState(false);
+  const [esProfesional, setEsProfesional] = React.useState(false);
+  const [profesionalInfo, setProfesionalInfo] = React.useState(null);
+  const [profesionalPassword, setProfesionalPassword] = React.useState("");
+  const [esAdmin, setEsAdmin] = React.useState(false);
+  const [codigoPaisCliente, setCodigoPaisCliente] = React.useState("53");
+  React.useEffect(() => {
+    const cargarDatos = async () => {
+      const configData = await window.cargarConfiguracionNegocio();
+      setConfig(configData);
+      setCodigoPaisCliente(window.getCodigoPaisTelefono ? window.getCodigoPaisTelefono(configData) : "53");
+      setCargando(false);
+    };
+    cargarDatos();
+  }, []);
+  const getNegocioActual = () => {
+    return window.NEGOCIO_ID_POR_DEFECTO || (typeof window.getNegocioId === "function" ? window.getNegocioId() : localStorage.getItem("negocioId"));
+  };
+  const guardarNegocioEnSesion = () => {
+    const negocioId = getNegocioActual();
+    if (negocioId) localStorage.setItem("negocioId", negocioId);
+    if (config?.nombre) localStorage.setItem("negocioNombre", config.nombre);
+  };
+  const resetCliente = () => {
+    setNecesitaNombre(false);
+    setClienteBloqueado(null);
+    setEsProfesional(false);
+    setProfesionalInfo(null);
+    setProfesionalPassword("");
+    setEsAdmin(false);
+    setError("");
+  };
+  const debounceTelefonoRef = React.useRef(null);
+  const verificacionIdRef = React.useRef(0);
+  const manejarCambioTelefono = (valor) => {
+    const codigoPais = codigoPaisCliente || (window.getCodigoPaisTelefono ? window.getCodigoPaisTelefono(config) : "53");
+    const paisTelefono2 = window.getPhoneCountryConfig ? window.getPhoneCountryConfig({ codigo_pais: codigoPais }) : { localLength: 8 };
+    const numeroLimpio = window.normalizarTelefonoLocal ? window.normalizarTelefonoLocal(valor, codigoPais) : valor.replace(/\D/g, "");
+    setWhatsapp(numeroLimpio);
+    if (debounceTelefonoRef.current) clearTimeout(debounceTelefonoRef.current);
+    if (numeroLimpio.length < (paisTelefono2.localLength || 8)) {
+      resetCliente();
+      return;
+    }
+    debounceTelefonoRef.current = setTimeout(() => verificarNumero(numeroLimpio), 450);
+  };
+  const verificarNumero = async (numero) => {
+    const codigoPais = codigoPaisCliente || (window.getCodigoPaisTelefono ? window.getCodigoPaisTelefono(config) : "53");
+    const paisTelefono2 = window.getPhoneCountryConfig ? window.getPhoneCountryConfig({ codigo_pais: codigoPais }) : { localLength: 8 };
+    const numeroLimpio = window.normalizarTelefonoLocal ? window.normalizarTelefonoLocal(numero, codigoPais) : numero.replace(/\D/g, "");
+    setWhatsapp(numeroLimpio);
+    if (numeroLimpio.length < Math.min(7, paisTelefono2.localLength || 8)) {
+      resetCliente();
+      return;
+    }
+    const miVerificacion = ++verificacionIdRef.current;
+    setVerificando(true);
+    setError("");
+    setNecesitaNombre(false);
+    setClienteBloqueado(null);
+    setEsProfesional(false);
+    setProfesionalInfo(null);
+    setProfesionalPassword("");
+    setEsAdmin(false);
+    const numeroCompleto = window.normalizarTelefonoInternacional ? window.normalizarTelefonoInternacional(numeroLimpio, codigoPais) : `53${numeroLimpio}`;
+    try {
+      const telefonoDuennoLocal = window.normalizarTelefonoLocal ? window.normalizarTelefonoLocal(config?.telefono || "", codigoPais) : String(config?.telefono || "").replace(/\D/g, "");
+      if (numeroLimpio === telefonoDuennoLocal) {
+        guardarNegocioEnSesion();
+        const loginTime = localStorage.getItem("adminLoginTime");
+        const tieneSesion = loginTime && Date.now() - parseInt(loginTime) < 8 * 60 * 60 * 1e3;
+        window.location.href = tieneSesion ? "admin.html" : "admin-login.html";
+        return;
+      }
+      if (window.verificarProfesionalPorTelefono) {
+        const profesional = await window.verificarProfesionalPorTelefono(numeroLimpio);
+        if (verificacionIdRef.current !== miVerificacion) return;
+        if (profesional) {
+          setEsProfesional(true);
+          setProfesionalInfo(profesional);
+          setProfesionalPassword("");
+          setEsAdmin(false);
+          setNecesitaNombre(false);
+          return;
+        }
+      }
+      const bloqueo = await window.getClienteBloqueado?.(numeroCompleto);
+      if (verificacionIdRef.current !== miVerificacion) return;
+      if (bloqueo) {
+        setClienteBloqueado(bloqueo);
+        setNecesitaNombre(false);
+        setError(t("Este número no tiene permiso para registrarse ni reservar. Contacta al negocio."));
+        return;
+      }
+      const cliente = await window.verificarAccesoCliente(numeroCompleto);
+      if (verificacionIdRef.current !== miVerificacion) return;
+      if (cliente) {
+        guardarNegocioEnSesion();
+        onAccessGranted(cliente.nombre, numeroCompleto);
+        return;
+      }
+      setNecesitaNombre(true);
+    } catch (err) {
+      if (verificacionIdRef.current !== miVerificacion) return;
+      console.error("Error verificando teléfono:", err);
+      setError(t("No pudimos verificar el número. Revisa tu conexión e intenta de nuevo."));
+    } finally {
+      if (verificacionIdRef.current === miVerificacion) setVerificando(false);
+    }
+  };
+  const ingresarComoProfesional = async () => {
+    if (!profesionalInfo) return;
+    if (!String(profesionalPassword || "").trim()) {
+      setError(t("Ingresa tu contraseña profesional."));
+      return;
+    }
+    setVerificando(true);
+    setError("");
+    try {
+      const profesional = await window.loginProfesional?.(whatsapp, profesionalPassword);
+      if (!profesional) {
+        setError(t("Teléfono o contraseña profesional incorrectos."));
+        return;
+      }
+      guardarNegocioEnSesion();
+      if (typeof window.borrarClienteAuthActual === "function") window.borrarClienteAuthActual();
+      else localStorage.removeItem("clienteAuth");
+      localStorage.removeItem("adminAuth");
+      localStorage.removeItem("adminLoginTime");
+      const slugSesionProfesional = window._rservasSlugActual || localStorage.getItem("negocioSlug") || "";
+      if (slugSesionProfesional) localStorage.setItem("adminSlug", slugSesionProfesional);
+      localStorage.setItem("profesionalAuth", JSON.stringify({
+        id: profesional.id,
+        nombre: profesional.nombre,
+        telefono: profesional.telefono,
+        nivel: profesional.nivel || 1
+      }));
+      localStorage.setItem("profesionalLoginTime", Date.now());
+      window.location.href = "admin.html";
+    } catch (err) {
+      console.error("Error ingresando como profesional:", err);
+      setError(t("Error al iniciar sesión profesional. Intenta de nuevo."));
+    } finally {
+      setVerificando(false);
+    }
+  };
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const codigoPais = codigoPaisCliente || (window.getCodigoPaisTelefono ? window.getCodigoPaisTelefono(config) : "53");
+    const paisTelefono2 = window.getPhoneCountryConfig ? window.getPhoneCountryConfig({ codigo_pais: codigoPais }) : { localLength: 8 };
+    const numeroLimpio = window.normalizarTelefonoLocal ? window.normalizarTelefonoLocal(whatsapp, codigoPais) : whatsapp.replace(/\D/g, "");
+    const numeroCompleto = window.normalizarTelefonoInternacional ? window.normalizarTelefonoInternacional(numeroLimpio, codigoPais) : `53${numeroLimpio}`;
+    if (numeroLimpio.length < Math.min(7, paisTelefono2.localLength || 8)) {
+      setError(t("Ingresa un número de WhatsApp válido."));
+      return;
+    }
+    if (esAdmin || esProfesional) return;
+    if (!necesitaNombre) {
+      await verificarNumero(numeroLimpio);
+      return;
+    }
+    if (!nombre.trim()) {
+      setError(t("Ingresa tu nombre completo para registrarte."));
+      return;
+    }
+    setVerificando(true);
+    setError("");
+    try {
+      const bloqueo = await window.getClienteBloqueado?.(numeroCompleto);
+      if (bloqueo) {
+        setClienteBloqueado(bloqueo);
+        setError(t("Este número no tiene permiso para registrarse ni reservar. Contacta al negocio."));
+        return;
+      }
+      const clienteExistente = await window.verificarAccesoCliente(numeroCompleto);
+      if (clienteExistente) {
+        guardarNegocioEnSesion();
+        onAccessGranted(clienteExistente.nombre, numeroCompleto);
+        return;
+      }
+      const nuevoCliente = await window.crearCliente(nombre.trim(), numeroCompleto);
+      if (nuevoCliente) {
+        guardarNegocioEnSesion();
+        onAccessGranted(nuevoCliente.nombre || nombre.trim(), numeroCompleto);
+      } else {
+        setError(window.ultimoErrorCliente || t("Error al crear el cliente. Intenta más tarde."));
+      }
+    } catch (err) {
+      console.error("Error registrando cliente:", err);
+      setError(t("Error en el sistema. Intenta más tarde."));
+    } finally {
+      setVerificando(false);
+    }
+  };
+  if (cargando) {
+    return /* @__PURE__ */ React.createElement("div", { className: "min-h-screen flex items-center justify-center bg-gradient-to-br from-pink-100 to-pink-200" }, /* @__PURE__ */ React.createElement("div", { className: "animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500" }));
+  }
+  const nombreNegocio = config?.nombre || "Mi Salón";
+  const logoUrl = config?.logo_url;
+  const paisTelefono = window.getPhoneCountryConfig ? window.getPhoneCountryConfig({ codigo_pais: codigoPaisCliente }) : { codigo: "53", bandera: "🇨🇺", ejemplo: "51234567", localLength: 8 };
+  const paisesTelefono = window.PHONE_COUNTRIES || [paisTelefono];
+  const fondoPortada = window.getHeroBackgroundOption ? window.getHeroBackgroundOption(config?.imagen_fondo_tipo) : { image: "https://images.unsplash.com/photo-1604654894610-df63bc536371?q=60&w=800&auto=format&fit=crop", label: "Fondo de salon" };
+  const especialidad = (config?.especialidad || "").toLowerCase();
+  const sticker = especialidad.includes("uña") ? "💅" : especialidad.includes("pelo") ? "💇‍♀️" : especialidad.includes("belleza") ? "🌸" : "💖";
+  return /* @__PURE__ */ React.createElement("div", { className: "client-auth-screen min-h-screen flex items-center justify-center p-4 relative overflow-hidden" }, /* @__PURE__ */ React.createElement("div", { className: "client-auth-background absolute inset-0 z-0 bg-gradient-to-br from-pink-200 via-pink-300 to-pink-400" }, /* @__PURE__ */ React.createElement(
+    "img",
+    {
+      src: fondoPortada.image,
+      alt: t("Fondo de salón"),
+      onLoad: () => setImagenCargada(true),
+      className: `client-auth-background-image w-full h-full object-cover transition-opacity duration-700 ${imagenCargada ? "opacity-100" : "opacity-0"}`
+    }
+  ), /* @__PURE__ */ React.createElement("div", { className: "client-auth-overlay absolute inset-0 bg-black/40" })), onGoBack && /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      onClick: onGoBack,
+      className: "client-auth-back absolute top-4 left-4 z-20 w-10 h-10 bg-pink-500/80 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-pink-600 transition-colors border border-pink-300",
+      title: t("Volver")
+    },
+    /* @__PURE__ */ React.createElement("i", { className: "icon-arrow-left text-white text-xl" })
+  ), /* @__PURE__ */ React.createElement("div", { className: "client-auth-content relative z-10 max-w-md w-full mx-auto" }, /* @__PURE__ */ React.createElement("div", { className: "client-auth-card bg-black/15 backdrop-blur-[1px] p-8 rounded-2xl shadow-2xl border border-pink-300/25" }, /* @__PURE__ */ React.createElement("div", { className: "text-center mb-6" }, logoUrl ? /* @__PURE__ */ React.createElement(
+    "img",
+    {
+      src: logoUrl,
+      alt: nombreNegocio,
+      className: "w-20 h-20 object-contain mx-auto rounded-xl ring-4 ring-pink-300/35 bg-white/70"
+    }
+  ) : /* @__PURE__ */ React.createElement("div", { className: "w-20 h-20 rounded-xl mx-auto flex items-center justify-center bg-pink-500 ring-4 ring-pink-300/35" }, /* @__PURE__ */ React.createElement("span", { className: "text-3xl" }, sticker)), /* @__PURE__ */ React.createElement("h1", { className: "text-3xl font-bold text-white mt-4" }, nombreNegocio), /* @__PURE__ */ React.createElement("p", { className: "text-pink-300 mt-1" }, "🌸 ", t("Espacio de belleza y cuidado"), " 🌸")), /* @__PURE__ */ React.createElement("h2", { className: "text-lg font-semibold text-white mb-4 flex items-center justify-center gap-2 bg-pink-500/30 p-3 rounded-lg" }, /* @__PURE__ */ React.createElement("span", null, "📱"), necesitaNombre ? t("Primera vez aquí — bienvenida") : t("Entra con tu WhatsApp"), /* @__PURE__ */ React.createElement("span", null, "✨")), /* @__PURE__ */ React.createElement("form", { onSubmit: handleSubmit, className: "space-y-4" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-white mb-1" }, t("Tu número de WhatsApp")), /* @__PURE__ */ React.createElement("div", { className: "flex" }, /* @__PURE__ */ React.createElement(
+    "select",
+    {
+      value: codigoPaisCliente,
+      onChange: (e) => {
+        const nuevoCodigo = e.target.value;
+        const local = window.normalizarTelefonoLocal ? window.normalizarTelefonoLocal(whatsapp, nuevoCodigo) : whatsapp.replace(/\D/g, "");
+        setCodigoPaisCliente(nuevoCodigo);
+        setWhatsapp(local);
+        resetCliente();
+      },
+      className: "w-32 px-2 py-3 rounded-l-lg border border-r-0 border-pink-300/30 bg-black/40 text-pink-100 text-sm outline-none"
+    },
+    paisesTelefono.map((pais) => /* @__PURE__ */ React.createElement("option", { key: pais.id, value: pais.codigo }, pais.bandera, " +", pais.codigo))
+  ), /* @__PURE__ */ React.createElement(
+    "input",
+    {
+      type: "tel",
+      name: "telefono",
+      inputMode: "numeric",
+      autoComplete: "tel-national",
+      value: whatsapp,
+      onChange: (e) => manejarCambioTelefono(e.target.value),
+      className: "w-full px-4 py-3 rounded-r-lg border border-pink-300/30 bg-black/20 text-white placeholder-pink-200/70 focus:ring-2 focus:ring-pink-500 focus:border-transparent outline-none transition",
+      placeholder: paisTelefono.ejemplo || "51234567",
+      required: true
+    }
+  )), !necesitaNombre && !esProfesional && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-pink-300/70 mt-1" }, t("Si ya reservaste antes, entrarás directo sin contraseña."))), necesitaNombre && !clienteBloqueado && !esAdmin && !esProfesional && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "bg-white/10 border border-pink-300/40 rounded-lg p-3 text-pink-100 text-sm mb-3 flex items-center gap-2" }, /* @__PURE__ */ React.createElement("span", null, "👋"), /* @__PURE__ */ React.createElement("span", null, t("Número nuevo — solo necesitamos tu nombre para registrarte."))), /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-white mb-1" }, t("Tu nombre completo")), /* @__PURE__ */ React.createElement(
+    "input",
+    {
+      type: "text",
+      name: "nombre",
+      autoComplete: "name",
+      autoCapitalize: "words",
+      value: nombre,
+      onChange: (e) => setNombre(e.target.value),
+      className: "w-full px-4 py-3 rounded-lg border border-pink-300/30 bg-black/20 text-white placeholder-pink-200/70 focus:ring-2 focus:ring-pink-500 focus:border-transparent outline-none transition",
+      placeholder: t("Ej: María Pérez"),
+      autoFocus: true
+    }
+  )), verificando && /* @__PURE__ */ React.createElement("div", { className: "text-pink-300 text-sm bg-pink-500/20 p-2 rounded-lg flex items-center gap-2 border border-pink-300/30" }, /* @__PURE__ */ React.createElement("div", { className: "animate-spin h-4 w-4 border-2 border-pink-300 border-t-transparent rounded-full" }), t("Verificando...")), esProfesional && profesionalInfo && !verificando && /* @__PURE__ */ React.createElement("div", { className: "bg-pink-500/30 border border-pink-300/50 rounded-lg p-4" }, /* @__PURE__ */ React.createElement("p", { className: "text-white font-bold text-xl" }, t("¡Hola, {nombre}!", { nombre: profesionalInfo.nombre })), /* @__PURE__ */ React.createElement("p", { className: "text-pink-200 text-sm" }, t("Ingresa tu contraseña para acceder al panel."))), esProfesional && profesionalInfo && !verificando && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-white mb-1" }, t("Contraseña profesional")), /* @__PURE__ */ React.createElement(
+    "input",
+    {
+      type: "password",
+      value: profesionalPassword,
+      onChange: (e) => setProfesionalPassword(e.target.value),
+      className: "w-full px-4 py-3 rounded-lg border border-pink-300/30 bg-black/20 text-white placeholder-pink-200/70 focus:ring-2 focus:ring-pink-500 focus:border-transparent outline-none transition",
+      placeholder: t("Tu contraseña"),
+      autoComplete: "current-password",
+      autoFocus: true
+    }
+  )), error && !esAdmin && /* @__PURE__ */ React.createElement("div", { className: "text-sm p-3 rounded-lg flex items-start gap-2 bg-red-500/20 text-red-300 border border-red-500/30" }, /* @__PURE__ */ React.createElement("i", { className: "icon-triangle-alert mt-0.5" }), /* @__PURE__ */ React.createElement("span", null, error)), /* @__PURE__ */ React.createElement("div", { className: "space-y-3 pt-2" }, esProfesional && profesionalInfo && !verificando && /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      type: "button",
+      onClick: ingresarComoProfesional,
+      className: "w-full bg-white text-pink-600 py-4 rounded-xl font-bold hover:bg-pink-50 transition-all duration-300 transform hover:scale-[1.02] hover:shadow-xl active:scale-[0.99] flex items-center justify-center gap-2 shadow-lg text-lg border border-pink-200/70"
+    },
+    /* @__PURE__ */ React.createElement("span", { className: "text-xl" }, "✂️"),
+    t("Ingresar como Profesional")
+  ), !esProfesional && !clienteBloqueado && /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      type: "submit",
+      disabled: verificando,
+      className: "w-full bg-pink-500 text-white py-4 rounded-xl font-bold hover:bg-pink-600 transition-all duration-300 transform hover:scale-[1.02] hover:shadow-xl active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg text-lg border border-pink-200/70"
+    },
+    /* @__PURE__ */ React.createElement("span", { className: "text-xl" }, necesitaNombre ? "💅" : "📱"),
+    verificando ? t("Verificando...") : necesitaNombre ? t("Registrarme y reservar") : t("Continuar"),
+    /* @__PURE__ */ React.createElement("span", { className: "text-xl" }, "✨")
+  ))), /* @__PURE__ */ React.createElement("div", { className: "absolute -bottom-6 -right-6 text-7xl opacity-20 rotate-12 select-none" }, "💇‍♀️"), /* @__PURE__ */ React.createElement("div", { className: "absolute top-1/2 -translate-y-1/2 -right-8 text-5xl opacity-10 select-none" }, "🌸"))));
+}
