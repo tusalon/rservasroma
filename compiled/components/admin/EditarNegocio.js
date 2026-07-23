@@ -13,6 +13,8 @@ function EditarNegocio() {
     codigo_pais: "53",
     email: "",
     direccion: "",
+    provincia: "",
+    municipio: "",
     logo_url: "",
     logo_preview: "",
     logo_file: null,
@@ -77,6 +79,8 @@ function EditarNegocio() {
           codigo_pais: window.getCodigoPaisTelefono ? window.getCodigoPaisTelefono(configData) : configData.codigo_pais || "53",
           email: configData.email || "",
           direccion: configData.direccion || "",
+          provincia: configData.provincia || "",
+          municipio: configData.municipio || "",
           logo_url: configData.logo_url || "",
           logo_preview: configData.logo_url || "",
           logo_file: null,
@@ -184,6 +188,8 @@ function EditarNegocio() {
         codigo_pais: config.codigo_pais || "53",
         email: config.email || null,
         direccion: config.direccion || null,
+        provincia: config.provincia || null,
+        municipio: config.municipio || null,
         mensaje_bienvenida: config.mensaje_bienvenida,
         mensaje_confirmacion: config.mensaje_confirmacion,
         mensaje_inasistencia: config.mensaje_inasistencia || null,
@@ -228,10 +234,12 @@ function EditarNegocio() {
       if (!response.ok) {
         const errorText = await response.text();
         console.error("❌ Error response:", errorText);
-        if (errorText.includes("codigo_pais") || errorText.includes("whatsapp_moneda") || errorText.includes("whatsapp_mostrar_costos") || errorText.includes("anticipos_por_servicio")) {
+        if (errorText.includes("codigo_pais") || errorText.includes("whatsapp_moneda") || errorText.includes("whatsapp_mostrar_costos") || errorText.includes("anticipos_por_servicio") || errorText.includes("municipio") || errorText.includes("provincia")) {
           const datosCompatibles = { ...datosActualizar };
           if (errorText.includes("codigo_pais")) delete datosCompatibles.codigo_pais;
           if (errorText.includes("anticipos_por_servicio")) delete datosCompatibles.anticipos_por_servicio;
+          if (errorText.includes("municipio")) delete datosCompatibles.municipio;
+          if (errorText.includes("provincia")) delete datosCompatibles.provincia;
           if (errorText.includes("whatsapp_moneda") || errorText.includes("whatsapp_mostrar_costos")) {
             delete datosCompatibles.whatsapp_moneda;
             delete datosCompatibles.whatsapp_mostrar_costos;
@@ -335,6 +343,24 @@ function EditarNegocio() {
       type: "text",
       value: config.direccion,
       onChange: (e) => setConfig({ ...config, direccion: e.target.value }),
+      className: "w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+    }
+  )), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, t("Provincia")), /* @__PURE__ */ React.createElement(
+    "select",
+    {
+      value: config.provincia,
+      onChange: (e) => setConfig({ ...config, provincia: e.target.value }),
+      className: "w-full border rounded-lg px-3 py-2 bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+    },
+    /* @__PURE__ */ React.createElement("option", { value: "" }, t("Selecciona provincia")),
+    ["Pinar del Río", "Artemisa", "La Habana", "Mayabeque", "Matanzas", "Cienfuegos", "Villa Clara", "Sancti Spíritus", "Ciego de Ávila", "Camagüey", "Las Tunas", "Holguín", "Granma", "Santiago de Cuba", "Guantánamo", "Isla de la Juventud"].map((prov) => /* @__PURE__ */ React.createElement("option", { key: prov, value: prov }, prov))
+  ), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-1" }, t("Así te encuentran en el directorio de RomaHub."))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, t("Municipio")), /* @__PURE__ */ React.createElement(
+    "input",
+    {
+      type: "text",
+      value: config.municipio,
+      onChange: (e) => setConfig({ ...config, municipio: e.target.value }),
+      placeholder: t("Ej: Playa, Centro Habana, Bauta..."),
       className: "w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
     }
   )))), /* @__PURE__ */ React.createElement("div", { className: "pt-4 border-t" }, /* @__PURE__ */ React.createElement("h2", { className: "text-lg font-semibold mb-4 flex items-center gap-2" }, /* @__PURE__ */ React.createElement("i", { className: "icon-palette text-amber-500" }), t("Personalización")), /* @__PURE__ */ React.createElement("div", { className: "mb-4" }, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-2" }, t("Logo del negocio")), /* @__PURE__ */ React.createElement(
