@@ -11,12 +11,14 @@ New-Item -ItemType Directory -Path $www | Out-Null
 
 $files = @(
     "index.html",
+    "app-clientes.html",
     "admin.html",
     "admin-login.html",
     "editar-negocio.html",
     "setup-wizard.html",
     "calendar.html",
     "offline-panel.html",
+    "404.html",
     "manifest.json",
     "sw.js",
     "app.js",
@@ -24,7 +26,11 @@ $files = @(
     "admin-app.js"
 )
 
+# "compiled" es OBLIGATORIO: desde que el JSX se pre-compila, los HTML cargan
+# compiled/** y ya no components/**. Sin esta carpeta la APK arranca en blanco
+# porque todos los <script> apuntan a archivos que no existen en el paquete.
 $directories = @(
+    "compiled",
     "components",
     "utils",
     "icons",
