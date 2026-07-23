@@ -289,7 +289,17 @@ function ServiceSelection({ onSelect, selectedService }) {
                                     <div className="space-y-3">
                                         <div className="flex items-start justify-between gap-3">
                                             <div className="flex items-start gap-2 min-w-0">
-                                                <span className="text-2xl shrink-0">{catIcono(categoria)}</span>
+                                                {service.imagen ? (
+                                                    <img
+                                                        src={service.imagen}
+                                                        alt={service.nombre}
+                                                        loading="lazy"
+                                                        decoding="async"
+                                                        className="h-12 w-12 rounded-lg object-cover border border-pink-100 shrink-0"
+                                                    />
+                                                ) : (
+                                                    <span className="text-2xl shrink-0">{catIcono(categoria)}</span>
+                                                )}
                                                 <div className="min-w-0">
                                                     <span className="font-medium text-pink-800 text-lg block leading-snug break-words">{service.nombre}</span>
                                                     <span className="text-xs text-pink-500">{catNombre(categoria)}</span>
