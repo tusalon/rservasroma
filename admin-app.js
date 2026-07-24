@@ -4490,7 +4490,10 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                 )}
 
                 {tabActivo === 'configuracion' && (
-                    <ConfigPanel profesionalId={userRole === 'profesional' ? profesional?.id : null} modoRestringido={userRole === 'profesional' && userNivel === 2} />
+                    <div className="space-y-4">
+                        {userRole === 'admin' && <RomaHubActivacion />}
+                        <ConfigPanel profesionalId={userRole === 'profesional' ? profesional?.id : null} modoRestringido={userRole === 'profesional' && userNivel === 2} />
+                    </div>
                 )}
 
                 {tabActivo === 'servicios' && (userRole === 'admin' || userNivel >= 3) && (

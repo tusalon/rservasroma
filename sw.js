@@ -1,6 +1,6 @@
 // sw.js - Service Worker para Rservasroma
 
-const CACHE_NAME = 'rservasroma-v64';
+const CACHE_NAME = 'rservasroma-v65';
 const BASE = '/rservasroma';
 
 const urlsToCache = [
@@ -61,6 +61,7 @@ const urlsToCache = [
 
   // Componentes admin (compilados)
   `${BASE}/compiled/components/admin/ConfigPanel.js?v=20260723-jsx1`,
+  `${BASE}/compiled/components/admin/RomaHubActivacion.js?v=20260724-romahub1`,
   `${BASE}/compiled/components/admin/EditarNegocio.js?v=20260723-fotos`,
   `${BASE}/compiled/components/admin/HorariosPorDiaPanel.js?v=20260723-jsx1`,
   `${BASE}/compiled/components/admin/HorariosExcepcionPanel.js?v=20260723-jsx1`,
