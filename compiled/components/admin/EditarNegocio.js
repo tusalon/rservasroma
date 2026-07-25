@@ -81,8 +81,11 @@ function EditarNegocio() {
           codigo_pais: window.getCodigoPaisTelefono ? window.getCodigoPaisTelefono(configData) : configData.codigo_pais || "53",
           email: configData.email || "",
           direccion: configData.direccion || "",
-          provincia: configData.provincia || "",
-          municipio: configData.municipio || "",
+          provincia: (configData.provincia || "").trim(),
+          // Se ajusta a la forma exacta de la lista: lo guardado a mano
+          // suele traer espacios de mas y entonces el desplegable no
+          // encontraria la opcion y saldria vacio.
+          municipio: window.normalizarMunicipio ? window.normalizarMunicipio((configData.provincia || "").trim(), configData.municipio) : configData.municipio || "",
           logo_url: configData.logo_url || "",
           logo_preview: configData.logo_url || "",
           logo_file: null,
@@ -376,20 +379,32 @@ function EditarNegocio() {
     "select",
     {
       value: config.provincia,
-      onChange: (e) => setConfig({ ...config, provincia: e.target.value }),
+      onChange: (e) => {
+        const nuevaProvincia = e.target.value;
+        const municipiosNuevos = window.CUBA_MUNICIPIOS && window.CUBA_MUNICIPIOS[nuevaProvincia] || [];
+        const siguePerteneciendo = municipiosNuevos.some(
+          (m) => m.toLowerCase() === String(config.municipio || "").trim().toLowerCase()
+        );
+        setConfig({
+          ...config,
+          provincia: nuevaProvincia,
+          municipio: siguePerteneciendo ? config.municipio : ""
+        });
+      },
       className: "w-full border rounded-lg px-3 py-2 bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
     },
     /* @__PURE__ */ React.createElement("option", { value: "" }, t("Selecciona provincia")),
-    ["Pinar del Río", "Artemisa", "La Habana", "Mayabeque", "Matanzas", "Cienfuegos", "Villa Clara", "Sancti Spíritus", "Ciego de Ávila", "Camagüey", "Las Tunas", "Holguín", "Granma", "Santiago de Cuba", "Guantánamo", "Isla de la Juventud"].map((prov) => /* @__PURE__ */ React.createElement("option", { key: prov, value: prov }, prov))
+    (window.CUBA_PROVINCIAS || []).map((prov) => /* @__PURE__ */ React.createElement("option", { key: prov, value: prov }, prov))
   ), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-1" }, t("Así te encuentran en el directorio de RomaHub."))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, t("Municipio")), /* @__PURE__ */ React.createElement(
-    "input",
+    "select",
     {
-      type: "text",
       value: config.municipio,
       onChange: (e) => setConfig({ ...config, municipio: e.target.value }),
-      placeholder: t("Ej: Playa, Centro Habana, Bauta..."),
-      className: "w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-    }
+      disabled: !config.provincia,
+      className: "w-full border rounded-lg px-3 py-2 bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 disabled:bg-gray-100 disabled:text-gray-400"
+    },
+    /* @__PURE__ */ React.createElement("option", { value: "" }, config.provincia ? t("Selecciona municipio") : t("Elige primero la provincia")),
+    (window.getMunicipiosDeProvincia ? window.getMunicipiosDeProvincia(config.provincia, config.municipio) : []).map((mun) => /* @__PURE__ */ React.createElement("option", { key: mun, value: mun }, mun))
   )))), /* @__PURE__ */ React.createElement("div", { className: "pt-4 border-t" }, /* @__PURE__ */ React.createElement("h2", { className: "text-lg font-semibold mb-4 flex items-center gap-2" }, /* @__PURE__ */ React.createElement("i", { className: "icon-palette text-amber-500" }), t("Personalización")), /* @__PURE__ */ React.createElement("div", { className: "mb-4" }, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-2" }, t("Logo del negocio")), /* @__PURE__ */ React.createElement(
     "div",
     {
