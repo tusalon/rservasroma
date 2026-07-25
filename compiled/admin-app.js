@@ -1172,10 +1172,8 @@ function AdminApp() {
     ].filter(Boolean);
     disponibilidadSemanal.forEach((dia) => {
       const disponibles = dia.turnos.filter((t2) => t2.estado === "Disponible").map((t2) => formatTo12Hour(t2.hora));
-      const ocupados = dia.turnos.filter((t2) => t2.estado === "Ocupado").map((t2) => `${formatTo12Hour(t2.hora)} ocupado`);
       const estado = disponibles.length > 0 ? disponibles.join(", ") : "Sin turnos disponibles";
       lineas.push(`${dia.diaNombre} ${dia.fecha}: ${estado}`);
-      if (ocupados.length > 0) lineas.push(`Ocupados: ${ocupados.join(", ")}`);
     });
     const texto = encodeURIComponent(lineas.join("\n"));
     window.open(`https://wa.me/?text=${texto}`, "_blank");
@@ -1377,21 +1375,30 @@ function AdminApp() {
         ctx.font = "700 20px Arial";
         dibujarTextoCentrado(ctx, "Sin turnos", x + columnW / 2, y + 90, slotW - 16, 24);
       } else {
-        const MAX_TURNOS_VISIBLES = 8;
+        const MAX_TURNOS_VISIBLES = 14;
         const visibles = disponibles.slice(0, MAX_TURNOS_VISIBLES);
         const ocultos = disponibles.length - visibles.length;
+        const espacioDisponible = cardY + cardH - y - 20;
+        let slotHVisible = slotH;
+        let gapVisible = gap;
+        let fuenteHora = 24;
+        if (visibles.length * (slotH + gap) > espacioDisponible) {
+          gapVisible = 10;
+          slotHVisible = Math.max(44, Math.floor(espacioDisponible / visibles.length) - gapVisible);
+          fuenteHora = slotHVisible < 60 ? 17 : 20;
+        }
         visibles.forEach((turno) => {
-          const g = ctx.createLinearGradient(slotX, y, slotX, y + slotH);
+          const g = ctx.createLinearGradient(slotX, y, slotX, y + slotHVisible);
           g.addColorStop(0, "#34d399");
           g.addColorStop(1, "#16a34a");
           ctx.fillStyle = g;
           ctx.beginPath();
-          ctx.roundRect(slotX, y, slotW, slotH, 22);
+          ctx.roundRect(slotX, y, slotW, slotHVisible, Math.min(22, slotHVisible / 2));
           ctx.fill();
           ctx.fillStyle = "#ffffff";
-          ctx.font = "900 24px Arial";
-          ctx.fillText(formatTo12Hour(turno.hora).replace(" ", ""), x + columnW / 2, y + 50);
-          y += slotH + gap;
+          ctx.font = `900 ${fuenteHora}px Arial`;
+          ctx.fillText(formatTo12Hour(turno.hora).replace(" ", ""), x + columnW / 2, y + slotHVisible / 2 + fuenteHora * 0.32);
+          y += slotHVisible + gapVisible;
         });
         if (ocultos > 0) {
           ctx.fillStyle = "#15803d";
@@ -1534,9 +1541,9 @@ function AdminApp() {
     });
     const legendY = 1645;
     const legendas = [
-      ["#dcfce7", "#15803d", "4+ tranquilo"],
-      ["#fef3c7", "#b45309", "3 medio"],
-      ["#fee2e2", "#b91c1c", "1-2 urgente"],
+      ["#dcfce7", "#15803d", "4+ turnos"],
+      ["#fef3c7", "#b45309", "3 turnos"],
+      ["#fee2e2", "#b91c1c", "1-2 turnos"],
       ["#f3f4f6", "#9ca3af", "Sin turnos"]
     ];
     legendas.forEach((item, index) => {

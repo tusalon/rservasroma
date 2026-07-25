@@ -1426,12 +1426,13 @@ function AdminApp() {
             ''
         ].filter(Boolean);
 
+        // Solo turnos libres: a la clienta que recibe esto por WhatsApp le
+        // sirve saber cuando puede reservar, no la lista de quien ya ocupo
+        // cada hora del salon.
         disponibilidadSemanal.forEach(dia => {
             const disponibles = dia.turnos.filter(t => t.estado === 'Disponible').map(t => formatTo12Hour(t.hora));
-            const ocupados = dia.turnos.filter(t => t.estado === 'Ocupado').map(t => `${formatTo12Hour(t.hora)} ocupado`);
             const estado = disponibles.length > 0 ? disponibles.join(', ') : 'Sin turnos disponibles';
             lineas.push(`${dia.diaNombre} ${dia.fecha}: ${estado}`);
-            if (ocupados.length > 0) lineas.push(`Ocupados: ${ocupados.join(', ')}`);
         });
 
         const texto = encodeURIComponent(lineas.join('\n'));
@@ -1671,26 +1672,39 @@ function AdminApp() {
                 ctx.font = '700 20px Arial';
                 dibujarTextoCentrado(ctx, 'Sin turnos', x + columnW / 2, y + 90, slotW - 16, 24);
             } else {
-                // En la tarjeta solo caben 8 turnos. Si hay mas, se avisa: antes
-                // se recortaban en silencio y la clienta veia menos huecos
-                // libres de los que el salon tiene realmente.
-                const MAX_TURNOS_VISIBLES = 8;
+                // Antes se recortaba a 8 turnos fijos y se escondian los demas
+                // en silencio: un dia con 12 huecos libres mostraba 8. Ahora se
+                // encoge el alto de cada turno lo justo para que quepan todos,
+                // hasta un maximo realista de 14 (un dia entero de turnos de
+                // 1 hora). Solo si hay mas que eso -algo excepcional- se avisa
+                // con "+N mas" en vez de inventar espacio que no existe.
+                const MAX_TURNOS_VISIBLES = 14;
                 const visibles = disponibles.slice(0, MAX_TURNOS_VISIBLES);
                 const ocultos = disponibles.length - visibles.length;
+                const espacioDisponible = (cardY + cardH) - y - 20;
+
+                let slotHVisible = slotH;
+                let gapVisible = gap;
+                let fuenteHora = 24;
+                if (visibles.length * (slotH + gap) > espacioDisponible) {
+                    gapVisible = 10;
+                    slotHVisible = Math.max(44, Math.floor(espacioDisponible / visibles.length) - gapVisible);
+                    fuenteHora = slotHVisible < 60 ? 17 : 20;
+                }
 
                 visibles.forEach(turno => {
-                    const g = ctx.createLinearGradient(slotX, y, slotX, y + slotH);
+                    const g = ctx.createLinearGradient(slotX, y, slotX, y + slotHVisible);
                     g.addColorStop(0, '#34d399');
                     g.addColorStop(1, '#16a34a');
                     ctx.fillStyle = g;
                     ctx.beginPath();
-                    ctx.roundRect(slotX, y, slotW, slotH, 22);
+                    ctx.roundRect(slotX, y, slotW, slotHVisible, Math.min(22, slotHVisible / 2));
                     ctx.fill();
 
                     ctx.fillStyle = '#ffffff';
-                    ctx.font = '900 24px Arial';
-                    ctx.fillText(formatTo12Hour(turno.hora).replace(' ', ''), x + columnW / 2, y + 50);
-                    y += slotH + gap;
+                    ctx.font = `900 ${fuenteHora}px Arial`;
+                    ctx.fillText(formatTo12Hour(turno.hora).replace(' ', ''), x + columnW / 2, y + slotHVisible / 2 + fuenteHora * 0.32);
+                    y += slotHVisible + gapVisible;
                 });
 
                 if (ocultos > 0) {
@@ -1854,10 +1868,13 @@ function AdminApp() {
         });
 
         const legendY = 1645;
+        // "tranquilo/medio/urgente" es jerga interna del salon para priorizar
+        // que dia llenar primero; en la imagen que ve la clienta solo hace
+        // falta el numero, no una etiqueta que suene a presion de venta.
         const legendas = [
-            ['#dcfce7', '#15803d', '4+ tranquilo'],
-            ['#fef3c7', '#b45309', '3 medio'],
-            ['#fee2e2', '#b91c1c', '1-2 urgente'],
+            ['#dcfce7', '#15803d', '4+ turnos'],
+            ['#fef3c7', '#b45309', '3 turnos'],
+            ['#fee2e2', '#b91c1c', '1-2 turnos'],
             ['#f3f4f6', '#9ca3af', 'Sin turnos']
         ];
 
