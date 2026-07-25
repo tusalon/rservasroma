@@ -790,8 +790,8 @@ function AdminApp() {
       const respetarLimitesAntelacion = userRole !== "admin" && !reservaEditando;
       const primerDia = new Date(year, month, 1);
       const ultimoDia = new Date(year, month + 1, 0);
-      const fechaInicio = primerDia.toISOString().split("T")[0];
-      const fechaFin = ultimoDia.toISOString().split("T")[0];
+      const fechaInicio = formatDate(primerDia);
+      const fechaFin = formatDate(ultimoDia);
       const negocioId = typeof getNegocioId === "function" ? getNegocioId() : window.getNegocioIdFromConfig ? window.getNegocioIdFromConfig() : localStorage.getItem("negocioId");
       const response = await fetch(
         `${window.SUPABASE_URL}/rest/v1/reservas?negocio_id=eq.${negocioId}&fecha=gte.${fechaInicio}&fecha=lte.${fechaFin}&profesional_id=eq.${profesionalId}&estado=neq.Cancelado&select=id,fecha,hora_inicio,hora_fin`,
@@ -900,8 +900,8 @@ function AdminApp() {
       const fechasLibresPersonales = profesionalObj?.fechas_libres || [];
       const primerDia = new Date(year, month, 1);
       const ultimoDia = new Date(year, month + 1, 0);
-      const fechaInicio = primerDia.toISOString().split("T")[0];
-      const fechaFin = ultimoDia.toISOString().split("T")[0];
+      const fechaInicio = formatDate(primerDia);
+      const fechaFin = formatDate(ultimoDia);
       const negocioId = typeof getNegocioId === "function" ? getNegocioId() : window.getNegocioIdFromConfig ? window.getNegocioIdFromConfig() : localStorage.getItem("negocioId");
       const response = await fetch(
         `${window.SUPABASE_URL}/rest/v1/reservas?negocio_id=eq.${negocioId}&fecha=gte.${fechaInicio}&fecha=lte.${fechaFin}&profesional_id=eq.${profesionalId}&estado=neq.Cancelado&select=fecha,hora_inicio,hora_fin`,
@@ -960,10 +960,6 @@ function AdminApp() {
         let horariosOcupados = 0;
         let horariosDisponiblesDia = 0;
         const reservasDia = reservasPorFecha[fechaStr] || [];
-        const hoy = getCurrentLocalDate();
-        if (fechaStr === hoy) {
-          console.log(`   Horarios del día:`, horariosDelDia.map((i) => indiceToHoraLegible(i)));
-        }
         for (const horaIndice of horariosDelDia) {
           const slotStr = indiceToHoraLegible(horaIndice);
           const [horas, minutos] = slotStr.split(":").map(Number);
@@ -980,16 +976,9 @@ function AdminApp() {
           });
           if (tieneConflicto) {
             horariosOcupados++;
-            if (fechaStr === hoy) {
-            }
-          } else {
-            if (fechaStr === hoy) {
-            }
           }
         }
         const tieneDisponibilidad = horariosDisponiblesDia > 0 && horariosOcupados < horariosDisponiblesDia;
-        if (fechaStr === hoy) {
-        }
         disponibilidad[fechaStr] = tieneDisponibilidad;
         conteosDisponibles[fechaStr] = Math.max(0, horariosDisponiblesDia - horariosOcupados);
       }
@@ -997,6 +986,8 @@ function AdminApp() {
       setDisponibilidadConteos(conteosDisponibles);
     } catch (error) {
       console.error("Error cargando disponibilidad del mes:", error);
+      setDisponibilidadDias({});
+      setDisponibilidadConteos({});
     } finally {
       setDisponibilidadCargando(false);
     }
@@ -1189,6 +1180,32 @@ function AdminApp() {
     const texto = encodeURIComponent(lineas.join("\n"));
     window.open(`https://wa.me/?text=${texto}`, "_blank");
   };
+  const diasMesConDatos = Object.keys(disponibilidadConteos).length;
+  const compartirDisponibilidadMensualTexto = () => {
+    const profesional2 = profesionalesList.find((p) => p.id === parseInt(profesionalSeleccionadoDispo));
+    const mesTitulo = `${monthNames[disponibilidadFecha.getMonth()]} ${disponibilidadFecha.getFullYear()}`;
+    const lineas = [
+      `Disponibilidad mensual - ${nombreNegocio}`,
+      mesTitulo,
+      profesional2 ? `Profesional: ${profesional2.nombre}` : "",
+      ""
+    ].filter(Boolean);
+    const hoy = getCurrentLocalDate();
+    let diasListados = 0;
+    getDaysInMonth(disponibilidadFecha).forEach((date) => {
+      if (!date) return;
+      const fechaStr = formatDate(date);
+      if (fechaStr < hoy) return;
+      if (diasCerradosFechas.includes(fechaStr)) return;
+      const conteo = disponibilidadConteos[fechaStr] || 0;
+      if (disponibilidadDias[fechaStr] !== true || conteo <= 0) return;
+      lineas.push(`${fechaStr}: ${conteo} ${conteo === 1 ? "turno libre" : "turnos libres"}`);
+      diasListados++;
+    });
+    if (diasListados === 0) lineas.push("Sin turnos libres este mes.");
+    const texto = encodeURIComponent(lineas.join("\n"));
+    window.open(`https://wa.me/?text=${texto}`, "_blank");
+  };
   const canvasToBlob = (canvas) => new Promise((resolve) => canvas.toBlob(resolve, "image/png", 0.95));
   const blobToBase64 = (blob) => new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -1239,6 +1256,23 @@ function AdminApp() {
     setTimeout(() => URL.revokeObjectURL(url), 6e4);
     return false;
   };
+  const asegurarRoundRect = (ctx) => {
+    if (typeof ctx.roundRect === "function") return;
+    ctx.roundRect = function(x, y, w, h, r) {
+      const radio = Math.min(typeof r === "number" ? r : 0, w / 2, h / 2);
+      this.moveTo(x + radio, y);
+      this.lineTo(x + w - radio, y);
+      this.quadraticCurveTo(x + w, y, x + w, y + radio);
+      this.lineTo(x + w, y + h - radio);
+      this.quadraticCurveTo(x + w, y + h, x + w - radio, y + h);
+      this.lineTo(x + radio, y + h);
+      this.quadraticCurveTo(x, y + h, x, y + h - radio);
+      this.lineTo(x, y + radio);
+      this.quadraticCurveTo(x, y, x + radio, y);
+      this.closePath();
+      return this;
+    };
+  };
   const dibujarTextoCentrado = (ctx, texto, x, y, maxWidth, lineHeight) => {
     const palabras = String(texto || "").split(" ");
     const lineas = [];
@@ -1262,6 +1296,7 @@ function AdminApp() {
     canvas.width = 1080;
     canvas.height = 1920;
     const ctx = canvas.getContext("2d");
+    asegurarRoundRect(ctx);
     const semanaInicio = disponibilidadSemanal[0]?.fecha || formatDate(getDiasSemanaDisponibilidad(disponibilidadFecha)[0]);
     const semanaFin = disponibilidadSemanal[6]?.fecha || formatDate(getDiasSemanaDisponibilidad(disponibilidadFecha)[6]);
     const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
@@ -1342,7 +1377,10 @@ function AdminApp() {
         ctx.font = "700 20px Arial";
         dibujarTextoCentrado(ctx, "Sin turnos", x + columnW / 2, y + 90, slotW - 16, 24);
       } else {
-        disponibles.slice(0, 8).forEach((turno) => {
+        const MAX_TURNOS_VISIBLES = 8;
+        const visibles = disponibles.slice(0, MAX_TURNOS_VISIBLES);
+        const ocultos = disponibles.length - visibles.length;
+        visibles.forEach((turno) => {
           const g = ctx.createLinearGradient(slotX, y, slotX, y + slotH);
           g.addColorStop(0, "#34d399");
           g.addColorStop(1, "#16a34a");
@@ -1355,6 +1393,11 @@ function AdminApp() {
           ctx.fillText(formatTo12Hour(turno.hora).replace(" ", ""), x + columnW / 2, y + 50);
           y += slotH + gap;
         });
+        if (ocultos > 0) {
+          ctx.fillStyle = "#15803d";
+          ctx.font = "800 21px Arial";
+          ctx.fillText(`+${ocultos} mas`, x + columnW / 2, y + 26);
+        }
       }
     });
     ctx.fillStyle = "#831843";
@@ -1390,6 +1433,7 @@ function AdminApp() {
     canvas.width = 1080;
     canvas.height = 1920;
     const ctx = canvas.getContext("2d");
+    asegurarRoundRect(ctx);
     const year = disponibilidadFecha.getFullYear();
     const month = disponibilidadFecha.getMonth();
     const monthTitle = `${monthNames[month]} ${year}`;
@@ -1519,6 +1563,10 @@ function AdminApp() {
     return canvas;
   };
   const compartirDisponibilidadMensual = async () => {
+    if (!diasMesConDatos) {
+      alert(t("Todavia no se cargo la disponibilidad del mes. Intenta de nuevo."));
+      return;
+    }
     try {
       const canvas = await generarImagenDisponibilidadMensual();
       const compartido = await compartirImagenDesdeCanvas(
@@ -1530,7 +1578,7 @@ function AdminApp() {
       if (!compartido) alert(t("Imagen mensual generada. Si no se abrio el menu de compartir, revisa Descargas."));
     } catch (error) {
       console.error("Error generando imagen mensual:", error);
-      alert(t("No se pudo generar la imagen mensual."));
+      compartirDisponibilidadMensualTexto();
     }
   };
   const validarRangoReservaManual = async ({ fecha, profesionalId, horaInicio, horaFin }) => {
@@ -3376,7 +3424,8 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
     "button",
     {
       onClick: compartirDisponibilidadMensual,
-      className: "px-4 py-2 bg-green-600 text-white rounded-xl text-xs sm:text-sm font-bold hover:bg-green-700 shadow-sm"
+      disabled: diasMesConDatos === 0,
+      className: "px-4 py-2 bg-green-600 text-white rounded-xl text-xs sm:text-sm font-bold hover:bg-green-700 disabled:opacity-50 shadow-sm"
     },
     t("Compartir")
   )), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-7 mb-2 text-center" }, (idioma === "en" ? ["S", "M", "T", "W", "T", "F", "S"] : ["D", "L", "M", "M", "J", "V", "S"]).map((d, i) => /* @__PURE__ */ React.createElement("div", { key: i, className: "text-xs font-medium text-gray-500" }, d))), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-7 gap-1" }, disponibilidadDays.map((date, idx) => {

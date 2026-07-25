@@ -953,12 +953,14 @@ function AdminApp() {
             const minAntelacionHoras = configGlobal?.min_antelacion_horas ?? 2;
             const maxAntelacionDias = configGlobal?.max_antelacion_dias ?? 30;
             const respetarLimitesAntelacion = userRole !== 'admin' && !reservaEditando;
-            
+
             const primerDia = new Date(year, month, 1);
             const ultimoDia = new Date(year, month + 1, 0);
-            
-            const fechaInicio = primerDia.toISOString().split('T')[0];
-            const fechaFin = ultimoDia.toISOString().split('T')[0];
+
+            // Mismo motivo que en cargarDisponibilidadDelMes: toISOString pasa a
+            // UTC y en husos al este de Greenwich desplaza el rango un dia.
+            const fechaInicio = formatDate(primerDia);
+            const fechaFin = formatDate(ultimoDia);
             
             const negocioId = typeof getNegocioId === "function" ? getNegocioId() : (window.getNegocioIdFromConfig ? window.getNegocioIdFromConfig() : localStorage.getItem("negocioId"));
             const response = await fetch(
@@ -1085,12 +1087,16 @@ function AdminApp() {
             
             const profesionalObj = profesionalesList.find(p => p.id === profesionalId);
             const fechasLibresPersonales = profesionalObj?.fechas_libres || [];
-            
+
             const primerDia = new Date(year, month, 1);
             const ultimoDia = new Date(year, month + 1, 0);
-            
-            const fechaInicio = primerDia.toISOString().split('T')[0];
-            const fechaFin = ultimoDia.toISOString().split('T')[0];
+
+            // formatDate y no toISOString: toISOString pasa a UTC, y en husos al
+            // este de Greenwich (Espana, Reino Unido) la medianoche local cae en
+            // el dia anterior, asi que el rango perdia el ultimo dia del mes y
+            // ese dia salia como totalmente libre aunque estuviera lleno.
+            const fechaInicio = formatDate(primerDia);
+            const fechaFin = formatDate(ultimoDia);
             
             const negocioId = typeof getNegocioId === "function" ? getNegocioId() : (window.getNegocioIdFromConfig ? window.getNegocioIdFromConfig() : localStorage.getItem("negocioId"));
             const response = await fetch(
@@ -1162,12 +1168,7 @@ function AdminApp() {
                 let horariosOcupados = 0;
                 let horariosDisponiblesDia = 0;
                 const reservasDia = reservasPorFecha[fechaStr] || [];
-                
-                const hoy = getCurrentLocalDate();
-                if (fechaStr === hoy) {
-                    console.log(`   Horarios del día:`, horariosDelDia.map(i => indiceToHoraLegible(i)));
-                }
-                
+
                 for (const horaIndice of horariosDelDia) {
                     const slotStr = indiceToHoraLegible(horaIndice);
                     const [horas, minutos] = slotStr.split(':').map(Number);
@@ -1188,19 +1189,11 @@ function AdminApp() {
                     
                     if (tieneConflicto) {
                         horariosOcupados++;
-                        if (fechaStr === hoy) {
-                        }
-                    } else {
-                        if (fechaStr === hoy) {
-                        }
                     }
                 }
-                
+
                 const tieneDisponibilidad = horariosDisponiblesDia > 0 && horariosOcupados < horariosDisponiblesDia;
-                
-                if (fechaStr === hoy) {
-                }
-                
+
                 disponibilidad[fechaStr] = tieneDisponibilidad;
                 conteosDisponibles[fechaStr] = Math.max(0, horariosDisponiblesDia - horariosOcupados);
             }
@@ -1209,6 +1202,12 @@ function AdminApp() {
             setDisponibilidadConteos(conteosDisponibles);
         } catch (error) {
             console.error('Error cargando disponibilidad del mes:', error);
+            // Vaciar es importante: si falla la consulta y se dejan los datos del
+            // mes anterior, el calendario pinta el mes nuevo con claves que no
+            // existen y todos los dias salen "Sin turnos". Compartir eso le
+            // anuncia a las clientas que no hay turnos cuando si los hay.
+            setDisponibilidadDias({});
+            setDisponibilidadConteos({});
         } finally {
             setDisponibilidadCargando(false);
         }
@@ -1439,6 +1438,40 @@ function AdminApp() {
         window.open(`https://wa.me/?text=${texto}`, '_blank');
     };
 
+    // Cuantos dias del mes tienen datos ya calculados. Se usa para no dejar
+    // compartir un calendario vacio (sin cargar o tras un fallo de red), que
+    // le diria a las clientas que no queda ningun turno libre.
+    const diasMesConDatos = Object.keys(disponibilidadConteos).length;
+
+    const compartirDisponibilidadMensualTexto = () => {
+        const profesional = profesionalesList.find(p => p.id === parseInt(profesionalSeleccionadoDispo));
+        const mesTitulo = `${monthNames[disponibilidadFecha.getMonth()]} ${disponibilidadFecha.getFullYear()}`;
+        const lineas = [
+            `Disponibilidad mensual - ${nombreNegocio}`,
+            mesTitulo,
+            profesional ? `Profesional: ${profesional.nombre}` : '',
+            ''
+        ].filter(Boolean);
+
+        const hoy = getCurrentLocalDate();
+        let diasListados = 0;
+        getDaysInMonth(disponibilidadFecha).forEach(date => {
+            if (!date) return;
+            const fechaStr = formatDate(date);
+            if (fechaStr < hoy) return;
+            if (diasCerradosFechas.includes(fechaStr)) return;
+            const conteo = disponibilidadConteos[fechaStr] || 0;
+            if (disponibilidadDias[fechaStr] !== true || conteo <= 0) return;
+            lineas.push(`${fechaStr}: ${conteo} ${conteo === 1 ? 'turno libre' : 'turnos libres'}`);
+            diasListados++;
+        });
+
+        if (diasListados === 0) lineas.push('Sin turnos libres este mes.');
+
+        const texto = encodeURIComponent(lineas.join('\n'));
+        window.open(`https://wa.me/?text=${texto}`, '_blank');
+    };
+
     const canvasToBlob = (canvas) => new Promise(resolve => canvas.toBlob(resolve, 'image/png', 0.95));
 
     const blobToBase64 = (blob) => new Promise((resolve, reject) => {
@@ -1496,6 +1529,28 @@ function AdminApp() {
         return false;
     };
 
+    // ctx.roundRect no existe en iOS 15 ni en WebView de Android anterior a
+    // Chrome 99. Sin esto, generar la imagen lanza TypeError: la semanal caia
+    // al texto de WhatsApp y la mensual se quedaba sin nada. Este respaldo
+    // dibuja el mismo rectangulo redondeado con arcos.
+    const asegurarRoundRect = (ctx) => {
+        if (typeof ctx.roundRect === 'function') return;
+        ctx.roundRect = function (x, y, w, h, r) {
+            const radio = Math.min(typeof r === 'number' ? r : 0, w / 2, h / 2);
+            this.moveTo(x + radio, y);
+            this.lineTo(x + w - radio, y);
+            this.quadraticCurveTo(x + w, y, x + w, y + radio);
+            this.lineTo(x + w, y + h - radio);
+            this.quadraticCurveTo(x + w, y + h, x + w - radio, y + h);
+            this.lineTo(x + radio, y + h);
+            this.quadraticCurveTo(x, y + h, x, y + h - radio);
+            this.lineTo(x, y + radio);
+            this.quadraticCurveTo(x, y, x + radio, y);
+            this.closePath();
+            return this;
+        };
+    };
+
     const dibujarTextoCentrado = (ctx, texto, x, y, maxWidth, lineHeight) => {
         const palabras = String(texto || '').split(' ');
         const lineas = [];
@@ -1522,6 +1577,7 @@ function AdminApp() {
         canvas.width = 1080;
         canvas.height = 1920;
         const ctx = canvas.getContext('2d');
+        asegurarRoundRect(ctx);
         const semanaInicio = disponibilidadSemanal[0]?.fecha || formatDate(getDiasSemanaDisponibilidad(disponibilidadFecha)[0]);
         const semanaFin = disponibilidadSemanal[6]?.fecha || formatDate(getDiasSemanaDisponibilidad(disponibilidadFecha)[6]);
 
@@ -1615,7 +1671,14 @@ function AdminApp() {
                 ctx.font = '700 20px Arial';
                 dibujarTextoCentrado(ctx, 'Sin turnos', x + columnW / 2, y + 90, slotW - 16, 24);
             } else {
-                disponibles.slice(0, 8).forEach(turno => {
+                // En la tarjeta solo caben 8 turnos. Si hay mas, se avisa: antes
+                // se recortaban en silencio y la clienta veia menos huecos
+                // libres de los que el salon tiene realmente.
+                const MAX_TURNOS_VISIBLES = 8;
+                const visibles = disponibles.slice(0, MAX_TURNOS_VISIBLES);
+                const ocultos = disponibles.length - visibles.length;
+
+                visibles.forEach(turno => {
                     const g = ctx.createLinearGradient(slotX, y, slotX, y + slotH);
                     g.addColorStop(0, '#34d399');
                     g.addColorStop(1, '#16a34a');
@@ -1629,6 +1692,12 @@ function AdminApp() {
                     ctx.fillText(formatTo12Hour(turno.hora).replace(' ', ''), x + columnW / 2, y + 50);
                     y += slotH + gap;
                 });
+
+                if (ocultos > 0) {
+                    ctx.fillStyle = '#15803d';
+                    ctx.font = '800 21px Arial';
+                    ctx.fillText(`+${ocultos} mas`, x + columnW / 2, y + 26);
+                }
             }
         });
 
@@ -1669,6 +1738,7 @@ function AdminApp() {
         canvas.width = 1080;
         canvas.height = 1920;
         const ctx = canvas.getContext('2d');
+        asegurarRoundRect(ctx);
         const year = disponibilidadFecha.getFullYear();
         const month = disponibilidadFecha.getMonth();
         const monthTitle = `${monthNames[month]} ${year}`;
@@ -1818,6 +1888,12 @@ function AdminApp() {
     };
 
     const compartirDisponibilidadMensual = async () => {
+        // Sin datos cargados el calendario saldria con todos los dias en
+        // "Sin turnos", que es justo lo contrario de lo que se quiere anunciar.
+        if (!diasMesConDatos) {
+            alert(t('Todavia no se cargo la disponibilidad del mes. Intenta de nuevo.'));
+            return;
+        }
         try {
             const canvas = await generarImagenDisponibilidadMensual();
             const compartido = await compartirImagenDesdeCanvas(
@@ -1828,8 +1904,10 @@ function AdminApp() {
             );
             if (!compartido) alert(t('Imagen mensual generada. Si no se abrio el menu de compartir, revisa Descargas.'));
         } catch (error) {
+            // Mismo respaldo que la semanal: si el canvas falla en un movil
+            // viejo, al menos se comparte el texto en vez de no compartir nada.
             console.error('Error generando imagen mensual:', error);
-            alert(t('No se pudo generar la imagen mensual.'));
+            compartirDisponibilidadMensualTexto();
         }
     };
 
@@ -4416,7 +4494,8 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                                         </div>
                                         <button
                                             onClick={compartirDisponibilidadMensual}
-                                            className="px-4 py-2 bg-green-600 text-white rounded-xl text-xs sm:text-sm font-bold hover:bg-green-700 shadow-sm"
+                                            disabled={diasMesConDatos === 0}
+                                            className="px-4 py-2 bg-green-600 text-white rounded-xl text-xs sm:text-sm font-bold hover:bg-green-700 disabled:opacity-50 shadow-sm"
                                         >
                                             {t('Compartir')}
                                         </button>
