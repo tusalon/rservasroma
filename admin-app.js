@@ -464,6 +464,17 @@ function AdminApp() {
     const esProfesionalPanel = userRole === 'profesional';
     const puedeGestionarReservas = esAdminPanel || (esProfesionalPanel && userNivel >= 2);
     const puedeGestionarAvanzado = esAdminPanel || (esProfesionalPanel && userNivel >= 3);
+    const provinciaPendiente = Boolean(config && !String(config.provincia || '').trim());
+    const municipioPendiente = Boolean(config && !String(config.municipio || '').trim());
+    const ubicacionIncompleta = provinciaPendiente || municipioPendiente;
+    const abrirEdicionNegocio = () => {
+        // Usar el salon de esta pestana y conservar el slug para que el guard
+        // de editar-negocio nunca mezcle dos sesiones abiertas.
+        const slugTab = window._rservasSlugActual ||
+            localStorage.getItem('adminSlug') ||
+            localStorage.getItem('negocioSlug') || '';
+        window.location.href = 'editar-negocio.html' + (slugTab ? '?s=' + encodeURIComponent(slugTab) : '');
+    };
     const normalizarTextoProfesional = (value) => String(value || '')
         .normalize('NFD')
         .replace(/[\u0300-\u036f]/g, '')
@@ -3891,16 +3902,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                         </button>
 
                         <button
-                            onClick={() => {
-                                // Llevar el salón de ESTA pestaña (?s= de su URL), no el
-                                // de localStorage: con varios salones abiertos en pestañas,
-                                // localStorage puede apuntar a otro y se editaría el
-                                // negocio equivocado. El guard de editar-negocio valida.
-                                const slugTab = window._rservasSlugActual ||
-                                    localStorage.getItem('adminSlug') ||
-                                    localStorage.getItem('negocioSlug') || '';
-                                window.location.href = 'editar-negocio.html' + (slugTab ? '?s=' + encodeURIComponent(slugTab) : '');
-                            }}
+                            onClick={abrirEdicionNegocio}
                             className={`${puedeGestionarAvanzado ? 'flex' : 'hidden'} items-center gap-2 bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white px-4 py-2 rounded-lg transition-all transform hover:scale-105 shadow-md border border-pink-400 flex-1 sm:flex-none justify-center`}
                         >
                             <span className="text-lg">🏢</span>
@@ -3982,6 +3984,56 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                         ) : null;
                     })()}
                 </div>
+
+                {puedeGestionarAvanzado && ubicacionIncompleta ? (
+                    <section
+                        role="alert"
+                        className="rounded-2xl border-2 border-amber-300 bg-gradient-to-r from-amber-50 to-orange-50 p-4 sm:p-5 shadow-sm"
+                    >
+                        <div className="flex flex-col md:flex-row md:items-center gap-4">
+                            <div className="flex items-start gap-3 flex-1 min-w-0">
+                                <div className="w-11 h-11 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-sm">
+                                    <i className="icon-map-pin text-xl"></i>
+                                </div>
+                                <div className="min-w-0">
+                                    <p className="text-[11px] font-extrabold uppercase tracking-wide text-amber-700">
+                                        {t('Acción necesaria')}
+                                    </p>
+                                    <h2 className="mt-1 text-lg font-bold text-amber-950">
+                                        {t('Completa la ubicación de tu negocio')}
+                                    </h2>
+                                    <p className="mt-1 text-sm text-amber-900 leading-relaxed">
+                                        {t('Selecciona provincia y municipio para que tu salón aparezca correctamente en RomaHub y puedan encontrarte desde toda Cuba.')}
+                                    </p>
+                                    <div className="mt-3 flex flex-wrap gap-2">
+                                        {provinciaPendiente ? (
+                                            <span className="rounded-full border border-amber-300 bg-white px-3 py-1 text-xs font-semibold text-amber-800">
+                                                {t('Provincia pendiente')}
+                                            </span>
+                                        ) : null}
+                                        {municipioPendiente ? (
+                                            <span className="rounded-full border border-amber-300 bg-white px-3 py-1 text-xs font-semibold text-amber-800">
+                                                {t('Municipio pendiente')}
+                                            </span>
+                                        ) : null}
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="md:w-56 shrink-0">
+                                <button
+                                    type="button"
+                                    onClick={abrirEdicionNegocio}
+                                    className="w-full rounded-xl bg-amber-600 px-4 py-3 text-sm font-bold text-white shadow-md transition hover:bg-amber-700 focus:outline-none focus:ring-4 focus:ring-amber-200"
+                                >
+                                    {t('Completar ubicación ahora')}
+                                </button>
+                                <p className="mt-2 text-center text-[11px] text-amber-700">
+                                    {t('El aviso desaparecerá al guardar ambos datos.')}
+                                </p>
+                            </div>
+                        </div>
+                    </section>
+                ) : null}
 
                 {/* MODAL NUEVA RESERVA */}
                 {showNuevaReservaModal && (

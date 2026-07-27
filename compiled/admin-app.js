@@ -395,6 +395,13 @@ function AdminApp() {
   const esProfesionalPanel = userRole === "profesional";
   const puedeGestionarReservas = esAdminPanel || esProfesionalPanel && userNivel >= 2;
   const puedeGestionarAvanzado = esAdminPanel || esProfesionalPanel && userNivel >= 3;
+  const provinciaPendiente = Boolean(config && !String(config.provincia || "").trim());
+  const municipioPendiente = Boolean(config && !String(config.municipio || "").trim());
+  const ubicacionIncompleta = provinciaPendiente || municipioPendiente;
+  const abrirEdicionNegocio = () => {
+    const slugTab = window._rservasSlugActual || localStorage.getItem("adminSlug") || localStorage.getItem("negocioSlug") || "";
+    window.location.href = "editar-negocio.html" + (slugTab ? "?s=" + encodeURIComponent(slugTab) : "");
+  };
   const normalizarTextoProfesional = (value) => String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ").trim().toLowerCase();
   const esReservaDelProfesional = (booking, profesionalActual = profesional) => {
     if (!profesionalActual) return true;
@@ -3152,10 +3159,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
   ), /* @__PURE__ */ React.createElement(
     "button",
     {
-      onClick: () => {
-        const slugTab = window._rservasSlugActual || localStorage.getItem("adminSlug") || localStorage.getItem("negocioSlug") || "";
-        window.location.href = "editar-negocio.html" + (slugTab ? "?s=" + encodeURIComponent(slugTab) : "");
-      },
+      onClick: abrirEdicionNegocio,
       className: `${puedeGestionarAvanzado ? "flex" : "hidden"} items-center gap-2 bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white px-4 py-2 rounded-lg transition-all transform hover:scale-105 shadow-md border border-pink-400 flex-1 sm:flex-none justify-center`
     },
     /* @__PURE__ */ React.createElement("span", { className: "text-lg" }, "🏢"),
@@ -3229,7 +3233,22 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
       },
       "📋"
     )) : null;
-  })()), showNuevaReservaModal && /* @__PURE__ */ React.createElement("div", { className: "fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" }, /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto" }, /* @__PURE__ */ React.createElement("div", { className: "flex justify-between items-center mb-4" }, /* @__PURE__ */ React.createElement("h3", { className: "text-xl font-bold" }, t("Nueva Reserva Manual")), /* @__PURE__ */ React.createElement(
+  })()), puedeGestionarAvanzado && ubicacionIncompleta ? /* @__PURE__ */ React.createElement(
+    "section",
+    {
+      role: "alert",
+      className: "rounded-2xl border-2 border-amber-300 bg-gradient-to-r from-amber-50 to-orange-50 p-4 sm:p-5 shadow-sm"
+    },
+    /* @__PURE__ */ React.createElement("div", { className: "flex flex-col md:flex-row md:items-center gap-4" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-start gap-3 flex-1 min-w-0" }, /* @__PURE__ */ React.createElement("div", { className: "w-11 h-11 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-sm" }, /* @__PURE__ */ React.createElement("i", { className: "icon-map-pin text-xl" })), /* @__PURE__ */ React.createElement("div", { className: "min-w-0" }, /* @__PURE__ */ React.createElement("p", { className: "text-[11px] font-extrabold uppercase tracking-wide text-amber-700" }, t("Acción necesaria")), /* @__PURE__ */ React.createElement("h2", { className: "mt-1 text-lg font-bold text-amber-950" }, t("Completa la ubicación de tu negocio")), /* @__PURE__ */ React.createElement("p", { className: "mt-1 text-sm text-amber-900 leading-relaxed" }, t("Selecciona provincia y municipio para que tu salón aparezca correctamente en RomaHub y puedan encontrarte desde toda Cuba.")), /* @__PURE__ */ React.createElement("div", { className: "mt-3 flex flex-wrap gap-2" }, provinciaPendiente ? /* @__PURE__ */ React.createElement("span", { className: "rounded-full border border-amber-300 bg-white px-3 py-1 text-xs font-semibold text-amber-800" }, t("Provincia pendiente")) : null, municipioPendiente ? /* @__PURE__ */ React.createElement("span", { className: "rounded-full border border-amber-300 bg-white px-3 py-1 text-xs font-semibold text-amber-800" }, t("Municipio pendiente")) : null))), /* @__PURE__ */ React.createElement("div", { className: "md:w-56 shrink-0" }, /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        type: "button",
+        onClick: abrirEdicionNegocio,
+        className: "w-full rounded-xl bg-amber-600 px-4 py-3 text-sm font-bold text-white shadow-md transition hover:bg-amber-700 focus:outline-none focus:ring-4 focus:ring-amber-200"
+      },
+      t("Completar ubicación ahora")
+    ), /* @__PURE__ */ React.createElement("p", { className: "mt-2 text-center text-[11px] text-amber-700" }, t("El aviso desaparecerá al guardar ambos datos."))))
+  ) : null, showNuevaReservaModal && /* @__PURE__ */ React.createElement("div", { className: "fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" }, /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto" }, /* @__PURE__ */ React.createElement("div", { className: "flex justify-between items-center mb-4" }, /* @__PURE__ */ React.createElement("h3", { className: "text-xl font-bold" }, t("Nueva Reserva Manual")), /* @__PURE__ */ React.createElement(
     "button",
     {
       onClick: () => setShowNuevaReservaModal(false),
