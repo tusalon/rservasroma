@@ -120,6 +120,8 @@ function SetupWizard() {
         telefono_whatsapp: '',
         codigo_pais: '53',
         email: '',
+        provincia: '',
+        municipio: '',
         // Paso 2: profesionales
         profesionales: [crearProfesionalWizard()],
         // Paso 3: servicios
@@ -162,7 +164,7 @@ function SetupWizard() {
     const cargarDatosNegocio = async (id) => {
         try {
             const response = await fetch(
-                `${window.SUPABASE_URL}/rest/v1/negocios?id=eq.${id}&select=nombre,telefono,email,imagen_fondo_tipo,codigo_pais`,
+                `${window.SUPABASE_URL}/rest/v1/negocios?id=eq.${id}&select=nombre,telefono,email,provincia,municipio,imagen_fondo_tipo,codigo_pais`,
                 {
                     headers: {
                         'apikey': window.SUPABASE_ANON_KEY,
@@ -179,12 +181,18 @@ function SetupWizard() {
                         ? window.normalizarTelefonoLocal(data[0].telefono || '', codigoPais)
                         : String(data[0].telefono || '').replace(/\D/g, '');
                     setMonedaSugerida(MONEDA_POR_PAIS[codigoPais] || 'CUP');
+                    const provincia = String(data[0].provincia || '').trim();
+                    const municipio = window.normalizarMunicipio
+                        ? window.normalizarMunicipio(provincia, data[0].municipio)
+                        : String(data[0].municipio || '').trim();
                     setConfig(prev => ({
                         ...prev,
                         nombre: data[0].nombre || '',
                         telefono_whatsapp: telefonoLocal,
                         codigo_pais: codigoPais,
                         email: data[0].email || '',
+                        provincia,
+                        municipio,
                         imagen_fondo_tipo: data[0].imagen_fondo_tipo || 'unas'
                     }));
                 }
@@ -219,6 +227,13 @@ function SetupWizard() {
             if (!config.codigo_pais) return t('Selecciona el pais del telefono');
             if (!config.telefono_whatsapp || config.telefono_whatsapp.length < Math.min(Number(pais.localLength || 8), 8)) return t('Ingresa un telefono valido');
             if (config.email && !config.email.includes('@')) return t('El email no es valido');
+            if (!config.provincia.trim()) return t('Selecciona la provincia de tu negocio');
+            if (!config.municipio.trim()) return t('Selecciona el municipio de tu negocio');
+            const municipiosProvincia = (window.CUBA_MUNICIPIOS && window.CUBA_MUNICIPIOS[config.provincia]) || [];
+            const municipioValido = municipiosProvincia.some(
+                municipio => municipio.toLowerCase() === config.municipio.trim().toLowerCase()
+            );
+            if (!municipioValido) return t('Selecciona un municipio válido para la provincia');
             return '';
         }
         if (step === 2) {
@@ -307,6 +322,19 @@ function SetupWizard() {
                 ...s,
                 precio_moneda: (!s.precio_moneda || s.precio_moneda === monedaAnterior) ? moneda : s.precio_moneda
             }))
+        });
+    };
+
+    const cambiarProvincia = (provincia) => {
+        const municipios = (window.CUBA_MUNICIPIOS && window.CUBA_MUNICIPIOS[provincia]) || [];
+        const municipioActual = String(config.municipio || '').trim();
+        const municipioCompatible = municipios.some(
+            municipio => municipio.toLowerCase() === municipioActual.toLowerCase()
+        );
+        setConfig({
+            ...config,
+            provincia,
+            municipio: municipioCompatible ? config.municipio : ''
         });
     };
 
@@ -566,6 +594,8 @@ function SetupWizard() {
                 codigo_pais: config.codigo_pais,
                 email: config.email || null,
                 direccion: config.direccion || null,
+                provincia: config.provincia.trim(),
+                municipio: config.municipio.trim(),
                 color_primario: config.color_primario,
                 color_secundario: config.color_secundario,
                 imagen_fondo_tipo: config.imagen_fondo_tipo || 'unas',
@@ -713,6 +743,48 @@ function SetupWizard() {
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
                             <input type="email" value={config.email} onChange={(e) => setConfig({ ...config, email: e.target.value })} className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-amber-500 focus:border-amber-500" placeholder="salon@gmail.com" />
+                        </div>
+                        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+                            <div className="flex items-start gap-3 mb-3">
+                                <i className="icon-map-pin text-amber-700 text-xl mt-0.5"></i>
+                                <div>
+                                    <h3 className="font-semibold text-amber-950">{t('Ubicación del negocio')}</h3>
+                                    <p className="text-xs text-amber-800 mt-1">
+                                        {t('Estos datos permiten que encuentren tu salón por provincia y municipio en RomaHub.')}
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">{t('Provincia *')}</label>
+                                    <select
+                                        value={config.provincia}
+                                        onChange={(e) => cambiarProvincia(e.target.value)}
+                                        className="w-full border rounded-lg px-3 py-2 bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                                    >
+                                        <option value="">{t('Selecciona provincia')}</option>
+                                        {(window.CUBA_PROVINCIAS || []).map(provincia => (
+                                            <option key={provincia} value={provincia}>{provincia}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">{t('Municipio *')}</label>
+                                    <select
+                                        value={config.municipio}
+                                        onChange={(e) => setConfig({ ...config, municipio: e.target.value })}
+                                        disabled={!config.provincia}
+                                        className="w-full border rounded-lg px-3 py-2 bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 disabled:bg-gray-100 disabled:text-gray-400"
+                                    >
+                                        <option value="">
+                                            {config.provincia ? t('Selecciona municipio') : t('Elige primero la provincia')}
+                                        </option>
+                                        {((window.CUBA_MUNICIPIOS && window.CUBA_MUNICIPIOS[config.provincia]) || []).map(municipio => (
+                                            <option key={municipio} value={municipio}>{municipio}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 )}
@@ -967,6 +1039,8 @@ function SetupWizard() {
                             <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
                                 <span className="text-gray-500">{t('Negocio:')}</span>
                                 <span className="font-medium">{config.nombre}</span>
+                                <span className="text-gray-500">{t('Ubicación:')}</span>
+                                <span className="font-medium">{[config.municipio, config.provincia].filter(Boolean).join(', ') || '—'}</span>
                                 <span className="text-gray-500">{t('Profesional:')}</span>
                                 <span className="font-medium">{profesionalesValidos().map(p => p.nombre.trim()).join(', ') || '—'}</span>
                                 <span className="text-gray-500">{t('Servicios:')}</span>
