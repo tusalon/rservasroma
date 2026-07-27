@@ -16,7 +16,7 @@
     'use strict';
 
     const FECHA_CORTE = '2026-07-19';
-    const WHATSAPP_SOPORTE = '5354066204';
+    const WHATSAPP_SOPORTE = '15154650340';
     const DIAS_AVISO = 3;
 
     function tr(txt) {
