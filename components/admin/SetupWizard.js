@@ -217,6 +217,7 @@ function SetupWizard() {
     );
 
     const paisTelefono = () => PAISES_TELEFONO.find(p => String(p.codigo) === String(config.codigo_pais)) || PAISES_TELEFONO[0];
+    const esNegocioCuba = String(config.codigo_pais || '53').replace(/\D/g, '') === '53';
 
     const diasActivos = () => DIAS.filter(d => config.horarios_dias[d.id] && config.horarios_dias[d.id].activo);
 
@@ -227,13 +228,19 @@ function SetupWizard() {
             if (!config.codigo_pais) return t('Selecciona el pais del telefono');
             if (!config.telefono_whatsapp || config.telefono_whatsapp.length < Math.min(Number(pais.localLength || 8), 8)) return t('Ingresa un telefono valido');
             if (config.email && !config.email.includes('@')) return t('El email no es valido');
-            if (!config.provincia.trim()) return t('Selecciona la provincia de tu negocio');
-            if (!config.municipio.trim()) return t('Selecciona el municipio de tu negocio');
-            const municipiosProvincia = (window.CUBA_MUNICIPIOS && window.CUBA_MUNICIPIOS[config.provincia]) || [];
-            const municipioValido = municipiosProvincia.some(
-                municipio => municipio.toLowerCase() === config.municipio.trim().toLowerCase()
-            );
-            if (!municipioValido) return t('Selecciona un municipio válido para la provincia');
+            if (!config.provincia.trim()) return esNegocioCuba
+                ? t('Selecciona la provincia de tu negocio')
+                : t('Escribe el estado o provincia de tu negocio');
+            if (!config.municipio.trim()) return esNegocioCuba
+                ? t('Selecciona el municipio de tu negocio')
+                : t('Escribe la ciudad o municipio de tu negocio');
+            if (esNegocioCuba) {
+                const municipiosProvincia = (window.CUBA_MUNICIPIOS && window.CUBA_MUNICIPIOS[config.provincia]) || [];
+                const municipioValido = municipiosProvincia.some(
+                    municipio => municipio.toLowerCase() === config.municipio.trim().toLowerCase()
+                );
+                if (!municipioValido) return t('Selecciona un municipio válido para la provincia');
+            }
             return '';
         }
         if (step === 2) {
@@ -307,6 +314,7 @@ function SetupWizard() {
 
     const cambiarCodigoPais = (codigo) => {
         const limpio = String(codigo || '53').replace(/\D/g, '') || '53';
+        const cambioPais = limpio !== String(config.codigo_pais || '53').replace(/\D/g, '');
         const monedaAnterior = monedaSugerida;
         const telefonoLocal = window.normalizarTelefonoLocal
             ? window.normalizarTelefonoLocal(config.telefono_whatsapp, limpio)
@@ -318,6 +326,8 @@ function SetupWizard() {
             ...config,
             codigo_pais: limpio,
             telefono_whatsapp: telefonoLocal,
+            provincia: cambioPais ? '' : config.provincia,
+            municipio: cambioPais ? '' : config.municipio,
             servicios: config.servicios.map(s => ({
                 ...s,
                 precio_moneda: (!s.precio_moneda || s.precio_moneda === monedaAnterior) ? moneda : s.precio_moneda
@@ -750,39 +760,70 @@ function SetupWizard() {
                                 <div>
                                     <h3 className="font-semibold text-amber-950">{t('Ubicación del negocio')}</h3>
                                     <p className="text-xs text-amber-800 mt-1">
-                                        {t('Estos datos permiten que encuentren tu salón por provincia y municipio en RomaHub.')}
+                                        {esNegocioCuba
+                                            ? t('Estos datos permiten que encuentren tu salón por provincia y municipio en RomaHub.')
+                                            : t('Para otros países, escribe manualmente el estado o provincia y la ciudad o municipio.')}
+                                    </p>
+                                    <p className="text-xs text-amber-700 mt-1">
+                                        {t('El país seleccionado para WhatsApp se usará también como país del negocio.')}
                                     </p>
                                 </div>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">{t('Provincia *')}</label>
-                                    <select
-                                        value={config.provincia}
-                                        onChange={(e) => cambiarProvincia(e.target.value)}
-                                        className="w-full border rounded-lg px-3 py-2 bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-                                    >
-                                        <option value="">{t('Selecciona provincia')}</option>
-                                        {(window.CUBA_PROVINCIAS || []).map(provincia => (
-                                            <option key={provincia} value={provincia}>{provincia}</option>
-                                        ))}
-                                    </select>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        {esNegocioCuba ? t('Provincia *') : t('Estado o provincia *')}
+                                    </label>
+                                    {esNegocioCuba ? (
+                                        <select
+                                            value={config.provincia}
+                                            onChange={(e) => cambiarProvincia(e.target.value)}
+                                            className="w-full border rounded-lg px-3 py-2 bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                                        >
+                                            <option value="">{t('Selecciona provincia')}</option>
+                                            {(window.CUBA_PROVINCIAS || []).map(provincia => (
+                                                <option key={provincia} value={provincia}>{provincia}</option>
+                                            ))}
+                                        </select>
+                                    ) : (
+                                        <input
+                                            type="text"
+                                            value={config.provincia}
+                                            onChange={(e) => setConfig({ ...config, provincia: e.target.value })}
+                                            maxLength="80"
+                                            className="w-full border rounded-lg px-3 py-2 bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                                            placeholder={t('Escribe el estado o provincia')}
+                                        />
+                                    )}
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">{t('Municipio *')}</label>
-                                    <select
-                                        value={config.municipio}
-                                        onChange={(e) => setConfig({ ...config, municipio: e.target.value })}
-                                        disabled={!config.provincia}
-                                        className="w-full border rounded-lg px-3 py-2 bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 disabled:bg-gray-100 disabled:text-gray-400"
-                                    >
-                                        <option value="">
-                                            {config.provincia ? t('Selecciona municipio') : t('Elige primero la provincia')}
-                                        </option>
-                                        {((window.CUBA_MUNICIPIOS && window.CUBA_MUNICIPIOS[config.provincia]) || []).map(municipio => (
-                                            <option key={municipio} value={municipio}>{municipio}</option>
-                                        ))}
-                                    </select>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        {esNegocioCuba ? t('Municipio *') : t('Ciudad o municipio *')}
+                                    </label>
+                                    {esNegocioCuba ? (
+                                        <select
+                                            value={config.municipio}
+                                            onChange={(e) => setConfig({ ...config, municipio: e.target.value })}
+                                            disabled={!config.provincia}
+                                            className="w-full border rounded-lg px-3 py-2 bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 disabled:bg-gray-100 disabled:text-gray-400"
+                                        >
+                                            <option value="">
+                                                {config.provincia ? t('Selecciona municipio') : t('Elige primero la provincia')}
+                                            </option>
+                                            {((window.CUBA_MUNICIPIOS && window.CUBA_MUNICIPIOS[config.provincia]) || []).map(municipio => (
+                                                <option key={municipio} value={municipio}>{municipio}</option>
+                                            ))}
+                                        </select>
+                                    ) : (
+                                        <input
+                                            type="text"
+                                            value={config.municipio}
+                                            onChange={(e) => setConfig({ ...config, municipio: e.target.value })}
+                                            maxLength="80"
+                                            className="w-full border rounded-lg px-3 py-2 bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                                            placeholder={t('Escribe la ciudad o municipio')}
+                                        />
+                                    )}
                                 </div>
                             </div>
                         </div>

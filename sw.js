@@ -1,6 +1,6 @@
 // sw.js - Service Worker para Rservasroma
 
-const CACHE_NAME = 'rservasroma-v67';
+const CACHE_NAME = 'rservasroma-v68';
 const BASE = '/rservasroma';
 
 const urlsToCache = [
@@ -17,7 +17,7 @@ const urlsToCache = [
 
   // App principal (JSX pre-compilado en compiled/ — ver scripts/build-jsx.sh)
   `${BASE}/compiled/client-app.js?v=20260723-jsx1`,
-  `${BASE}/compiled/admin-app.js?v=20260727-ubicacion1`,
+  `${BASE}/compiled/admin-app.js?v=20260727-ubicacion-pais1`,
 
   // Utils
   `${BASE}/utils/api.js?v=20260722-lista-espera-cliente`,
@@ -30,7 +30,7 @@ const urlsToCache = [
   `${BASE}/utils/native-push-notifications.js?v=20260722-platform-v4`,
   `${BASE}/utils/offline-panel.js`,
   `${BASE}/utils/config-negocio-master.js?v=20260723-arranque-rapido`,
-  `${BASE}/utils/i18n.js?v=20260727-wizard-ubicacion1`,
+  `${BASE}/utils/i18n.js?v=20260727-ubicacion-pais1`,
   `${BASE}/utils/cuba-geo.js?v=20260727-wizard-ubicacion1`,
   `${BASE}/utils/phone-utils.js`,
   `${BASE}/utils/profesionales.js`,
@@ -63,13 +63,13 @@ const urlsToCache = [
   // Componentes admin (compilados)
   `${BASE}/compiled/components/admin/ConfigPanel.js?v=20260723-jsx1`,
   `${BASE}/compiled/components/admin/RomaHubActivacion.js?v=20260724-romahub1`,
-  `${BASE}/compiled/components/admin/EditarNegocio.js?v=20260723-fotos`,
+  `${BASE}/compiled/components/admin/EditarNegocio.js?v=20260727-ubicacion-pais1`,
   `${BASE}/compiled/components/admin/HorariosPorDiaPanel.js?v=20260723-jsx1`,
   `${BASE}/compiled/components/admin/HorariosExcepcionPanel.js?v=20260723-jsx1`,
   `${BASE}/compiled/components/admin/ProfesionalesPanel.js?v=20260723-jsx1`,
   `${BASE}/compiled/components/admin/ImportarServicios.js?v=20260723-jsx1`,
   `${BASE}/compiled/components/admin/ServiciosPanelCategorias.js?v=20260723-fotos`,
-  `${BASE}/compiled/components/admin/SetupWizard.js?v=20260727-wizard-ubicacion1`,
+  `${BASE}/compiled/components/admin/SetupWizard.js?v=20260727-ubicacion-pais1`,
 
   // Vendors (sin babel.min.js: ya no se transpila en el navegador)
   `${BASE}/vendor/react.production.min.js`,

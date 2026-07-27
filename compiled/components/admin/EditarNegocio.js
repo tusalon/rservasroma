@@ -312,6 +312,7 @@ function EditarNegocio() {
     return /* @__PURE__ */ React.createElement("div", { className: "min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-emerald-100" }, /* @__PURE__ */ React.createElement("div", { className: "bg-white p-8 rounded-2xl shadow-xl max-w-md text-center animate-fade-in" }, /* @__PURE__ */ React.createElement("div", { className: "w-20 h-20 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-6" }, /* @__PURE__ */ React.createElement("i", { className: "icon-check text-4xl text-white" })), /* @__PURE__ */ React.createElement("h2", { className: "text-2xl font-bold text-gray-900 mb-2" }, t("¡Cambios guardados!")), /* @__PURE__ */ React.createElement("p", { className: "text-gray-600 mb-4" }, t("La configuración se actualizó correctamente.")), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500" }, t("Redirigiendo al panel...")), /* @__PURE__ */ React.createElement("div", { className: "animate-spin h-6 w-6 border-2 border-green-500 border-t-transparent rounded-full mx-auto mt-4" })));
   }
   const paisTelefonoActual = paisesTelefono.find((pais) => pais.codigo === config.codigo_pais) || paisesTelefono[0];
+  const esNegocioCuba = String(config.codigo_pais || "53").replace(/\D/g, "") === "53";
   return /* @__PURE__ */ React.createElement("div", { className: "min-h-screen bg-gray-100 py-8 px-4" }, /* @__PURE__ */ React.createElement("div", { className: "max-w-4xl mx-auto" }, /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-xl shadow-sm p-6" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between mb-6 pb-4 border-b" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3" }, /* @__PURE__ */ React.createElement("div", { className: "w-12 h-12 bg-amber-600 rounded-xl flex items-center justify-center" }, /* @__PURE__ */ React.createElement("i", { className: "icon-building text-2xl text-white" })), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h1", { className: "text-2xl font-bold text-gray-900" }, t("Editar Negocio")), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500" }, t("Modificá los datos de tu negocio")))), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2" }, /* @__PURE__ */ React.createElement(window.LanguageToggle, null), /* @__PURE__ */ React.createElement(
     "button",
     {
@@ -334,12 +335,15 @@ function EditarNegocio() {
       value: config.codigo_pais,
       onChange: (e) => {
         const nuevoCodigo = e.target.value;
+        const cambioPais = String(nuevoCodigo) !== String(config.codigo_pais);
         const telefonoLocal = window.normalizarTelefonoLocal ? window.normalizarTelefonoLocal(config.telefono, nuevoCodigo) : config.telefono.replace(/\D/g, "");
         const monedaSugerida = !monedaEditadaManualmente && window.getMonedaSugeridaPorCodigoPais ? window.getMonedaSugeridaPorCodigoPais(nuevoCodigo) : null;
         setConfig({
           ...config,
           codigo_pais: nuevoCodigo,
           telefono: telefonoLocal,
+          provincia: cambioPais ? "" : config.provincia,
+          municipio: cambioPais ? "" : config.municipio,
           ...monedaSugerida ? { whatsapp_moneda: monedaSugerida } : {}
         });
         if (window.setCodigoPaisTelefono) window.setCodigoPaisTelefono(nuevoCodigo);
@@ -375,7 +379,7 @@ function EditarNegocio() {
       onChange: (e) => setConfig({ ...config, direccion: e.target.value }),
       className: "w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
     }
-  )), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, t("Provincia")), /* @__PURE__ */ React.createElement(
+  )), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, esNegocioCuba ? t("Provincia") : t("Estado o provincia")), esNegocioCuba ? /* @__PURE__ */ React.createElement(
     "select",
     {
       value: config.provincia,
@@ -395,7 +399,17 @@ function EditarNegocio() {
     },
     /* @__PURE__ */ React.createElement("option", { value: "" }, t("Selecciona provincia")),
     (window.CUBA_PROVINCIAS || []).map((prov) => /* @__PURE__ */ React.createElement("option", { key: prov, value: prov }, prov))
-  ), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-1" }, t("Así te encuentran en el directorio de RomaHub."))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, t("Municipio")), /* @__PURE__ */ React.createElement(
+  ) : /* @__PURE__ */ React.createElement(
+    "input",
+    {
+      type: "text",
+      value: config.provincia,
+      onChange: (e) => setConfig({ ...config, provincia: e.target.value }),
+      maxLength: "80",
+      className: "w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-amber-500 focus:border-amber-500",
+      placeholder: t("Escribe el estado o provincia")
+    }
+  ), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-1" }, esNegocioCuba ? t("Así te encuentran en el directorio de RomaHub.") : t("El país del prefijo de WhatsApp se usa como país del negocio."))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, esNegocioCuba ? t("Municipio") : t("Ciudad o municipio")), esNegocioCuba ? /* @__PURE__ */ React.createElement(
     "select",
     {
       value: config.municipio,
@@ -405,6 +419,16 @@ function EditarNegocio() {
     },
     /* @__PURE__ */ React.createElement("option", { value: "" }, config.provincia ? t("Selecciona municipio") : t("Elige primero la provincia")),
     (window.getMunicipiosDeProvincia ? window.getMunicipiosDeProvincia(config.provincia, config.municipio) : []).map((mun) => /* @__PURE__ */ React.createElement("option", { key: mun, value: mun }, mun))
+  ) : /* @__PURE__ */ React.createElement(
+    "input",
+    {
+      type: "text",
+      value: config.municipio,
+      onChange: (e) => setConfig({ ...config, municipio: e.target.value }),
+      maxLength: "80",
+      className: "w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-amber-500 focus:border-amber-500",
+      placeholder: t("Escribe la ciudad o municipio")
+    }
   )))), /* @__PURE__ */ React.createElement("div", { className: "pt-4 border-t" }, /* @__PURE__ */ React.createElement("h2", { className: "text-lg font-semibold mb-4 flex items-center gap-2" }, /* @__PURE__ */ React.createElement("i", { className: "icon-palette text-amber-500" }), t("Personalización")), /* @__PURE__ */ React.createElement("div", { className: "mb-4" }, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-2" }, t("Logo del negocio")), /* @__PURE__ */ React.createElement(
     "div",
     {

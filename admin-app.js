@@ -464,6 +464,7 @@ function AdminApp() {
     const esProfesionalPanel = userRole === 'profesional';
     const puedeGestionarReservas = esAdminPanel || (esProfesionalPanel && userNivel >= 2);
     const puedeGestionarAvanzado = esAdminPanel || (esProfesionalPanel && userNivel >= 3);
+    const esNegocioCuba = String(config?.codigo_pais || '53').replace(/\D/g, '') === '53';
     const provinciaPendiente = Boolean(config && !String(config.provincia || '').trim());
     const municipioPendiente = Boolean(config && !String(config.municipio || '').trim());
     const ubicacionIncompleta = provinciaPendiente || municipioPendiente;
@@ -4003,17 +4004,19 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                                         {t('Completa la ubicación de tu negocio')}
                                     </h2>
                                     <p className="mt-1 text-sm text-amber-900 leading-relaxed">
-                                        {t('Selecciona provincia y municipio para que tu salón aparezca correctamente en RomaHub y puedan encontrarte desde toda Cuba.')}
+                                        {esNegocioCuba
+                                            ? t('Selecciona provincia y municipio para que tu salón aparezca correctamente en RomaHub y puedan encontrarte desde toda Cuba.')
+                                            : t('Completa el estado o provincia y la ciudad o municipio para mantener actualizada la ubicación de tu negocio.')}
                                     </p>
                                     <div className="mt-3 flex flex-wrap gap-2">
                                         {provinciaPendiente ? (
                                             <span className="rounded-full border border-amber-300 bg-white px-3 py-1 text-xs font-semibold text-amber-800">
-                                                {t('Provincia pendiente')}
+                                                {esNegocioCuba ? t('Provincia pendiente') : t('Estado o provincia pendiente')}
                                             </span>
                                         ) : null}
                                         {municipioPendiente ? (
                                             <span className="rounded-full border border-amber-300 bg-white px-3 py-1 text-xs font-semibold text-amber-800">
-                                                {t('Municipio pendiente')}
+                                                {esNegocioCuba ? t('Municipio pendiente') : t('Ciudad o municipio pendiente')}
                                             </span>
                                         ) : null}
                                     </div>
