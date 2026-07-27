@@ -153,8 +153,7 @@ function SetupWizard() {
     React.useEffect(() => {
         const id = localStorage.getItem('negocioId');
         if (!id) {
-            const slug = (new URLSearchParams(window.location.search).get('s') || '').toLowerCase().trim();
-            window.location.href = 'admin-login.html' + (slug ? '?s=' + encodeURIComponent(slug) : '');
+            window.location.href = window.construirRutaConSlug('admin-login.html');
             return;
         }
         setNegocioId(id);

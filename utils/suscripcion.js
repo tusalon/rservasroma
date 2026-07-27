@@ -216,7 +216,7 @@
         document.getElementById('rservas-bloqueo-recargar').onclick = () => window.location.reload();
         document.getElementById('rservas-bloqueo-salir').onclick = () => {
             ['adminAuth', 'adminLoginTime', 'profesionalAuth', 'profesionalLoginTime'].forEach(k => localStorage.removeItem(k));
-            window.location.href = 'admin-login.html';
+            window.location.href = window.construirRutaConSlug('admin-login.html');
         };
     }
 

@@ -99,12 +99,12 @@ function ClientApp() {
     const clienteAuth = window.getClienteAuthActual?.();
     if (!esEntradaClienteMaster && adminAuth) {
       console.log("👑 Usuario admin detectado, redirigiendo a admin.html");
-      window.location.href = "admin.html";
+      window.location.href = window.construirRutaConSlug("admin.html");
       return;
     }
     if (!esEntradaClienteMaster && profesionalAuth) {
       console.log("👤 Usuario profesional detectado, redirigiendo a admin.html");
-      window.location.href = "admin.html";
+      window.location.href = window.construirRutaConSlug("admin.html");
       return;
     }
     if (clienteAuth) {

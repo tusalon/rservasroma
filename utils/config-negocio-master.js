@@ -26,7 +26,25 @@ console.log('🌐 config-negocio-master.js cargado');
         if (s && s.length > 0) return s.toLowerCase().trim();
 
         // Ruta directa: app.rservasroma.com/lecisnails/...
-        const parts = window.location.pathname.replace(/^\//, '').split('/').filter(Boolean);
+        // En GitHub Pages la primera parte es el nombre del repositorio
+        // (/rservasroma/), no el slug del salón. Detectar ese prefijo desde
+        // la URL del propio script evita confundirlo con el negocio.
+        let parts = window.location.pathname.replace(/^\//, '').split('/').filter(Boolean);
+        if (/(^|\.)github\.io$/i.test(window.location.hostname)) {
+            try {
+                const scriptSrc = document.currentScript?.src || '';
+                const scriptParts = new URL(scriptSrc, window.location.origin)
+                    .pathname.replace(/^\//, '').split('/').filter(Boolean);
+                const utilsIndex = scriptParts.lastIndexOf('utils');
+                const baseParts = utilsIndex >= 0 ? scriptParts.slice(0, utilsIndex) : [];
+                const tieneMismaBase = baseParts.length > 0 &&
+                    baseParts.every((parte, indice) => parts[indice] === parte);
+                if (tieneMismaBase) parts = parts.slice(baseParts.length);
+            } catch (e) {
+                console.warn('⚠️ No se pudo detectar la ruta base de GitHub Pages:', e);
+            }
+        }
+
         if (parts.length > 0 && !ADMIN_SEGMENTS.has(parts[0]) && !parts[0].includes('.')) {
             return parts[0].toLowerCase().trim();
         }
@@ -36,6 +54,42 @@ console.log('🌐 config-negocio-master.js cargado');
     window._rservasSlugActual = getSlugFromURL();
     console.log('🔍 Slug detectado:', window._rservasSlugActual || '(ninguno — modo admin o raíz)');
 })();
+
+// Construye rutas internas sin perder la identidad del negocio. Prioriza el
+// slug visible, luego la sesión administrativa y finalmente el contexto ya
+// resuelto. Así cualquier regreso a admin.html conserva ?s=slug.
+window.obtenerSlugNavegacion = function() {
+    const slugURL = (new URLSearchParams(window.location.search).get('s') || '').toLowerCase().trim();
+    if (slugURL) return slugURL;
+
+    try {
+        const slugSesion = (localStorage.getItem('adminSlug') || '').toLowerCase().trim();
+        if (slugSesion) return slugSesion;
+    } catch (e) {}
+
+    const slugActual = String(window._rservasSlugActual || '').toLowerCase().trim();
+    if (slugActual) return slugActual;
+
+    try {
+        return (localStorage.getItem('negocioSlug') || '').toLowerCase().trim();
+    } catch (e) {
+        return '';
+    }
+};
+
+window.construirRutaConSlug = function(ruta, slugForzado = '') {
+    const slug = String(slugForzado || window.obtenerSlugNavegacion() || '').toLowerCase().trim();
+    if (!slug) return ruta;
+
+    try {
+        const destino = new URL(ruta, window.location.href);
+        destino.searchParams.set('s', slug);
+        return destino.pathname + destino.search + destino.hash;
+    } catch (e) {
+        const separador = String(ruta).includes('?') ? '&' : '?';
+        return ruta + separador + 's=' + encodeURIComponent(slug);
+    }
+};
 
 function getNombreNegocioGuardadoPorSlug(slug = window._rservasSlugActual) {
     const actual = String(slug || '').toLowerCase().trim();

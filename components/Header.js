@@ -17,7 +17,7 @@ function Header({ cliente, onLogout, onMisReservas, onGoBack, userRol, showBackB
         const profesionalAuth = localStorage.getItem('profesionalAuth');
         
         if (isAdmin || profesionalAuth) {
-            window.location.href = 'admin.html';
+            window.location.href = window.construirRutaConSlug('admin.html');
         }
     };
 

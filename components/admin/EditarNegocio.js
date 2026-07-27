@@ -64,7 +64,7 @@ function EditarNegocio() {
         
         if (!id) {
             console.log('🚫 No hay negocioId, redirigiendo a login');
-            window.location.href = 'admin-login.html';
+            window.location.href = window.construirRutaConSlug('admin-login.html');
             return;
         }
         setNegocioId(id);
@@ -335,7 +335,7 @@ function EditarNegocio() {
             
             setExito(true);
             setTimeout(() => {
-                window.location.href = 'admin.html';
+                window.location.href = window.construirRutaConSlug('admin.html');
             }, 2000);
             
         } catch (error) {
@@ -391,7 +391,7 @@ function EditarNegocio() {
                         <div className="flex items-center gap-2">
                             <window.LanguageToggle />
                             <button
-                                onClick={() => window.location.href = 'admin.html'}
+                                onClick={() => window.location.href = window.construirRutaConSlug('admin.html')}
                                 className="px-4 py-2 border rounded-lg hover:bg-gray-100 transition flex items-center gap-2"
                             >
                                 <i className="icon-x"></i>
@@ -1093,7 +1093,7 @@ function EditarNegocio() {
                     {/* Botones de acción */}
                     <div className="flex justify-end gap-3 mt-8 pt-4 border-t">
                         <button
-                            onClick={() => window.location.href = 'admin.html'}
+                            onClick={() => window.location.href = window.construirRutaConSlug('admin.html')}
                             className="px-6 py-2 border rounded-lg hover:bg-gray-100 transition"
                         >
                             {t('Cancelar')}

@@ -208,13 +208,13 @@
 
             function volverALaApp() {
                 var slug = '';
-                try { slug = localStorage.getItem('negocioSlug') || ''; } catch (e) {}
+                try { slug = localStorage.getItem('adminSlug') || localStorage.getItem('negocioSlug') || ''; } catch (e) {}
                 var esStaff = false;
                 try {
                     esStaff = localStorage.getItem('adminAuth') === 'true' || !!localStorage.getItem('profesionalAuth');
                 } catch (e) {}
                 if (esStaff) {
-                    window.location.href = 'admin.html';
+                    window.location.href = slug ? 'admin.html?s=' + encodeURIComponent(slug) : 'admin.html';
                 } else {
                     window.location.href = slug ? 'index.html?s=' + encodeURIComponent(slug) : 'index.html';
                 }

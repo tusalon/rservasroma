@@ -58,7 +58,7 @@ function EditarNegocio() {
     console.log("📌 negocioId desde localStorage:", id);
     if (!id) {
       console.log("🚫 No hay negocioId, redirigiendo a login");
-      window.location.href = "admin-login.html";
+      window.location.href = window.construirRutaConSlug("admin-login.html");
       return;
     }
     setNegocioId(id);
@@ -296,7 +296,7 @@ function EditarNegocio() {
       console.log("✅ Datos guardados:", data);
       setExito(true);
       setTimeout(() => {
-        window.location.href = "admin.html";
+        window.location.href = window.construirRutaConSlug("admin.html");
       }, 2e3);
     } catch (error2) {
       console.error("❌ Error completo:", error2);
@@ -316,7 +316,7 @@ function EditarNegocio() {
   return /* @__PURE__ */ React.createElement("div", { className: "min-h-screen bg-gray-100 py-8 px-4" }, /* @__PURE__ */ React.createElement("div", { className: "max-w-4xl mx-auto" }, /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-xl shadow-sm p-6" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between mb-6 pb-4 border-b" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3" }, /* @__PURE__ */ React.createElement("div", { className: "w-12 h-12 bg-amber-600 rounded-xl flex items-center justify-center" }, /* @__PURE__ */ React.createElement("i", { className: "icon-building text-2xl text-white" })), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h1", { className: "text-2xl font-bold text-gray-900" }, t("Editar Negocio")), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500" }, t("Modificá los datos de tu negocio")))), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2" }, /* @__PURE__ */ React.createElement(window.LanguageToggle, null), /* @__PURE__ */ React.createElement(
     "button",
     {
-      onClick: () => window.location.href = "admin.html",
+      onClick: () => window.location.href = window.construirRutaConSlug("admin.html"),
       className: "px-4 py-2 border rounded-lg hover:bg-gray-100 transition flex items-center gap-2"
     },
     /* @__PURE__ */ React.createElement("i", { className: "icon-x" }),
@@ -706,7 +706,7 @@ function EditarNegocio() {
   ))))), /* @__PURE__ */ React.createElement("div", { className: "flex justify-end gap-3 mt-8 pt-4 border-t" }, /* @__PURE__ */ React.createElement(
     "button",
     {
-      onClick: () => window.location.href = "admin.html",
+      onClick: () => window.location.href = window.construirRutaConSlug("admin.html"),
       className: "px-6 py-2 border rounded-lg hover:bg-gray-100 transition"
     },
     t("Cancelar")

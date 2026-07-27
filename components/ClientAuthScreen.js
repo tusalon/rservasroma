@@ -113,7 +113,7 @@ function ClientAuthScreen({ onAccessGranted, onGoBack }) {
 
                 const loginTime = localStorage.getItem('adminLoginTime');
                 const tieneSesion = loginTime && (Date.now() - parseInt(loginTime)) < 8 * 60 * 60 * 1000;
-                window.location.href = tieneSesion ? 'admin.html' : 'admin-login.html';
+                window.location.href = window.construirRutaConSlug(tieneSesion ? 'admin.html' : 'admin-login.html');
                 return;
             }
 
@@ -190,7 +190,7 @@ function ClientAuthScreen({ onAccessGranted, onGoBack }) {
                 nivel: profesional.nivel || 1
             }));
             localStorage.setItem('profesionalLoginTime', Date.now());
-            window.location.href = 'admin.html';
+            window.location.href = window.construirRutaConSlug('admin.html');
         } catch (err) {
             console.error('Error ingresando como profesional:', err);
             setError(t('Error al iniciar sesión profesional. Intenta de nuevo.'));
