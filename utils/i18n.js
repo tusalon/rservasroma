@@ -1042,7 +1042,30 @@
         'Ya se envió; puedes reenviarlo': 'Already sent; you can resend it',
         'Enviar recordatorio por WhatsApp': 'Send reminder via WhatsApp',
         'Recordado': 'Reminded',
-        'Recordar': 'Remind'
+        'Recordar': 'Remind',
+
+        // components/admin/RomaHubActivacion.js
+        'Escribe tu contraseña actual de RservasRoma.': 'Enter your current RservasRoma password.',
+        'No se encontró tu negocio. Vuelve a iniciar sesión.': 'Your business was not found. Log in again.',
+        'No se pudo sincronizar tu acceso. Intenta de nuevo.': 'Your access could not be synced. Try again.',
+        'No se pudo sincronizar tu acceso.': 'Your access could not be synced.',
+        'Acceso de RomaHub sincronizado': 'RomaHub access synced',
+        '¡Tu tienda de RomaHub está lista!': 'Your RomaHub store is ready!',
+        'Desde ahora entras a RomaHub con el WhatsApp del negocio y la misma contraseña de RservasRoma.': 'From now on, use the business WhatsApp and your RservasRoma password to enter RomaHub.',
+        'Usuario (tu WhatsApp)': 'Username (your WhatsApp)',
+        'Copiado': 'Copied',
+        'Copiar': 'Copy',
+        'La misma que usas para entrar a RservasRoma': 'The same password you use for RservasRoma',
+        'Nuevo código de recuperación': 'New recovery code',
+        'Guárdalo ahora. Se muestra una sola vez y sustituye cualquier código anterior.': 'Save it now. It is shown only once and replaces any previous code.',
+        'Entrar a mi tienda en RomaHub': 'Open my RomaHub store',
+        'Un mismo acceso para RservasRoma y RomaHub': 'One login for RservasRoma and RomaHub',
+        'Escribe tu contraseña actual de RservasRoma para activar o recuperar RomaHub. Al terminar usarás la misma contraseña en las dos aplicaciones.': 'Enter your current RservasRoma password to activate or recover RomaHub. You will then use the same password in both apps.',
+        'Contraseña actual de RservasRoma': 'Current RservasRoma password',
+        'Tu contraseña actual': 'Your current password',
+        'Sitio web': 'Website',
+        'Activar o sincronizar RomaHub': 'Activate or sync RomaHub',
+        'Por seguridad, la contraseña se verifica en el servidor y nunca se guarda ni se muestra.': 'For security, your password is verified on the server and is never stored or displayed.'
     });
 
     function getIdioma() {

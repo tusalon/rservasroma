@@ -1,6 +1,6 @@
 // sw.js - Service Worker para Rservasroma
 
-const CACHE_NAME = 'rservasroma-v70';
+const CACHE_NAME = 'rservasroma-v71';
 const BASE = '/rservasroma';
 
 const urlsToCache = [
@@ -30,7 +30,7 @@ const urlsToCache = [
   `${BASE}/utils/native-push-notifications.js?v=20260722-platform-v4`,
   `${BASE}/utils/offline-panel.js`,
   `${BASE}/utils/config-negocio-master.js?v=20260727-admin-slug1`,
-  `${BASE}/utils/i18n.js?v=20260727-ubicacion-pais1`,
+  `${BASE}/utils/i18n.js?v=20260727-romahub-sync1`,
   `${BASE}/utils/cuba-geo.js?v=20260727-wizard-ubicacion1`,
   `${BASE}/utils/phone-utils.js`,
   `${BASE}/utils/profesionales.js`,
@@ -62,7 +62,7 @@ const urlsToCache = [
 
   // Componentes admin (compilados)
   `${BASE}/compiled/components/admin/ConfigPanel.js?v=20260723-jsx1`,
-  `${BASE}/compiled/components/admin/RomaHubActivacion.js?v=20260724-romahub1`,
+  `${BASE}/compiled/components/admin/RomaHubActivacion.js?v=20260727-romahub-sync1`,
   `${BASE}/compiled/components/admin/EditarNegocio.js?v=20260727-admin-slug1`,
   `${BASE}/compiled/components/admin/HorariosPorDiaPanel.js?v=20260723-jsx1`,
   `${BASE}/compiled/components/admin/HorariosExcepcionPanel.js?v=20260723-jsx1`,
