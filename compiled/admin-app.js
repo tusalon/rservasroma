@@ -385,6 +385,8 @@ function AdminApp() {
   const [guardandoCobro, setGuardandoCobro] = React.useState(false);
   const [serviciosList, setServiciosList] = React.useState([]);
   const [profesionalesList, setProfesionalesList] = React.useState([]);
+  const [conteoServiciosActivos, setConteoServiciosActivos] = React.useState(null);
+  const [conteoProfesionalesActivos, setConteoProfesionalesActivos] = React.useState(null);
   const [profesionalesManualFiltrados, setProfesionalesManualFiltrados] = React.useState([]);
   const [horariosDisponibles, setHorariosDisponibles] = React.useState([]);
   const [modoHorarioManualCompleto, setModoHorarioManualCompleto] = React.useState(false);
@@ -403,6 +405,50 @@ function AdminApp() {
     const slugTab = window._rservasSlugActual || localStorage.getItem("adminSlug") || localStorage.getItem("negocioSlug") || "";
     window.location.href = "editar-negocio.html" + (slugTab ? "?s=" + encodeURIComponent(slugTab) : "");
   };
+  const logoPendiente = Boolean(config && !String(config.logo_url || "").trim());
+  const pendientesConfiguracion = [];
+  if (config) {
+    if (ubicacionIncompleta) {
+      pendientesConfiguracion.push({
+        id: "ubicacion",
+        icono: "icon-map-pin",
+        titulo: t("Falta la ubicación de tu salón"),
+        detalle: esNegocioCuba ? t("Sin provincia y municipio tus clientas no pueden encontrarte por zona en RomaHub.") : t("Completa el estado o provincia y la ciudad o municipio de tu negocio."),
+        accion: t("Completar ubicación"),
+        onClick: abrirEdicionNegocio
+      });
+    }
+    if (logoPendiente) {
+      pendientesConfiguracion.push({
+        id: "logo",
+        icono: "icon-image",
+        titulo: t("Tu salón no tiene logo"),
+        detalle: t("Con logo tu página de reservas se ve como tu marca y no como una app genérica."),
+        accion: t("Subir logo"),
+        onClick: abrirEdicionNegocio
+      });
+    }
+  }
+  if (conteoServiciosActivos === 0) {
+    pendientesConfiguracion.push({
+      id: "servicios",
+      icono: "icon-scissors",
+      titulo: t("No tienes servicios activos"),
+      detalle: t("Sin al menos un servicio tus clientas no tienen qué reservar."),
+      accion: t("Agregar servicio"),
+      onClick: () => setTabActivo("servicios")
+    });
+  }
+  if (conteoProfesionalesActivos === 0) {
+    pendientesConfiguracion.push({
+      id: "profesionales",
+      icono: "icon-users",
+      titulo: t("No tienes profesionales activos"),
+      detalle: t("Hace falta al menos una persona que atienda para poder dar turnos."),
+      accion: t("Agregar profesional"),
+      onClick: () => setTabActivo("profesionales")
+    });
+  }
   const normalizarTextoProfesional = (value) => String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ").trim().toLowerCase();
   const esReservaDelProfesional = (booking, profesionalActual = profesional) => {
     if (!profesionalActual) return true;
@@ -607,6 +653,35 @@ function AdminApp() {
     };
     cargarDatosModal();
   }, []);
+  React.useEffect(() => {
+    const negocioId = config?.id || window.NEGOCIO_ID_POR_DEFECTO;
+    if (!negocioId || !window.SUPABASE_URL || !window.SUPABASE_ANON_KEY) return;
+    let cancelado = false;
+    const contar = async () => {
+      const headers = {
+        apikey: window.SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${window.SUPABASE_ANON_KEY}`
+      };
+      try {
+        const [resServicios, resProfesionales] = await Promise.all([
+          fetch(`${window.SUPABASE_URL}/rest/v1/servicios?negocio_id=eq.${encodeURIComponent(negocioId)}&activo=eq.true&select=id`, { headers }),
+          fetch(`${window.SUPABASE_URL}/rest/v1/profesionales?negocio_id=eq.${encodeURIComponent(negocioId)}&activo=eq.true&select=id`, { headers })
+        ]);
+        if (!resServicios.ok || !resProfesionales.ok) return;
+        const servicios = await resServicios.json();
+        const profesionales = await resProfesionales.json();
+        if (cancelado) return;
+        setConteoServiciosActivos(Array.isArray(servicios) ? servicios.length : null);
+        setConteoProfesionalesActivos(Array.isArray(profesionales) ? profesionales.length : null);
+      } catch (error) {
+        console.warn("No se pudo verificar la configuracion pendiente:", error);
+      }
+    };
+    contar();
+    return () => {
+      cancelado = true;
+    };
+  }, [config]);
   React.useEffect(() => {
     const filtrarProfesionalesManual = async () => {
       if (!nuevaReservaData.servicio) {
@@ -3234,21 +3309,30 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
       },
       "📋"
     )) : null;
-  })()), puedeGestionarAvanzado && ubicacionIncompleta ? /* @__PURE__ */ React.createElement(
+  })()), puedeGestionarAvanzado && pendientesConfiguracion.length > 0 ? /* @__PURE__ */ React.createElement(
     "section",
     {
       role: "alert",
       className: "rounded-2xl border-2 border-amber-300 bg-gradient-to-r from-amber-50 to-orange-50 p-4 sm:p-5 shadow-sm"
     },
-    /* @__PURE__ */ React.createElement("div", { className: "flex flex-col md:flex-row md:items-center gap-4" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-start gap-3 flex-1 min-w-0" }, /* @__PURE__ */ React.createElement("div", { className: "w-11 h-11 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-sm" }, /* @__PURE__ */ React.createElement("i", { className: "icon-map-pin text-xl" })), /* @__PURE__ */ React.createElement("div", { className: "min-w-0" }, /* @__PURE__ */ React.createElement("p", { className: "text-[11px] font-extrabold uppercase tracking-wide text-amber-700" }, t("Acción necesaria")), /* @__PURE__ */ React.createElement("h2", { className: "mt-1 text-lg font-bold text-amber-950" }, t("Completa la ubicación de tu negocio")), /* @__PURE__ */ React.createElement("p", { className: "mt-1 text-sm text-amber-900 leading-relaxed" }, esNegocioCuba ? t("Selecciona provincia y municipio para que tu salón aparezca correctamente en RomaHub y puedan encontrarte desde toda Cuba.") : t("Completa el estado o provincia y la ciudad o municipio para mantener actualizada la ubicación de tu negocio.")), /* @__PURE__ */ React.createElement("div", { className: "mt-3 flex flex-wrap gap-2" }, provinciaPendiente ? /* @__PURE__ */ React.createElement("span", { className: "rounded-full border border-amber-300 bg-white px-3 py-1 text-xs font-semibold text-amber-800" }, esNegocioCuba ? t("Provincia pendiente") : t("Estado o provincia pendiente")) : null, municipioPendiente ? /* @__PURE__ */ React.createElement("span", { className: "rounded-full border border-amber-300 bg-white px-3 py-1 text-xs font-semibold text-amber-800" }, esNegocioCuba ? t("Municipio pendiente") : t("Ciudad o municipio pendiente")) : null))), /* @__PURE__ */ React.createElement("div", { className: "md:w-56 shrink-0" }, /* @__PURE__ */ React.createElement(
-      "button",
+    /* @__PURE__ */ React.createElement("div", { className: "flex items-start gap-3 mb-3" }, /* @__PURE__ */ React.createElement("div", { className: "w-11 h-11 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-sm" }, /* @__PURE__ */ React.createElement("i", { className: "icon-triangle-alert text-xl" })), /* @__PURE__ */ React.createElement("div", { className: "min-w-0" }, /* @__PURE__ */ React.createElement("p", { className: "text-[11px] font-extrabold uppercase tracking-wide text-amber-700" }, t("Acción necesaria")), /* @__PURE__ */ React.createElement("h2", { className: "mt-1 text-lg font-bold text-amber-950" }, pendientesConfiguracion.length === 1 ? t("Falta un detalle por configurar") : t("Faltan {n} detalles por configurar", { n: pendientesConfiguracion.length })), /* @__PURE__ */ React.createElement("p", { className: "mt-1 text-sm text-amber-900 leading-relaxed" }, t("Toca cada uno y te llevamos directo a resolverlo. El aviso desaparece solo al completarlo.")))),
+    /* @__PURE__ */ React.createElement("div", { className: "space-y-2" }, pendientesConfiguracion.map((pendiente) => /* @__PURE__ */ React.createElement(
+      "div",
       {
-        type: "button",
-        onClick: abrirEdicionNegocio,
-        className: "w-full rounded-xl bg-amber-600 px-4 py-3 text-sm font-bold text-white shadow-md transition hover:bg-amber-700 focus:outline-none focus:ring-4 focus:ring-amber-200"
+        key: pendiente.id,
+        className: "rounded-xl border border-amber-200 bg-white p-3 flex flex-col sm:flex-row sm:items-center gap-3"
       },
-      t("Completar ubicación ahora")
-    ), /* @__PURE__ */ React.createElement("p", { className: "mt-2 text-center text-[11px] text-amber-700" }, t("El aviso desaparecerá al guardar ambos datos."))))
+      /* @__PURE__ */ React.createElement("div", { className: "flex items-start gap-3 flex-1 min-w-0" }, /* @__PURE__ */ React.createElement("i", { className: `${pendiente.icono} text-lg text-amber-600 shrink-0 mt-0.5` }), /* @__PURE__ */ React.createElement("div", { className: "min-w-0" }, /* @__PURE__ */ React.createElement("p", { className: "text-sm font-bold text-amber-950" }, pendiente.titulo), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-amber-800 leading-relaxed mt-0.5" }, pendiente.detalle))),
+      /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          type: "button",
+          onClick: pendiente.onClick,
+          className: "shrink-0 rounded-lg bg-amber-600 px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-amber-700 focus:outline-none focus:ring-4 focus:ring-amber-200"
+        },
+        pendiente.accion
+      )
+    )))
   ) : null, showNuevaReservaModal && /* @__PURE__ */ React.createElement("div", { className: "fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" }, /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto" }, /* @__PURE__ */ React.createElement("div", { className: "flex justify-between items-center mb-4" }, /* @__PURE__ */ React.createElement("h3", { className: "text-xl font-bold" }, t("Nueva Reserva Manual")), /* @__PURE__ */ React.createElement(
     "button",
     {

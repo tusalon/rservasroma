@@ -453,6 +453,9 @@ function AdminApp() {
 
     const [serviciosList, setServiciosList] = React.useState([]);
     const [profesionalesList, setProfesionalesList] = React.useState([]);
+    // null = todavia no se sabe (no se avisa). Numero = dato confirmado.
+    const [conteoServiciosActivos, setConteoServiciosActivos] = React.useState(null);
+    const [conteoProfesionalesActivos, setConteoProfesionalesActivos] = React.useState(null);
     const [profesionalesManualFiltrados, setProfesionalesManualFiltrados] = React.useState([]);
     const [horariosDisponibles, setHorariosDisponibles] = React.useState([]);
     const [modoHorarioManualCompleto, setModoHorarioManualCompleto] = React.useState(false);
@@ -476,6 +479,60 @@ function AdminApp() {
             localStorage.getItem('negocioSlug') || '';
         window.location.href = 'editar-negocio.html' + (slugTab ? '?s=' + encodeURIComponent(slugTab) : '');
     };
+
+    // Que le falta al negocio para funcionar de verdad. Solo se revisan cosas
+    // que impiden que una clienta reserve o encuentre el salon — nada estetico
+    // (colores, mensajes), para que el aviso no se vuelva ruido que se ignora.
+    // Cada pendiente sabe a donde lleva, asi la dueña no tiene que buscar.
+    const logoPendiente = Boolean(config && !String(config.logo_url || '').trim());
+
+    const pendientesConfiguracion = [];
+    if (config) {
+        if (ubicacionIncompleta) {
+            pendientesConfiguracion.push({
+                id: 'ubicacion',
+                icono: 'icon-map-pin',
+                titulo: t('Falta la ubicación de tu salón'),
+                detalle: esNegocioCuba
+                    ? t('Sin provincia y municipio tus clientas no pueden encontrarte por zona en RomaHub.')
+                    : t('Completa el estado o provincia y la ciudad o municipio de tu negocio.'),
+                accion: t('Completar ubicación'),
+                onClick: abrirEdicionNegocio
+            });
+        }
+        if (logoPendiente) {
+            pendientesConfiguracion.push({
+                id: 'logo',
+                icono: 'icon-image',
+                titulo: t('Tu salón no tiene logo'),
+                detalle: t('Con logo tu página de reservas se ve como tu marca y no como una app genérica.'),
+                accion: t('Subir logo'),
+                onClick: abrirEdicionNegocio
+            });
+        }
+    }
+    // Solo se avisa con un conteo confirmado (numero). Mientras sea null no se
+    // sabe todavia, y no avisar es preferible a dar un aviso falso.
+    if (conteoServiciosActivos === 0) {
+        pendientesConfiguracion.push({
+            id: 'servicios',
+            icono: 'icon-scissors',
+            titulo: t('No tienes servicios activos'),
+            detalle: t('Sin al menos un servicio tus clientas no tienen qué reservar.'),
+            accion: t('Agregar servicio'),
+            onClick: () => setTabActivo('servicios')
+        });
+    }
+    if (conteoProfesionalesActivos === 0) {
+        pendientesConfiguracion.push({
+            id: 'profesionales',
+            icono: 'icon-users',
+            titulo: t('No tienes profesionales activos'),
+            detalle: t('Hace falta al menos una persona que atienda para poder dar turnos.'),
+            accion: t('Agregar profesional'),
+            onClick: () => setTabActivo('profesionales')
+        });
+    }
     const normalizarTextoProfesional = (value) => String(value || '')
         .normalize('NFD')
         .replace(/[\u0300-\u036f]/g, '')
@@ -734,6 +791,44 @@ function AdminApp() {
         };
         cargarDatosModal();
     }, []);
+
+    // Conteo propio y explicito de servicios/profesionales para el aviso de
+    // configuracion pendiente. No se reutiliza serviciosList/profesionalesList
+    // porque esas se llenan al montar, cuando config-negocio-master todavia
+    // puede estar resolviendo el slug: getAll() devuelve vacio y el aviso
+    // terminaba diciendole "no tienes servicios" a salones que si los tienen
+    // (verificado con Nails Gretel, 12 servicios, y NailsByOlguita, 7).
+    // Aqui se espera a tener el id resuelto y se pregunta directo a la BD.
+    React.useEffect(() => {
+        const negocioId = config?.id || window.NEGOCIO_ID_POR_DEFECTO;
+        if (!negocioId || !window.SUPABASE_URL || !window.SUPABASE_ANON_KEY) return;
+
+        let cancelado = false;
+        const contar = async () => {
+            const headers = {
+                apikey: window.SUPABASE_ANON_KEY,
+                Authorization: `Bearer ${window.SUPABASE_ANON_KEY}`
+            };
+            try {
+                const [resServicios, resProfesionales] = await Promise.all([
+                    fetch(`${window.SUPABASE_URL}/rest/v1/servicios?negocio_id=eq.${encodeURIComponent(negocioId)}&activo=eq.true&select=id`, { headers }),
+                    fetch(`${window.SUPABASE_URL}/rest/v1/profesionales?negocio_id=eq.${encodeURIComponent(negocioId)}&activo=eq.true&select=id`, { headers })
+                ]);
+                if (!resServicios.ok || !resProfesionales.ok) return; // sin dato fiable, no se avisa
+                const servicios = await resServicios.json();
+                const profesionales = await resProfesionales.json();
+                if (cancelado) return;
+                setConteoServiciosActivos(Array.isArray(servicios) ? servicios.length : null);
+                setConteoProfesionalesActivos(Array.isArray(profesionales) ? profesionales.length : null);
+            } catch (error) {
+                // Ante un fallo de red se deja en null y el aviso no aparece:
+                // es preferible no avisar a dar un aviso falso.
+                console.warn('No se pudo verificar la configuracion pendiente:', error);
+            }
+        };
+        contar();
+        return () => { cancelado = true; };
+    }, [config]);
 
     React.useEffect(() => {
         const filtrarProfesionalesManual = async () => {
@@ -3986,54 +4081,52 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                     })()}
                 </div>
 
-                {puedeGestionarAvanzado && ubicacionIncompleta ? (
+                {puedeGestionarAvanzado && pendientesConfiguracion.length > 0 ? (
                     <section
                         role="alert"
                         className="rounded-2xl border-2 border-amber-300 bg-gradient-to-r from-amber-50 to-orange-50 p-4 sm:p-5 shadow-sm"
                     >
-                        <div className="flex flex-col md:flex-row md:items-center gap-4">
-                            <div className="flex items-start gap-3 flex-1 min-w-0">
-                                <div className="w-11 h-11 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-sm">
-                                    <i className="icon-map-pin text-xl"></i>
-                                </div>
-                                <div className="min-w-0">
-                                    <p className="text-[11px] font-extrabold uppercase tracking-wide text-amber-700">
-                                        {t('Acción necesaria')}
-                                    </p>
-                                    <h2 className="mt-1 text-lg font-bold text-amber-950">
-                                        {t('Completa la ubicación de tu negocio')}
-                                    </h2>
-                                    <p className="mt-1 text-sm text-amber-900 leading-relaxed">
-                                        {esNegocioCuba
-                                            ? t('Selecciona provincia y municipio para que tu salón aparezca correctamente en RomaHub y puedan encontrarte desde toda Cuba.')
-                                            : t('Completa el estado o provincia y la ciudad o municipio para mantener actualizada la ubicación de tu negocio.')}
-                                    </p>
-                                    <div className="mt-3 flex flex-wrap gap-2">
-                                        {provinciaPendiente ? (
-                                            <span className="rounded-full border border-amber-300 bg-white px-3 py-1 text-xs font-semibold text-amber-800">
-                                                {esNegocioCuba ? t('Provincia pendiente') : t('Estado o provincia pendiente')}
-                                            </span>
-                                        ) : null}
-                                        {municipioPendiente ? (
-                                            <span className="rounded-full border border-amber-300 bg-white px-3 py-1 text-xs font-semibold text-amber-800">
-                                                {esNegocioCuba ? t('Municipio pendiente') : t('Ciudad o municipio pendiente')}
-                                            </span>
-                                        ) : null}
-                                    </div>
-                                </div>
+                        <div className="flex items-start gap-3 mb-3">
+                            <div className="w-11 h-11 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-sm">
+                                <i className="icon-triangle-alert text-xl"></i>
                             </div>
-                            <div className="md:w-56 shrink-0">
-                                <button
-                                    type="button"
-                                    onClick={abrirEdicionNegocio}
-                                    className="w-full rounded-xl bg-amber-600 px-4 py-3 text-sm font-bold text-white shadow-md transition hover:bg-amber-700 focus:outline-none focus:ring-4 focus:ring-amber-200"
-                                >
-                                    {t('Completar ubicación ahora')}
-                                </button>
-                                <p className="mt-2 text-center text-[11px] text-amber-700">
-                                    {t('El aviso desaparecerá al guardar ambos datos.')}
+                            <div className="min-w-0">
+                                <p className="text-[11px] font-extrabold uppercase tracking-wide text-amber-700">
+                                    {t('Acción necesaria')}
+                                </p>
+                                <h2 className="mt-1 text-lg font-bold text-amber-950">
+                                    {pendientesConfiguracion.length === 1
+                                        ? t('Falta un detalle por configurar')
+                                        : t('Faltan {n} detalles por configurar', { n: pendientesConfiguracion.length })}
+                                </h2>
+                                <p className="mt-1 text-sm text-amber-900 leading-relaxed">
+                                    {t('Toca cada uno y te llevamos directo a resolverlo. El aviso desaparece solo al completarlo.')}
                                 </p>
                             </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            {pendientesConfiguracion.map(pendiente => (
+                                <div
+                                    key={pendiente.id}
+                                    className="rounded-xl border border-amber-200 bg-white p-3 flex flex-col sm:flex-row sm:items-center gap-3"
+                                >
+                                    <div className="flex items-start gap-3 flex-1 min-w-0">
+                                        <i className={`${pendiente.icono} text-lg text-amber-600 shrink-0 mt-0.5`}></i>
+                                        <div className="min-w-0">
+                                            <p className="text-sm font-bold text-amber-950">{pendiente.titulo}</p>
+                                            <p className="text-xs text-amber-800 leading-relaxed mt-0.5">{pendiente.detalle}</p>
+                                        </div>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={pendiente.onClick}
+                                        className="shrink-0 rounded-lg bg-amber-600 px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-amber-700 focus:outline-none focus:ring-4 focus:ring-amber-200"
+                                    >
+                                        {pendiente.accion}
+                                    </button>
+                                </div>
+                            ))}
                         </div>
                     </section>
                 ) : null}
