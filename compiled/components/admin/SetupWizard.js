@@ -31,20 +31,18 @@ const SLOTS_DIA = (() => {
   }
   return slots;
 })();
-const OPCIONES_HORA = SLOTS_DIA.map((slot) => {
-  const h = Math.floor(slot.indice / 2);
-  const m = slot.indice % 2 === 0 ? "00" : "30";
-  return { valor: `${String(h).padStart(2, "0")}:${m}`, label: slot.label };
-});
-function rangoHorarioAIndices(horaInicio, horaFin) {
-  const aIndice = (hhmm) => {
-    const [h, m] = String(hhmm || "0:0").split(":").map(Number);
-    return (h || 0) * 2 + ((m || 0) >= 30 ? 1 : 0);
-  };
-  const ini = aIndice(horaInicio);
-  const fin = aIndice(horaFin);
+const GRUPOS_HORARIO = [
+  { id: "manana", titulo: "Mañana", desde: 12, hasta: 23 },
+  // 6:00 AM - 11:30 AM
+  { id: "tarde", titulo: "Tarde", desde: 24, hasta: 35 },
+  // 12:00 PM - 5:30 PM
+  { id: "noche", titulo: "Noche", desde: 36, hasta: 47 }
+  // 6:00 PM - 11:30 PM
+];
+const GRUPO_MADRUGADA = { id: "madrugada", titulo: "Madrugada", desde: 0, hasta: 11 };
+function turnosCadaHora(horaInicio, horaFin) {
   const indices = [];
-  for (let i = ini; i < fin; i++) indices.push(i);
+  for (let h = horaInicio; h < horaFin; h++) indices.push(h * 2);
   return indices;
 }
 function crearProfesionalWizard() {
@@ -89,9 +87,7 @@ function SetupWizard() {
   const [error, setError] = React.useState("");
   const [exito, setExito] = React.useState(false);
   const [diaEditando, setDiaEditando] = React.useState(null);
-  const [horaApertura, setHoraApertura] = React.useState("09:00");
-  const [horaCierre, setHoraCierre] = React.useState("18:00");
-  const [avisoHorario, setAvisoHorario] = React.useState("");
+  const [verMadrugada, setVerMadrugada] = React.useState(false);
   const DIAS = idioma === "en" ? [
     { id: "lunes", corto: "Mon", nombre: "Monday" },
     { id: "martes", corto: "Tue", nombre: "Tuesday" },
@@ -131,12 +127,12 @@ function SetupWizard() {
     servicios: [crearServicioWizard("CUP")],
     // Paso 4: horarios disponibles (lista de slots) independientes por día
     horarios_dias: {
-      lunes: { activo: true, horas: rangoHorarioAIndices("09:00", "18:00") },
-      martes: { activo: true, horas: rangoHorarioAIndices("09:00", "18:00") },
-      miercoles: { activo: true, horas: rangoHorarioAIndices("09:00", "18:00") },
-      jueves: { activo: true, horas: rangoHorarioAIndices("09:00", "18:00") },
-      viernes: { activo: true, horas: rangoHorarioAIndices("09:00", "18:00") },
-      sabado: { activo: true, horas: rangoHorarioAIndices("09:00", "14:00") },
+      lunes: { activo: true, horas: turnosCadaHora(9, 18) },
+      martes: { activo: true, horas: turnosCadaHora(9, 18) },
+      miercoles: { activo: true, horas: turnosCadaHora(9, 18) },
+      jueves: { activo: true, horas: turnosCadaHora(9, 18) },
+      viernes: { activo: true, horas: turnosCadaHora(9, 18) },
+      sabado: { activo: true, horas: turnosCadaHora(9, 14) },
       domingo: { activo: false, horas: [] }
     },
     // Paso 5: estética (opcional)
@@ -243,7 +239,7 @@ function SetupWizard() {
       const activos = diasActivos();
       if (activos.length === 0) return t("Selecciona al menos un día de trabajo");
       const sinHoras = activos.some((d) => (config.horarios_dias[d.id].horas || []).length === 0);
-      if (sinHoras) return t("Cada día activo necesita al menos un horario disponible");
+      if (sinHoras) return t("Cada día que trabajas necesita al menos un turno. Toca «Elegir horas» en el día que quedó vacío.");
     }
     return "";
   };
@@ -317,7 +313,7 @@ function SetupWizard() {
   const toggleDiaActivo = (diaId) => {
     const actual = config.horarios_dias[diaId];
     const activando = !actual.activo;
-    const horas = activando && (actual.horas || []).length === 0 ? rangoHorarioAIndices("09:00", "18:00") : actual.horas;
+    const horas = activando && (actual.horas || []).length === 0 ? turnosCadaHora(9, 18) : actual.horas;
     setConfig({ ...config, horarios_dias: { ...config.horarios_dias, [diaId]: { activo: activando, horas } } });
     if (activando) setDiaEditando(diaId);
   };
@@ -336,23 +332,9 @@ function SetupWizard() {
     const actual = config.horarios_dias[diaDestino];
     setConfig({ ...config, horarios_dias: { ...config.horarios_dias, [diaDestino]: { ...actual, horas: [...origen.horas] } } });
   };
-  const aplicarHorarioRapido = () => {
-    const activos = diasActivos();
-    if (activos.length === 0) {
-      setAvisoHorario(t("Activa primero los dias en que trabajas (toca el dia para activarlo)."));
-      return;
-    }
-    const rango = rangoHorarioAIndices(horaApertura, horaCierre);
-    if (rango.length === 0) {
-      setAvisoHorario(t("La hora de cierre debe ser despues de la hora de apertura."));
-      return;
-    }
-    setAvisoHorario("");
-    const nuevosHorarios = { ...config.horarios_dias };
-    activos.forEach((d) => {
-      nuevosHorarios[d.id] = { ...nuevosHorarios[d.id], horas: [...rango] };
-    });
-    setConfig({ ...config, horarios_dias: nuevosHorarios });
+  const turnosDelDiaLegibles = (diaId) => {
+    const horas = (config.horarios_dias[diaId]?.horas || []).slice().sort((a, b) => a - b);
+    return horas.map(labelSlot);
   };
   const handleLogoChange = (e) => {
     const file = e.target.files[0];
@@ -433,11 +415,6 @@ function SetupWizard() {
   const labelSlot = (indice) => {
     const s = SLOTS_DIA.find((x) => x.indice === indice);
     return s ? s.label : "";
-  };
-  const resumenDia = (diaId) => {
-    const horas = (config.horarios_dias[diaId].horas || []).slice().sort((a, b) => a - b);
-    if (!horas.length) return "";
-    return `${labelSlot(horas[0])} – ${labelSlot(horas[horas.length - 1])} · ${horas.length} ${t("horarios")}`;
   };
   const textoHorarioLegible = () => {
     const partes = DIAS.filter((d) => config.horarios_dias[d.id] && config.horarios_dias[d.id].activo && config.horarios_dias[d.id].horas.length).map((d) => `${d.corto} (${config.horarios_dias[d.id].horas.length})`);
@@ -674,7 +651,7 @@ function SetupWizard() {
       },
       className: "w-5 h-5 text-amber-600"
     }
-  )), s.mostrar_horarios_especiales ? /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("input", { value: s.horarios_permitidos, onChange: (e) => actualizarServicio(i, "horarios_permitidos", e.target.value), className: "w-full border rounded-lg px-3 py-2", placeholder: t("Ej: 09:00, 11:00, 15:00") }), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 mt-1" }, t("Escribe las horas exactas separadas por coma."))) : /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500" }, t("La mayoria de los servicios no necesita esto: se reserva en cualquier horario del profesional.")))))), step === 4 && /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-xl shadow-sm p-6 space-y-4 animate-fade-in" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h2", { className: "text-xl font-bold mb-1" }, "🕐 ", t("Horarios disponibles")), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500" }, t("Elige tu horario una vez y aplícalo a todos tus días. Si algún día es diferente, lo ajustas más abajo."))), /* @__PURE__ */ React.createElement("div", { className: "rounded-xl border-2 border-amber-300 bg-amber-50 p-4 space-y-3" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-start gap-2" }, /* @__PURE__ */ React.createElement("span", { className: "text-xl", "aria-hidden": "true" }, "⚡"), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h3", { className: "font-bold text-amber-900" }, t("Horario rápido")), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-amber-800 mt-0.5" }, t("¿A qué hora abres y cierras casi todos los días?")))), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 gap-3" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-xs font-semibold text-amber-900 mb-1" }, t("Abro a las")), /* @__PURE__ */ React.createElement("select", { value: horaApertura, onChange: (e) => setHoraApertura(e.target.value), className: "w-full border border-amber-200 rounded-lg px-3 py-2 bg-white" }, OPCIONES_HORA.map((op) => /* @__PURE__ */ React.createElement("option", { key: op.valor, value: op.valor }, op.label)))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-xs font-semibold text-amber-900 mb-1" }, t("Cierro a las")), /* @__PURE__ */ React.createElement("select", { value: horaCierre, onChange: (e) => setHoraCierre(e.target.value), className: "w-full border border-amber-200 rounded-lg px-3 py-2 bg-white" }, OPCIONES_HORA.map((op) => /* @__PURE__ */ React.createElement("option", { key: op.valor, value: op.valor }, op.label))))), avisoHorario && /* @__PURE__ */ React.createElement("p", { className: "text-xs font-semibold text-red-600" }, avisoHorario), /* @__PURE__ */ React.createElement("button", { type: "button", onClick: aplicarHorarioRapido, className: "w-full px-4 py-2.5 bg-amber-600 text-white rounded-lg font-semibold hover:bg-amber-700 transition" }, t("Aplicar a mis días de trabajo"))), /* @__PURE__ */ React.createElement("p", { className: "text-sm font-semibold text-gray-700" }, t("¿Algún día es diferente? Ajústalo aquí:")), DIAS.map((d) => {
+  )), s.mostrar_horarios_especiales ? /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("input", { value: s.horarios_permitidos, onChange: (e) => actualizarServicio(i, "horarios_permitidos", e.target.value), className: "w-full border rounded-lg px-3 py-2", placeholder: t("Ej: 09:00, 11:00, 15:00") }), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 mt-1" }, t("Escribe las horas exactas separadas por coma."))) : /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500" }, t("La mayoria de los servicios no necesita esto: se reserva en cualquier horario del profesional.")))))), step === 4 && /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-xl shadow-sm p-6 space-y-4 animate-fade-in" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h2", { className: "text-xl font-bold mb-1" }, "🕐 ", t("¿A qué hora empiezan tus turnos?")), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500" }, t("Marca la hora a la que empieza cada cita. Tus clientas verán exactamente esas horas para reservar."))), /* @__PURE__ */ React.createElement("div", { className: "rounded-lg bg-blue-50 border border-blue-200 p-3" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs text-blue-900 leading-relaxed" }, t("Ejemplo: si atiendes a las 9, a las 11 y a la 1, marca solo esas tres. No hace falta marcar todas las horas que estás abierta."))), /* @__PURE__ */ React.createElement("p", { className: "text-sm font-semibold text-gray-700" }, t("Toca un día para abrirlo y elegir sus turnos:")), DIAS.map((d) => {
     const cfg = config.horarios_dias[d.id];
     const editando = diaEditando === d.id;
     return /* @__PURE__ */ React.createElement("div", { key: d.id, className: `rounded-lg border transition-all ${cfg.activo ? "border-amber-200 bg-amber-50/40" : "border-gray-200 bg-gray-50"}` }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3 p-3" }, /* @__PURE__ */ React.createElement(
@@ -685,15 +662,15 @@ function SetupWizard() {
         className: `w-14 shrink-0 px-2 py-2 rounded-lg text-sm font-bold transition-all ${cfg.activo ? "bg-amber-600 text-white shadow" : "bg-gray-200 text-gray-500"}`
       },
       d.corto
-    ), cfg.activo ? /* @__PURE__ */ React.createElement("div", { className: "flex-1 min-w-0" }, /* @__PURE__ */ React.createElement("div", { className: "text-sm text-gray-700 truncate" }, resumenDia(d.id) || t("Sin horarios — toca «Editar»"))) : /* @__PURE__ */ React.createElement("span", { className: "text-gray-400 text-sm flex-1" }, t("Cerrado")), cfg.activo && /* @__PURE__ */ React.createElement(
+    ), cfg.activo ? /* @__PURE__ */ React.createElement("div", { className: "flex-1 min-w-0" }, /* @__PURE__ */ React.createElement("div", { className: "text-sm text-gray-700 truncate" }, cfg.horas.length > 0 ? `${cfg.horas.length} ${cfg.horas.length === 1 ? t("turno") : t("turnos")}: ${turnosDelDiaLegibles(d.id).join(" · ")}` : t("Sin turnos — toca «Elegir horas»"))) : /* @__PURE__ */ React.createElement("span", { className: "text-gray-400 text-sm flex-1" }, t("Cerrado")), cfg.activo && /* @__PURE__ */ React.createElement(
       "button",
       {
         type: "button",
         onClick: () => setDiaEditando(editando ? null : d.id),
         className: "text-xs font-semibold text-amber-700 hover:underline shrink-0"
       },
-      editando ? t("Cerrar") : t("Editar")
-    )), cfg.activo && editando && /* @__PURE__ */ React.createElement("div", { className: "px-3 pb-3" }, /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap items-center gap-2 mb-2" }, /* @__PURE__ */ React.createElement("button", { type: "button", onClick: () => limpiarHorasDia(d.id), className: "text-xs px-2 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300" }, t("Limpiar")), /* @__PURE__ */ React.createElement(
+      editando ? t("Cerrar") : t("Elegir horas")
+    )), cfg.activo && editando && /* @__PURE__ */ React.createElement("div", { className: "px-3 pb-3" }, /* @__PURE__ */ React.createElement("div", { className: "rounded-lg bg-white border border-amber-200 p-3 mb-3" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-semibold text-gray-500 mb-1.5" }, t("Tus clientas verán estos turnos:")), cfg.horas.length > 0 ? /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-1.5" }, turnosDelDiaLegibles(d.id).map((hora) => /* @__PURE__ */ React.createElement("span", { key: hora, className: "px-2 py-1 rounded-md bg-green-100 text-green-800 text-xs font-bold" }, hora))) : /* @__PURE__ */ React.createElement("p", { className: "text-xs text-red-600 font-semibold" }, t("Ninguno todavía. Marca abajo las horas en que atiendes."))), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap items-center gap-2 mb-3" }, /* @__PURE__ */ React.createElement("button", { type: "button", onClick: () => limpiarHorasDia(d.id), className: "text-xs px-2.5 py-1.5 bg-gray-200 text-gray-700 rounded hover:bg-gray-300" }, t("Quitar todos")), /* @__PURE__ */ React.createElement(
       "select",
       {
         value: "",
@@ -701,11 +678,11 @@ function SetupWizard() {
           copiarHorasDia(d.id, e.target.value);
           e.target.value = "";
         },
-        className: "text-xs border rounded px-2 py-1 bg-white"
+        className: "text-xs border rounded px-2 py-1.5 bg-white"
       },
-      /* @__PURE__ */ React.createElement("option", { value: "" }, t("Copiar de…")),
+      /* @__PURE__ */ React.createElement("option", { value: "" }, t("Copiar turnos de otro día…")),
       DIAS.filter((x) => x.id !== d.id && config.horarios_dias[x.id].horas.length > 0).map((x) => /* @__PURE__ */ React.createElement("option", { key: x.id, value: x.id }, x.nombre, " (", config.horarios_dias[x.id].horas.length, ")"))
-    )), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-4 sm:grid-cols-6 gap-1 max-h-60 overflow-y-auto p-1 border rounded-lg bg-white" }, SLOTS_DIA.map((slot) => {
+    )), (verMadrugada ? [GRUPO_MADRUGADA, ...GRUPOS_HORARIO] : GRUPOS_HORARIO).map((grupo) => /* @__PURE__ */ React.createElement("div", { key: grupo.id, className: "mb-3" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5" }, t(grupo.titulo)), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-4 sm:grid-cols-6 gap-1.5" }, SLOTS_DIA.filter((s) => s.indice >= grupo.desde && s.indice <= grupo.hasta).map((slot) => {
       const activa = cfg.horas.includes(slot.indice);
       return /* @__PURE__ */ React.createElement(
         "button",
@@ -713,11 +690,11 @@ function SetupWizard() {
           key: slot.indice,
           type: "button",
           onClick: () => toggleSlot(d.id, slot.indice),
-          className: `px-1 py-1 text-xs font-medium rounded transition-all ${activa ? "bg-amber-600 text-white shadow-sm" : "bg-white border border-gray-200 text-gray-600 hover:border-amber-400"}`
+          className: `px-1 py-2 text-xs font-semibold rounded-lg transition-all ${activa ? "bg-amber-600 text-white shadow-sm" : "bg-white border border-gray-200 text-gray-600 hover:border-amber-400"}`
         },
         slot.label
       );
-    })), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 mt-1" }, t("Cada franja es de 30 min. Marca solo las horas en que empiezas turnos."))));
+    })))), !verMadrugada && /* @__PURE__ */ React.createElement("button", { type: "button", onClick: () => setVerMadrugada(true), className: "text-xs text-gray-500 hover:text-amber-700 underline" }, t("¿Atiendes de madrugada? Mostrar esas horas"))));
   })), step === 5 && /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-xl shadow-sm p-6 space-y-5 animate-fade-in" }, /* @__PURE__ */ React.createElement("h2", { className: "text-xl font-bold mb-1" }, "✨ ", t("Toque final (opcional)")), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500" }, t("Puedes saltar esto y cambiarlo luego desde el panel.")), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, t("Color principal")), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2" }, /* @__PURE__ */ React.createElement(
     "input",
     {
