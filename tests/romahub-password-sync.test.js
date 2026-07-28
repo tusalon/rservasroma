@@ -17,6 +17,9 @@ assert.match(functionSource, /isOriginAllowed\(req\)/);
 assert.match(functionSource, /enforceRateLimits\(/);
 assert.match(functionSource, /codigo_recuperacion_hash: recoveryHash/);
 assert.match(functionSource, /password_recuperacion: null/);
+assert.match(functionSource, /skip_negocio_autocreate:\s*true/);
+assert.match(functionSource, /roma_account_type:\s*"rservas_business"/);
+assert.match(functionSource, /negocio_id:\s*negocioId/);
 assert.doesNotMatch(functionSource, /password_recuperacion:\s*password/);
 assert.doesNotMatch(functionSource, /acceso:\s*\{[^}]*password[,}]/s);
 

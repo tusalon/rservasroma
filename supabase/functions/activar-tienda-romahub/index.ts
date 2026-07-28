@@ -180,7 +180,16 @@ Deno.serve(async (req: Request) => {
     const authResponse = await fetch(`${SUPABASE_URL}/auth/v1/admin/users`, {
       method: "POST",
       headers: serviceHeaders,
-      body: JSON.stringify({ email: authEmail, password, email_confirm: true }),
+      body: JSON.stringify({
+        email: authEmail,
+        password,
+        email_confirm: true,
+        user_metadata: {
+          skip_negocio_autocreate: true,
+          roma_account_type: "rservas_business",
+          negocio_id: negocioId,
+        },
+      }),
     });
     const authData = await authResponse.json().catch(() => ({}));
     if (!authResponse.ok) {
