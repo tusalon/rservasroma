@@ -36,6 +36,15 @@ const SLOTS_DIA = (() => {
     return slots;
 })();
 
+// Mismos 48 slots que SLOTS_DIA, pero con el valor en formato "HH:MM" (lo que
+// espera rangoHorarioAIndices) en vez del índice — para los selects de
+// "Horario rápido", donde se elige una hora de reloj, no una franja suelta.
+const OPCIONES_HORA = SLOTS_DIA.map(slot => {
+    const h = Math.floor(slot.indice / 2);
+    const m = slot.indice % 2 === 0 ? '00' : '30';
+    return { valor: `${String(h).padStart(2, '0')}:${m}`, label: slot.label };
+});
+
 // Prellenar de "HH:MM" a "HH:MM" (para arrancar cada día con horas típicas;
 // la dueña luego agrega o quita slots individuales).
 function rangoHorarioAIndices(horaInicio, horaFin) {
@@ -74,7 +83,10 @@ function crearServicioWizard(moneda = 'CUP') {
         requiere_anticipo: false,
         tipo_anticipo: 'fijo',
         valor_anticipo: '',
-        horarios_permitidos: ''
+        horarios_permitidos: '',
+        // Solo controla si se muestra el campo de abajo; no se envia a la
+        // base de datos (handleGuardar solo lee horarios_permitidos).
+        mostrar_horarios_especiales: false
     };
 }
 
@@ -95,7 +107,16 @@ function SetupWizard() {
     const [progresoGuardado, setProgresoGuardado] = React.useState('');
     const [error, setError] = React.useState('');
     const [exito, setExito] = React.useState(false);
-    const [diaEditando, setDiaEditando] = React.useState('lunes');
+    // Arranca en null: la lista de dias se ve cerrada y ordenada. Antes
+    // arrancaba con lunes abierto, mostrando de golpe una grilla de 48
+    // franjas — justo lo que abruma a quien no es de tecnologia.
+    const [diaEditando, setDiaEditando] = React.useState(null);
+    // Horario rapido: la mayoria de los salones abren y cierran a la misma
+    // hora casi todos los dias. Con esto lo definen una vez y se aplica a
+    // todos, en vez de marcar franja por franja en cada dia.
+    const [horaApertura, setHoraApertura] = React.useState('09:00');
+    const [horaCierre, setHoraCierre] = React.useState('18:00');
+    const [avisoHorario, setAvisoHorario] = React.useState('');
 
     const DIAS = idioma === 'en' ? [
         { id: 'lunes', corto: 'Mon', nombre: 'Monday' },
@@ -128,7 +149,12 @@ function SetupWizard() {
         provincia: '',
         municipio: '',
         // Paso 2: profesionales
-        profesionales: [crearProfesionalWizard()],
+        // El primer profesional que se agrega aqui es, casi siempre, la
+        // propia dueña configurando su negocio: arranca en Avanzado (nivel 3)
+        // para que no tenga que descubrir por su cuenta que necesita subir su
+        // propio nivel de acceso para ver todo el panel. Los que se agreguen
+        // despues con "Añadir profesional" si arrancan en Basico (empleadas).
+        profesionales: [{ ...crearProfesionalWizard(), nivel: 3 }],
         // Paso 3: servicios
         servicios: [crearServicioWizard('CUP')],
         // Paso 4: horarios disponibles (lista de slots) independientes por día
@@ -371,6 +397,29 @@ function SetupWizard() {
         const origen = config.horarios_dias[diaOrigen];
         const actual = config.horarios_dias[diaDestino];
         setConfig({ ...config, horarios_dias: { ...config.horarios_dias, [diaDestino]: { ...actual, horas: [...origen.horas] } } });
+    };
+
+    // Aplica el mismo rango de horas a todos los dias activos de una vez.
+    // Es la forma rapida de configurar horarios: la mayoria de los salones
+    // abren y cierran a la misma hora casi todos los dias, asi que no tiene
+    // sentido obligar a marcar franja por franja en cada uno.
+    const aplicarHorarioRapido = () => {
+        const activos = diasActivos();
+        if (activos.length === 0) {
+            setAvisoHorario(t('Activa primero los dias en que trabajas (toca el dia para activarlo).'));
+            return;
+        }
+        const rango = rangoHorarioAIndices(horaApertura, horaCierre);
+        if (rango.length === 0) {
+            setAvisoHorario(t('La hora de cierre debe ser despues de la hora de apertura.'));
+            return;
+        }
+        setAvisoHorario('');
+        const nuevosHorarios = { ...config.horarios_dias };
+        activos.forEach(d => {
+            nuevosHorarios[d.id] = { ...nuevosHorarios[d.id], horas: [...rango] };
+        });
+        setConfig({ ...config, horarios_dias: nuevosHorarios });
     };
 
     const handleLogoChange = (e) => {
@@ -892,6 +941,9 @@ function SetupWizard() {
                                     <input type="tel" value={p.telefono} onChange={(e) => actualizarProfesional(i, 'telefono', window.normalizarTelefonoLocal ? window.normalizarTelefonoLocal(e.target.value, config.codigo_pais) : e.target.value.replace(/\D/g, ''))} className="w-full border rounded-lg px-3 py-2" placeholder={'WhatsApp +' + config.codigo_pais} />
                                     <input type="password" value={p.password} onChange={(e) => actualizarProfesional(i, 'password', e.target.value)} className="w-full border rounded-lg px-3 py-2" placeholder={t('Contrasena de acceso *')} />
                                 </div>
+                                <p className="text-xs text-gray-500 -mt-2">
+                                    {t('👑 Avanzado ve todo el negocio (recomendado si es la dueña). ⭐ Intermedio ve agenda y clientes. 🔰 Basico solo ve su propia agenda.')}
+                                </p>
                                 <div className="grid grid-cols-2 gap-3">
                                     <select value={p.avatar} onChange={(e) => actualizarProfesional(i, 'avatar', e.target.value)} className="w-full border rounded-lg px-3 py-2 bg-white">
                                         {['👤','💇','💅','👑','⭐','🔰'].map(a => <option key={a} value={a}>{a}</option>)}
@@ -946,8 +998,34 @@ function SetupWizard() {
                                         </div>
                                     )}
                                 </div>
-                                <input value={s.horarios_permitidos} onChange={(e) => actualizarServicio(i, 'horarios_permitidos', e.target.value)} className="w-full border rounded-lg px-3 py-2" placeholder={t('Horarios permitidos: 09:00, 11:00')} />
-                                <p className="text-xs text-gray-400">{t('Dejalo vacio para usar todos los horarios del profesional.')}</p>
+                                <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 space-y-3">
+                                    <label className="flex items-center justify-between gap-3 cursor-pointer">
+                                        <span className="text-sm font-semibold text-gray-700">{t('Este servicio solo se reserva en horarios especiales')}</span>
+                                        <input
+                                            type="checkbox"
+                                            checked={s.mostrar_horarios_especiales}
+                                            onChange={(e) => {
+                                                const marcado = e.target.checked;
+                                                // Una sola actualizacion con ambos campos a la vez: llamar
+                                                // actualizarServicio() dos veces seguidas pisaria el primer
+                                                // cambio, porque las dos leerian el mismo config sin actualizar.
+                                                const nuevos = config.servicios.map((s2, idx) => idx === i
+                                                    ? { ...s2, mostrar_horarios_especiales: marcado, horarios_permitidos: marcado ? s2.horarios_permitidos : '' }
+                                                    : s2);
+                                                setConfig({ ...config, servicios: nuevos });
+                                            }}
+                                            className="w-5 h-5 text-amber-600"
+                                        />
+                                    </label>
+                                    {s.mostrar_horarios_especiales ? (
+                                        <div>
+                                            <input value={s.horarios_permitidos} onChange={(e) => actualizarServicio(i, 'horarios_permitidos', e.target.value)} className="w-full border rounded-lg px-3 py-2" placeholder={t('Ej: 09:00, 11:00, 15:00')} />
+                                            <p className="text-xs text-gray-400 mt-1">{t('Escribe las horas exactas separadas por coma.')}</p>
+                                        </div>
+                                    ) : (
+                                        <p className="text-xs text-gray-500">{t('La mayoria de los servicios no necesita esto: se reserva en cualquier horario del profesional.')}</p>
+                                    )}
+                                </div>
                             </div>
                         ))}
                     </div>
@@ -955,9 +1033,41 @@ function SetupWizard() {
 
                 {/* Paso 4: Horarios disponibles (grilla de slots) por día */}
                 {step === 4 && (
-                    <div className="bg-white rounded-xl shadow-sm p-6 space-y-3 animate-fade-in">
-                        <h2 className="text-xl font-bold mb-1">🕐 {t('Horarios disponibles')}</h2>
-                        <p className="text-sm text-gray-500 mb-3">{t('Activa cada día y marca las horas en las que atiendes. Cada hora marcada es un turno que la clienta podrá reservar.')}</p>
+                    <div className="bg-white rounded-xl shadow-sm p-6 space-y-4 animate-fade-in">
+                        <div>
+                            <h2 className="text-xl font-bold mb-1">🕐 {t('Horarios disponibles')}</h2>
+                            <p className="text-sm text-gray-500">{t('Elige tu horario una vez y aplícalo a todos tus días. Si algún día es diferente, lo ajustas más abajo.')}</p>
+                        </div>
+
+                        <div className="rounded-xl border-2 border-amber-300 bg-amber-50 p-4 space-y-3">
+                            <div className="flex items-start gap-2">
+                                <span className="text-xl" aria-hidden="true">⚡</span>
+                                <div>
+                                    <h3 className="font-bold text-amber-900">{t('Horario rápido')}</h3>
+                                    <p className="text-xs text-amber-800 mt-0.5">{t('¿A qué hora abres y cierras casi todos los días?')}</p>
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="block text-xs font-semibold text-amber-900 mb-1">{t('Abro a las')}</label>
+                                    <select value={horaApertura} onChange={(e) => setHoraApertura(e.target.value)} className="w-full border border-amber-200 rounded-lg px-3 py-2 bg-white">
+                                        {OPCIONES_HORA.map(op => <option key={op.valor} value={op.valor}>{op.label}</option>)}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-semibold text-amber-900 mb-1">{t('Cierro a las')}</label>
+                                    <select value={horaCierre} onChange={(e) => setHoraCierre(e.target.value)} className="w-full border border-amber-200 rounded-lg px-3 py-2 bg-white">
+                                        {OPCIONES_HORA.map(op => <option key={op.valor} value={op.valor}>{op.label}</option>)}
+                                    </select>
+                                </div>
+                            </div>
+                            {avisoHorario && <p className="text-xs font-semibold text-red-600">{avisoHorario}</p>}
+                            <button type="button" onClick={aplicarHorarioRapido} className="w-full px-4 py-2.5 bg-amber-600 text-white rounded-lg font-semibold hover:bg-amber-700 transition">
+                                {t('Aplicar a mis días de trabajo')}
+                            </button>
+                        </div>
+
+                        <p className="text-sm font-semibold text-gray-700">{t('¿Algún día es diferente? Ajústalo aquí:')}</p>
 
                         {DIAS.map(d => {
                             const cfg = config.horarios_dias[d.id];
