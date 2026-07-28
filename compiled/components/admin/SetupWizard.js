@@ -72,7 +72,7 @@ function SetupWizard() {
   window.useIdioma();
   const t = window.t;
   const idioma = window.getIdioma ? window.getIdioma() : "es";
-  const [step, setStep] = React.useState(1);
+  const [step, setStep] = React.useState(0);
   const [negocioId, setNegocioId] = React.useState(null);
   const [monedaSugerida, setMonedaSugerida] = React.useState("CUP");
   const [cargando, setCargando] = React.useState(true);
@@ -222,17 +222,6 @@ function SetupWizard() {
       const anticipoInvalido = config.servicios.find((s) => s.nombre.trim() && s.requiere_anticipo && precioNumerico(s.valor_anticipo) <= 0);
       if (anticipoInvalido) return t("El anticipo del servicio debe ser mayor que cero");
       return "";
-    }
-    if (step === 1) {
-      if (!config.nombre.trim()) return t("El nombre del negocio es obligatorio");
-      if (!config.telefono_whatsapp || config.telefono_whatsapp.length < 8) return t("El teléfono debe tener 8 dígitos");
-      if (config.email && !config.email.includes("@")) return t("El email no es válido");
-    }
-    if (step === 2) {
-      if (profesionalesValidos().length === 0) return t("Agrega al menos un profesional con WhatsApp y contrasena");
-    }
-    if (step === 3) {
-      if (serviciosValidos().length === 0) return t("Agrega al menos un servicio con nombre y precio");
     }
     if (step === 4) {
       const activos = diasActivos();
@@ -563,12 +552,6 @@ function SetupWizard() {
       setProgresoGuardado("");
     }
   };
-  if (cargando) {
-    return /* @__PURE__ */ React.createElement("div", { className: "min-h-screen flex items-center justify-center" }, /* @__PURE__ */ React.createElement("div", { className: "animate-spin rounded-full h-12 w-12 border-b-2 border-amber-500" }));
-  }
-  if (exito) {
-    return /* @__PURE__ */ React.createElement("div", { className: "min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-emerald-100" }, /* @__PURE__ */ React.createElement("div", { className: "bg-white p-8 rounded-2xl shadow-xl max-w-md text-center animate-fade-in" }, /* @__PURE__ */ React.createElement("div", { className: "text-6xl mb-4" }, "🎉"), /* @__PURE__ */ React.createElement("h2", { className: "text-2xl font-bold text-gray-900 mb-2" }, t("¡Tu salón está listo!")), /* @__PURE__ */ React.createElement("p", { className: "text-gray-600 mb-4" }, t("Ya puedes recibir reservas. Redirigiendo al panel...")), /* @__PURE__ */ React.createElement("div", { className: "animate-spin h-6 w-6 border-2 border-green-500 border-t-transparent rounded-full mx-auto" })));
-  }
   const PASOS = [
     t("Negocio"),
     t("Profesional"),
@@ -576,6 +559,24 @@ function SetupWizard() {
     t("Horarios"),
     t("Listo")
   ];
+  if (cargando) {
+    return /* @__PURE__ */ React.createElement("div", { className: "min-h-screen flex items-center justify-center" }, /* @__PURE__ */ React.createElement("div", { className: "animate-spin rounded-full h-12 w-12 border-b-2 border-amber-500" }));
+  }
+  if (exito) {
+    return /* @__PURE__ */ React.createElement("div", { className: "min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-emerald-100" }, /* @__PURE__ */ React.createElement("div", { className: "bg-white p-8 rounded-2xl shadow-xl max-w-md text-center animate-fade-in" }, /* @__PURE__ */ React.createElement("div", { className: "text-6xl mb-4" }, "🎉"), /* @__PURE__ */ React.createElement("h2", { className: "text-2xl font-bold text-gray-900 mb-2" }, t("¡Tu salón está listo!")), /* @__PURE__ */ React.createElement("p", { className: "text-gray-600 mb-4" }, t("Ya puedes recibir reservas. Redirigiendo al panel...")), /* @__PURE__ */ React.createElement("div", { className: "animate-spin h-6 w-6 border-2 border-green-500 border-t-transparent rounded-full mx-auto" })));
+  }
+  if (step === 0) {
+    return /* @__PURE__ */ React.createElement("div", { className: "min-h-screen bg-gradient-to-br from-amber-50 to-orange-100 flex items-center justify-center px-4 py-12" }, /* @__PURE__ */ React.createElement("div", { className: "max-w-md w-full bg-white rounded-2xl shadow-xl p-8 text-center animate-fade-in" }, /* @__PURE__ */ React.createElement("div", { className: "flex justify-end mb-2 -mt-2 -mr-2" }, /* @__PURE__ */ React.createElement(window.LanguageToggle, null)), /* @__PURE__ */ React.createElement("div", { className: "w-16 h-16 bg-amber-600 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4" }, "💅"), /* @__PURE__ */ React.createElement("h1", { className: "text-2xl font-bold text-gray-900" }, t("¡Vamos a dejar tu salón listo!")), /* @__PURE__ */ React.createElement("p", { className: "text-gray-600 mt-3 leading-relaxed" }, t("Para que tus clientas puedan reservar necesitamos algunos datos: tu negocio, quien atiende, que servicios ofreces y tus horarios. Puedes cambiar todo despues desde el panel.")), /* @__PURE__ */ React.createElement("div", { className: "mt-6 space-y-2 text-left" }, PASOS.map((nombre, i) => /* @__PURE__ */ React.createElement("div", { key: nombre, className: "flex items-center gap-3 text-sm text-gray-700" }, /* @__PURE__ */ React.createElement("span", { className: "w-6 h-6 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center text-xs font-bold shrink-0" }, i + 1), nombre))), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 mt-5" }, t("Toma unos minutos. Vamos paso a paso.")), /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        type: "button",
+        onClick: () => setStep(1),
+        className: "mt-6 w-full px-6 py-3 bg-amber-600 text-white rounded-lg font-semibold hover:bg-amber-700 transition"
+      },
+      t("Empezar"),
+      " →"
+    )));
+  }
   return /* @__PURE__ */ React.createElement("div", { className: "min-h-screen bg-gray-100 py-12 px-4" }, /* @__PURE__ */ React.createElement("div", { className: "max-w-3xl mx-auto" }, /* @__PURE__ */ React.createElement("div", { className: "flex justify-end mb-2" }, /* @__PURE__ */ React.createElement(window.LanguageToggle, null)), /* @__PURE__ */ React.createElement("div", { className: "text-center mb-8" }, /* @__PURE__ */ React.createElement("div", { className: "flex justify-center mb-4" }, /* @__PURE__ */ React.createElement("div", { className: "w-16 h-16 bg-amber-600 rounded-2xl flex items-center justify-center text-3xl" }, "💅")), /* @__PURE__ */ React.createElement("h1", { className: "text-3xl font-bold text-gray-900" }, t("Configura tu salón")), /* @__PURE__ */ React.createElement("p", { className: "text-gray-600 mt-2" }, t("Unos pasos rápidos y empiezas a recibir reservas"))), /* @__PURE__ */ React.createElement("div", { className: "flex justify-between mb-8" }, [1, 2, 3, 4, 5].map((s) => /* @__PURE__ */ React.createElement("div", { key: s, className: "flex-1 text-center" }, /* @__PURE__ */ React.createElement("div", { className: `
                                 w-10 h-10 rounded-full mx-auto flex items-center justify-center font-bold transition-all
                                 ${s === step ? "bg-amber-600 text-white shadow-md scale-110" : s < step ? "bg-green-500 text-white" : "bg-gray-200 text-gray-600"}

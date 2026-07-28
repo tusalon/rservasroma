@@ -82,7 +82,12 @@ function SetupWizard() {
     window.useIdioma();
     const t = window.t;
     const idioma = window.getIdioma ? window.getIdioma() : 'es';
-    const [step, setStep] = React.useState(1);
+    // Arranca en 0: pantalla de bienvenida antes del Paso 1. Sin esto, la
+    // primera vez que una admin nueva entra pasaba directo de "iniciar sesion"
+    // a un formulario en blanco, sin ningun aviso de que iba a pasar ni
+    // cuanto iba a tardar — se sentia mas como un tramite que como algo
+    // acompañado.
+    const [step, setStep] = React.useState(0);
     const [negocioId, setNegocioId] = React.useState(null);
     const [monedaSugerida, setMonedaSugerida] = React.useState('CUP');
     const [cargando, setCargando] = React.useState(true);
@@ -253,17 +258,6 @@ function SetupWizard() {
             const anticipoInvalido = config.servicios.find(s => s.nombre.trim() && s.requiere_anticipo && precioNumerico(s.valor_anticipo) <= 0);
             if (anticipoInvalido) return t('El anticipo del servicio debe ser mayor que cero');
             return '';
-        }
-        if (step === 1) {
-            if (!config.nombre.trim()) return t('El nombre del negocio es obligatorio');
-            if (!config.telefono_whatsapp || config.telefono_whatsapp.length < 8) return t('El teléfono debe tener 8 dígitos');
-            if (config.email && !config.email.includes('@')) return t('El email no es válido');
-        }
-        if (step === 2) {
-            if (profesionalesValidos().length === 0) return t('Agrega al menos un profesional con WhatsApp y contrasena');
-        }
-        if (step === 3) {
-            if (serviciosValidos().length === 0) return t('Agrega al menos un servicio con nombre y precio');
         }
         if (step === 4) {
             const activos = diasActivos();
@@ -648,6 +642,14 @@ function SetupWizard() {
         }
     };
 
+    const PASOS = [
+        t('Negocio'),
+        t('Profesional'),
+        t('Servicios'),
+        t('Horarios'),
+        t('Listo')
+    ];
+
     if (cargando) {
         return (
             <div className="min-h-screen flex items-center justify-center">
@@ -671,13 +673,45 @@ function SetupWizard() {
         );
     }
 
-    const PASOS = [
-        t('Negocio'),
-        t('Profesional'),
-        t('Servicios'),
-        t('Horarios'),
-        t('Listo')
-    ];
+    // Bienvenida antes del Paso 1: explica en dos lineas que va a pasar y
+    // cuanto tarda, con el mismo listado de pasos que despues se ve arriba
+    // como barra de progreso, para que no sea sorpresa. Se ve una sola vez
+    // por sesion del wizard (no vuelve a aparecer si retrocede, porque el
+    // boton "Atras" solo existe desde el Paso 2 en adelante).
+    if (step === 0) {
+        return (
+            <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100 flex items-center justify-center px-4 py-12">
+                <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 text-center animate-fade-in">
+                    <div className="flex justify-end mb-2 -mt-2 -mr-2">
+                        <window.LanguageToggle />
+                    </div>
+                    <div className="w-16 h-16 bg-amber-600 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4">
+                        💅
+                    </div>
+                    <h1 className="text-2xl font-bold text-gray-900">{t('¡Vamos a dejar tu salón listo!')}</h1>
+                    <p className="text-gray-600 mt-3 leading-relaxed">
+                        {t('Para que tus clientas puedan reservar necesitamos algunos datos: tu negocio, quien atiende, que servicios ofreces y tus horarios. Puedes cambiar todo despues desde el panel.')}
+                    </p>
+                    <div className="mt-6 space-y-2 text-left">
+                        {PASOS.map((nombre, i) => (
+                            <div key={nombre} className="flex items-center gap-3 text-sm text-gray-700">
+                                <span className="w-6 h-6 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center text-xs font-bold shrink-0">{i + 1}</span>
+                                {nombre}
+                            </div>
+                        ))}
+                    </div>
+                    <p className="text-xs text-gray-400 mt-5">{t('Toma unos minutos. Vamos paso a paso.')}</p>
+                    <button
+                        type="button"
+                        onClick={() => setStep(1)}
+                        className="mt-6 w-full px-6 py-3 bg-amber-600 text-white rounded-lg font-semibold hover:bg-amber-700 transition"
+                    >
+                        {t('Empezar')} →
+                    </button>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-gray-100 py-12 px-4">
