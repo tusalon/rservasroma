@@ -37,7 +37,7 @@ function Header({ cliente, onLogout, onMisReservas, onGoBack, userRol, showBackB
                         </button>
                     )}
 
-                    <div className="w-8 h-8 bg-amber-600 rounded-full flex items-center justify-center text-white">
+                    <div className="w-8 h-8 bg-pink-600 rounded-full flex items-center justify-center text-white">
                         <i className="icon-calendar text-lg"></i>
                     </div>
                     <h1 className="text-xl font-bold text-gray-800">{nombreNegocio}</h1>
@@ -54,7 +54,7 @@ function Header({ cliente, onLogout, onMisReservas, onGoBack, userRol, showBackB
                     {cliente && onMisReservas && userRol === 'cliente' && (
                         <button
                             onClick={onMisReservas}
-                            className="flex items-center gap-2 bg-amber-100 hover:bg-amber-200 text-amber-700 px-3 py-2 rounded-full transition-all"
+                            className="flex items-center gap-2 bg-pink-100 hover:bg-pink-200 text-pink-700 px-3 py-2 rounded-full transition-all"
                             title={t('Mis Reservas')}
                         >
                             <i className="icon-calendar"></i>

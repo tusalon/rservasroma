@@ -946,7 +946,7 @@ function SetupWizard() {
                                 <h2 className="text-xl font-bold mb-1">💅 {t('Servicios')}</h2>
                                 <p className="text-sm text-gray-500 mb-3">{t('Empieza con uno y agrega los que necesites con precio, duracion y reglas.')}</p>
                             </div>
-                            <button type="button" onClick={agregarServicio} className="px-3 py-2 bg-pink-600 text-white rounded-lg text-sm font-semibold hover:bg-pink-700">{t('Anadir servicio')}</button>
+                            <button type="button" onClick={agregarServicio} className="px-3 py-2 bg-pink-600 text-white rounded-full text-sm font-semibold hover:bg-pink-700">{t('Anadir servicio')}</button>
                         </div>
                         {config.servicios.map((s, i) => (
                             <div key={i} className="border rounded-xl p-4 space-y-3 bg-gray-50">

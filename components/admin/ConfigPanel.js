@@ -274,7 +274,7 @@ function ConfigPanel({ profesionalId, modoRestringido }) {
             )}
             
             {/* SECCIÓN DEL PROFESIONAL */}
-            <div className="mb-6 p-4 border rounded-lg bg-white shadow-sm mt-6">
+            <div className="mb-6 p-4 border rounded-xl bg-white shadow-sm mt-6">
                 <h3 className="font-semibold text-lg mb-4">👥 {t('Configuración del Profesional')}</h3>
 
                 {!modoRestringido && (

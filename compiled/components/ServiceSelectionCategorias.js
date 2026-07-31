@@ -246,7 +246,7 @@ function ServiceSelection({ onSelect, selectedService }) {
     {
       type: "button",
       onClick: continuar,
-      className: "bg-pink-600 text-white px-5 py-3 rounded-xl font-bold hover:bg-pink-700 transition"
+      className: "bg-pink-600 text-white px-5 py-3 rounded-full font-bold hover:bg-pink-700 transition"
     },
     t("Continuar")
   ))), imagenAmpliada && /* @__PURE__ */ React.createElement(

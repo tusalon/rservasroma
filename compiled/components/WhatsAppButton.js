@@ -21,6 +21,6 @@ function WhatsAppButton() {
       title: t("Chat en WhatsApp")
     },
     /* @__PURE__ */ React.createElement("div", { className: "icon-message-circle text-3xl" }),
-    /* @__PURE__ */ React.createElement("span", { className: "absolute right-full mr-3 bg-gray-800 text-amber-400 px-3 py-1 rounded-lg text-sm font-medium shadow-sm opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none border border-amber-600" }, t("¡Agenda tu turno!"))
+    /* @__PURE__ */ React.createElement("span", { className: "absolute right-full mr-3 bg-gray-800 text-white px-3 py-1 rounded-lg text-sm font-medium shadow-sm opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none border border-gray-600" }, t("¡Agenda tu turno!"))
   );
 }

@@ -1,6 +1,6 @@
 // sw.js - Service Worker para Rservasroma
 
-const CACHE_NAME = 'rservasroma-v75';
+const CACHE_NAME = 'rservasroma-v77';
 const BASE = '/rservasroma';
 
 const urlsToCache = [
@@ -29,7 +29,7 @@ const urlsToCache = [
   `${BASE}/utils/hero-backgrounds.js?v=20260723-fotos`,
   `${BASE}/utils/native-push-notifications.js?v=20260722-platform-v4`,
   `${BASE}/utils/offline-panel.js`,
-  `${BASE}/utils/config-negocio-master.js?v=20260727-admin-slug1`,
+  `${BASE}/utils/config-negocio-master.js?v=20260731-marca`,
   `${BASE}/utils/i18n.js?v=20260727-romahub-sync1`,
   `${BASE}/utils/cuba-geo.js?v=20260727-wizard-ubicacion1`,
   `${BASE}/utils/phone-utils.js`,
@@ -42,34 +42,35 @@ const urlsToCache = [
   `${BASE}/utils/supabase-config.js?v=20260723-fotos`,
   `${BASE}/utils/timeLogic.js`,
   `${BASE}/utils/whatsapp-helper.js?v=20260722-lista-espera-cliente`,
-  `${BASE}/utils/legacy-ios-fallback.css`,
+  `${BASE}/utils/legacy-ios-fallback.css?v=20260731-marca`,
+  `${BASE}/utils/roma-theme.js?v=20260731-marca`,
 
   // Componentes cliente (compilados)
   `${BASE}/compiled/components/BookingForm.js?v=20260723-jsx1`,
   `${BASE}/compiled/components/Calendar.js?v=20260723-jsx1`,
-  `${BASE}/compiled/components/ClientAuthScreen.js?v=20260727-admin-slug1`,
-  `${BASE}/compiled/components/Confirmation.js?v=20260723-jsx1`,
-  `${BASE}/compiled/components/Header.js?v=20260727-admin-slug1`,
+  `${BASE}/compiled/components/ClientAuthScreen.js?v=20260731-marca`,
+  `${BASE}/compiled/components/Confirmation.js?v=20260731-marca`,
+  `${BASE}/compiled/components/Header.js?v=20260731-marca`,
   `${BASE}/compiled/components/InstallButton.js?v=20260723-jsx1`,
   `${BASE}/compiled/components/MultiProfesionalSelector.js?v=20260723-jsx1`,
   `${BASE}/compiled/components/MultiTimeSlots.js?v=20260723-jsx1`,
-  `${BASE}/compiled/components/MyBookings.js?v=20260723-jsx1`,
+  `${BASE}/compiled/components/MyBookings.js?v=20260731-marca`,
   `${BASE}/compiled/components/ProfesionalSelector.js?v=20260723-jsx1`,
-  `${BASE}/compiled/components/ServiceSelectionCategorias.js?v=20260723-fotos3`,
+  `${BASE}/compiled/components/ServiceSelectionCategorias.js?v=20260731-marca`,
   `${BASE}/compiled/components/TimeSlots.js?v=20260723-jsx1`,
   `${BASE}/compiled/components/WelcomeScreen.js?v=20260723-fotos`,
-  `${BASE}/compiled/components/WhatsAppButton.js?v=20260723-jsx1`,
+  `${BASE}/compiled/components/WhatsAppButton.js?v=20260731-marca`,
 
   // Componentes admin (compilados)
-  `${BASE}/compiled/components/admin/ConfigPanel.js?v=20260723-jsx1`,
-  `${BASE}/compiled/components/admin/RomaHubActivacion.js?v=20260727-romahub-sync1`,
+  `${BASE}/compiled/components/admin/ConfigPanel.js?v=20260731-marca`,
+  `${BASE}/compiled/components/admin/RomaHubActivacion.js?v=20260731-marca`,
   `${BASE}/compiled/components/admin/EditarNegocio.js?v=20260727-admin-slug1`,
   `${BASE}/compiled/components/admin/HorariosPorDiaPanel.js?v=20260723-jsx1`,
   `${BASE}/compiled/components/admin/HorariosExcepcionPanel.js?v=20260723-jsx1`,
   `${BASE}/compiled/components/admin/ProfesionalesPanel.js?v=20260723-jsx1`,
   `${BASE}/compiled/components/admin/ImportarServicios.js?v=20260723-jsx1`,
-  `${BASE}/compiled/components/admin/ServiciosPanelCategorias.js?v=20260723-fotos`,
-  `${BASE}/compiled/components/admin/SetupWizard.js?v=20260728-turnos1`,
+  `${BASE}/compiled/components/admin/ServiciosPanelCategorias.js?v=20260731-marca`,
+  `${BASE}/compiled/components/admin/SetupWizard.js?v=20260731-marca`,
 
   // Vendors (sin babel.min.js: ya no se transpila en el navegador)
   `${BASE}/vendor/react.production.min.js`,

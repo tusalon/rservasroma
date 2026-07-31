@@ -229,7 +229,7 @@ function Confirmation({ booking, onReset }) {
 
                 <button
                     onClick={onReset}
-                    className="w-full bg-pink-500 text-white py-4 rounded-xl font-bold hover:bg-pink-600 transition-colors flex items-center justify-center gap-2 text-lg shadow-md"
+                    className="w-full bg-pink-500 text-white py-4 rounded-full font-bold hover:bg-pink-600 transition-colors flex items-center justify-center gap-2 text-lg shadow-md"
                 >
                     <span>✨</span>
                     {t('Reservar otro turno')}

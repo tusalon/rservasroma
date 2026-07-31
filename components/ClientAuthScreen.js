@@ -451,7 +451,7 @@ function ClientAuthScreen({ onAccessGranted, onGoBack }) {
                                 <button
                                     type="submit"
                                     disabled={verificando}
-                                    className="w-full bg-pink-500 text-white py-4 rounded-xl font-bold hover:bg-pink-600 transition-all duration-300 transform hover:scale-[1.02] hover:shadow-xl active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg text-lg border border-pink-200/70"
+                                    className="w-full bg-pink-500 text-white py-4 rounded-full font-bold hover:bg-pink-600 transition-all duration-300 transform hover:scale-[1.02] hover:shadow-xl active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg text-lg border border-pink-200/70"
                                 >
                                     <span className="text-xl">{necesitaNombre ? '💅' : '📱'}</span>
                                     {verificando ? t('Verificando...') : necesitaNombre ? t('Registrarme y reservar') : t('Continuar')}

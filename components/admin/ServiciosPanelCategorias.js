@@ -229,7 +229,7 @@ function ServiciosPanel() {
                         <button onClick={() => setMostrarCategorias(!mostrarCategorias)} className="border border-pink-200 text-pink-700 px-4 py-3 rounded-lg hover:bg-pink-50 font-semibold">
                             ⚙️ {t('Categorías')}
                         </button>
-                        <button onClick={() => abrirFormularioServicio()} className="bg-pink-600 text-white px-4 py-3 rounded-lg hover:bg-pink-700 font-semibold shadow-sm">
+                        <button onClick={() => abrirFormularioServicio()} className="bg-pink-600 text-white px-4 py-3 rounded-full hover:bg-pink-700 font-semibold shadow-sm">
                             + {t('Nuevo servicio')}
                         </button>
                     </div>
@@ -442,7 +442,7 @@ function CategoriasServiciosManager({ categorias, servicios, onChange }) {
                         <input value={form.orden} onChange={(e) => setForm({...form, orden: e.target.value.replace(/\D/g, '')})} className="w-full border border-gray-200 rounded-lg px-3 py-2" placeholder={t('Orden')} inputMode="numeric" />
                     </div>
                     <div className="flex gap-2">
-                        <button type="submit" className="flex-1 bg-pink-600 text-white px-3 py-2 rounded-lg hover:bg-pink-700">{editando ? t('Actualizar') : t('Crear')}</button>
+                        <button type="submit" className="flex-1 bg-pink-600 text-white px-3 py-2 rounded-full hover:bg-pink-700">{editando ? t('Actualizar') : t('Crear')}</button>
                         {editando && <button type="button" onClick={reset} className="px-3 py-2 border rounded-lg hover:bg-gray-50">{t('Cancelar')}</button>}
                     </div>
                 </form>
@@ -586,7 +586,7 @@ function ServicioFormCategorias({ servicio, categorias, onGuardar, onCancelar })
                                     type="button"
                                     onClick={() => document.getElementById('servicio-imagen-input').click()}
                                     disabled={subiendoImagen}
-                                    className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-pink-600 text-white hover:bg-pink-700 disabled:opacity-60"
+                                    className="px-3 py-1.5 text-xs font-semibold rounded-full bg-pink-600 text-white hover:bg-pink-700 disabled:opacity-60"
                                 >
                                     {subiendoImagen ? t('Subiendo...') : form.imagen ? t('Cambiar foto') : t('Subir foto')}
                                 </button>
@@ -647,7 +647,7 @@ function ServicioFormCategorias({ servicio, categorias, onGuardar, onCancelar })
 
             <div className="flex flex-col sm:flex-row justify-end gap-2 mt-5 pt-4 border-t">
                 <button type="button" onClick={onCancelar} className="px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50">{t('Cancelar')}</button>
-                <button type="submit" className="px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 font-semibold">{servicio ? t('Actualizar servicio') : t('Guardar servicio')}</button>
+                <button type="submit" className="px-4 py-2 bg-pink-600 text-white rounded-full hover:bg-pink-700 font-semibold">{servicio ? t('Actualizar servicio') : t('Guardar servicio')}</button>
             </div>
         </form>
     );
@@ -792,7 +792,7 @@ function AsignarProfesionalesModal({ servicio, onClose }) {
                         </div>
                         <button
                             onClick={onClose}
-                            className="px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700"
+                            className="px-4 py-2 bg-pink-600 text-white rounded-full hover:bg-pink-700"
                         >
                             {t('Cerrar')}
                         </button>

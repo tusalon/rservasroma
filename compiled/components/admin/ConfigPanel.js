@@ -184,7 +184,7 @@ function ConfigPanel({ profesionalId, modoRestringido }) {
       className: "bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700 transition text-sm"
     },
     t("Guardar Configuración Global")
-  )), /* @__PURE__ */ React.createElement(DiasCerradosGlobalesPanel, null)), /* @__PURE__ */ React.createElement("div", { className: "mb-6 p-4 border rounded-lg bg-white shadow-sm mt-6" }, /* @__PURE__ */ React.createElement("h3", { className: "font-semibold text-lg mb-4" }, "👥 ", t("Configuración del Profesional")), !modoRestringido && /* @__PURE__ */ React.createElement("div", { className: "mb-4" }, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-2" }, t("Seleccionar Profesional")), /* @__PURE__ */ React.createElement("div", { className: "flex gap-2" }, /* @__PURE__ */ React.createElement(
+  )), /* @__PURE__ */ React.createElement(DiasCerradosGlobalesPanel, null)), /* @__PURE__ */ React.createElement("div", { className: "mb-6 p-4 border rounded-xl bg-white shadow-sm mt-6" }, /* @__PURE__ */ React.createElement("h3", { className: "font-semibold text-lg mb-4" }, "👥 ", t("Configuración del Profesional")), !modoRestringido && /* @__PURE__ */ React.createElement("div", { className: "mb-4" }, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-2" }, t("Seleccionar Profesional")), /* @__PURE__ */ React.createElement("div", { className: "flex gap-2" }, /* @__PURE__ */ React.createElement(
     "select",
     {
       value: profesionalSeleccionado || "",

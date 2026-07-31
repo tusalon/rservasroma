@@ -82,7 +82,7 @@ function RomaHubActivacion() {
     {
       type: "submit",
       disabled: cargando,
-      className: "mt-4 w-full bg-pink-600 text-white rounded-lg py-2.5 font-semibold text-sm hover:bg-pink-700 transition disabled:opacity-60"
+      className: "mt-4 w-full bg-pink-600 text-white rounded-full py-2.5 font-semibold text-sm hover:bg-pink-700 transition disabled:opacity-60"
     },
     cargando ? t("Verificando...") : t("Activar o sincronizar RomaHub")
   )), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-3" }, t("Por seguridad, la contraseña se verifica en el servidor y nunca se guarda ni se muestra.")));

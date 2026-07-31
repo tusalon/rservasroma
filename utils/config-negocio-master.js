@@ -208,7 +208,7 @@ function hexToRgbParts(hex, fallback = '236 72 153') {
     return `${parseInt(limpio.slice(0,2),16)} ${parseInt(limpio.slice(2,4),16)} ${parseInt(limpio.slice(4,6),16)}`;
 }
 
-function normalizarHexColor(hex, fallback = '#ec4899') {
+function normalizarHexColor(hex, fallback = '#FF1493') {
     const limpio = String(hex || '').replace('#', '').trim();
     return /^[0-9a-fA-F]{6}$/.test(limpio) ? `#${limpio}` : fallback;
 }
@@ -239,7 +239,7 @@ function asegurarColorVisible(hex, fallback = '#c0266f') {
 // 5. TEMA (idéntico al original)
 // ============================================================
 function aplicarTemaNegocio(config = {}) {
-    const primarioOriginal  = normalizarHexColor(config.color_primario,   '#ec4899');
+    const primarioOriginal  = normalizarHexColor(config.color_primario,   '#FF1493');
     const secundarioOriginal = normalizarHexColor(config.color_secundario, '#f9a8d4');
     const primario   = asegurarColorVisible(primarioOriginal, '#c0266f');
     const secundario = getLuminancia(secundarioOriginal) > 0.86 ? '#f9a8d4' : secundarioOriginal;
@@ -529,7 +529,7 @@ window.actualizarManifestPWA = function(config) {
     const slug     = window._rservasSlugActual;
     const nombre   = config.nombre || 'Mi Salón';
     const shortName = nombre.split(' ').slice(0, 2).join(' ');
-    const color    = config.color_primario || '#ec4899';
+    const color    = config.color_primario || '#FF1493';
     const startUrl = window.location.origin + window.location.pathname + '?s=' + slug;
 
     const manifestData = {

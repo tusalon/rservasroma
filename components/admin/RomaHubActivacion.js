@@ -134,7 +134,7 @@ function RomaHubActivacion() {
                 <button
                     type="submit"
                     disabled={cargando}
-                    className="mt-4 w-full bg-pink-600 text-white rounded-lg py-2.5 font-semibold text-sm hover:bg-pink-700 transition disabled:opacity-60"
+                    className="mt-4 w-full bg-pink-600 text-white rounded-full py-2.5 font-semibold text-sm hover:bg-pink-700 transition disabled:opacity-60"
                 >
                     {cargando ? t('Verificando...') : t('Activar o sincronizar RomaHub')}
                 </button>

@@ -659,7 +659,7 @@ function MyBookings({ cliente, onVolver }) {
                                 </button>
                                 <button onClick={handleGuardarReprogramacion}
                                     disabled={reprogramando || !reprogramacionFecha || !reprogramacionHora}
-                                    className="flex-1 py-2 rounded-lg bg-pink-500 text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed">
+                                    className="flex-1 py-2 rounded-full bg-pink-500 text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed">
                                     {reprogramando ? t('Guardando...') : t('Guardar cambio')}
                                 </button>
                             </div>
