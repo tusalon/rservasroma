@@ -1,6 +1,6 @@
 // sw.js - Service Worker para Rservasroma
 
-const CACHE_NAME = 'rservasroma-v77';
+const CACHE_NAME = 'rservasroma-v78';
 const BASE = '/rservasroma';
 
 const urlsToCache = [
@@ -42,8 +42,9 @@ const urlsToCache = [
   `${BASE}/utils/supabase-config.js?v=20260723-fotos`,
   `${BASE}/utils/timeLogic.js`,
   `${BASE}/utils/whatsapp-helper.js?v=20260722-lista-espera-cliente`,
-  `${BASE}/utils/legacy-ios-fallback.css?v=20260731-marca`,
-  `${BASE}/utils/roma-theme.js?v=20260731-marca`,
+  `${BASE}/utils/legacy-ios-fallback.css?v=20260731-tipografia`,
+  `${BASE}/utils/roma-typography.css?v=20260731-tipografia`,
+  `${BASE}/utils/roma-theme.js?v=20260731-tipografia`,
 
   // Componentes cliente (compilados)
   `${BASE}/compiled/components/BookingForm.js?v=20260723-jsx1`,
@@ -79,6 +80,7 @@ const urlsToCache = [
   `${BASE}/vendor/tailwind-browser.js`,
   `${BASE}/vendor/lucide/lucide.css`,
   `${BASE}/vendor/lucide/lucide.woff2`,
+  `${BASE}/vendor/fonts/inter-latin.woff2`,
 
   // Iconos
   `${BASE}/icons/icon-72x72.png`,

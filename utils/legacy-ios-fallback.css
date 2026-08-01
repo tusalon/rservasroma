@@ -13,7 +13,9 @@ html {
 body {
     min-height: 100svh;
     -webkit-text-size-adjust: 100%;
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    /* --font-brand lo define utils/roma-typography.css (Inter propia). El
+       stack de sistema queda como respaldo por si esa hoja no cargara. */
+    font-family: var(--font-brand, system-ui), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     background: #f9fafb;
     color: #111827;
 }
@@ -187,11 +189,14 @@ textarea {
 .border-pink-200, .border-pink-300, .border-pink-400 { border-color: var(--brand-secondary, #FFB5DD); }
 .border-amber-700 { border-color: #b45309; }
 
-.shadow { box-shadow: 0 1px 3px rgba(0,0,0,.12); }
-.shadow-md { box-shadow: 0 4px 12px rgba(0,0,0,.12); }
-.shadow-lg { box-shadow: 0 10px 22px rgba(0,0,0,.14); }
-.shadow-xl { box-shadow: 0 16px 32px rgba(0,0,0,.16); }
-.shadow-2xl { box-shadow: 0 24px 54px rgba(0,0,0,.22); }
+/* Sombras en dos capas con tinte azul-noche, iguales a las de roma-theme.js.
+   El tinte no es el color del salon a proposito: la app es white-label. */
+.shadow-sm { box-shadow: 0 1px 2px rgba(17,12,46,.05), 0 2px 6px rgba(17,12,46,.05); }
+.shadow { box-shadow: 0 1px 2px rgba(17,12,46,.05), 0 2px 6px rgba(17,12,46,.05); }
+.shadow-md { box-shadow: 0 2px 4px rgba(17,12,46,.04), 0 6px 16px rgba(17,12,46,.08); }
+.shadow-lg { box-shadow: 0 4px 8px rgba(17,12,46,.04), 0 12px 28px rgba(17,12,46,.10); }
+.shadow-xl { box-shadow: 0 8px 16px rgba(17,12,46,.05), 0 20px 44px rgba(17,12,46,.12); }
+.shadow-2xl { box-shadow: 0 16px 32px rgba(17,12,46,.08), 0 32px 68px rgba(17,12,46,.16); }
 
 .bg-white { background: #fff; }
 .bg-gray-50 { background: #f9fafb; }
@@ -249,11 +254,14 @@ textarea {
 .text-xs { font-size: .75rem; line-height: 1rem; }
 .text-sm { font-size: .875rem; line-height: 1.25rem; }
 .text-base { font-size: 1rem; line-height: 1.5rem; }
-.text-lg { font-size: 1.125rem; line-height: 1.75rem; }
-.text-xl { font-size: 1.25rem; line-height: 1.75rem; }
-.text-2xl { font-size: 1.5rem; line-height: 2rem; }
-.text-3xl { font-size: 1.875rem; line-height: 2.25rem; }
-.text-4xl { font-size: 2.25rem; line-height: 2.5rem; }
+/* El tracking negativo crece con el tamano: las sans-serif se ven sueltas de
+   20px para arriba. Los tamanos de cuerpo (xs/sm/base) no se tocan. */
+.text-lg { font-size: 1.125rem; line-height: 1.75rem; letter-spacing: -.008em; }
+.text-xl { font-size: 1.25rem; line-height: 1.75rem; letter-spacing: -.014em; }
+.text-2xl { font-size: 1.5rem; line-height: 2rem; letter-spacing: -.021em; }
+.text-3xl { font-size: 1.875rem; line-height: 2.25rem; letter-spacing: -.024em; }
+.text-4xl { font-size: 2.25rem; line-height: 2.5rem; letter-spacing: -.028em; }
+.text-5xl { font-size: 3rem; line-height: 1; letter-spacing: -.032em; }
 .font-normal { font-weight: 400; }
 .font-medium { font-weight: 500; }
 .font-semibold { font-weight: 600; }
@@ -369,6 +377,191 @@ button {
 @keyframes legacyFadeIn {
     from { opacity: 0; transform: translateY(8px); }
     to { opacity: 1; transform: translateY(0); }
+}
+
+/* ==================================================================
+   Huecos detectados al auditar este respaldo contra components/.
+   De las 576 clases que usan los componentes, aqui habia 284: faltaba
+   sobre todo geometria, y en iOS antiguo eso no es un matiz, descuadra
+   la pantalla entera.
+
+   OJO con la cascada: este archivo va SIN capa y Tailwind mete sus
+   utilidades en @layer utilities, asi que lo de aqui GANA a Tailwind en
+   TODOS los navegadores, no solo en los viejos. Por eso los valores
+   tienen que ser exactamente los de Tailwind, y las reglas de borde de
+   abajo fijan ancho y estilo pero NUNCA color: si fijaran color
+   pisarian a .border-pink-500 y compania (que es justo el bug que
+   tenia .border, ver mas abajo).
+   ================================================================== */
+
+/* -- Ritmo vertical. Era el hueco mas grave: space-y se usa 65 veces en
+      los componentes y no habia ni una definicion, asi que en iOS
+      antiguo cada lista y cada formulario salia apelmazado sin aire.
+      Se usa margin-bottom sobre :not(:last-child), la misma propiedad
+      que Tailwind (margin-block-end): si usara margin-top sobre los
+      hermanos siguientes, las dos reglas se sumarian y el espacio
+      saldria doble en los navegadores modernos. */
+.space-y-1 > *:not(:last-child) { margin-bottom: .25rem; }
+.space-y-2 > *:not(:last-child) { margin-bottom: .5rem; }
+.space-y-3 > *:not(:last-child) { margin-bottom: .75rem; }
+.space-y-4 > *:not(:last-child) { margin-bottom: 1rem; }
+.space-y-5 > *:not(:last-child) { margin-bottom: 1.25rem; }
+.space-y-6 > *:not(:last-child) { margin-bottom: 1.5rem; }
+.space-y-8 > *:not(:last-child) { margin-bottom: 2rem; }
+
+.gap-1\.5 { gap: .375rem; }
+.gap-x-3 { column-gap: .75rem; }
+.gap-y-1 { row-gap: .25rem; }
+
+/* -- Margenes y rellenos que faltaban -- */
+.ml-1 { margin-left: .25rem; }
+.ml-2 { margin-left: .5rem; }
+.ml-8 { margin-left: 2rem; }
+.mr-1 { margin-right: .25rem; }
+.mr-2 { margin-right: .5rem; }
+.mr-3 { margin-right: .75rem; }
+.-mr-2 { margin-right: -.5rem; }
+.mt-0\.5 { margin-top: .125rem; }
+.mt-5 { margin-top: 1.25rem; }
+.-mt-2 { margin-top: -.5rem; }
+.mb-0\.5 { margin-bottom: .125rem; }
+.mb-1\.5 { margin-bottom: .375rem; }
+.mb-5 { margin-bottom: 1.25rem; }
+.-mx-1 { margin-left: -.25rem; margin-right: -.25rem; }
+.-mx-2 { margin-left: -.5rem; margin-right: -.5rem; }
+
+.p-10 { padding: 2.5rem; }
+.pt-1 { padding-top: .25rem; }
+.pt-2 { padding-top: .5rem; }
+.pt-4 { padding-top: 1rem; }
+.pb-1 { padding-bottom: .25rem; }
+.pb-2 { padding-bottom: .5rem; }
+.pb-3 { padding-bottom: .75rem; }
+.pb-4 { padding-bottom: 1rem; }
+.pb-6 { padding-bottom: 1.5rem; }
+.pl-3 { padding-left: .75rem; }
+.pl-6 { padding-left: 1.5rem; }
+.pr-1 { padding-right: .25rem; }
+.pr-3 { padding-right: .75rem; }
+.px-1 { padding-left: .25rem; padding-right: .25rem; }
+.px-2\.5 { padding-left: .625rem; padding-right: .625rem; }
+.py-0\.5 { padding-top: .125rem; padding-bottom: .125rem; }
+.py-1\.5 { padding-top: .375rem; padding-bottom: .375rem; }
+.py-2\.5 { padding-top: .625rem; padding-bottom: .625rem; }
+.py-3\.5 { padding-top: .875rem; padding-bottom: .875rem; }
+.py-12 { padding-top: 3rem; padding-bottom: 3rem; }
+
+/* -- Tamanos. Los w-4/h-4, w-5/h-5 y w-9/h-9 son iconos y avatares:
+      sin ellos salen al tamano intrinseco y descolocan la fila. -- */
+.w-1 { width: .25rem; }
+.w-2 { width: .5rem; }
+.w-4 { width: 1rem; }
+.w-5 { width: 1.25rem; }
+.w-6 { width: 1.5rem; }
+.w-9 { width: 2.25rem; }
+.w-11 { width: 2.75rem; }
+.w-28 { width: 7rem; }
+.w-32 { width: 8rem; }
+.w-36 { width: 9rem; }
+.w-48 { width: 12rem; }
+.h-1 { height: .25rem; }
+.h-2 { height: .5rem; }
+.h-4 { height: 1rem; }
+.h-5 { height: 1.25rem; }
+.h-6 { height: 1.5rem; }
+.h-9 { height: 2.25rem; }
+.h-11 { height: 2.75rem; }
+.max-w-xs { max-width: 20rem; }
+.max-w-full { max-width: 100%; }
+
+/* min-w-0 va siempre de la mano de truncate: sin el, un hijo flex no baja
+   de su ancho de contenido y el nombre largo desborda en vez de recortarse. */
+.min-w-0 { min-width: 0; }
+.truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.justify-end { justify-content: flex-end; }
+.flex-shrink-0 { flex-shrink: 0; }
+.col-span-2 { grid-column: span 2 / span 2; }
+
+/* -- Radios parciales (grupos de botones y hojas inferiores) -- */
+.rounded-l-lg { border-top-left-radius: .5rem; border-bottom-left-radius: .5rem; }
+.rounded-r-lg { border-top-right-radius: .5rem; border-bottom-right-radius: .5rem; }
+.rounded-t-xl { border-top-left-radius: .75rem; border-top-right-radius: .75rem; }
+.rounded-t-2xl { border-top-left-radius: 1rem; border-top-right-radius: 1rem; }
+
+/* -- Metricas de texto -- */
+.uppercase { text-transform: uppercase; }
+.tracking-wide { letter-spacing: .025em; }
+.tracking-wider { letter-spacing: .05em; }
+.leading-none { line-height: 1; }
+.leading-snug { line-height: 1.375; }
+.leading-relaxed { line-height: 1.625; }
+.text-6xl { font-size: 3.75rem; line-height: 1; letter-spacing: -.032em; }
+.text-7xl { font-size: 4.5rem; line-height: 1; letter-spacing: -.032em; }
+
+/* -- Anchos de borde: SOLO ancho y estilo, sin color (ver aviso de arriba).
+      El border-t-transparent es el del spinner: sin el, el circulo de carga
+      se ve como un anillo completo y no parece que gire. -- */
+.border-t { border-top-width: 1px; border-top-style: solid; }
+.border-b { border-bottom-width: 1px; border-bottom-style: solid; }
+.border-b-2 { border-bottom-width: 2px; border-bottom-style: solid; }
+.border-r-0 { border-right-width: 0; }
+.border-dashed { border-style: dashed; }
+.border-t-transparent { border-top-color: transparent; }
+
+/* -- Colores de borde que faltaban.
+      .border es una abreviatura (border: 1px solid #e5e7eb) y, al ganar a
+      Tailwind por lo de las capas, dejaba GRIS cualquier "border
+      border-amber-200", "border border-pink-500", etc. en todos los
+      navegadores. Definirlos aqui devuelve el color previsto.
+      Los pink apuntan a la variable de marca, no a rosa fijo: la app es
+      white-label y ese borde tiene que llevar el color del salon. -- */
+.border-pink-500,
+.border-pink-600 { border-color: var(--brand-primary, #FF1493); }
+.border-amber-100 { border-color: #fef3c7; }
+.border-amber-200 { border-color: #fde68a; }
+.border-amber-300 { border-color: #fcd34d; }
+.border-amber-400 { border-color: #fbbf24; }
+.border-amber-500 { border-color: #f59e0b; }
+.border-red-100 { border-color: #fee2e2; }
+.border-red-200 { border-color: #fecaca; }
+.border-red-300 { border-color: #fca5a5; }
+.border-red-400 { border-color: #f87171; }
+.border-green-200 { border-color: #bbf7d0; }
+.border-green-500 { border-color: #22c55e; }
+.border-yellow-200 { border-color: #fef08a; }
+.border-yellow-300 { border-color: #fde047; }
+.border-orange-100 { border-color: #ffedd5; }
+.border-orange-200 { border-color: #fed7aa; }
+.border-blue-200 { border-color: #bfdbfe; }
+.border-gray-100 { border-color: #f3f4f6; }
+.border-white { border-color: #fff; }
+.border-t-white { border-top-color: #fff; }
+
+/* Variantes con transparencia. Se declara primero el valor plano por si el
+   navegador es demasiado viejo para rgba(var(--x), a), y despues el que
+   sigue el color del salon. */
+.border-white\/30 { border-color: rgba(255, 255, 255, .30); }
+.border-red-500\/30 { border-color: rgba(239, 68, 68, .30); }
+.border-pink-200\/70 {
+    border-color: rgba(249, 168, 212, .70);
+    border-color: rgba(var(--brand-secondary-rgb, 249 168 212), .70);
+}
+.border-pink-300\/25 {
+    border-color: rgba(249, 168, 212, .25);
+    border-color: rgba(var(--brand-secondary-rgb, 249 168 212), .25);
+}
+.border-pink-300\/30 {
+    border-color: rgba(249, 168, 212, .30);
+    border-color: rgba(var(--brand-secondary-rgb, 249 168 212), .30);
+}
+.border-pink-300\/40 {
+    border-color: rgba(249, 168, 212, .40);
+    border-color: rgba(var(--brand-secondary-rgb, 249 168 212), .40);
+}
+.border-pink-300\/50 {
+    border-color: rgba(249, 168, 212, .50);
+    border-color: rgba(var(--brand-secondary-rgb, 249 168 212), .50);
 }
 
 @media (min-width: 640px) {
