@@ -479,6 +479,20 @@ function construirUrlClientesNegocio(config = null) {
 }
 window.construirUrlClientesNegocio = construirUrlClientesNegocio;
 
+function construirUrlAdminNegocio(config = null) {
+    const slug = (
+        window._rservasSlugActual ||
+        config?.slug ||
+        localStorage.getItem('adminSlug') ||
+        localStorage.getItem('negocioSlug') ||
+        ''
+    ).toLowerCase().trim();
+
+    if (slug) return 'https://tusalon.github.io/rservasroma/admin.html?s=' + encodeURIComponent(slug);
+    return '';
+}
+window.construirUrlAdminNegocio = construirUrlAdminNegocio;
+
 window.getUrlClientes = async function() {
     const c = await window.cargarConfiguracionNegocio();
     // Sin url_clientes en la BD, el enlace se arma contra la app maestra

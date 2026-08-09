@@ -1,6 +1,6 @@
 // sw.js - Service Worker para Rservasroma
 
-const CACHE_NAME = 'rservasroma-v78';
+const CACHE_NAME = 'rservasroma-v79';
 const BASE = '/rservasroma';
 
 const urlsToCache = [
@@ -29,7 +29,7 @@ const urlsToCache = [
   `${BASE}/utils/hero-backgrounds.js?v=20260723-fotos`,
   `${BASE}/utils/native-push-notifications.js?v=20260722-platform-v4`,
   `${BASE}/utils/offline-panel.js`,
-  `${BASE}/utils/config-negocio-master.js?v=20260731-marca`,
+  `${BASE}/utils/config-negocio-master.js?v=20260806-admin-url`,
   `${BASE}/utils/i18n.js?v=20260727-romahub-sync1`,
   `${BASE}/utils/cuba-geo.js?v=20260727-wizard-ubicacion1`,
   `${BASE}/utils/phone-utils.js`,
@@ -41,7 +41,7 @@ const urlsToCache = [
   `${BASE}/utils/suscripcion.js?v=20260727-whatsapp-romahub1`,
   `${BASE}/utils/supabase-config.js?v=20260723-fotos`,
   `${BASE}/utils/timeLogic.js`,
-  `${BASE}/utils/whatsapp-helper.js?v=20260722-lista-espera-cliente`,
+  `${BASE}/utils/whatsapp-helper.js?v=20260806-push-url`,
   `${BASE}/utils/legacy-ios-fallback.css?v=20260731-tipografia`,
   `${BASE}/utils/roma-typography.css?v=20260731-tipografia`,
   `${BASE}/utils/roma-theme.js?v=20260731-tipografia`,

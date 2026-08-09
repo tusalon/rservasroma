@@ -328,6 +328,9 @@ window.enviarNotificacionPush = async function(titulo, mensaje, etiquetas = 'bel
         const safeTags = sanitizeNtfyHeader(etiquetas, 'bell');
         const safePriority = sanitizeNtfyHeader(prioridad, 'default');
         const profesionalId = options.profesionalId || options.profesional_id || null;
+        const urlAdmin = typeof window.construirUrlAdminNegocio === 'function'
+            ? window.construirUrlAdminNegocio(config)
+            : '';
 
         console.log(`📢 Enviando push a ntfy.sh/${topic}:`, titulo);
 
@@ -347,6 +350,7 @@ window.enviarNotificacionPush = async function(titulo, mensaje, etiquetas = 'bel
                 window.enviarWebPushRservasRoma({
                     title: safeTitle,
                     body: mensaje,
+                    url: urlAdmin,
                     role: 'admin',
                     tags: safeTags,
                     data: { priority: safePriority }
@@ -357,6 +361,7 @@ window.enviarNotificacionPush = async function(titulo, mensaje, etiquetas = 'bel
                     window.enviarWebPushRservasRoma({
                         title: safeTitle,
                         body: mensaje,
+                        url: urlAdmin,
                         role: 'profesional',
                         profesional_id: profesionalId,
                         tags: safeTags,
