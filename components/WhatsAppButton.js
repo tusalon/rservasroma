@@ -4,10 +4,13 @@ function WhatsAppButton() {
     window.useIdioma();
     const t = window.t;
     const [telefono, setTelefono] = React.useState('55002272');
+    const [codigoPais, setCodigoPais] = React.useState('');
     const [nombreNegocio, setNombreNegocio] = React.useState('');
 
+    // Sin el codigo_pais del negocio, la normalizacion caia al 53 por defecto y
+    // los salones de fuera de Cuba quedaban con un numero armado mal.
     const telefonoWhatsApp = window.normalizarTelefonoInternacional
-        ? window.normalizarTelefonoInternacional(telefono)
+        ? window.normalizarTelefonoInternacional(telefono, codigoPais)
         : String(telefono || '').replace(/\D/g, '');
 
     React.useEffect(() => {
@@ -17,6 +20,11 @@ function WhatsAppButton() {
         window.getNombreNegocio().then(nombre => {
             setNombreNegocio(nombre);
         });
+        if (window.getCodigoPaisNegocio) {
+            window.getCodigoPaisNegocio().then(codigo => {
+                setCodigoPais(codigo);
+            });
+        }
     }, []);
 
     return (

@@ -7,6 +7,7 @@ function Confirmation({ booking, onReset }) {
     // número/nombre inventado a la clienta (antes se veía "Negocio de Prueba"
     // y "+55002272" como contacto real).
     const [telefonoDuenno, setTelefonoDuenno] = React.useState('');
+    const [codigoPaisDuenno, setCodigoPaisDuenno] = React.useState('');
     const [nombreNegocio, setNombreNegocio] = React.useState('');
     const [estrellas, setEstrellas] = React.useState(0);
     const [valoracionEnviada, setValoracionEnviada] = React.useState(false);
@@ -19,6 +20,9 @@ function Confirmation({ booking, onReset }) {
                 const nombre = await window.getNombreNegocio();
                 setTelefonoDuenno(tel);
                 setNombreNegocio(nombre);
+                if (window.getCodigoPaisNegocio) {
+                    setCodigoPaisDuenno(await window.getCodigoPaisNegocio());
+                }
             } catch (error) {}
         };
         cargarDatos();
@@ -74,8 +78,13 @@ function Confirmation({ booking, onReset }) {
     const montoAnticipo = Number(booking._montoAnticipo || 0);
     const monedaNegocio = window.getPreferenciasWhatsAppNegocio ? (window.getPreferenciasWhatsAppNegocio().moneda || '') : '';
     const textoAnticipo = montoAnticipo > 0 ? `${montoAnticipo} ${monedaNegocio}`.trim() : '';
-    const linkWhatsAppAnticipo = telefonoDuenno
-        ? `https://wa.me/${String(telefonoDuenno).replace(/\D/g, '')}?text=${encodeURIComponent(`Hola! Acabo de reservar ${booking.servicio} para el ${fechaConDia} y quiero coordinar el anticipo.`)}`
+    // Sin normalizar, un movil local (8 digitos en Cuba) llegaba a wa.me sin
+    // codigo de pais y WhatsApp respondia "numero invalido".
+    const telefonoAnticipo = telefonoDuenno && window.normalizarTelefonoInternacional
+        ? window.normalizarTelefonoInternacional(telefonoDuenno, codigoPaisDuenno)
+        : String(telefonoDuenno || '').replace(/\D/g, '');
+    const linkWhatsAppAnticipo = telefonoAnticipo
+        ? `https://wa.me/${telefonoAnticipo}?text=${encodeURIComponent(`Hola! Acabo de reservar ${booking.servicio} para el ${fechaConDia} y quiero coordinar el anticipo.`)}`
         : '';
     // Nota: el mensaje de WhatsApp de arriba se mantiene en español a propósito —
     // es texto dirigido a la dueña del salón, no a la clienta que lee la pantalla.

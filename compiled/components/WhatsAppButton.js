@@ -2,8 +2,9 @@ function WhatsAppButton() {
   window.useIdioma();
   const t = window.t;
   const [telefono, setTelefono] = React.useState("55002272");
+  const [codigoPais, setCodigoPais] = React.useState("");
   const [nombreNegocio, setNombreNegocio] = React.useState("");
-  const telefonoWhatsApp = window.normalizarTelefonoInternacional ? window.normalizarTelefonoInternacional(telefono) : String(telefono || "").replace(/\D/g, "");
+  const telefonoWhatsApp = window.normalizarTelefonoInternacional ? window.normalizarTelefonoInternacional(telefono, codigoPais) : String(telefono || "").replace(/\D/g, "");
   React.useEffect(() => {
     window.getTelefonoDuenno().then((tel) => {
       setTelefono(tel);
@@ -11,6 +12,11 @@ function WhatsAppButton() {
     window.getNombreNegocio().then((nombre) => {
       setNombreNegocio(nombre);
     });
+    if (window.getCodigoPaisNegocio) {
+      window.getCodigoPaisNegocio().then((codigo) => {
+        setCodigoPais(codigo);
+      });
+    }
   }, []);
   return /* @__PURE__ */ React.createElement(
     "a",

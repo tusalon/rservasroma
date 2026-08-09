@@ -1,6 +1,6 @@
 // sw.js - Service Worker para Rservasroma
 
-const CACHE_NAME = 'rservasroma-v79';
+const CACHE_NAME = 'rservasroma-v80';
 const BASE = '/rservasroma';
 
 const urlsToCache = [
@@ -50,7 +50,7 @@ const urlsToCache = [
   `${BASE}/compiled/components/BookingForm.js?v=20260723-jsx1`,
   `${BASE}/compiled/components/Calendar.js?v=20260723-jsx1`,
   `${BASE}/compiled/components/ClientAuthScreen.js?v=20260731-marca`,
-  `${BASE}/compiled/components/Confirmation.js?v=20260731-marca`,
+  `${BASE}/compiled/components/Confirmation.js?v=20260806-tel-prefijo`,
   `${BASE}/compiled/components/Header.js?v=20260731-marca`,
   `${BASE}/compiled/components/InstallButton.js?v=20260723-jsx1`,
   `${BASE}/compiled/components/MultiProfesionalSelector.js?v=20260723-jsx1`,
@@ -60,7 +60,7 @@ const urlsToCache = [
   `${BASE}/compiled/components/ServiceSelectionCategorias.js?v=20260731-marca`,
   `${BASE}/compiled/components/TimeSlots.js?v=20260723-jsx1`,
   `${BASE}/compiled/components/WelcomeScreen.js?v=20260723-fotos`,
-  `${BASE}/compiled/components/WhatsAppButton.js?v=20260731-marca`,
+  `${BASE}/compiled/components/WhatsAppButton.js?v=20260806-tel-prefijo`,
 
   // Componentes admin (compilados)
   `${BASE}/compiled/components/admin/ConfigPanel.js?v=20260731-marca`,
