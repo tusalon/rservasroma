@@ -599,6 +599,31 @@ window.salonCategoriasServicios = {
 // ============================================
 
 /**
+ * Respaldo para servicios sin ningun profesional asignado.
+ *
+ * Asignar profesionales a cada servicio es un paso aparte del panel y mucha
+ * gente no lo hace: mas de un tercio de los servicios activos de la plataforma
+ * se quedaban sin poder reservarse online y mostraban solo el boton de
+ * WhatsApp. En un salon de una sola persona ese paso ni siquiera tiene
+ * sentido — es evidente que todos los servicios los hace ella.
+ *
+ * Solo se aplica cuando hay UNA profesional activa, que es el caso sin
+ * ambiguedad. Con varias no se adivina: ahi la asignacion si dice algo (quien
+ * hace pestanas, quien hace unas) y ofrecer a todas seria mandarle clientas a
+ * quien no hace ese servicio.
+ */
+async function profesionalUnicoDelSalon() {
+    try {
+        if (!window.salonProfesionales?.getAll) return [];
+        const activos = await window.salonProfesionales.getAll(true);
+        return (activos || []).length === 1 ? activos : [];
+    } catch (error) {
+        console.warn('No se pudo resolver el profesional unico del salon:', error);
+        return [];
+    }
+}
+
+/**
  * Obtiene los profesionales asignados a un servicio
  */
 window.getProfesionalesPorServicio = async function(servicioId) {
@@ -620,9 +645,9 @@ window.getProfesionalesPorServicio = async function(servicioId) {
         
         const data = await response.json();
         const ids = data.map(item => item.profesional_id);
-        
-        if (ids.length === 0) return [];
-        
+
+        if (ids.length === 0) return await profesionalUnicoDelSalon();
+
         const profesionalesResponse = await fetch(
             `${window.SUPABASE_URL}/rest/v1/profesionales?negocio_id=eq.${negocioId}&id=in.(${ids.join(',')})&activo=eq.true&select=*`,
             {
