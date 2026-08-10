@@ -1,6 +1,6 @@
 // sw.js - Service Worker para Rservasroma
 
-const CACHE_NAME = 'rservasroma-v80';
+const CACHE_NAME = 'rservasroma-v81';
 const BASE = '/rservasroma';
 
 const urlsToCache = [
@@ -29,7 +29,7 @@ const urlsToCache = [
   `${BASE}/utils/hero-backgrounds.js?v=20260723-fotos`,
   `${BASE}/utils/native-push-notifications.js?v=20260722-platform-v4`,
   `${BASE}/utils/offline-panel.js`,
-  `${BASE}/utils/config-negocio-master.js?v=20260806-admin-url`,
+  `${BASE}/utils/config-negocio-master.js?v=20260809-sesion-7d`,
   `${BASE}/utils/i18n.js?v=20260727-romahub-sync1`,
   `${BASE}/utils/cuba-geo.js?v=20260727-wizard-ubicacion1`,
   `${BASE}/utils/phone-utils.js`,
@@ -49,7 +49,7 @@ const urlsToCache = [
   // Componentes cliente (compilados)
   `${BASE}/compiled/components/BookingForm.js?v=20260723-jsx1`,
   `${BASE}/compiled/components/Calendar.js?v=20260723-jsx1`,
-  `${BASE}/compiled/components/ClientAuthScreen.js?v=20260731-marca`,
+  `${BASE}/compiled/components/ClientAuthScreen.js?v=20260809-sesion-7d`,
   `${BASE}/compiled/components/Confirmation.js?v=20260806-tel-prefijo`,
   `${BASE}/compiled/components/Header.js?v=20260731-marca`,
   `${BASE}/compiled/components/InstallButton.js?v=20260723-jsx1`,

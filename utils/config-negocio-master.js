@@ -465,6 +465,26 @@ window.getRequiereAnticipo = async function() {
     const c = await window.cargarConfiguracionNegocio();
     return c?.requiere_anticipo || false;
 };
+// Sesion del panel: 7 dias SIN ABRIRLO. El reloj se reinicia cada vez que se
+// confirma una sesion viva, asi que a quien entra a diario no se le vuelve a
+// pedir la contraseña. Antes eran 8 horas fijas contadas desde el login y que
+// no se renovaban con el uso: botaba a las duenas en plena jornada y les pedia
+// la clave cada manana, hasta el punto de pedir que se quitara la contraseña.
+const SESION_PANEL_MS = 7 * 24 * 60 * 60 * 1000;
+window.SESION_PANEL_MS = SESION_PANEL_MS;
+
+// Devuelve si la marca de tiempo sigue viva y, de paso, la renueva. Toda
+// comprobacion de sesion del panel debe pasar por aqui: si cada pagina vuelve a
+// calcular su propio limite, unas caducan antes que otras.
+function sesionPanelVigente(claveTiempo) {
+    const marca = parseInt(localStorage.getItem(claveTiempo), 10);
+    if (!marca || Number.isNaN(marca)) return false;
+    if (Date.now() - marca >= SESION_PANEL_MS) return false;
+    localStorage.setItem(claveTiempo, String(Date.now()));
+    return true;
+}
+window.sesionPanelVigente = sesionPanelVigente;
+
 function construirUrlClientesNegocio(config = null) {
     const slug = (
         window._rservasSlugActual ||

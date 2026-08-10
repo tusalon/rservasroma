@@ -78,8 +78,7 @@ function ClientAuthScreen({ onAccessGranted, onGoBack }) {
       const telefonoDuennoLocal = window.normalizarTelefonoLocal ? window.normalizarTelefonoLocal(config?.telefono || "", codigoPais) : String(config?.telefono || "").replace(/\D/g, "");
       if (numeroLimpio === telefonoDuennoLocal) {
         guardarNegocioEnSesion();
-        const loginTime = localStorage.getItem("adminLoginTime");
-        const tieneSesion = loginTime && Date.now() - parseInt(loginTime) < 8 * 60 * 60 * 1e3;
+        const tieneSesion = window.sesionPanelVigente("adminLoginTime");
         window.location.href = window.construirRutaConSlug(tieneSesion ? "admin.html" : "admin-login.html");
         return;
       }

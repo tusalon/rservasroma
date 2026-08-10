@@ -68,14 +68,14 @@
 
     <!-- Scripts - ORDEN CORRECTO -->
     <script src="utils/supabase-config.js?v=20260723-fotos"></script>
-    <script src="utils/config-negocio-master.js?v=20260806-admin-url"></script>
+    <script src="utils/config-negocio-master.js?v=20260809-sesion-7d"></script>
     <script src="utils/i18n.js?v=20260727-romahub-sync1"></script>
     <script src="utils/phone-utils.js?v=20260616-preservar-cero-v2"></script>
     <script src="utils/storage.js?v=20260723-fotos"></script>
     <script src="utils/api.js?v=20260722-lista-espera-cliente"></script>
     <script src="utils/timeLogic.js"></script>
     <script src="utils/auth-clients.js?v=20260528-cliente-pais"></script>
-    <script src="utils/auth-profesionales.js?v=20260528-internacional"></script>
+    <script src="utils/auth-profesionales.js?v=20260809-sesion-7d"></script>
     <script src="utils/offline-panel.js?v=20260626-offline-panel-live"></script>
     <script>
         (async function() {
@@ -138,14 +138,10 @@
                 return;
             }
 
-            // Verificar sesiÃ³n (8 horas)
-            const ahora = Date.now();
-            const maxSesion = 8 * 60 * 60 * 1000;
-            const adminLoginTime = localStorage.getItem('adminLoginTime');
-            const profesionalLoginTime = localStorage.getItem('profesionalLoginTime');
+            // Verificar sesiÃ³n (deslizante, ver SESION_PANEL_MS)
             const profesionalAuth = localStorage.getItem('profesionalAuth');
-            const isValidAdminSession = adminLoginTime && (ahora - parseInt(adminLoginTime)) < maxSesion;
-            const isValidProfesionalSession = profesionalAuth && profesionalLoginTime && (ahora - parseInt(profesionalLoginTime)) < maxSesion;
+            const isValidAdminSession = window.sesionPanelVigente('adminLoginTime');
+            const isValidProfesionalSession = Boolean(profesionalAuth) && window.sesionPanelVigente('profesionalLoginTime');
             
             if (!isValidAdminSession && !isValidProfesionalSession) {
                 localStorage.removeItem('adminAuth');

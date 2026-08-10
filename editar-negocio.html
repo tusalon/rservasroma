@@ -28,7 +28,7 @@
     <script src="utils/supabase-config.js?v=20260723-fotos"></script>
     <script src="utils/hero-backgrounds.js?v=20260723-fotos"></script>
     <script src="utils/storage.js?v=20260723-fotos"></script>
-    <script src="utils/config-negocio-master.js?v=20260731-marca"></script>
+    <script src="utils/config-negocio-master.js?v=20260809-sesion-7d"></script>
     <script src="utils/i18n.js?v=20260727-ubicacion-pais1"></script>
     <script src="utils/phone-utils.js?v=20260616-preservar-cero-v2"></script>
     <script src="utils/cuba-geo.js?v=20260725-municipios"></script>
@@ -64,15 +64,14 @@
 
             const adminAuth = localStorage.getItem('adminAuth') === 'true';
             const profesionalAuthRaw = localStorage.getItem('profesionalAuth');
-            const profesionalLoginTime = localStorage.getItem('profesionalLoginTime');
             let profesionalNivel = 0;
             try {
                 profesionalNivel = profesionalAuthRaw ? (JSON.parse(profesionalAuthRaw).nivel || 1) : 0;
             } catch (e) {
                 profesionalNivel = 0;
             }
-            const profesionalAvanzado = profesionalAuthRaw && profesionalNivel >= 3 && profesionalLoginTime &&
-                (Date.now() - parseInt(profesionalLoginTime)) < 8 * 60 * 60 * 1000;
+            const profesionalAvanzado = profesionalAuthRaw && profesionalNivel >= 3 &&
+                window.sesionPanelVigente('profesionalLoginTime');
 
             if (!negocioId || (!adminAuth && !profesionalAvanzado)) {
                 console.log('ðŸš« No hay sesiÃ³n, redirigiendo a login');

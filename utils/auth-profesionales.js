@@ -98,8 +98,7 @@ window.verificarProfesionalPorTelefono = async function(telefono) {
 
 window.getProfesionalAutenticado = function() {
     const auth = localStorage.getItem('profesionalAuth');
-    const loginTime = localStorage.getItem('profesionalLoginTime');
-    const sesionVigente = loginTime && (Date.now() - parseInt(loginTime)) < 8 * 60 * 60 * 1000;
+    const sesionVigente = window.sesionPanelVigente('profesionalLoginTime');
     if (!sesionVigente) {
         localStorage.removeItem('profesionalAuth');
         localStorage.removeItem('profesionalLoginTime');
