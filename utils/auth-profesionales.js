@@ -9,12 +9,35 @@ console.log('👤 auth-profesionales.js cargado');
 // FUNCIONES DE AUTENTICACIÓN PARA PROFESIONALES
 // ============================================
 
-window.loginProfesional = async function(telefono, password) {
+// profesionales.telefono se guarda en formato LOCAL (sin codigo de pais), asi
+// que hay que llegar a esa misma forma escriba el profesional su numero suelto
+// (54349239) o completo (5354349239).
+//
+// Ojo: normalizarTelefonoLocal(valor, pais) NO quita el prefijo cuando se le
+// pasa el pais explicito — solo lo hace cuando lo deduce. Por eso se pasa por
+// la forma internacional y se recorta el codigo, que funciona en los dos casos.
+function telefonoLocalParaLogin(telefono, codigoPais) {
+    const codigo = String(codigoPais || '').replace(/\D/g, '');
+
+    if (codigo && window.normalizarTelefonoInternacional) {
+        const internacional = window.normalizarTelefonoInternacional(telefono, codigo);
+        return internacional.startsWith(codigo) ? internacional.slice(codigo.length) : internacional;
+    }
+
+    // Sin pais conocido (login desde la app de clientas, con el negocio ya en
+    // sesion): se mantiene el camino de siempre.
+    if (window.normalizarTelefonoLocal) return window.normalizarTelefonoLocal(telefono);
+    return String(telefono || '').replace(/\D/g, '').replace(/^53(?=\d{8,}$)/, '');
+}
+
+// opciones.negocioId / opciones.codigoPais: admin-login.html entra por aqui
+// ANTES de que exista sesion, asi que no puede resolver el negocio solo. Sin
+// esos datos el login se hace desde la app de clientas, donde el negocio ya
+// esta en sesion y se resuelve como siempre.
+window.loginProfesional = async function(telefono, password, opciones = {}) {
     try {
-        const negocioId = getNegocioId();
-        const telefonoLimpio = window.normalizarTelefonoLocal
-            ? window.normalizarTelefonoLocal(telefono)
-            : String(telefono || '').replace(/\D/g, '').replace(/^53(?=\d{8,}$)/, '');
+        const negocioId = opciones.negocioId || getNegocioId();
+        const telefonoLimpio = telefonoLocalParaLogin(telefono, opciones.codigoPais);
         const passwordLimpio = String(password || '').trim();
         if (!negocioId || !telefonoLimpio || !passwordLimpio) {
             return null;

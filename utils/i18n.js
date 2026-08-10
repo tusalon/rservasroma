@@ -24,6 +24,12 @@
         'Contraseña incorrecta': 'Incorrect password',
         '✅ Bienvenida, {nombre}...': '✅ Welcome, {nombre}...',
         'Error al conectar. Intentá de nuevo.': 'Connection error. Try again.',
+        'Acceso para profesionales': 'Staff access',
+        'Soy profesional del salón': 'I work at this salon',
+        'Soy la dueña del salón': 'I own this salon',
+        'Tu teléfono': 'Your phone number',
+        'Teléfono o contraseña incorrectos': 'Wrong phone number or password',
+        '✅ Hola, {nombre}...': '✅ Hi, {nombre}...',
 
         // components/WhatsAppButton.js
         'Chat en WhatsApp': 'Chat on WhatsApp',

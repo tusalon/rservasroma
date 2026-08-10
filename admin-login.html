@@ -158,6 +158,20 @@
     }
 
     .hidden { display: none !important; }
+    .link-modo {
+      display: block;
+      width: 100%;
+      margin-top: 18px;
+      background: none;
+      border: 0;
+      padding: 6px;
+      color: #FF1493;
+      font-size: 14px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      text-decoration: underline;
+    }
 
     .lang-toggle {
       position: absolute;
@@ -205,6 +219,11 @@
         <input type="text" id="username" placeholder="lecisnails" required autocomplete="username">
       </div>
 
+      <div class="field hidden" id="campoTelefono">
+        <label for="telefono" id="txtLabelTelefono">Tu teléfono</label>
+        <input type="tel" id="telefono" placeholder="51234567" autocomplete="tel">
+      </div>
+
       <div class="field">
         <label for="password" id="txtLabelPassword">Contraseña</label>
         <div class="input-wrap">
@@ -216,12 +235,18 @@
       <button type="submit" class="btn-login" id="btnEntrar">Entrar →</button>
     </form>
 
+    <button type="button" id="toggleModo" class="link-modo">Soy profesional del salón</button>
+
     <div id="errorMsg" class="hidden"></div>
 
   </div>
 
   <script src="utils/supabase-config.js?v=20260723-fotos"></script>
-  <script src="utils/i18n.js?v=20260716-recordatorios"></script>
+  <script src="utils/i18n.js?v=20260809-login-profesional"></script>
+  <!-- phone-utils normaliza el teléfono del profesional al mismo formato local
+       con el que se guardó; auth-profesionales trae loginProfesional(). -->
+  <script src="utils/phone-utils.js?v=20260616-preservar-cero-v2"></script>
+  <script src="utils/auth-profesionales.js?v=20260809-login-profesional"></script>
   <script src="utils/offline-panel.js?v=20260626-offline-panel-live"></script>
   <script>
     (async function() {
@@ -231,12 +256,39 @@
   </script>
 
   <script>
+    // El mismo formulario sirve para la dueña y para los profesionales del
+    // salón. Cambia solo el campo del teléfono: el "usuario" sigue siendo el
+    // slug del salón en los dos casos.
+    var modoProfesional = false;
+
+    function aplicarModoLogin() {
+      document.getElementById('campoTelefono').classList.toggle('hidden', !modoProfesional);
+      document.getElementById('telefono').required = modoProfesional;
+      document.getElementById('txtSubtitle').textContent = modoProfesional
+        ? window.t('Acceso para profesionales')
+        : window.t('Panel de administración');
+      document.getElementById('toggleModo').textContent = modoProfesional
+        ? window.t('Soy la dueña del salón')
+        : window.t('Soy profesional del salón');
+      var errorMsg = document.getElementById('errorMsg');
+      errorMsg.classList.add('hidden');
+      errorMsg.textContent = '';
+    }
+
+    document.getElementById('toggleModo').addEventListener('click', function() {
+      modoProfesional = !modoProfesional;
+      document.getElementById('password').value = '';
+      aplicarModoLogin();
+      document.getElementById(modoProfesional ? 'telefono' : 'password').focus();
+    });
+
     function aplicarIdiomaLogin() {
-      document.getElementById('txtSubtitle').textContent = window.t('Panel de administración');
       document.getElementById('txtLabelUsuario').textContent = window.t('Usuario del salón');
+      document.getElementById('txtLabelTelefono').textContent = window.t('Tu teléfono');
       document.getElementById('txtLabelPassword').textContent = window.t('Contraseña');
       document.getElementById('btnEntrar').textContent = window.t('Entrar →');
       document.getElementById('togglePwd').title = window.t('Mostrar contraseña');
+      aplicarModoLogin();
       var idioma = window.getIdioma();
       document.getElementById('langEs').classList.toggle('active', idioma === 'es');
       document.getElementById('langEn').classList.toggle('active', idioma === 'en');
@@ -343,7 +395,9 @@
       btn.disabled = true;
 
       try {
-        if (typeof bcrypt === 'undefined') throw new Error(window.t('Error interno. Recarga la página.'));
+        // bcrypt solo hace falta para la dueña: el profesional lo valida
+        // Supabase con la función login_profesional.
+        if (!modoProfesional && typeof bcrypt === 'undefined') throw new Error(window.t('Error interno. Recarga la página.'));
 
         var response = await fetch(
           window.SUPABASE_URL + '/rest/v1/negocios?slug=eq.' + encodeURIComponent(username) + '&select=*',
@@ -363,6 +417,50 @@
         }
 
         var negocio = negocios[0];
+
+        // ── Profesional ────────────────────────────────────────────────────
+        // Misma pantalla, sesión distinta: se guarda profesionalAuth (con el
+        // nivel) en vez de adminAuth, y el panel ya se encarga de ocultar lo
+        // que ese nivel no permite (1 ver, 2 gestionar, 3 completo).
+        if (modoProfesional) {
+          var telefono = document.getElementById('telefono').value.trim();
+          var profesional = await window.loginProfesional(telefono, password, {
+            negocioId: negocio.id,
+            codigoPais: negocio.codigo_pais
+          });
+
+          if (!profesional) {
+            errorMsg.textContent = window.t('Teléfono o contraseña incorrectos');
+            errorMsg.classList.remove('hidden');
+            mensaje.classList.add('hidden');
+            btn.disabled = false;
+            return;
+          }
+
+          localStorage.setItem('negocioId',     negocio.id);
+          localStorage.setItem('negocioSlug',   negocio.slug);
+          localStorage.setItem('adminSlug',     negocio.slug);
+          localStorage.setItem('negocioNombre', negocio.nombre);
+          // Nunca dejar restos de una sesión de dueña en el mismo dispositivo.
+          localStorage.removeItem('adminAuth');
+          localStorage.removeItem('adminLoginTime');
+          localStorage.setItem('profesionalAuth', JSON.stringify({
+            id: profesional.id,
+            nombre: profesional.nombre,
+            telefono: profesional.telefono,
+            nivel: profesional.nivel || 1
+          }));
+          localStorage.setItem('profesionalLoginTime', Date.now());
+
+          mensaje.textContent = window.t('✅ Hola, {nombre}...', { nombre: profesional.nombre });
+
+          setTimeout(function() {
+            window.location.href = 'admin.html?s=' + encodeURIComponent(negocio.slug);
+          }, 900);
+          return;
+        }
+
+        // ── Dueña del salón ────────────────────────────────────────────────
         var passwordValida = bcrypt.compareSync(password, negocio.password_hash);
 
         if (!passwordValida) {
