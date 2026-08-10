@@ -1765,13 +1765,13 @@ function AdminApp() {
       }
       const configNegocio = await window.cargarConfiguracionNegocio();
       const requiereAnticipo = nuevaReservaData.requiereAnticipo;
-      if (requiereAnticipo && configNegocio?.anticipos_por_servicio && window.calcularMontoAnticipoReservaSync) {
+      if (!reservaEditando && requiereAnticipo && configNegocio?.anticipos_por_servicio && window.calcularMontoAnticipoReservaSync) {
         const montoAnticipoManual = window.calcularMontoAnticipoReservaSync(configNegocio, {
           esMultiple: serviciosSeleccionados.length > 1,
           servicios: serviciosSeleccionados
         });
         if (!montoAnticipoManual || montoAnticipoManual <= 0) {
-          alert(t("Este servicio no tiene anticipo configurado. Configuralo en Servicios o desmarca requerir anticipo."));
+          alert(t("Este servicio no tiene anticipo configurado. Ponle un monto en Servicios o un anticipo global en Editar negocio, o desmarca requerir anticipo."));
           return;
         }
       }

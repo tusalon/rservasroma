@@ -738,7 +738,7 @@
         'Servicio no encontrado': 'Service not found',
         'Profesional no encontrado': 'Professional not found',
         'La duracion de la cita debe ser mayor que 0 minutos.': 'The appointment duration must be greater than 0 minutes.',
-        'Este servicio no tiene anticipo configurado. Configuralo en Servicios o desmarca requerir anticipo.': 'This service has no deposit set up. Configure it in Services or uncheck require deposit.',
+        'Este servicio no tiene anticipo configurado. Ponle un monto en Servicios o un anticipo global en Editar negocio, o desmarca requerir anticipo.': 'This service has no deposit set up. Set an amount in Services or a global deposit in Edit business, or uncheck require deposit.',
         'Reserva creada, pero hubo un error al enviar el mensaje al cliente.': 'Booking created, but there was an error sending the message to the client.',
         'Error al crear la reserva: {error}': 'Error creating the booking: {error}',
         'Error desconocido': 'Unknown error',

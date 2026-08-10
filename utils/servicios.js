@@ -55,18 +55,21 @@ function formatearPrecioServicio(servicio = {}, opciones = {}) {
 
 function getAnticipoServicio(servicio = {}, configNegocio = {}) {
     if (!configNegocio?.requiere_anticipo) return 0;
-    if (!configNegocio?.anticipos_por_servicio) {
-        const valorGlobal = parsePrecioServicio(configNegocio.valor_anticipo, 0);
-        if (configNegocio.tipo_anticipo === 'fijo') return valorGlobal;
-        return getPrecioServicioBase(servicio) * (valorGlobal / 100);
+
+    // "Anticipo propio de este servicio" solo pisa al global cuando esta puesto.
+    // Si el servicio no lo define, se cobra el anticipo global del negocio.
+    if (configNegocio.anticipos_por_servicio && servicio.requiere_anticipo === true) {
+        const valor = parsePrecioServicio(servicio.valor_anticipo, 0);
+        if (valor > 0) {
+            return servicio.tipo_anticipo === 'porcentaje'
+                ? getPrecioServicioBase(servicio) * (valor / 100)
+                : valor;
+        }
     }
 
-    if (servicio.requiere_anticipo !== true) return 0;
-    const valor = parsePrecioServicio(servicio.valor_anticipo, 0);
-    if (valor <= 0) return 0;
-    return servicio.tipo_anticipo === 'porcentaje'
-        ? getPrecioServicioBase(servicio) * (valor / 100)
-        : valor;
+    const valorGlobal = parsePrecioServicio(configNegocio.valor_anticipo, 0);
+    if (configNegocio.tipo_anticipo === 'fijo') return valorGlobal;
+    return getPrecioServicioBase(servicio) * (valorGlobal / 100);
 }
 
 function calcularMontoAnticipoReservaSync(configNegocio = {}, servicioSeleccionado = {}) {
