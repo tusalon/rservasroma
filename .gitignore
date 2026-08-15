@@ -1,5 +1,9 @@
 node_modules/
 www/
+# Copias de tools/backup-supabase.js. NUNCA al repo: este es publico (lo sirve
+# GitHub Pages) y los volcados llevan password_hash de todos los negocios y los
+# telefonos de miles de clientas.
+backups/
 android/.gradle/
 android/local.properties
 android/app/build/
