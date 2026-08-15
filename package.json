@@ -4,7 +4,7 @@
   "description": "APK Android para Rservasroma Admin",
   "main": "admin-app.js",
   "scripts": {
-    "test": "node tests/admin-slug-routing.test.js && node tests/romahub-password-sync.test.js && node tests/sesion-panel.test.js && node tests/anticipo-servicio.test.js",
+    "test": "node tests/admin-slug-routing.test.js && node tests/romahub-password-sync.test.js && node tests/sesion-panel.test.js && node tests/anticipo-servicio.test.js && node tests/refresco-agenda.test.js",
     "cap:prepare": "powershell -ExecutionPolicy Bypass -File scripts/prepare-capacitor.ps1",
     "vendor:sync": "powershell -ExecutionPolicy Bypass -File scripts/sync-vendor-assets.ps1",
     "android:add": "npm run cap:prepare && npx cap add android",

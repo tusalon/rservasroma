@@ -156,10 +156,20 @@ async function getAllBookings() {
     }
 }
 
+// La limpieza de pendientes vencidas la hacia CADA panel abierto en CADA
+// refresco: 19.292 DELETE en la base, el 2,3 % de su tiempo total, repitiendo
+// entre si el mismo trabajo. El vencimiento se mide en horas, asi que basta
+// con pasar una vez cada diez minutos.
+const MS_ENTRE_LIMPIEZAS_PENDIENTES = 10 * 60 * 1000;
+let ultimaLimpiezaPendientes = 0;
+
 async function deleteExpiredPendingBookings(configNegocio = {}) {
     try {
         const negocioId = getNegocioId();
         if (!negocioId) return 0;
+
+        if (Date.now() - ultimaLimpiezaPendientes < MS_ENTRE_LIMPIEZAS_PENDIENTES) return 0;
+        ultimaLimpiezaPendientes = Date.now();
 
         const horasVencimiento = Number(configNegocio?.tiempo_vencimiento || 2);
         if (!Number.isFinite(horasVencimiento) || horasVencimiento <= 0) return 0;
@@ -2553,16 +2563,37 @@ function AdminApp() {
         }
     };
 
+    // Refresco automatico de la agenda.
+    //
+    // Antes: cada 60 s, con el panel visible o guardado en el bolsillo, y
+    // llamando marcarTurnosCompletados() dos veces por vuelta (aqui y otra vez
+    // dentro de fetchBookings). Entre eso y getAllBookings se llevaba el 16 %
+    // del tiempo total de la base — el motivo de que el proyecto se quedara
+    // sin recursos. Ahora: cada 5 min, solo con el panel a la vista, y una
+    // sola pasada de marcado (la de fetchBookings).
     React.useEffect(() => {
-        const intervalo = setInterval(() => {
-            
-            marcarTurnosCompletados().then(() => {
-                fetchBookings();
-            });
-            
-        }, 60000);
-        
-        return () => clearInterval(intervalo);
+        const REFRESCO_MS = 5 * 60 * 1000;
+        let ultimoRefresco = Date.now();
+
+        const refrescar = () => {
+            if (document.hidden) return;
+            ultimoRefresco = Date.now();
+            fetchBookings();
+        };
+
+        const intervalo = setInterval(refrescar, REFRESCO_MS);
+
+        // Al volver al panel despues de un rato, la agenda esta vieja: se
+        // refresca en cuanto se mira, no en el siguiente tic.
+        const alVolverAlPanel = () => {
+            if (!document.hidden && Date.now() - ultimoRefresco >= REFRESCO_MS) refrescar();
+        };
+        document.addEventListener('visibilitychange', alVolverAlPanel);
+
+        return () => {
+            clearInterval(intervalo);
+            document.removeEventListener('visibilitychange', alVolverAlPanel);
+        };
     }, []);
 
     React.useEffect(() => {

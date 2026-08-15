@@ -134,10 +134,14 @@ async function getAllBookings() {
     return [];
   }
 }
+const MS_ENTRE_LIMPIEZAS_PENDIENTES = 10 * 60 * 1e3;
+let ultimaLimpiezaPendientes = 0;
 async function deleteExpiredPendingBookings(configNegocio = {}) {
   try {
     const negocioId = getNegocioId();
     if (!negocioId) return 0;
+    if (Date.now() - ultimaLimpiezaPendientes < MS_ENTRE_LIMPIEZAS_PENDIENTES) return 0;
+    ultimaLimpiezaPendientes = Date.now();
     const horasVencimiento = Number(configNegocio?.tiempo_vencimiento || 2);
     if (!Number.isFinite(horasVencimiento) || horasVencimiento <= 0) return 0;
     const limite = new Date(Date.now() - horasVencimiento * 60 * 60 * 1e3).toISOString();
@@ -2143,12 +2147,22 @@ Te esperamos.`;
     }
   };
   React.useEffect(() => {
-    const intervalo = setInterval(() => {
-      marcarTurnosCompletados().then(() => {
-        fetchBookings();
-      });
-    }, 6e4);
-    return () => clearInterval(intervalo);
+    const REFRESCO_MS = 5 * 60 * 1e3;
+    let ultimoRefresco = Date.now();
+    const refrescar = () => {
+      if (document.hidden) return;
+      ultimoRefresco = Date.now();
+      fetchBookings();
+    };
+    const intervalo = setInterval(refrescar, REFRESCO_MS);
+    const alVolverAlPanel = () => {
+      if (!document.hidden && Date.now() - ultimoRefresco >= REFRESCO_MS) refrescar();
+    };
+    document.addEventListener("visibilitychange", alVolverAlPanel);
+    return () => {
+      clearInterval(intervalo);
+      document.removeEventListener("visibilitychange", alVolverAlPanel);
+    };
   }, []);
   React.useEffect(() => {
     fetchBookings();
