@@ -52,4 +52,18 @@ assert.equal(llamadasAMarcar.length, 1, 'marcarTurnosCompletados solo debe invoc
 assert.match(fuente, /MS_ENTRE_LIMPIEZAS_PENDIENTES = 10 \* 60 \* 1000/);
 assert.match(fuente, /if \(Date\.now\(\) - ultimaLimpiezaPendientes < MS_ENTRE_LIMPIEZAS_PENDIENTES\) return 0;/);
 
+// 5) El marcado tambien, porque el trabajo de verdad lo hace el cron.
+assert.match(fuente, /MS_ENTRE_MARCADOS_COMPLETADOS = 10 \* 60 \* 1000/);
+assert.match(fuente, /if \(Date\.now\(\) - ultimoMarcadoCompletados < MS_ENTRE_MARCADOS_COMPLETADOS\) return \[\];/);
+
+// El cron que hace ese trabajo tiene que seguir en el repo, y con la misma
+// zona horaria que usan las Edge Functions: si se calcula en UTC, a los
+// salones de Cuba se les darian por completados turnos que aun no empezaron.
+const cron = fs.readFileSync(path.join(__dirname, '..', 'sql-cron-marcar-completados.sql'), 'utf8');
+assert.match(cron, /create or replace function public\.marcar_turnos_completados\(\)/i);
+assert.match(cron, /now\(\) at time zone 'America\/Havana'/);
+assert.match(cron, /cron\.schedule\(\s*'marcar-turnos-completados',\s*'\*\/5 \* \* \* \*'/);
+assert.match(cron, /set search_path = ''/);
+assert.doesNotMatch(cron, /hora_fin\s*<\s*ahora::time[^=]/, 'el corte debe ser <=, no <: un turno que acaba justo ahora ya termino');
+
 console.log('OK: refresco de agenda sigue siendo barato para la base');

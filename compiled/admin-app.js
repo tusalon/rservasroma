@@ -242,13 +242,17 @@ async function createBooking(bookingData) {
     return { success: false, error: error.message };
   }
 }
+const MS_ENTRE_MARCADOS_COMPLETADOS = 10 * 60 * 1e3;
+let ultimoMarcadoCompletados = 0;
 async function marcarTurnosCompletados() {
   try {
     const negocioId = getNegocioId();
     if (!negocioId) {
       console.error("a No hay negocioId disponible");
-      return;
+      return [];
     }
+    if (Date.now() - ultimoMarcadoCompletados < MS_ENTRE_MARCADOS_COMPLETADOS) return [];
+    ultimoMarcadoCompletados = Date.now();
     const ahora = /* @__PURE__ */ new Date();
     const ano = ahora.getFullYear();
     const mes = (ahora.getMonth() + 1).toString().padStart(2, "0");
