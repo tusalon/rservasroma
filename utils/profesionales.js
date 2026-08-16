@@ -21,7 +21,7 @@ async function hashPasswordProfesional(password) {
 
 async function cargarProfesionalesDesdeDB() {
     try {
-        const negocioId = getNegocioId();
+        const negocioId = window.esperarNegocioId ? await window.esperarNegocioId() : getNegocioId();
         console.log('🌐 Cargando profesionales desde Supabase para negocio:', negocioId);
         
         const response = await fetch(

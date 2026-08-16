@@ -128,7 +128,9 @@ async function fetchServicioConCompatibilidad(url, options, payloadOriginal) {
 
 async function cargarServiciosDesdeDB() {
     try {
-        const negocioId = getNegocioId();
+        // Primera visita: el negocio_id sale de resolver el slug. Sin esperar,
+        // la URL sale con negocio_id=eq. y Supabase responde 400.
+        const negocioId = window.esperarNegocioId ? await window.esperarNegocioId() : getNegocioId();
         console.log('🌐 Cargando servicios desde Supabase para negocio:', negocioId);
         
         const response = await fetch(

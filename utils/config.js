@@ -45,7 +45,7 @@ const horaToIndice = (horaStr) => {
 // ============================================
 async function cargarConfiguracionGlobal() {
     try {
-        const negocioId = getNegocioId();
+        const negocioId = window.esperarNegocioId ? await window.esperarNegocioId() : getNegocioId();
         console.log('🌐 Cargando configuración global desde Supabase para negocio:', negocioId);
         
         const response = await fetch(
@@ -78,7 +78,7 @@ async function cargarConfiguracionGlobal() {
 
 async function cargarHorariosProfesionales() {
     try {
-        const negocioId = getNegocioId();
+        const negocioId = window.esperarNegocioId ? await window.esperarNegocioId() : getNegocioId();
         console.log('🌐 Cargando horarios de profesionales desde Supabase para negocio:', negocioId);
         
         const response = await fetch(

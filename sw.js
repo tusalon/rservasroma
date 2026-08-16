@@ -29,7 +29,7 @@ const urlsToCache = [
   `${BASE}/utils/hero-backgrounds.js?v=20260723-fotos`,
   `${BASE}/utils/native-push-notifications.js?v=20260722-platform-v4`,
   `${BASE}/utils/offline-panel.js`,
-  `${BASE}/utils/config-negocio-master.js?v=20260809-sesion-7d`,
+  `${BASE}/utils/config-negocio-master.js?v=20260815-arranque`,
   `${BASE}/utils/i18n.js?v=20260810-anticipo-global`,
   `${BASE}/utils/cuba-geo.js?v=20260727-wizard-ubicacion1`,
   `${BASE}/utils/phone-utils.js`,

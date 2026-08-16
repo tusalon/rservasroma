@@ -51,7 +51,7 @@ window.isClienteBloqueado = async function(whatsapp) {
 
 window.getClientesBloqueados = async function() {
     try {
-        const negocioId = getNegocioId();
+        const negocioId = window.esperarNegocioId ? await window.esperarNegocioId() : getNegocioId();
         const response = await fetch(
             `${window.SUPABASE_URL}/rest/v1/clientes_bloqueados?negocio_id=eq.${negocioId}&activo=eq.true&select=*&order=fecha_bloqueo.desc`,
             {
@@ -357,7 +357,7 @@ window.isClienteAutorizado = async function(whatsapp) {
  */
 window.getClientesRegistrados = async function() {
     try {
-        const negocioId = getNegocioId();
+        const negocioId = window.esperarNegocioId ? await window.esperarNegocioId() : getNegocioId();
         console.log('📋 Obteniendo clientes registrados para negocio:', negocioId);
         
         const response = await fetch(

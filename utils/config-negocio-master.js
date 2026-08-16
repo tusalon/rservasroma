@@ -191,6 +191,18 @@ window.getNombreNegocioGuardadoPorSlug = getNombreNegocioGuardadoPorSlug;
 // ============================================================
 // 3. INTERFAZ GLOBAL (compatible con config-negocio.js antiguo)
 // ============================================================
+// En la primera visita a un salon el negocio_id no se sabe hasta resolver el
+// slug contra Supabase. getNegocioId() es sincrona, asi que hasta entonces
+// devuelve '' y quien no espere arma URLs con negocio_id=eq. y se lleva un
+// 400 "invalid input syntax for type uuid". Esta es la espera compartida:
+// quien vaya a consultar por negocio, que la use antes.
+window.esperarNegocioId = async function() {
+    if (!window._negocioIdResuelto && window._negocioResolvePromise) {
+        await window._negocioResolvePromise;
+    }
+    return window.NEGOCIO_ID_POR_DEFECTO || '';
+};
+
 window.getNegocioId = function() {
     return window.NEGOCIO_ID_POR_DEFECTO || '';
 };
@@ -367,7 +379,20 @@ window.cargarConfiguracionNegocio = async function(forceRefresh = false) {
     return cargarConfigNegocioDesdeRed(negocioId, LS_CFG_KEY);
 };
 
-async function cargarConfigNegocioDesdeRed(negocioId, LS_CFG_KEY) {
+// Al abrir el panel, cinco sitios piden la configuracion a la vez. Como
+// ninguno habia terminado todavia, los cinco fallaban la cache y los cinco
+// pedian lo mismo a Supabase: cinco peticiones identicas por apertura. Se
+// guarda la peticion en curso para que los demas se cuelguen de ella.
+let peticionConfigEnCurso = null;
+
+function cargarConfigNegocioDesdeRed(negocioId, LS_CFG_KEY) {
+    if (peticionConfigEnCurso) return peticionConfigEnCurso;
+    peticionConfigEnCurso = pedirConfigNegocioARed(negocioId, LS_CFG_KEY)
+        .finally(() => { peticionConfigEnCurso = null; });
+    return peticionConfigEnCurso;
+}
+
+async function pedirConfigNegocioARed(negocioId, LS_CFG_KEY) {
     try {
         console.log('🌐 Cargando configuración del negocio desde Supabase...', negocioId);
         const url = `${window.SUPABASE_URL}/rest/v1/negocios?id=eq.${negocioId}&select=*`;
