@@ -64,6 +64,34 @@ assert.equal(
     JSON.stringify([{ nombre: 'Navidad', total: 2 }, { nombre: 'Floral', total: 1 }])
 );
 
+// --- Secciones por categoria ---
+// Lo que protege: que ningun diseno desaparezca de la galeria al agruparla.
+// Un diseno sin categoria (fila vieja o editada a mano) debe caer en "Otros",
+// no evaporarse.
+const grupos = catalogo.catalogoAgrupar([
+    { id: 1, categoria: 'Floral' },
+    { id: 2, categoria: 'Navidad' },
+    { id: 3, categoria: 'Navidad' },
+    { id: 4, categoria: null },
+    { id: 5, categoria: 'Navidad' }
+]);
+assert.equal(
+    JSON.stringify(grupos.map(g => [g.nombre, g.disenos.length])),
+    JSON.stringify([['Navidad', 3], ['Floral', 1], ['Otros', 1]]),
+    'Mas trabajos primero y "Otros" al final'
+);
+assert.equal(
+    grupos.reduce((total, g) => total + g.disenos.length, 0),
+    5,
+    'Agrupar no puede perder ningun diseno'
+);
+assert.equal(
+    JSON.stringify(grupos[0].disenos.map(d => d.id)),
+    JSON.stringify([2, 3, 5]),
+    'Dentro de cada seccion se conserva el orden que trajo la consulta'
+);
+assert.equal(JSON.stringify(catalogo.catalogoAgrupar([])), '[]');
+
 // --- Miniaturas de Cloudinary ---
 const original = 'https://res.cloudinary.com/uyvla7fj/image/upload/v1/rservasroma/catalogo/diseno-1.jpg';
 assert.equal(

@@ -44,6 +44,8 @@ function CatalogoPanel() {
 
     // Categorias ya usadas: se ofrecen como sugerencia para que el salon no
     // termine con "Navidad", "navidad" y "Navideño" como tres filtros distintos.
+    const grupos = React.useMemo(() => window.catalogoAgrupar(disenos), [disenos]);
+
     const categoriasUsadas = React.useMemo(
         () => window.catalogoCategorias(disenos).map(c => c.nombre),
         [disenos]
@@ -278,8 +280,21 @@ function CatalogoPanel() {
                         {t('Todavía no has subido ningún diseño. Empieza con tus 5 mejores trabajos.')}
                     </p>
                 ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {disenos.map(diseno => {
+                    /* Agrupado igual que en la app de la clienta: así la dueña
+                       ve el catálogo tal como queda publicado. */
+                    <div className="space-y-5">
+                        {grupos.map(grupo => (
+                            <section key={grupo.nombre}>
+                                <div className="flex items-baseline justify-between mb-2 pb-1 border-b border-gray-100">
+                                    <h3 className="text-sm font-bold text-gray-700">{grupo.nombre}</h3>
+                                    <span className="text-xs text-gray-400">
+                                        {grupo.disenos.length === 1
+                                            ? t('1 diseño')
+                                            : t('{n} diseños', { n: grupo.disenos.length })}
+                                    </span>
+                                </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {grupo.disenos.map(diseno => {
                             const promedio = window.catalogoPromedio(diseno);
                             return (
                                 <div key={diseno.id}
@@ -310,6 +325,9 @@ function CatalogoPanel() {
                                 </div>
                             );
                         })}
+                                </div>
+                            </section>
+                        ))}
                     </div>
                 )}
             </div>

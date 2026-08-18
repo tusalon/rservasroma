@@ -98,6 +98,28 @@ function catalogoCategorias(disenos) {
         .sort((a, b) => b.total - a.total);
 }
 
+// Agrupa los disenos en secciones por categoria, conservando dentro de cada
+// una el orden que ya trajo la consulta (orden asc, id desc). Los disenos sin
+// categoria no se pierden: caen en un grupo "Otros" que va siempre al final.
+function catalogoAgrupar(disenos) {
+    const grupos = new Map();
+    (disenos || []).forEach(diseno => {
+        const nombre = String(diseno.categoria || '').trim() || 'Otros';
+        if (!grupos.has(nombre)) grupos.set(nombre, []);
+        grupos.get(nombre).push(diseno);
+    });
+
+    // Las categorias con mas trabajos primero (es lo que el salon mas hace, y
+    // coincide con el orden de los filtros de arriba). "Otros" cierra la lista.
+    return [...grupos.entries()]
+        .map(([nombre, items]) => ({ nombre, disenos: items }))
+        .sort((a, b) => {
+            if (a.nombre === 'Otros') return 1;
+            if (b.nombre === 'Otros') return -1;
+            return b.disenos.length - a.disenos.length;
+        });
+}
+
 async function catalogoVotar(disenoId, puntuacion, nombre) {
     const valor = Math.max(0, Math.min(100, Math.round(Number(puntuacion) || 0)));
     try {
@@ -205,6 +227,7 @@ async function catalogoEliminarDiseno(id) {
 window.catalogoObtenerDisenos = catalogoObtenerDisenos;
 window.catalogoInvalidarCache = catalogoInvalidarCache;
 window.catalogoCategorias = catalogoCategorias;
+window.catalogoAgrupar = catalogoAgrupar;
 window.catalogoPromedio = catalogoPromedio;
 window.catalogoVotar = catalogoVotar;
 window.catalogoVotoPropio = catalogoVotoPropio;

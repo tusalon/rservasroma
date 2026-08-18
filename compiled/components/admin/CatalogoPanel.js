@@ -38,6 +38,7 @@ function CatalogoPanel() {
   React.useEffect(() => {
     cargar();
   }, [cargar]);
+  const grupos = React.useMemo(() => window.catalogoAgrupar(disenos), [disenos]);
   const categoriasUsadas = React.useMemo(
     () => window.catalogoCategorias(disenos).map((c) => c.nombre),
     [disenos]
@@ -223,24 +224,28 @@ function CatalogoPanel() {
       className: "px-5 py-2 rounded-lg bg-gray-100 text-gray-700 text-sm font-medium"
     },
     t("Cancelar")
-  )))), /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-xl shadow-sm p-6" }, /* @__PURE__ */ React.createElement("h2", { className: "text-lg font-bold mb-4" }, t("Diseños publicados ({n})", { n: disenos.length })), cargando ? /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-400" }, t("Cargando...")) : disenos.length === 0 ? /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-400" }, t("Todavía no has subido ningún diseño. Empieza con tus 5 mejores trabajos.")) : /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-1 sm:grid-cols-2 gap-3" }, disenos.map((diseno) => {
-    const promedio = window.catalogoPromedio(diseno);
-    return /* @__PURE__ */ React.createElement(
-      "div",
-      {
-        key: diseno.id,
-        className: `flex gap-3 border rounded-xl p-3 ${diseno.activo ? "border-gray-100" : "border-gray-200 bg-gray-50 opacity-70"}`
-      },
-      /* @__PURE__ */ React.createElement(
-        "img",
+  )))), /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-xl shadow-sm p-6" }, /* @__PURE__ */ React.createElement("h2", { className: "text-lg font-bold mb-4" }, t("Diseños publicados ({n})", { n: disenos.length })), cargando ? /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-400" }, t("Cargando...")) : disenos.length === 0 ? /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-400" }, t("Todavía no has subido ningún diseño. Empieza con tus 5 mejores trabajos.")) : (
+    /* Agrupado igual que en la app de la clienta: así la dueña
+       ve el catálogo tal como queda publicado. */
+    /* @__PURE__ */ React.createElement("div", { className: "space-y-5" }, grupos.map((grupo) => /* @__PURE__ */ React.createElement("section", { key: grupo.nombre }, /* @__PURE__ */ React.createElement("div", { className: "flex items-baseline justify-between mb-2 pb-1 border-b border-gray-100" }, /* @__PURE__ */ React.createElement("h3", { className: "text-sm font-bold text-gray-700" }, grupo.nombre), /* @__PURE__ */ React.createElement("span", { className: "text-xs text-gray-400" }, grupo.disenos.length === 1 ? t("1 diseño") : t("{n} diseños", { n: grupo.disenos.length }))), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-1 sm:grid-cols-2 gap-3" }, grupo.disenos.map((diseno) => {
+      const promedio = window.catalogoPromedio(diseno);
+      return /* @__PURE__ */ React.createElement(
+        "div",
         {
-          src: window.urlImagenCloudinary(diseno.imagen_url, 160),
-          alt: diseno.titulo,
-          loading: "lazy",
-          className: "w-16 h-16 rounded-lg object-cover shrink-0"
-        }
-      ),
-      /* @__PURE__ */ React.createElement("div", { className: "flex-1 min-w-0" }, /* @__PURE__ */ React.createElement("p", { className: "text-sm font-bold text-gray-800 truncate" }, diseno.titulo), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 truncate" }, diseno.categoria, diseno.servicio_nombre && ` · ${diseno.servicio_nombre}`), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-pink-500 mt-0.5" }, promedio === null ? t("Sin votos todavía") : t("❤️ {p}% · {n} voto(s)", { p: promedio, n: diseno.votos_conteo })), /* @__PURE__ */ React.createElement("div", { className: "flex gap-3 mt-1.5 text-xs font-medium" }, /* @__PURE__ */ React.createElement("button", { onClick: () => abrirEdicion(diseno), className: "text-blue-600" }, t("Editar")), /* @__PURE__ */ React.createElement("button", { onClick: () => alternarVisible(diseno), className: "text-gray-600" }, diseno.activo ? t("Ocultar") : t("Mostrar")), /* @__PURE__ */ React.createElement("button", { onClick: () => eliminar(diseno), className: "text-red-500" }, t("Eliminar"))))
-    );
-  }))));
+          key: diseno.id,
+          className: `flex gap-3 border rounded-xl p-3 ${diseno.activo ? "border-gray-100" : "border-gray-200 bg-gray-50 opacity-70"}`
+        },
+        /* @__PURE__ */ React.createElement(
+          "img",
+          {
+            src: window.urlImagenCloudinary(diseno.imagen_url, 160),
+            alt: diseno.titulo,
+            loading: "lazy",
+            className: "w-16 h-16 rounded-lg object-cover shrink-0"
+          }
+        ),
+        /* @__PURE__ */ React.createElement("div", { className: "flex-1 min-w-0" }, /* @__PURE__ */ React.createElement("p", { className: "text-sm font-bold text-gray-800 truncate" }, diseno.titulo), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 truncate" }, diseno.categoria, diseno.servicio_nombre && ` · ${diseno.servicio_nombre}`), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-pink-500 mt-0.5" }, promedio === null ? t("Sin votos todavía") : t("❤️ {p}% · {n} voto(s)", { p: promedio, n: diseno.votos_conteo })), /* @__PURE__ */ React.createElement("div", { className: "flex gap-3 mt-1.5 text-xs font-medium" }, /* @__PURE__ */ React.createElement("button", { onClick: () => abrirEdicion(diseno), className: "text-blue-600" }, t("Editar")), /* @__PURE__ */ React.createElement("button", { onClick: () => alternarVisible(diseno), className: "text-gray-600" }, diseno.activo ? t("Ocultar") : t("Mostrar")), /* @__PURE__ */ React.createElement("button", { onClick: () => eliminar(diseno), className: "text-red-500" }, t("Eliminar"))))
+      );
+    })))))
+  )));
 }

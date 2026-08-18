@@ -27,10 +27,12 @@ function Catalogo({ onGoBack, onReservarDiseno, cliente }) {
     }, []);
 
     const colorPrimario = config?.color_primario || '#ec4899';
-    const categorias = React.useMemo(() => window.catalogoCategorias(disenos), [disenos]);
-    const visibles = React.useMemo(() => (
-        categoria === 'todas' ? disenos : disenos.filter(d => d.categoria === categoria)
-    ), [disenos, categoria]);
+    // El catálogo se lee por secciones, como un álbum: cada categoría con su
+    // título. Los chips de arriba sirven para saltar a una sola.
+    const grupos = React.useMemo(() => window.catalogoAgrupar(disenos), [disenos]);
+    const gruposVisibles = React.useMemo(() => (
+        categoria === 'todas' ? grupos : grupos.filter(g => g.nombre === categoria)
+    ), [grupos, categoria]);
 
     if (cargando) {
         return (
@@ -69,7 +71,7 @@ function Catalogo({ onGoBack, onReservarDiseno, cliente }) {
                     <React.Fragment>
                         {/* Filtro pegajoso: en un catalogo largo la clienta debe poder
                             cambiar de categoria sin volver arriba del todo. */}
-                        {categorias.length > 1 && (
+                        {grupos.length > 1 && (
                             <div className="sticky top-0 z-10 -mx-4 px-4 py-3 bg-pink-50/90 backdrop-blur">
                                 <div className="flex gap-2 overflow-x-auto pb-1">
                                     <BotonCategoria
@@ -78,26 +80,40 @@ function Catalogo({ onGoBack, onReservarDiseno, cliente }) {
                                         onClick={() => setCategoria('todas')}
                                         texto={`${t('Todas')} · ${disenos.length}`}
                                     />
-                                    {categorias.map(c => (
+                                    {grupos.map(g => (
                                         <BotonCategoria
-                                            key={c.nombre}
-                                            activo={categoria === c.nombre}
+                                            key={g.nombre}
+                                            activo={categoria === g.nombre}
                                             color={colorPrimario}
-                                            onClick={() => setCategoria(c.nombre)}
-                                            texto={`${c.nombre} · ${c.total}`}
+                                            onClick={() => setCategoria(g.nombre)}
+                                            texto={`${g.nombre} · ${g.disenos.length}`}
                                         />
                                     ))}
                                 </div>
                             </div>
                         )}
 
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-3">
-                            {visibles.map(diseno => (
-                                <TarjetaDiseno
-                                    key={diseno.id}
-                                    diseno={diseno}
-                                    onClick={() => setAbierto(diseno)}
-                                />
+                        <div className="pt-3 space-y-6">
+                            {gruposVisibles.map(grupo => (
+                                <section key={grupo.nombre}>
+                                    <div className="flex items-baseline justify-between mb-2">
+                                        <h2 className="text-base font-bold text-gray-800">{grupo.nombre}</h2>
+                                        <span className="text-xs text-gray-400">
+                                            {grupo.disenos.length === 1
+                                                ? t('1 diseño')
+                                                : t('{n} diseños', { n: grupo.disenos.length })}
+                                        </span>
+                                    </div>
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                        {grupo.disenos.map(diseno => (
+                                            <TarjetaDiseno
+                                                key={diseno.id}
+                                                diseno={diseno}
+                                                onClick={() => setAbierto(diseno)}
+                                            />
+                                        ))}
+                                    </div>
+                                </section>
                             ))}
                         </div>
                     </React.Fragment>
