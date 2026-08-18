@@ -1,6 +1,6 @@
 ﻿// components/ClientAuthScreen.js - Login por teléfono con registro automático
 
-function ClientAuthScreen({ onAccessGranted, onGoBack }) {
+function ClientAuthScreen({ onAccessGranted, onGoBack, disenoPendiente }) {
     window.useIdioma();
     const t = window.t;
     const [config, setConfig] = React.useState(null);
@@ -324,6 +324,29 @@ function ClientAuthScreen({ onAccessGranted, onGoBack }) {
                         <h1 className="text-3xl font-bold text-white mt-4">{nombreNegocio}</h1>
                         <p className="text-pink-300 mt-1">🌸 {t('Espacio de belleza y cuidado')} 🌸</p>
                     </div>
+
+                    {/* Llegó desde el catálogo compartido en redes: se le
+                        recuerda qué diseño está a punto de reservar, para que el
+                        formulario no parezca un peaje salido de la nada. */}
+                    {disenoPendiente && (
+                        <div className="mb-4 flex items-center gap-3 bg-white/15 border border-white/25 rounded-xl p-3">
+                            <img
+                                src={window.urlImagenCloudinary
+                                    ? window.urlImagenCloudinary(disenoPendiente.imagen_url, 120)
+                                    : disenoPendiente.imagen_url}
+                                alt={disenoPendiente.titulo}
+                                className="w-14 h-14 rounded-lg object-cover shrink-0" />
+                            <div className="min-w-0 text-left">
+                                <p className="text-xs text-pink-200 font-medium">
+                                    {t('Para reservar este diseño')}
+                                </p>
+                                <p className="text-sm text-white font-bold truncate">{disenoPendiente.titulo}</p>
+                                <p className="text-xs text-white/70 mt-0.5">
+                                    {t('Entra con tu WhatsApp: es un paso y ya quedas registrada.')}
+                                </p>
+                            </div>
+                        </div>
+                    )}
 
                     <h2 className="text-lg font-semibold text-white mb-4 flex items-center justify-center gap-2 bg-pink-500/30 p-3 rounded-lg">
                         <span>📱</span>

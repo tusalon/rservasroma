@@ -1,4 +1,4 @@
-function ClientAuthScreen({ onAccessGranted, onGoBack }) {
+function ClientAuthScreen({ onAccessGranted, onGoBack, disenoPendiente }) {
   window.useIdioma();
   const t = window.t;
   const [config, setConfig] = React.useState(null);
@@ -238,7 +238,14 @@ function ClientAuthScreen({ onAccessGranted, onGoBack }) {
       alt: nombreNegocio,
       className: "w-20 h-20 object-contain mx-auto rounded-xl ring-4 ring-pink-300/35 bg-white/70"
     }
-  ) : /* @__PURE__ */ React.createElement("div", { className: "w-20 h-20 rounded-xl mx-auto flex items-center justify-center bg-pink-500 ring-4 ring-pink-300/35" }, /* @__PURE__ */ React.createElement("span", { className: "text-3xl" }, sticker)), /* @__PURE__ */ React.createElement("h1", { className: "text-3xl font-bold text-white mt-4" }, nombreNegocio), /* @__PURE__ */ React.createElement("p", { className: "text-pink-300 mt-1" }, "🌸 ", t("Espacio de belleza y cuidado"), " 🌸")), /* @__PURE__ */ React.createElement("h2", { className: "text-lg font-semibold text-white mb-4 flex items-center justify-center gap-2 bg-pink-500/30 p-3 rounded-lg" }, /* @__PURE__ */ React.createElement("span", null, "📱"), necesitaNombre ? t("Primera vez aquí — bienvenida") : t("Entra con tu WhatsApp"), /* @__PURE__ */ React.createElement("span", null, "✨")), /* @__PURE__ */ React.createElement("form", { onSubmit: handleSubmit, className: "space-y-4" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-white mb-1" }, t("Tu número de WhatsApp")), /* @__PURE__ */ React.createElement("div", { className: "flex" }, /* @__PURE__ */ React.createElement(
+  ) : /* @__PURE__ */ React.createElement("div", { className: "w-20 h-20 rounded-xl mx-auto flex items-center justify-center bg-pink-500 ring-4 ring-pink-300/35" }, /* @__PURE__ */ React.createElement("span", { className: "text-3xl" }, sticker)), /* @__PURE__ */ React.createElement("h1", { className: "text-3xl font-bold text-white mt-4" }, nombreNegocio), /* @__PURE__ */ React.createElement("p", { className: "text-pink-300 mt-1" }, "🌸 ", t("Espacio de belleza y cuidado"), " 🌸")), disenoPendiente && /* @__PURE__ */ React.createElement("div", { className: "mb-4 flex items-center gap-3 bg-white/15 border border-white/25 rounded-xl p-3" }, /* @__PURE__ */ React.createElement(
+    "img",
+    {
+      src: window.urlImagenCloudinary ? window.urlImagenCloudinary(disenoPendiente.imagen_url, 120) : disenoPendiente.imagen_url,
+      alt: disenoPendiente.titulo,
+      className: "w-14 h-14 rounded-lg object-cover shrink-0"
+    }
+  ), /* @__PURE__ */ React.createElement("div", { className: "min-w-0 text-left" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs text-pink-200 font-medium" }, t("Para reservar este diseño")), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-white font-bold truncate" }, disenoPendiente.titulo), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-white/70 mt-0.5" }, t("Entra con tu WhatsApp: es un paso y ya quedas registrada.")))), /* @__PURE__ */ React.createElement("h2", { className: "text-lg font-semibold text-white mb-4 flex items-center justify-center gap-2 bg-pink-500/30 p-3 rounded-lg" }, /* @__PURE__ */ React.createElement("span", null, "📱"), necesitaNombre ? t("Primera vez aquí — bienvenida") : t("Entra con tu WhatsApp"), /* @__PURE__ */ React.createElement("span", null, "✨")), /* @__PURE__ */ React.createElement("form", { onSubmit: handleSubmit, className: "space-y-4" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-white mb-1" }, t("Tu número de WhatsApp")), /* @__PURE__ */ React.createElement("div", { className: "flex" }, /* @__PURE__ */ React.createElement(
     "select",
     {
       value: codigoPaisCliente,

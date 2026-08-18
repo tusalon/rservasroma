@@ -376,6 +376,7 @@ function ClientApp() {
                     <ClientAuthScreen 
                         onAccessGranted={handleAccessGranted}
                         onGoBack={history.length > 1 ? goBack : null}
+                        disenoPendiente={disenoElegido}
                     />
                 );
             

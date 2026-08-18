@@ -1,6 +1,6 @@
 // sw.js - Service Worker para Rservasroma
 
-const CACHE_NAME = 'rservasroma-v89';
+const CACHE_NAME = 'rservasroma-v90';
 const BASE = '/rservasroma';
 
 const urlsToCache = [
@@ -16,7 +16,7 @@ const urlsToCache = [
   `${BASE}/manifest.json`,
 
   // App principal (JSX pre-compilado en compiled/ — ver scripts/build-jsx.sh)
-  `${BASE}/compiled/client-app.js?v=20260818-compartir-catalogo`,
+  `${BASE}/compiled/client-app.js?v=20260818-registro-diseno`,
   `${BASE}/compiled/admin-app.js?v=20260818-catalogo`,
 
   // Utils
@@ -51,7 +51,7 @@ const urlsToCache = [
   `${BASE}/compiled/components/BookingForm.js?v=20260818-catalogo`,
   `${BASE}/compiled/components/Catalogo.js?v=20260818-secciones`,
   `${BASE}/compiled/components/Calendar.js?v=20260723-jsx1`,
-  `${BASE}/compiled/components/ClientAuthScreen.js?v=20260809-sesion-7d`,
+  `${BASE}/compiled/components/ClientAuthScreen.js?v=20260818-registro-diseno`,
   `${BASE}/compiled/components/Confirmation.js?v=20260806-tel-prefijo`,
   `${BASE}/compiled/components/Header.js?v=20260731-marca`,
   `${BASE}/compiled/components/InstallButton.js?v=20260723-jsx1`,
