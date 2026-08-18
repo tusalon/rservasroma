@@ -1,6 +1,6 @@
 // sw.js - Service Worker para Rservasroma
 
-const CACHE_NAME = 'rservasroma-v87';
+const CACHE_NAME = 'rservasroma-v88';
 const BASE = '/rservasroma';
 
 const urlsToCache = [
@@ -16,7 +16,7 @@ const urlsToCache = [
   `${BASE}/manifest.json`,
 
   // App principal (JSX pre-compilado en compiled/ — ver scripts/build-jsx.sh)
-  `${BASE}/compiled/client-app.js?v=20260818-catalogo`,
+  `${BASE}/compiled/client-app.js?v=20260818-compartir-catalogo`,
   `${BASE}/compiled/admin-app.js?v=20260818-catalogo`,
 
   // Utils
@@ -29,7 +29,7 @@ const urlsToCache = [
   `${BASE}/utils/hero-backgrounds.js?v=20260723-fotos`,
   `${BASE}/utils/native-push-notifications.js?v=20260722-platform-v4`,
   `${BASE}/utils/offline-panel.js`,
-  `${BASE}/utils/config-negocio-master.js?v=20260815-arranque`,
+  `${BASE}/utils/config-negocio-master.js?v=20260818-compartir-catalogo`,
   `${BASE}/utils/i18n.js?v=20260810-anticipo-global`,
   `${BASE}/utils/cuba-geo.js?v=20260727-wizard-ubicacion1`,
   `${BASE}/utils/phone-utils.js`,
@@ -66,7 +66,7 @@ const urlsToCache = [
 
   // Componentes admin (compilados)
   `${BASE}/compiled/components/admin/ConfigPanel.js?v=20260731-marca`,
-  `${BASE}/compiled/components/admin/CatalogoPanel.js?v=20260818-catalogo`,
+  `${BASE}/compiled/components/admin/CatalogoPanel.js?v=20260818-compartir-catalogo`,
   `${BASE}/compiled/components/admin/RomaHubActivacion.js?v=20260731-marca`,
   `${BASE}/compiled/components/admin/EditarNegocio.js?v=20260727-admin-slug1`,
   `${BASE}/compiled/components/admin/HorariosPorDiaPanel.js?v=20260723-jsx1`,
@@ -230,7 +230,7 @@ self.addEventListener('fetch', event => {
 
   const esAssetCriticoAdmin = [
     `${BASE}/compiled/admin-app.js?v=20260818-catalogo`,
-    `${BASE}/utils/config-negocio-master.js`,
+    `${BASE}/utils/config-negocio-master.js?v=20260818-compartir-catalogo`,
     `${BASE}/utils/native-push-notifications.js`,
     `${BASE}/utils/push-notifications.js`
   ].some(path => reqUrl.pathname === path);

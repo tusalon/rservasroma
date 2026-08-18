@@ -135,15 +135,16 @@ function ClientApp() {
                 const clienteData = clienteAuth;
                 setCliente(clienteData);
                 setUserRol('cliente');
-                // Deep link del acceso directo del ícono (manifest shortcuts):
-                // ?ir=citas abre directo Mis Citas si ya hay sesión.
-                const irCitas = params.get('ir') === 'citas';
-                setStep(irCitas ? 'mybookings' : 'welcome');
-                setHistory(irCitas ? ['auth', 'welcome', 'mybookings'] : ['auth', 'welcome']);
+                // Deep links: ?ir=citas es el acceso directo del ícono (manifest
+                // shortcuts) y ?ir=catalogo el enlace que comparte el salón.
+                const ir = params.get('ir');
+                const destino = ir === 'citas' ? 'mybookings' : (ir === 'catalogo' ? 'catalogo' : null);
+                setStep(destino || 'welcome');
+                setHistory(destino ? ['auth', 'welcome', destino] : ['auth', 'welcome']);
                 try {
                     window.history.replaceState({ step: 'auth' }, '');
                     window.history.pushState({ step: 'welcome' }, '');
-                    if (irCitas) window.history.pushState({ step: 'mybookings' }, '');
+                    if (destino) window.history.pushState({ step: destino }, '');
                 } catch (e) {}
                 return;
             } catch (e) {
@@ -151,6 +152,20 @@ function ClientApp() {
                 window.borrarClienteAuthActual?.();
             }
         }
+        // Sin sesión, el enlace compartido del catálogo abre igualmente la
+        // galería: es material de captación y pedir nombre y WhatsApp antes de
+        // ver una sola foto espantaría a la clienta nueva. El acceso se pide
+        // solo cuando toca "Reservar este diseño".
+        if (params.get('ir') === 'catalogo') {
+            setStep('catalogo');
+            setHistory(['auth', 'catalogo']);
+            try {
+                window.history.replaceState({ step: 'auth' }, '');
+                window.history.pushState({ step: 'catalogo' }, '');
+            } catch (e) {}
+            return;
+        }
+
         try { window.history.replaceState({ step: 'auth' }, ''); } catch (e) {}
     }, []);
 
@@ -227,6 +242,12 @@ function ClientApp() {
         const clienteData = window.guardarClienteAuthActual({ nombre, whatsapp });
         setCliente(clienteData);
         setUserRol('cliente');
+        // Venía de "Reservar este diseño" en el catálogo público: retomar ahí.
+        if (disenoElegido) {
+            navigateTo('service');
+            preseleccionarServicioDeDiseno(disenoElegido);
+            return;
+        }
         navigateTo('welcome');
     };
 
@@ -243,8 +264,19 @@ function ClientApp() {
     // preselecciona para que la clienta caiga ya en el paso del profesional.
     const handleReservarDiseno = async (diseno) => {
         setDisenoElegido(diseno);
-        navigateTo('service');
 
+        // Si llegó por el enlace compartido y todavía no tiene sesión, se le
+        // pide el acceso aquí y handleAccessGranted la devuelve al diseño.
+        if (!cliente) {
+            navigateTo('auth');
+            return;
+        }
+
+        navigateTo('service');
+        preseleccionarServicioDeDiseno(diseno);
+    };
+
+    const preseleccionarServicioDeDiseno = async (diseno) => {
         if (!diseno?.servicio_id) return;
         try {
             const servicios = await window.salonServicios?.getAll?.(true);

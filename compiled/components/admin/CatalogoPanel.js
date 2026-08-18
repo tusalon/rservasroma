@@ -16,6 +16,8 @@ function CatalogoPanel() {
     orden: "99"
   };
   const [form, setForm] = React.useState(formVacio);
+  const [urlCatalogo, setUrlCatalogo] = React.useState("");
+  const [copiado, setCopiado] = React.useState(false);
   const cargar = React.useCallback(async () => {
     setCargando(true);
     window.catalogoInvalidarCache();
@@ -26,6 +28,12 @@ function CatalogoPanel() {
     setDisenos(lista || []);
     setServicios(serviciosLista || []);
     setCargando(false);
+    try {
+      const config = await window.cargarConfiguracionNegocio();
+      setUrlCatalogo(window.construirUrlCatalogoNegocio?.(config) || "");
+    } catch (e) {
+      console.error("No se pudo armar el enlace del catálogo:", e);
+    }
   }, []);
   React.useEffect(() => {
     cargar();
@@ -34,6 +42,31 @@ function CatalogoPanel() {
     () => window.catalogoCategorias(disenos).map((c) => c.nombre),
     [disenos]
   );
+  const compartirCatalogo = async () => {
+    if (!urlCatalogo) return;
+    const nombre = await window.getNombreNegocio?.() || "nuestro salón";
+    const texto = t("✨ Mira los diseños de {nombre} y reserva el que más te guste:", { nombre });
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: t("Catálogo de diseños"), text: texto, url: urlCatalogo });
+        return;
+      }
+      await navigator.clipboard.writeText(`${texto} ${urlCatalogo}`);
+      setCopiado(true);
+      setTimeout(() => setCopiado(false), 2500);
+    } catch (e) {
+    }
+  };
+  const copiarEnlace = async () => {
+    if (!urlCatalogo) return;
+    try {
+      await navigator.clipboard.writeText(urlCatalogo);
+      setCopiado(true);
+      setTimeout(() => setCopiado(false), 2500);
+    } catch (e) {
+      alert(t("No se pudo copiar. Copia el enlace a mano."));
+    }
+  };
   const subirFoto = async (e) => {
     const file = e.target.files?.[0];
     e.target.value = "";
@@ -109,7 +142,21 @@ function CatalogoPanel() {
     }
     cargar();
   };
-  return /* @__PURE__ */ React.createElement("div", { className: "space-y-4" }, /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-xl shadow-sm p-6" }, /* @__PURE__ */ React.createElement("h2", { className: "text-xl font-bold mb-1" }, editando ? t("Editar diseño") : t("Añadir diseño al catálogo")), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500 mb-4" }, t("Tus clientas verán estos trabajos y podrán reservar el que más les guste.")), /* @__PURE__ */ React.createElement("form", { onSubmit: guardar, className: "space-y-3" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-start gap-4" }, /* @__PURE__ */ React.createElement("div", { className: "w-24 h-24 rounded-xl bg-pink-50 border border-pink-100 overflow-hidden flex items-center justify-center shrink-0" }, form.imagen_url ? /* @__PURE__ */ React.createElement("img", { src: window.urlImagenCloudinary(form.imagen_url, 200), alt: "", className: "w-full h-full object-cover" }) : /* @__PURE__ */ React.createElement("span", { className: "text-2xl" }, "📸")), /* @__PURE__ */ React.createElement("div", { className: "flex-1" }, /* @__PURE__ */ React.createElement("label", { className: `inline-block px-4 py-2 rounded-lg bg-pink-500 text-white text-sm font-bold cursor-pointer hover:bg-pink-600 ${subiendo ? "opacity-60 pointer-events-none" : ""}` }, subiendo ? t("Subiendo...") : t("Elegir foto"), /* @__PURE__ */ React.createElement("input", { type: "file", accept: "image/*", onChange: subirFoto, className: "hidden", disabled: subiendo })), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 mt-2" }, t("La foto se comprime sola antes de subirse. Usa una foto clara del trabajo terminado.")))), /* @__PURE__ */ React.createElement(
+  return /* @__PURE__ */ React.createElement("div", { className: "space-y-4" }, urlCatalogo && disenos.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "bg-gradient-to-r from-pink-500 to-pink-400 rounded-xl shadow-sm p-5 text-white" }, /* @__PURE__ */ React.createElement("h2", { className: "text-lg font-bold" }, "🔗 ", t("Comparte tu catálogo")), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-white/90 mt-1" }, t("Pégalo en tu biografía de Instagram o mándalo por WhatsApp: abre directo en tus diseños.")), /* @__PURE__ */ React.createElement("p", { className: "text-xs bg-white/20 rounded-lg px-3 py-2 mt-3 break-all font-mono" }, urlCatalogo), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-2 mt-3" }, /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      onClick: compartirCatalogo,
+      className: "px-4 py-2 rounded-lg bg-white text-pink-600 text-sm font-bold hover:bg-pink-50"
+    },
+    t("Compartir catálogo")
+  ), /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      onClick: copiarEnlace,
+      className: "px-4 py-2 rounded-lg bg-white/20 text-white text-sm font-medium hover:bg-white/30"
+    },
+    copiado ? t("¡Copiado!") : t("Copiar enlace")
+  ))), /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-xl shadow-sm p-6" }, /* @__PURE__ */ React.createElement("h2", { className: "text-xl font-bold mb-1" }, editando ? t("Editar diseño") : t("Añadir diseño al catálogo")), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500 mb-4" }, t("Tus clientas verán estos trabajos y podrán reservar el que más les guste.")), /* @__PURE__ */ React.createElement("form", { onSubmit: guardar, className: "space-y-3" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-start gap-4" }, /* @__PURE__ */ React.createElement("div", { className: "w-24 h-24 rounded-xl bg-pink-50 border border-pink-100 overflow-hidden flex items-center justify-center shrink-0" }, form.imagen_url ? /* @__PURE__ */ React.createElement("img", { src: window.urlImagenCloudinary(form.imagen_url, 200), alt: "", className: "w-full h-full object-cover" }) : /* @__PURE__ */ React.createElement("span", { className: "text-2xl" }, "📸")), /* @__PURE__ */ React.createElement("div", { className: "flex-1" }, /* @__PURE__ */ React.createElement("label", { className: `inline-block px-4 py-2 rounded-lg bg-pink-500 text-white text-sm font-bold cursor-pointer hover:bg-pink-600 ${subiendo ? "opacity-60 pointer-events-none" : ""}` }, subiendo ? t("Subiendo...") : t("Elegir foto"), /* @__PURE__ */ React.createElement("input", { type: "file", accept: "image/*", onChange: subirFoto, className: "hidden", disabled: subiendo })), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 mt-2" }, t("La foto se comprime sola antes de subirse. Usa una foto clara del trabajo terminado.")))), /* @__PURE__ */ React.createElement(
     "input",
     {
       type: "text",

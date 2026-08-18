@@ -113,13 +113,14 @@ function ClientApp() {
         const clienteData = clienteAuth;
         setCliente(clienteData);
         setUserRol("cliente");
-        const irCitas = params.get("ir") === "citas";
-        setStep(irCitas ? "mybookings" : "welcome");
-        setHistory(irCitas ? ["auth", "welcome", "mybookings"] : ["auth", "welcome"]);
+        const ir = params.get("ir");
+        const destino = ir === "citas" ? "mybookings" : ir === "catalogo" ? "catalogo" : null;
+        setStep(destino || "welcome");
+        setHistory(destino ? ["auth", "welcome", destino] : ["auth", "welcome"]);
         try {
           window.history.replaceState({ step: "auth" }, "");
           window.history.pushState({ step: "welcome" }, "");
-          if (irCitas) window.history.pushState({ step: "mybookings" }, "");
+          if (destino) window.history.pushState({ step: destino }, "");
         } catch (e) {
         }
         return;
@@ -127,6 +128,16 @@ function ClientApp() {
         console.error("Error al parsear clienteAuth", e);
         window.borrarClienteAuthActual?.();
       }
+    }
+    if (params.get("ir") === "catalogo") {
+      setStep("catalogo");
+      setHistory(["auth", "catalogo"]);
+      try {
+        window.history.replaceState({ step: "auth" }, "");
+        window.history.pushState({ step: "catalogo" }, "");
+      } catch (e) {
+      }
+      return;
     }
     try {
       window.history.replaceState({ step: "auth" }, "");
@@ -186,6 +197,11 @@ function ClientApp() {
     const clienteData = window.guardarClienteAuthActual({ nombre, whatsapp });
     setCliente(clienteData);
     setUserRol("cliente");
+    if (disenoElegido) {
+      navigateTo("service");
+      preseleccionarServicioDeDiseno(disenoElegido);
+      return;
+    }
     navigateTo("welcome");
   };
   const handleStartBooking = () => {
@@ -197,7 +213,14 @@ function ClientApp() {
   };
   const handleReservarDiseno = async (diseno) => {
     setDisenoElegido(diseno);
+    if (!cliente) {
+      navigateTo("auth");
+      return;
+    }
     navigateTo("service");
+    preseleccionarServicioDeDiseno(diseno);
+  };
+  const preseleccionarServicioDeDiseno = async (diseno) => {
     if (!diseno?.servicio_id) return;
     try {
       const servicios = await window.salonServicios?.getAll?.(true);

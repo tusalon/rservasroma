@@ -524,6 +524,15 @@ function construirUrlClientesNegocio(config = null) {
 }
 window.construirUrlClientesNegocio = construirUrlClientesNegocio;
 
+// Enlace que comparte el salon en Instagram o WhatsApp: abre la app de la
+// clienta directamente en el catalogo, sin pedir acceso para mirar.
+function construirUrlCatalogoNegocio(config = null) {
+    const base = construirUrlClientesNegocio(config);
+    if (!base) return '';
+    return base + (base.includes('?') ? '&' : '?') + 'ir=catalogo';
+}
+window.construirUrlCatalogoNegocio = construirUrlCatalogoNegocio;
+
 function construirUrlAdminNegocio(config = null) {
     const slug = (
         window._rservasSlugActual ||
