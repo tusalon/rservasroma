@@ -126,6 +126,7 @@ function Catalogo({ onGoBack, onReservarDiseno, cliente }) {
                        actualice en cuanto la clienta envía su voto. */
                     diseno={disenos.find(d => d.id === abierto.id) || abierto}
                     colorPrimario={colorPrimario}
+                    cliente={cliente}
                     onCerrar={() => setAbierto(null)}
                     onReservar={onReservarDiseno}
                     onVotoEnviado={(id, promedio, conteo) => {
@@ -187,7 +188,7 @@ function TarjetaDiseno({ diseno, onClick }) {
     );
 }
 
-function ModalDiseno({ diseno, colorPrimario, onCerrar, onReservar, onVotoEnviado }) {
+function ModalDiseno({ diseno, colorPrimario, cliente, onCerrar, onReservar, onVotoEnviado }) {
     window.useIdioma();
     const t = window.t;
     const votoPrevio = window.catalogoVotoPropio(diseno.id);
@@ -195,13 +196,18 @@ function ModalDiseno({ diseno, colorPrimario, onCerrar, onReservar, onVotoEnviad
     const [enviando, setEnviando] = React.useState(false);
     const [votado, setVotado] = React.useState(votoPrevio !== null);
     const [textoCompleto, setTextoCompleto] = React.useState(false);
+    // Si ya tiene sesión, su nombre viene puesto; si votó antes desde este
+    // teléfono, se reusa el que escribió. Solo teclea quien llega de cero.
+    const [nombre, setNombre] = React.useState(
+        () => cliente?.nombre || window.catalogoNombreGuardado() || ''
+    );
     const promedio = window.catalogoPromedio(diseno);
     const descripcion = String(diseno.descripcion || '');
     const descripcionLarga = descripcion.length > 220;
 
     const enviarVoto = async () => {
         setEnviando(true);
-        const resultado = await window.catalogoVotar(diseno.id, puntuacion);
+        const resultado = await window.catalogoVotar(diseno.id, puntuacion, nombre);
         setEnviando(false);
         if (!resultado.success) {
             alert(t('No se pudo enviar tu voto. Revisa tu conexión.'));
@@ -301,6 +307,15 @@ function ModalDiseno({ diseno, colorPrimario, onCerrar, onReservar, onVotoEnviad
                                 {puntuacion}%
                             </span>
                         </div>
+                        <input
+                            type="text" value={nombre} maxLength={60}
+                            onChange={e => setNombre(e.target.value)}
+                            placeholder={t('¿Cómo te llamas? (opcional)')}
+                            className="w-full mt-3 px-3 py-2 rounded-xl border border-pink-200 bg-white text-sm outline-none focus:border-pink-400" />
+                        <p className="text-xs text-gray-400 mt-1">
+                            {t('Así el salón sabe a quién le gustó su trabajo 💕')}
+                        </p>
+
                         <button
                             onClick={enviarVoto}
                             disabled={enviando}

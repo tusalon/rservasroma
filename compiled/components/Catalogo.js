@@ -64,6 +64,7 @@ function Catalogo({ onGoBack, onReservarDiseno, cliente }) {
     {
       diseno: disenos.find((d) => d.id === abierto.id) || abierto,
       colorPrimario,
+      cliente,
       onCerrar: () => setAbierto(null),
       onReservar: onReservarDiseno,
       onVotoEnviado: (id, promedio, conteo) => {
@@ -115,7 +116,7 @@ function TarjetaDiseno({ diseno, onClick }) {
     /* @__PURE__ */ React.createElement("div", { className: "p-2" }, /* @__PURE__ */ React.createElement("p", { className: "text-sm font-medium text-gray-800 line-clamp-2" }, diseno.titulo), diseno.servicio_nombre && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 mt-0.5 truncate" }, diseno.servicio_nombre))
   );
 }
-function ModalDiseno({ diseno, colorPrimario, onCerrar, onReservar, onVotoEnviado }) {
+function ModalDiseno({ diseno, colorPrimario, cliente, onCerrar, onReservar, onVotoEnviado }) {
   window.useIdioma();
   const t = window.t;
   const votoPrevio = window.catalogoVotoPropio(diseno.id);
@@ -123,12 +124,15 @@ function ModalDiseno({ diseno, colorPrimario, onCerrar, onReservar, onVotoEnviad
   const [enviando, setEnviando] = React.useState(false);
   const [votado, setVotado] = React.useState(votoPrevio !== null);
   const [textoCompleto, setTextoCompleto] = React.useState(false);
+  const [nombre, setNombre] = React.useState(
+    () => cliente?.nombre || window.catalogoNombreGuardado() || ""
+  );
   const promedio = window.catalogoPromedio(diseno);
   const descripcion = String(diseno.descripcion || "");
   const descripcionLarga = descripcion.length > 220;
   const enviarVoto = async () => {
     setEnviando(true);
-    const resultado = await window.catalogoVotar(diseno.id, puntuacion);
+    const resultado = await window.catalogoVotar(diseno.id, puntuacion, nombre);
     setEnviando(false);
     if (!resultado.success) {
       alert(t("No se pudo enviar tu voto. Revisa tu conexión."));
@@ -219,6 +223,16 @@ function ModalDiseno({ diseno, colorPrimario, onCerrar, onReservar, onVotoEnviad
           className: "flex-1 accent-pink-500"
         }
       ), /* @__PURE__ */ React.createElement("span", { className: "text-sm font-bold w-12 text-right", style: { color: colorPrimario } }, puntuacion, "%")), /* @__PURE__ */ React.createElement(
+        "input",
+        {
+          type: "text",
+          value: nombre,
+          maxLength: 60,
+          onChange: (e) => setNombre(e.target.value),
+          placeholder: t("¿Cómo te llamas? (opcional)"),
+          className: "w-full mt-3 px-3 py-2 rounded-xl border border-pink-200 bg-white text-sm outline-none focus:border-pink-400"
+        }
+      ), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 mt-1" }, t("Así el salón sabe a quién le gustó su trabajo 💕")), /* @__PURE__ */ React.createElement(
         "button",
         {
           onClick: enviarVoto,

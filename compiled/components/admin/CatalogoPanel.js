@@ -18,6 +18,8 @@ function CatalogoPanel() {
   const [form, setForm] = React.useState(formVacio);
   const [urlCatalogo, setUrlCatalogo] = React.useState("");
   const [copiado, setCopiado] = React.useState(false);
+  const [votos, setVotos] = React.useState({});
+  const [cargandoVotos, setCargandoVotos] = React.useState(null);
   const cargar = React.useCallback(async () => {
     setCargando(true);
     window.catalogoInvalidarCache();
@@ -67,6 +69,20 @@ function CatalogoPanel() {
     } catch (e) {
       alert(t("No se pudo copiar. Copia el enlace a mano."));
     }
+  };
+  const alternarVotos = async (diseno) => {
+    if (votos[diseno.id]) {
+      setVotos((actual) => {
+        const copia = { ...actual };
+        delete copia[diseno.id];
+        return copia;
+      });
+      return;
+    }
+    setCargandoVotos(diseno.id);
+    const lista = await window.catalogoObtenerVotos(diseno.id);
+    setCargandoVotos(null);
+    setVotos((actual) => ({ ...actual, [diseno.id]: lista }));
   };
   const subirFoto = async (e) => {
     const file = e.target.files?.[0];
@@ -244,7 +260,7 @@ function CatalogoPanel() {
             className: "w-16 h-16 rounded-lg object-cover shrink-0"
           }
         ),
-        /* @__PURE__ */ React.createElement("div", { className: "flex-1 min-w-0" }, /* @__PURE__ */ React.createElement("p", { className: "text-sm font-bold text-gray-800 truncate" }, diseno.titulo), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 truncate" }, diseno.categoria, diseno.servicio_nombre && ` · ${diseno.servicio_nombre}`), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-pink-500 mt-0.5" }, promedio === null ? t("Sin votos todavía") : t("❤️ {p}% · {n} voto(s)", { p: promedio, n: diseno.votos_conteo })), /* @__PURE__ */ React.createElement("div", { className: "flex gap-3 mt-1.5 text-xs font-medium" }, /* @__PURE__ */ React.createElement("button", { onClick: () => abrirEdicion(diseno), className: "text-blue-600" }, t("Editar")), /* @__PURE__ */ React.createElement("button", { onClick: () => alternarVisible(diseno), className: "text-gray-600" }, diseno.activo ? t("Ocultar") : t("Mostrar")), /* @__PURE__ */ React.createElement("button", { onClick: () => eliminar(diseno), className: "text-red-500" }, t("Eliminar"))))
+        /* @__PURE__ */ React.createElement("div", { className: "flex-1 min-w-0" }, /* @__PURE__ */ React.createElement("p", { className: "text-sm font-bold text-gray-800 truncate" }, diseno.titulo), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 truncate" }, diseno.categoria, diseno.servicio_nombre && ` · ${diseno.servicio_nombre}`), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-pink-500 mt-0.5" }, promedio === null ? t("Sin votos todavía") : t("❤️ {p}% · {n} voto(s)", { p: promedio, n: diseno.votos_conteo })), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-3 mt-1.5 text-xs font-medium" }, /* @__PURE__ */ React.createElement("button", { onClick: () => abrirEdicion(diseno), className: "text-blue-600" }, t("Editar")), /* @__PURE__ */ React.createElement("button", { onClick: () => alternarVisible(diseno), className: "text-gray-600" }, diseno.activo ? t("Ocultar") : t("Mostrar")), promedio !== null && /* @__PURE__ */ React.createElement("button", { onClick: () => alternarVotos(diseno), className: "text-pink-600" }, votos[diseno.id] ? t("Ocultar votos") : t("Ver quién votó")), /* @__PURE__ */ React.createElement("button", { onClick: () => eliminar(diseno), className: "text-red-500" }, t("Eliminar"))), cargandoVotos === diseno.id && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 mt-2" }, t("Cargando votos...")), votos[diseno.id] && /* @__PURE__ */ React.createElement("div", { className: "mt-2 rounded-lg bg-pink-50 border border-pink-100 p-2 space-y-1 max-h-40 overflow-y-auto" }, votos[diseno.id].length === 0 ? /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400" }, t("Sin votos todavía")) : votos[diseno.id].map((voto, i) => /* @__PURE__ */ React.createElement("p", { key: i, className: "text-xs text-gray-700 flex justify-between gap-2" }, /* @__PURE__ */ React.createElement("span", { className: "truncate" }, voto.nombre || t("Alguien sin nombre")), /* @__PURE__ */ React.createElement("span", { className: "font-bold text-pink-600 shrink-0" }, voto.puntuacion, "%")))))
       );
     })))))
   )));

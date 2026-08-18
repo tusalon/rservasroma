@@ -139,12 +139,26 @@ async function catalogoVotar(disenoId, puntuacion, nombre) {
             }
         );
         if (!response.ok) throw new Error('HTTP ' + response.status);
-        try { localStorage.setItem('catalogoVoto:' + disenoId, String(valor)); } catch (e) {}
+        try {
+            localStorage.setItem('catalogoVoto:' + disenoId, String(valor));
+            const limpio = (nombre || '').trim();
+            if (limpio) localStorage.setItem('catalogoNombre', limpio.slice(0, 60));
+        } catch (e) {}
         catalogoInvalidarCache();
         return { success: true, puntuacion: valor };
     } catch (error) {
         console.error('Error al votar:', error);
         return { success: false, error };
+    }
+}
+
+// El nombre con el que voto la ultima vez este telefono: se reusa para que no
+// tenga que escribirlo de nuevo en cada diseno.
+function catalogoNombreGuardado() {
+    try {
+        return localStorage.getItem('catalogoNombre') || '';
+    } catch (e) {
+        return '';
     }
 }
 
@@ -160,6 +174,24 @@ function catalogoVotoPropio(disenoId) {
 // ============================================
 // ADMINISTRACION (panel del salon)
 // ============================================
+
+// Quienes votaron un diseno. Se pide bajo demanda desde el panel: cargarlo
+// junto al catalogo multiplicaria las consultas sin que nadie lo mire.
+async function catalogoObtenerVotos(disenoId) {
+    try {
+        const response = await fetch(
+            `${window.SUPABASE_URL}/rest/v1/catalogo_votos?diseno_id=eq.${disenoId}&select=nombre,puntuacion,created_at&order=created_at.desc`,
+            { headers: catalogoHeaders(), cache: 'no-store' }
+        );
+        if (!response.ok) throw new Error('HTTP ' + response.status);
+        const data = await response.json();
+        return Array.isArray(data) ? data : [];
+    } catch (error) {
+        console.error('Error cargando los votos:', error);
+        return [];
+    }
+}
+
 async function catalogoCrearDiseno(datos) {
     const negocioId = window.getNegocioId?.();
     if (!negocioId) return { success: false, error: new Error('Sin negocio') };
@@ -231,6 +263,8 @@ window.catalogoAgrupar = catalogoAgrupar;
 window.catalogoPromedio = catalogoPromedio;
 window.catalogoVotar = catalogoVotar;
 window.catalogoVotoPropio = catalogoVotoPropio;
+window.catalogoNombreGuardado = catalogoNombreGuardado;
+window.catalogoObtenerVotos = catalogoObtenerVotos;
 window.catalogoIdDispositivo = catalogoIdDispositivo;
 window.catalogoCrearDiseno = catalogoCrearDiseno;
 window.catalogoActualizarDiseno = catalogoActualizarDiseno;

@@ -20,6 +20,9 @@ function CatalogoPanel() {
     const [form, setForm] = React.useState(formVacio);
     const [urlCatalogo, setUrlCatalogo] = React.useState('');
     const [copiado, setCopiado] = React.useState(false);
+    // Votos por diseño, cargados solo cuando la dueña abre "Ver quién votó".
+    const [votos, setVotos] = React.useState({});
+    const [cargandoVotos, setCargandoVotos] = React.useState(null);
 
     const cargar = React.useCallback(async () => {
         setCargando(true);
@@ -77,6 +80,21 @@ function CatalogoPanel() {
         } catch (e) {
             alert(t('No se pudo copiar. Copia el enlace a mano.'));
         }
+    };
+
+    const alternarVotos = async (diseno) => {
+        if (votos[diseno.id]) {
+            setVotos(actual => {
+                const copia = { ...actual };
+                delete copia[diseno.id];
+                return copia;
+            });
+            return;
+        }
+        setCargandoVotos(diseno.id);
+        const lista = await window.catalogoObtenerVotos(diseno.id);
+        setCargandoVotos(null);
+        setVotos(actual => ({ ...actual, [diseno.id]: lista }));
     };
 
     const subirFoto = async (e) => {
@@ -314,13 +332,36 @@ function CatalogoPanel() {
                                                 ? t('Sin votos todavía')
                                                 : t('❤️ {p}% · {n} voto(s)', { p: promedio, n: diseno.votos_conteo })}
                                         </p>
-                                        <div className="flex gap-3 mt-1.5 text-xs font-medium">
+                                        <div className="flex flex-wrap gap-3 mt-1.5 text-xs font-medium">
                                             <button onClick={() => abrirEdicion(diseno)} className="text-blue-600">{t('Editar')}</button>
                                             <button onClick={() => alternarVisible(diseno)} className="text-gray-600">
                                                 {diseno.activo ? t('Ocultar') : t('Mostrar')}
                                             </button>
+                                            {promedio !== null && (
+                                                <button onClick={() => alternarVotos(diseno)} className="text-pink-600">
+                                                    {votos[diseno.id] ? t('Ocultar votos') : t('Ver quién votó')}
+                                                </button>
+                                            )}
                                             <button onClick={() => eliminar(diseno)} className="text-red-500">{t('Eliminar')}</button>
                                         </div>
+
+                                        {cargandoVotos === diseno.id && (
+                                            <p className="text-xs text-gray-400 mt-2">{t('Cargando votos...')}</p>
+                                        )}
+                                        {votos[diseno.id] && (
+                                            <div className="mt-2 rounded-lg bg-pink-50 border border-pink-100 p-2 space-y-1 max-h-40 overflow-y-auto">
+                                                {votos[diseno.id].length === 0 ? (
+                                                    <p className="text-xs text-gray-400">{t('Sin votos todavía')}</p>
+                                                ) : votos[diseno.id].map((voto, i) => (
+                                                    <p key={i} className="text-xs text-gray-700 flex justify-between gap-2">
+                                                        <span className="truncate">
+                                                            {voto.nombre || t('Alguien sin nombre')}
+                                                        </span>
+                                                        <span className="font-bold text-pink-600 shrink-0">{voto.puntuacion}%</span>
+                                                    </p>
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             );
