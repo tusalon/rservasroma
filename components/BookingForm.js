@@ -3,7 +3,7 @@
 // CORREGIDO: Hora local para archivos ICS
 // MODIFICADO: Solo notifica a la dueña, NO al cliente
 
-function BookingForm({ service, profesional, date, time, onSubmit, onCancel, cliente }) {
+function BookingForm({ service, profesional, date, time, onSubmit, onCancel, cliente, diseno }) {
     window.useIdioma();
     const t = window.t;
     const [submitting, setSubmitting] = React.useState(false);
@@ -109,7 +109,11 @@ function BookingForm({ service, profesional, date, time, onSubmit, onCancel, cli
                         fecha: date,
                         hora_inicio: cursor,
                         hora_fin: endTime,
-                        estado: requiereAnticipo ? "Pendiente" : "Reservado"
+                        estado: requiereAnticipo ? "Pendiente" : "Reservado",
+                        // Solo en el primer tramo del combo: si no, la agenda
+                        // repetiría la misma foto en cada servicio.
+                        diseno_titulo: index === 0 ? (diseno?.titulo || null) : null,
+                        diseno_imagen_url: index === 0 ? (diseno?.imagen_url || null) : null
                     });
                     cursor = endTime;
                 }
@@ -204,7 +208,9 @@ function BookingForm({ service, profesional, date, time, onSubmit, onCancel, cli
                 fecha: date,
                 hora_inicio: time,
                 hora_fin: endTime,
-                estado: requiereAnticipo ? "Pendiente" : "Reservado"
+                estado: requiereAnticipo ? "Pendiente" : "Reservado",
+                diseno_titulo: diseno?.titulo || null,
+                diseno_imagen_url: diseno?.imagen_url || null
             };
 
             const result = await createBooking(bookingData);

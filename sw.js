@@ -1,6 +1,6 @@
 // sw.js - Service Worker para Rservasroma
 
-const CACHE_NAME = 'rservasroma-v86';
+const CACHE_NAME = 'rservasroma-v87';
 const BASE = '/rservasroma';
 
 const urlsToCache = [
@@ -16,11 +16,11 @@ const urlsToCache = [
   `${BASE}/manifest.json`,
 
   // App principal (JSX pre-compilado en compiled/ — ver scripts/build-jsx.sh)
-  `${BASE}/compiled/client-app.js?v=20260727-admin-slug1`,
-  `${BASE}/compiled/admin-app.js?v=20260815-cron-completados`,
+  `${BASE}/compiled/client-app.js?v=20260818-catalogo`,
+  `${BASE}/compiled/admin-app.js?v=20260818-catalogo`,
 
   // Utils
-  `${BASE}/utils/api.js?v=20260722-lista-espera-cliente`,
+  `${BASE}/utils/api.js?v=20260818-catalogo`,
   `${BASE}/utils/auth-clients.js`,
   `${BASE}/utils/auth-profesionales.js`,
   `${BASE}/utils/config.js`,
@@ -37,7 +37,8 @@ const urlsToCache = [
   `${BASE}/utils/push-config.js?v=20260717-push-activo`,
   `${BASE}/utils/push-notifications.js?v=20260722-platform-v4`,
   `${BASE}/utils/servicios.js`,
-  `${BASE}/utils/storage.js?v=20260723-fotos`,
+  `${BASE}/utils/storage.js?v=20260818-catalogo`,
+  `${BASE}/utils/catalogo.js?v=20260818-catalogo`,
   `${BASE}/utils/suscripcion.js?v=20260727-whatsapp-romahub1`,
   `${BASE}/utils/supabase-config.js?v=20260723-fotos`,
   `${BASE}/utils/timeLogic.js`,
@@ -47,7 +48,8 @@ const urlsToCache = [
   `${BASE}/utils/roma-theme.js?v=20260731-tipografia`,
 
   // Componentes cliente (compilados)
-  `${BASE}/compiled/components/BookingForm.js?v=20260723-jsx1`,
+  `${BASE}/compiled/components/BookingForm.js?v=20260818-catalogo`,
+  `${BASE}/compiled/components/Catalogo.js?v=20260818-catalogo`,
   `${BASE}/compiled/components/Calendar.js?v=20260723-jsx1`,
   `${BASE}/compiled/components/ClientAuthScreen.js?v=20260809-sesion-7d`,
   `${BASE}/compiled/components/Confirmation.js?v=20260806-tel-prefijo`,
@@ -59,11 +61,12 @@ const urlsToCache = [
   `${BASE}/compiled/components/ProfesionalSelector.js?v=20260723-jsx1`,
   `${BASE}/compiled/components/ServiceSelectionCategorias.js?v=20260731-marca`,
   `${BASE}/compiled/components/TimeSlots.js?v=20260723-jsx1`,
-  `${BASE}/compiled/components/WelcomeScreen.js?v=20260723-fotos`,
+  `${BASE}/compiled/components/WelcomeScreen.js?v=20260818-catalogo`,
   `${BASE}/compiled/components/WhatsAppButton.js?v=20260806-tel-prefijo`,
 
   // Componentes admin (compilados)
   `${BASE}/compiled/components/admin/ConfigPanel.js?v=20260731-marca`,
+  `${BASE}/compiled/components/admin/CatalogoPanel.js?v=20260818-catalogo`,
   `${BASE}/compiled/components/admin/RomaHubActivacion.js?v=20260731-marca`,
   `${BASE}/compiled/components/admin/EditarNegocio.js?v=20260727-admin-slug1`,
   `${BASE}/compiled/components/admin/HorariosPorDiaPanel.js?v=20260723-jsx1`,
@@ -226,7 +229,7 @@ self.addEventListener('fetch', event => {
   }
 
   const esAssetCriticoAdmin = [
-    `${BASE}/compiled/admin-app.js`,
+    `${BASE}/compiled/admin-app.js?v=20260818-catalogo`,
     `${BASE}/utils/config-negocio-master.js`,
     `${BASE}/utils/native-push-notifications.js`,
     `${BASE}/utils/push-notifications.js`

@@ -1,4 +1,4 @@
-function WelcomeScreen({ onStart, onGoBack, cliente, userRol, onMisReservas }) {
+function WelcomeScreen({ onStart, onGoBack, cliente, userRol, onMisReservas, onCatalogo }) {
   window.useIdioma();
   const t = window.t;
   const [config, setConfig] = React.useState(null);
@@ -7,6 +7,7 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol, onMisReservas }) {
   const [pushEstado, setPushEstado] = React.useState("");
   const [activandoPush, setActivandoPush] = React.useState(false);
   const [pushMensaje, setPushMensaje] = React.useState("");
+  const [hayCatalogo, setHayCatalogo] = React.useState(false);
   const pushUIVisible = window.RSERVAS_PUSH_UI_VISIBLE === true;
   const esApkConRecientes = React.useMemo(() => {
     try {
@@ -109,6 +110,8 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol, onMisReservas }) {
       console.log("📱 WelcomeScreen - Config cargada:", configData);
       setConfig(configData);
       setCargando(false);
+      window.catalogoObtenerDisenos?.().then((lista) => setHayCatalogo((lista || []).length > 0)).catch(() => {
+      });
     };
     cargarDatos();
   }, []);
@@ -282,6 +285,14 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol, onMisReservas }) {
           /* @__PURE__ */ React.createElement("span", null, "💖"),
           /* @__PURE__ */ React.createElement("span", null, t("Reservar Turno")),
           /* @__PURE__ */ React.createElement("span", null, "✨")
+        ), hayCatalogo && onCatalogo && /* @__PURE__ */ React.createElement(
+          "button",
+          {
+            onClick: onCatalogo,
+            className: "w-full text-white/90 font-medium py-2.5 rounded-full border border-white/30 hover:bg-white/10 transition flex items-center justify-center gap-2"
+          },
+          /* @__PURE__ */ React.createElement("span", null, "✨"),
+          /* @__PURE__ */ React.createElement("span", null, t("Ver diseños"))
         ), cliente && onMisReservas && /* @__PURE__ */ React.createElement(
           "button",
           {

@@ -1,6 +1,6 @@
 // components/WelcomeScreen.js - Versión con REDES SOCIALES (CORREGIDA - SIN DESBORDAMIENTO)
 
-function WelcomeScreen({ onStart, onGoBack, cliente, userRol, onMisReservas }) {
+function WelcomeScreen({ onStart, onGoBack, cliente, userRol, onMisReservas, onCatalogo }) {
     window.useIdioma();
     const t = window.t;
     const [config, setConfig] = React.useState(null);
@@ -9,6 +9,9 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol, onMisReservas }) {
     const [pushEstado, setPushEstado] = React.useState('');
     const [activandoPush, setActivandoPush] = React.useState(false);
     const [pushMensaje, setPushMensaje] = React.useState('');
+    // El botón del catálogo solo aparece si el salón tiene diseños publicados:
+    // un catálogo vacío es peor que no tenerlo.
+    const [hayCatalogo, setHayCatalogo] = React.useState(false);
 
     // UI de push controlada por bandera (ver utils/push-config.js).
     const pushUIVisible = window.RSERVAS_PUSH_UI_VISIBLE === true;
@@ -128,6 +131,11 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol, onMisReservas }) {
             console.log('📱 WelcomeScreen - Config cargada:', configData);
             setConfig(configData);
             setCargando(false);
+            // En paralelo y sin bloquear: además deja el catálogo cacheado para
+            // que abra al instante si la clienta entra.
+            window.catalogoObtenerDisenos?.()
+                .then(lista => setHayCatalogo((lista || []).length > 0))
+                .catch(() => {});
         };
         cargarDatos();
 
@@ -376,6 +384,15 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol, onMisReservas }) {
                             <span>{t('Reservar Turno')}</span>
                             <span>✨</span>
                         </button>
+
+                        {/* Catálogo de diseños del salón */}
+                        {hayCatalogo && onCatalogo && (
+                            <button onClick={onCatalogo}
+                                className="w-full text-white/90 font-medium py-2.5 rounded-full border border-white/30 hover:bg-white/10 transition flex items-center justify-center gap-2">
+                                <span>✨</span>
+                                <span>{t('Ver diseños')}</span>
+                            </button>
+                        )}
 
                         {/* Acceso directo a Mis Reservas: una clienta que vuelve
                             solo para ver/cancelar/reprogramar ya no tiene que entrar

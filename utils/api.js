@@ -102,6 +102,14 @@ async function createBooking(bookingData) {
             estado: bookingData.estado || 'Reservado'
         };
 
+        // Diseno del catalogo (ver sql-catalogo-disenos.sql). Se anaden SOLO si
+        // la clienta eligio uno: asi una app publicada antes de correr el SQL
+        // sigue reservando normal en vez de romper con "column does not exist".
+        if (bookingData.diseno_titulo) {
+            dataForSupabase.diseno_titulo = bookingData.diseno_titulo;
+            dataForSupabase.diseno_imagen_url = bookingData.diseno_imagen_url || null;
+        }
+
         console.log('📤 Enviando a Supabase:', dataForSupabase);
 
         const response = await fetch(

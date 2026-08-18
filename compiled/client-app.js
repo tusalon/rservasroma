@@ -90,6 +90,7 @@ function ClientApp() {
   const [userRol, setUserRol] = React.useState("cliente");
   const [history, setHistory] = React.useState(["auth"]);
   const [horariosPorDia, setHorariosPorDia] = React.useState({});
+  const [disenoElegido, setDisenoElegido] = React.useState(null);
   React.useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const slugCliente = params.get("s");
@@ -188,7 +189,23 @@ function ClientApp() {
     navigateTo("welcome");
   };
   const handleStartBooking = () => {
+    setDisenoElegido(null);
     navigateTo("service");
+  };
+  const handleVerCatalogo = () => {
+    navigateTo("catalogo");
+  };
+  const handleReservarDiseno = async (diseno) => {
+    setDisenoElegido(diseno);
+    navigateTo("service");
+    if (!diseno?.servicio_id) return;
+    try {
+      const servicios = await window.salonServicios?.getAll?.(true);
+      const servicio = (servicios || []).find((s) => String(s.id) === String(diseno.servicio_id));
+      if (servicio) await handleServiceSelect(servicio);
+    } catch (e) {
+      console.error("No se pudo preseleccionar el servicio del diseño:", e);
+    }
   };
   const handleServiceSelect = async (service) => {
     setSelectedService(service);
@@ -240,6 +257,7 @@ function ClientApp() {
     window.location.href = "index.html" + window.location.search;
   };
   const resetBooking = () => {
+    setDisenoElegido(null);
     setSelectedService(null);
     setSelectedProfesional(null);
     setSelectedDate("");
@@ -271,7 +289,17 @@ function ClientApp() {
             onGoBack: goBack,
             cliente,
             userRol,
-            onMisReservas: goToMyBookings
+            onMisReservas: goToMyBookings,
+            onCatalogo: handleVerCatalogo
+          }
+        );
+      case "catalogo":
+        return /* @__PURE__ */ React.createElement(
+          Catalogo,
+          {
+            cliente,
+            onGoBack: goBack,
+            onReservarDiseno: handleReservarDiseno
           }
         );
       case "mybookings":
@@ -293,7 +321,21 @@ function ClientApp() {
             userRol,
             showBackButton: true
           }
-        ), /* @__PURE__ */ React.createElement("div", { className: "max-w-3xl mx-auto px-4 py-4 space-y-4 pb-20" }, /* @__PURE__ */ React.createElement(
+        ), /* @__PURE__ */ React.createElement("div", { className: "max-w-3xl mx-auto px-4 py-4 space-y-4 pb-20" }, disenoElegido && /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3 bg-white rounded-2xl shadow-sm p-3" }, /* @__PURE__ */ React.createElement(
+          "img",
+          {
+            src: window.urlImagenCloudinary(disenoElegido.imagen_url, 120),
+            alt: disenoElegido.titulo,
+            className: "w-14 h-14 rounded-xl object-cover"
+          }
+        ), /* @__PURE__ */ React.createElement("div", { className: "flex-1 min-w-0" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs text-pink-500 font-medium" }, window.t("Diseño elegido")), /* @__PURE__ */ React.createElement("p", { className: "text-sm font-bold text-gray-800 truncate" }, disenoElegido.titulo)), /* @__PURE__ */ React.createElement(
+          "button",
+          {
+            onClick: () => setDisenoElegido(null),
+            className: "text-gray-400 text-sm px-2"
+          },
+          "✕"
+        )), /* @__PURE__ */ React.createElement(
           ServiceSelection,
           {
             onSelect: handleServiceSelect,
@@ -348,6 +390,7 @@ function ClientApp() {
           BookingForm,
           {
             service: selectedService,
+            diseno: disenoElegido,
             profesional: selectedProfesional,
             date: selectedDate,
             time: selectedTime,

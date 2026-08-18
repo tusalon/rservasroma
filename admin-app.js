@@ -3899,6 +3899,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
 
         if (userRole === 'admin' || (userRole === 'profesional' && userNivel >= 3)) {
             tabs.push({ id: 'servicios', icono: '💅', label: t('Servicios') });
+            tabs.push({ id: 'catalogo', icono: '🖼️', label: t('Catálogo') });
             tabs.push({ id: 'profesionales', icono: '👩‍💼', label: t('Profesionales') });
         }
 
@@ -4788,6 +4789,10 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                     <ServiciosPanel />
                 )}
 
+                {tabActivo === 'catalogo' && (userRole === 'admin' || userNivel >= 3) && (
+                    <CatalogoPanel />
+                )}
+
                 {tabActivo === 'profesionales' && (userRole === 'admin' || userNivel >= 3) && (
                     <ProfesionalesPanel />
                 )}
@@ -5384,6 +5389,19 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                                                 <p><span className="font-medium">WhatsApp:</span> {b.cliente_whatsapp}</p>
                                                 <p><span className="font-medium">{t('Servicio:')}</span> {b.servicio}</p>
                                                 <p><span className="font-medium">👩‍🎨 {t('Profesional:')}</span> {b.profesional_nombre || b.trabajador_nombre}</p>
+                                                {b.diseno_titulo && (
+                                                    <div className="mt-2 flex items-center gap-2 rounded-lg bg-pink-50 border border-pink-100 p-2">
+                                                        {b.diseno_imagen_url && (
+                                                            <img src={window.urlImagenCloudinary ? window.urlImagenCloudinary(b.diseno_imagen_url, 120) : b.diseno_imagen_url}
+                                                                alt={b.diseno_titulo} loading="lazy"
+                                                                className="w-12 h-12 rounded-lg object-cover shrink-0" />
+                                                        )}
+                                                        <div className="min-w-0">
+                                                            <p className="text-xs font-bold text-pink-700">{t('Diseño elegido del catálogo')}</p>
+                                                            <p className="text-xs text-gray-700 truncate">{b.diseno_titulo}</p>
+                                                        </div>
+                                                    </div>
+                                                )}
                                                 {b._grupoVisual && (
                                                     <div className="mt-2 rounded-lg bg-pink-50 border border-pink-100 p-2 space-y-1">
                                                         <p className="text-xs font-bold text-pink-700">{t('Cita agrupada: {n} servicios consecutivos', { n: b._reservasGrupo.length })}</p>

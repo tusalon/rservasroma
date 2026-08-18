@@ -101,6 +101,9 @@ function ClientApp() {
     const [userRol, setUserRol] = React.useState('cliente');
     const [history, setHistory] = React.useState(['auth']);
     const [horariosPorDia, setHorariosPorDia] = React.useState({});
+    // Diseño del catálogo que eligió la clienta (si vino por ahí). Viaja hasta
+    // la reserva para que el salón sepa exactamente qué trabajo se pidió.
+    const [disenoElegido, setDisenoElegido] = React.useState(null);
 
     // ============================================
     // DETECTAR SESIÓN AL INICIAR Y REDIRIGIR SEGÚN ROL
@@ -228,7 +231,28 @@ function ClientApp() {
     };
 
     const handleStartBooking = () => {
+        setDisenoElegido(null);
         navigateTo('service');
+    };
+
+    const handleVerCatalogo = () => {
+        navigateTo('catalogo');
+    };
+
+    // Del catálogo directo a reservar: si el diseño tiene servicio vinculado se
+    // preselecciona para que la clienta caiga ya en el paso del profesional.
+    const handleReservarDiseno = async (diseno) => {
+        setDisenoElegido(diseno);
+        navigateTo('service');
+
+        if (!diseno?.servicio_id) return;
+        try {
+            const servicios = await window.salonServicios?.getAll?.(true);
+            const servicio = (servicios || []).find(s => String(s.id) === String(diseno.servicio_id));
+            if (servicio) await handleServiceSelect(servicio);
+        } catch (e) {
+            console.error('No se pudo preseleccionar el servicio del diseño:', e);
+        }
     };
 
     const handleServiceSelect = async (service) => {
@@ -293,6 +317,7 @@ function ClientApp() {
     };
 
     const resetBooking = () => {
+        setDisenoElegido(null);
         setSelectedService(null);
         setSelectedProfesional(null);
         setSelectedDate('');
@@ -330,9 +355,19 @@ function ClientApp() {
                         cliente={cliente}
                         userRol={userRol}
                         onMisReservas={goToMyBookings}
+                        onCatalogo={handleVerCatalogo}
                     />
                 );
-            
+
+            case 'catalogo':
+                return (
+                    <Catalogo
+                        cliente={cliente}
+                        onGoBack={goBack}
+                        onReservarDiseno={handleReservarDiseno}
+                    />
+                );
+
             case 'mybookings':
                 return (
                     <MyBookings 
@@ -354,6 +389,24 @@ function ClientApp() {
                         />
                         
                         <div className="max-w-3xl mx-auto px-4 py-4 space-y-4 pb-20">
+                            {/* Diseño traído del catálogo: se muestra durante todo
+                                el flujo para que la clienta no dude de que reserva
+                                el trabajo que eligió. */}
+                            {disenoElegido && (
+                                <div className="flex items-center gap-3 bg-white rounded-2xl shadow-sm p-3">
+                                    <img
+                                        src={window.urlImagenCloudinary(disenoElegido.imagen_url, 120)}
+                                        alt={disenoElegido.titulo}
+                                        className="w-14 h-14 rounded-xl object-cover" />
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-xs text-pink-500 font-medium">{window.t('Diseño elegido')}</p>
+                                        <p className="text-sm font-bold text-gray-800 truncate">{disenoElegido.titulo}</p>
+                                    </div>
+                                    <button onClick={() => setDisenoElegido(null)}
+                                        className="text-gray-400 text-sm px-2">✕</button>
+                                </div>
+                            )}
+
                             {/* SECCIÓN 1: SERVICIOS */}
                             <ServiceSelection 
                                 onSelect={handleServiceSelect} 
@@ -423,6 +476,7 @@ function ClientApp() {
                             {selectedTime && (
                                 <BookingForm
                                     service={selectedService}
+                                    diseno={disenoElegido}
                                     profesional={selectedProfesional}
                                     date={selectedDate}
                                     time={selectedTime}

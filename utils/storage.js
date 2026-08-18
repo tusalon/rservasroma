@@ -36,6 +36,7 @@ const CLOUDINARY_IMAGE_QUALITY = 0.75;
 // firma sirve para todas: la carpeta se manda en cada subida.
 const CLOUDINARY_FOLDER_SERVICIOS = 'rservasroma/servicios';
 const CLOUDINARY_FOLDER_FONDOS = 'rservasroma/fondos';
+const CLOUDINARY_FOLDER_CATALOGO = 'rservasroma/catalogo';
 
 function getCloudinaryConfig() {
     return {
@@ -185,6 +186,33 @@ window.subirImagenFondo = function(file, negocioId) {
 window.eliminarImagenServicio = async function() {
     console.warn('Para borrar imagenes de Cloudinary hace falta una firma segura desde backend.');
     return true;
+};
+
+
+// Foto de un diseno del catalogo. 1400px: la clienta la abre a pantalla
+// completa para ver el detalle del trabajo, pero las miniaturas del grid se
+// piden mas pequenas con urlImagenCloudinary().
+window.subirImagenCatalogo = function(file, etiqueta) {
+    return subirImagenACloudinary(file, {
+        folder: CLOUDINARY_FOLDER_CATALOGO,
+        etiqueta: etiqueta || 'diseno',
+        tags: 'rservasroma,catalogo',
+        maxDimension: 1400
+    });
+};
+
+// Pide a Cloudinary una version mas ligera de una imagen ya subida, sin volver
+// a subir nada: el CDN la genera y la cachea. Con ancho 24 sale la miniatura
+// borrosa que se ve mientras carga la real (truco barato contra el 3G lento).
+// Si la URL no es de Cloudinary se devuelve tal cual.
+window.urlImagenCloudinary = function(url, ancho) {
+    const original = String(url || '');
+    if (!original.includes('/upload/')) return original;
+    const w = parseInt(ancho, 10) || 400;
+    const transformacion = w <= 32
+        ? `w_${w},e_blur:400,q_30,f_auto`
+        : `w_${w},c_limit,q_auto,f_auto`;
+    return original.replace('/upload/', `/upload/${transformacion}/`);
 };
 
 console.log('storage.js funciones Cloudinary disponibles');
