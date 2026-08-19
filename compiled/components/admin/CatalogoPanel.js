@@ -20,6 +20,7 @@ function CatalogoPanel() {
   const [copiado, setCopiado] = React.useState(false);
   const [votos, setVotos] = React.useState({});
   const [cargandoVotos, setCargandoVotos] = React.useState(null);
+  const [guardandoOrden, setGuardandoOrden] = React.useState(false);
   const cargar = React.useCallback(async () => {
     setCargando(true);
     window.catalogoInvalidarCache();
@@ -68,6 +69,24 @@ function CatalogoPanel() {
       setTimeout(() => setCopiado(false), 2500);
     } catch (e) {
       alert(t("No se pudo copiar. Copia el enlace a mano."));
+    }
+  };
+  const moverDiseno = async (diseno, direccion) => {
+    const grupo = grupos.find((g) => g.disenos.some((d) => d.id === diseno.id));
+    if (!grupo) return;
+    const indice = grupo.disenos.findIndex((d) => d.id === diseno.id);
+    const destino = indice + direccion;
+    if (destino < 0 || destino >= grupo.disenos.length) return;
+    const reordenado = [...grupo.disenos];
+    [reordenado[indice], reordenado[destino]] = [reordenado[destino], reordenado[indice]];
+    const listaPlana = grupos.flatMap((g) => g.nombre === grupo.nombre ? reordenado : g.disenos);
+    setDisenos(listaPlana.map((d, i) => ({ ...d, orden: i + 1 })));
+    setGuardandoOrden(true);
+    const resultado = await window.catalogoReordenar(listaPlana);
+    setGuardandoOrden(false);
+    if (!resultado.success) {
+      alert(t("No se pudo guardar el orden. Revisa tu conexión."));
+      cargar();
     }
   };
   const alternarVotos = async (diseno) => {
@@ -152,7 +171,7 @@ function CatalogoPanel() {
   };
   const eliminar = async (diseno) => {
     if (!confirm(t('¿Eliminar "{titulo}" del catálogo?', { titulo: diseno.titulo }))) return;
-    const resultado = await window.catalogoEliminarDiseno(diseno.id);
+    const resultado = await window.catalogoEliminarDiseno(diseno.id, diseno.imagen_url);
     if (!resultado.success) {
       alert(t("No se pudo eliminar."));
       return;
@@ -193,7 +212,7 @@ function CatalogoPanel() {
       placeholder: t("Descripción: colores, acabado, ocasión... (opcional)"),
       className: "w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
     }
-  ), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-1 sm:grid-cols-3 gap-3" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(
+  ), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-1 sm:grid-cols-2 gap-3" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(
     "input",
     {
       type: "text",
@@ -213,18 +232,7 @@ function CatalogoPanel() {
     },
     /* @__PURE__ */ React.createElement("option", { value: "" }, t("Servicio (opcional)")),
     servicios.map((s) => /* @__PURE__ */ React.createElement("option", { key: s.id, value: s.id }, s.nombre))
-  ), /* @__PURE__ */ React.createElement(
-    "input",
-    {
-      type: "number",
-      value: form.orden,
-      min: "1",
-      max: "999",
-      onChange: (e) => setForm({ ...form, orden: e.target.value }),
-      placeholder: t("Orden"),
-      className: "w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
-    }
-  )), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400" }, t("Si eliges un servicio, la clienta que reserve este diseño lo tendrá ya seleccionado.")), /* @__PURE__ */ React.createElement("div", { className: "flex gap-2" }, /* @__PURE__ */ React.createElement(
+  )), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400" }, t("Si eliges un servicio, la clienta que reserve este diseño lo tendrá ya seleccionado."), " ", t("El orden se ajusta después con las flechas de cada diseño.")), /* @__PURE__ */ React.createElement("div", { className: "flex gap-2" }, /* @__PURE__ */ React.createElement(
     "button",
     {
       type: "submit",
@@ -243,7 +251,7 @@ function CatalogoPanel() {
   )))), /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-xl shadow-sm p-6" }, /* @__PURE__ */ React.createElement("h2", { className: "text-lg font-bold mb-4" }, t("Diseños publicados ({n})", { n: disenos.length })), cargando ? /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-400" }, t("Cargando...")) : disenos.length === 0 ? /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-400" }, t("Todavía no has subido ningún diseño. Empieza con tus 5 mejores trabajos.")) : (
     /* Agrupado igual que en la app de la clienta: así la dueña
        ve el catálogo tal como queda publicado. */
-    /* @__PURE__ */ React.createElement("div", { className: "space-y-5" }, grupos.map((grupo) => /* @__PURE__ */ React.createElement("section", { key: grupo.nombre }, /* @__PURE__ */ React.createElement("div", { className: "flex items-baseline justify-between mb-2 pb-1 border-b border-gray-100" }, /* @__PURE__ */ React.createElement("h3", { className: "text-sm font-bold text-gray-700" }, grupo.nombre), /* @__PURE__ */ React.createElement("span", { className: "text-xs text-gray-400" }, grupo.disenos.length === 1 ? t("1 diseño") : t("{n} diseños", { n: grupo.disenos.length }))), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-1 sm:grid-cols-2 gap-3" }, grupo.disenos.map((diseno) => {
+    /* @__PURE__ */ React.createElement("div", { className: "space-y-5" }, grupos.map((grupo) => /* @__PURE__ */ React.createElement("section", { key: grupo.nombre }, /* @__PURE__ */ React.createElement("div", { className: "flex items-baseline justify-between mb-2 pb-1 border-b border-gray-100" }, /* @__PURE__ */ React.createElement("h3", { className: "text-sm font-bold text-gray-700" }, grupo.nombre), /* @__PURE__ */ React.createElement("span", { className: "text-xs text-gray-400" }, grupo.disenos.length === 1 ? t("1 diseño") : t("{n} diseños", { n: grupo.disenos.length }))), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-1 sm:grid-cols-2 gap-3" }, grupo.disenos.map((diseno, indice) => {
       const promedio = window.catalogoPromedio(diseno);
       return /* @__PURE__ */ React.createElement(
         "div",
@@ -251,6 +259,25 @@ function CatalogoPanel() {
           key: diseno.id,
           className: `flex gap-3 border rounded-xl p-3 ${diseno.activo ? "border-gray-100" : "border-gray-200 bg-gray-50 opacity-70"}`
         },
+        /* @__PURE__ */ React.createElement("div", { className: "flex flex-col justify-center gap-1 shrink-0" }, /* @__PURE__ */ React.createElement(
+          "button",
+          {
+            onClick: () => moverDiseno(diseno, -1),
+            disabled: indice === 0 || guardandoOrden,
+            title: t("Subir"),
+            className: "w-7 h-7 rounded-lg bg-gray-100 text-gray-600 text-xs disabled:opacity-30"
+          },
+          "▲"
+        ), /* @__PURE__ */ React.createElement(
+          "button",
+          {
+            onClick: () => moverDiseno(diseno, 1),
+            disabled: indice === grupo.disenos.length - 1 || guardandoOrden,
+            title: t("Bajar"),
+            className: "w-7 h-7 rounded-lg bg-gray-100 text-gray-600 text-xs disabled:opacity-30"
+          },
+          "▼"
+        )),
         /* @__PURE__ */ React.createElement(
           "img",
           {

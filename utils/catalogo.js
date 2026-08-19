@@ -120,7 +120,32 @@ function catalogoAgrupar(disenos) {
         });
 }
 
-async function catalogoVotar(disenoId, puntuacion, nombre) {
+// Umbral para avisar al salon. Por debajo no suena: un catalogo compartido en
+// redes puede recibir muchos votos tibios y convertir el aviso en ruido que la
+// duena termina silenciando. Solo se avisa de los "me encanto".
+const CATALOGO_VOTO_AVISO_MINIMO = 80;
+
+async function catalogoAvisarVoto(titulo, puntuacion, nombre) {
+    if (!titulo || puntuacion < CATALOGO_VOTO_AVISO_MINIMO) return;
+    if (typeof window.enviarWebPushRservasRoma !== 'function') return;
+
+    const quien = (nombre || '').trim();
+    try {
+        await window.enviarWebPushRservasRoma({
+            title: quien
+                ? `A ${quien} le encantó tu trabajo`
+                : 'Le encantó uno de tus diseños',
+            body: `${titulo} · ${puntuacion}%`,
+            role: 'admin',
+            tags: 'heart'
+        });
+    } catch (error) {
+        // El aviso es un extra: si falla, el voto ya quedo guardado igual.
+        console.warn('No se pudo avisar del voto:', error);
+    }
+}
+
+async function catalogoVotar(disenoId, puntuacion, nombre, titulo) {
     const valor = Math.max(0, Math.min(100, Math.round(Number(puntuacion) || 0)));
     try {
         const response = await fetch(
@@ -145,6 +170,7 @@ async function catalogoVotar(disenoId, puntuacion, nombre) {
             if (limpio) localStorage.setItem('catalogoNombre', limpio.slice(0, 60));
         } catch (e) {}
         catalogoInvalidarCache();
+        catalogoAvisarVoto(titulo, valor, nombre);
         return { success: true, puntuacion: valor };
     } catch (error) {
         console.error('Error al votar:', error);
@@ -241,7 +267,24 @@ async function catalogoActualizarDiseno(id, cambios) {
     }
 }
 
-async function catalogoEliminarDiseno(id) {
+// Pide a la funcion de servidor que destruya la foto en Cloudinary. Se llama
+// DESPUES de borrar la fila: la funcion se niega si la imagen sigue en uso.
+// Sin await a proposito — si falla, el diseno ya desaparecio del catalogo y lo
+// unico que queda es una foto huerfana, no un error que mostrarle a la duena.
+function catalogoLimpiarImagen(imagenUrl) {
+    if (!imagenUrl || !String(imagenUrl).includes('/upload/')) return;
+    fetch(`${window.SUPABASE_URL}/functions/v1/borrar-imagen-catalogo`, {
+        method: 'POST',
+        headers: catalogoHeaders(),
+        body: JSON.stringify({ imagen_url: imagenUrl })
+    }).then(async (respuesta) => {
+        if (!respuesta.ok) {
+            console.warn('Foto no borrada de Cloudinary:', await respuesta.text());
+        }
+    }).catch((error) => console.warn('Foto no borrada de Cloudinary:', error));
+}
+
+async function catalogoEliminarDiseno(id, imagenUrl) {
     try {
         const response = await fetch(
             `${window.SUPABASE_URL}/rest/v1/catalogo_disenos?id=eq.${id}`,
@@ -249,9 +292,40 @@ async function catalogoEliminarDiseno(id) {
         );
         if (!response.ok) throw new Error(await response.text());
         catalogoInvalidarCache();
+        catalogoLimpiarImagen(imagenUrl);
         return { success: true };
     } catch (error) {
         console.error('Error eliminando diseno:', error);
+        return { success: false, error };
+    }
+}
+
+// Reordena guardando 1..N segun la lista recibida. Reescribe TODAS las
+// posiciones y no solo las dos que se intercambian porque los disenos nacen
+// con orden 99: sin normalizar, mover uno no cambiaria nada visible.
+// Solo se mandan a Supabase las filas cuyo numero cambia de verdad.
+async function catalogoReordenar(disenosOrdenados) {
+    const cambios = (disenosOrdenados || [])
+        .map((diseno, indice) => ({ diseno, orden: indice + 1 }))
+        .filter(({ diseno, orden }) => Number(diseno.orden) !== orden);
+
+    if (cambios.length === 0) return { success: true, actualizados: 0 };
+
+    try {
+        await Promise.all(cambios.map(({ diseno, orden }) => fetch(
+            `${window.SUPABASE_URL}/rest/v1/catalogo_disenos?id=eq.${diseno.id}`,
+            {
+                method: 'PATCH',
+                headers: catalogoHeaders({ 'Prefer': 'return=minimal' }),
+                body: JSON.stringify({ orden })
+            }
+        ).then(r => {
+            if (!r.ok) throw new Error('HTTP ' + r.status);
+        })));
+        catalogoInvalidarCache();
+        return { success: true, actualizados: cambios.length };
+    } catch (error) {
+        console.error('Error reordenando el catalogo:', error);
         return { success: false, error };
     }
 }
@@ -269,5 +343,6 @@ window.catalogoIdDispositivo = catalogoIdDispositivo;
 window.catalogoCrearDiseno = catalogoCrearDiseno;
 window.catalogoActualizarDiseno = catalogoActualizarDiseno;
 window.catalogoEliminarDiseno = catalogoEliminarDiseno;
+window.catalogoReordenar = catalogoReordenar;
 
 console.log('✅ catalogo.js funciones disponibles');

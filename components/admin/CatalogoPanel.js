@@ -23,6 +23,7 @@ function CatalogoPanel() {
     // Votos por diseño, cargados solo cuando la dueña abre "Ver quién votó".
     const [votos, setVotos] = React.useState({});
     const [cargandoVotos, setCargandoVotos] = React.useState(null);
+    const [guardandoOrden, setGuardandoOrden] = React.useState(false);
 
     const cargar = React.useCallback(async () => {
         setCargando(true);
@@ -79,6 +80,33 @@ function CatalogoPanel() {
             setTimeout(() => setCopiado(false), 2500);
         } catch (e) {
             alert(t('No se pudo copiar. Copia el enlace a mano.'));
+        }
+    };
+
+    // Subir o bajar un diseño dentro de su categoría. Se guarda la lista
+    // completa renumerada: el orden es un número global y los diseños nacen
+    // todos con 99, así que intercambiar solo dos no movería nada.
+    const moverDiseno = async (diseno, direccion) => {
+        const grupo = grupos.find(g => g.disenos.some(d => d.id === diseno.id));
+        if (!grupo) return;
+
+        const indice = grupo.disenos.findIndex(d => d.id === diseno.id);
+        const destino = indice + direccion;
+        if (destino < 0 || destino >= grupo.disenos.length) return;
+
+        const reordenado = [...grupo.disenos];
+        [reordenado[indice], reordenado[destino]] = [reordenado[destino], reordenado[indice]];
+
+        const listaPlana = grupos.flatMap(g => (g.nombre === grupo.nombre ? reordenado : g.disenos));
+        // Se pinta primero y se guarda después: en 3G esperar al servidor para
+        // ver moverse una tarjeta hace que la dueña toque el botón dos veces.
+        setDisenos(listaPlana.map((d, i) => ({ ...d, orden: i + 1 })));
+        setGuardandoOrden(true);
+        const resultado = await window.catalogoReordenar(listaPlana);
+        setGuardandoOrden(false);
+        if (!resultado.success) {
+            alert(t('No se pudo guardar el orden. Revisa tu conexión.'));
+            cargar();
         }
     };
 
@@ -169,7 +197,9 @@ function CatalogoPanel() {
 
     const eliminar = async (diseno) => {
         if (!confirm(t('¿Eliminar "{titulo}" del catálogo?', { titulo: diseno.titulo }))) return;
-        const resultado = await window.catalogoEliminarDiseno(diseno.id);
+        // La foto se pasa para que también se borre de Cloudinary y no quede
+        // ocupando cuota para siempre.
+        const resultado = await window.catalogoEliminarDiseno(diseno.id, diseno.imagen_url);
         if (!resultado.success) { alert(t('No se pudo eliminar.')); return; }
         cargar();
     };
@@ -238,7 +268,7 @@ function CatalogoPanel() {
                         placeholder={t('Descripción: colores, acabado, ocasión... (opcional)')}
                         className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
 
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
                             <input
                                 type="text" value={form.categoria} maxLength={40} list="catalogo-categorias"
@@ -260,15 +290,12 @@ function CatalogoPanel() {
                             ))}
                         </select>
 
-                        <input
-                            type="number" value={form.orden} min="1" max="999"
-                            onChange={e => setForm({ ...form, orden: e.target.value })}
-                            placeholder={t('Orden')}
-                            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
                     </div>
 
                     <p className="text-xs text-gray-400">
                         {t('Si eliges un servicio, la clienta que reserve este diseño lo tendrá ya seleccionado.')}
+                        {' '}
+                        {t('El orden se ajusta después con las flechas de cada diseño.')}
                     </p>
 
                     <div className="flex gap-2">
@@ -312,11 +339,26 @@ function CatalogoPanel() {
                                     </span>
                                 </div>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {grupo.disenos.map(diseno => {
+                        {grupo.disenos.map((diseno, indice) => {
                             const promedio = window.catalogoPromedio(diseno);
                             return (
                                 <div key={diseno.id}
                                     className={`flex gap-3 border rounded-xl p-3 ${diseno.activo ? 'border-gray-100' : 'border-gray-200 bg-gray-50 opacity-70'}`}>
+                                    {/* Flechas y no arrastrar: en el teléfono, que es
+                                        donde la dueña administra, arrastrar pelea con
+                                        el desplazamiento de la página. */}
+                                    <div className="flex flex-col justify-center gap-1 shrink-0">
+                                        <button
+                                            onClick={() => moverDiseno(diseno, -1)}
+                                            disabled={indice === 0 || guardandoOrden}
+                                            title={t('Subir')}
+                                            className="w-7 h-7 rounded-lg bg-gray-100 text-gray-600 text-xs disabled:opacity-30">▲</button>
+                                        <button
+                                            onClick={() => moverDiseno(diseno, 1)}
+                                            disabled={indice === grupo.disenos.length - 1 || guardandoOrden}
+                                            title={t('Bajar')}
+                                            className="w-7 h-7 rounded-lg bg-gray-100 text-gray-600 text-xs disabled:opacity-30">▼</button>
+                                    </div>
                                     <img
                                         src={window.urlImagenCloudinary(diseno.imagen_url, 160)}
                                         alt={diseno.titulo} loading="lazy"

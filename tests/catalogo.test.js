@@ -11,7 +11,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 
-function cargar(archivo) {
+function cargar(archivo, fetchFalso) {
     const source = fs.readFileSync(path.join(__dirname, '..', 'utils', archivo), 'utf8');
     const almacen = {};
     const window = {
@@ -30,7 +30,7 @@ function cargar(archivo) {
         console: { log() {}, warn() {}, error() {} },
         Image: function () {},
         URL: { createObjectURL() { return ''; }, revokeObjectURL() {} },
-        fetch() { throw new Error('La prueba no debe consultar la red'); }
+        fetch: fetchFalso || (() => { throw new Error('La prueba no debe consultar la red'); })
     };
 
     vm.runInNewContext(source, contexto, { filename: archivo });
@@ -114,4 +114,75 @@ const id1 = catalogo.catalogoIdDispositivo();
 const id2 = catalogo.catalogoIdDispositivo();
 assert.equal(id1, id2, 'El mismo dispositivo debe reusar su huella, no generar una nueva');
 
-console.log('OK: catalogo.test.js');
+// --- Reordenar: renumera 1..N y solo toca lo que cambia ---
+// Lo que protege: los disenos nacen todos con orden 99. Si al mover uno solo se
+// intercambiaran los dos numeros (99 y 99), la galeria no cambiaria y la duena
+// pensaria que el boton esta roto. Y reescribir las 60 filas en cada movimiento
+// castigaria una conexion lenta sin necesidad.
+{
+    const peticiones = [];
+    const fetchFalso = (url, opciones) => {
+        peticiones.push({ url, body: JSON.parse(opciones.body) });
+        return Promise.resolve({ ok: true, json: () => Promise.resolve([]) });
+    };
+
+    const modulo = cargar('catalogo.js', fetchFalso);
+    modulo.SUPABASE_URL = 'https://ejemplo.supabase.co';
+    modulo.SUPABASE_ANON_KEY = 'clave';
+
+    modulo.catalogoReordenar([
+        { id: 10, orden: 99 },
+        { id: 11, orden: 99 },
+        { id: 12, orden: 3 }
+    ]).then(resultado => {
+        assert.equal(resultado.success, true);
+        assert.equal(peticiones.length, 2, 'La fila que ya estaba en su sitio no se toca');
+        assert.equal(
+            JSON.stringify(peticiones.map(p => p.body.orden)),
+            JSON.stringify([1, 2]),
+            'Se renumera 1..N segun la posicion en la lista'
+        );
+        assert.ok(peticiones[0].url.includes('id=eq.10'));
+        assert.ok(peticiones[1].url.includes('id=eq.11'));
+        return modulo.catalogoReordenar([{ id: 1, orden: 1 }, { id: 2, orden: 2 }]);
+    }).then(sinCambios => {
+        assert.equal(sinCambios.actualizados, 0, 'Sin movimiento real no se manda nada');
+        assert.equal(peticiones.length, 2);
+        return comprobarAvisoDeVoto();
+    }).then(() => {
+        console.log('OK: catalogo.test.js');
+    }).catch(error => {
+        console.error(error);
+        process.exit(1);
+    });
+}
+
+// --- Aviso al salon: solo los votos altos suenan ---
+// Lo que protege: un catalogo compartido en redes puede recibir decenas de
+// votos tibios. Si cada uno mandara una notificacion, la duena silenciaria la
+// app entera y perderia tambien los avisos de reservas.
+async function comprobarAvisoDeVoto() {
+    const avisos = [];
+    const modulo = cargar('catalogo.js', () => Promise.resolve({
+        ok: true, json: () => Promise.resolve([])
+    }));
+    modulo.SUPABASE_URL = 'https://ejemplo.supabase.co';
+    modulo.SUPABASE_ANON_KEY = 'clave';
+    modulo.enviarWebPushRservasRoma = async (aviso) => { avisos.push(aviso); return true; };
+
+    await modulo.catalogoVotar(1, 100, 'Yanet', 'Frances dorado');
+    assert.equal(avisos.length, 1, 'Un 100% debe avisar');
+    assert.ok(avisos[0].title.includes('Yanet'), 'El aviso dice quien fue');
+    assert.ok(avisos[0].body.includes('Frances dorado'));
+
+    await modulo.catalogoVotar(2, 60, 'Ana', 'Otro diseno');
+    assert.equal(avisos.length, 1, 'Un 60% no debe avisar');
+
+    await modulo.catalogoVotar(3, 90, '', 'Sin nombre');
+    assert.equal(avisos.length, 2, 'Sin nombre tambien avisa');
+    assert.ok(!avisos[1].title.includes('undefined'));
+
+    // Sin titulo no hay nada util que decir: no se manda.
+    await modulo.catalogoVotar(4, 100, 'Ana', null);
+    assert.equal(avisos.length, 2, 'Sin titulo del diseno no se avisa');
+}

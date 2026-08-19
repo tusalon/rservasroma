@@ -132,7 +132,7 @@ function ModalDiseno({ diseno, colorPrimario, cliente, onCerrar, onReservar, onV
   const descripcionLarga = descripcion.length > 220;
   const enviarVoto = async () => {
     setEnviando(true);
-    const resultado = await window.catalogoVotar(diseno.id, puntuacion, nombre);
+    const resultado = await window.catalogoVotar(diseno.id, puntuacion, nombre, diseno.titulo);
     setEnviando(false);
     if (!resultado.success) {
       alert(t("No se pudo enviar tu voto. Revisa tu conexión."));
