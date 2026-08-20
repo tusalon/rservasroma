@@ -24,6 +24,9 @@ function CatalogoPanel() {
     const [votos, setVotos] = React.useState({});
     const [cargandoVotos, setCargandoVotos] = React.useState(null);
     const [guardandoOrden, setGuardandoOrden] = React.useState(false);
+    // La palabra con la que la clienta ve el catálogo: diseños, tratamientos...
+    const [termino, setTermino] = React.useState('diseno');
+    const [guardandoTermino, setGuardandoTermino] = React.useState(false);
 
     const cargar = React.useCallback(async () => {
         setCargando(true);
@@ -39,6 +42,7 @@ function CatalogoPanel() {
         try {
             const config = await window.cargarConfiguracionNegocio();
             setUrlCatalogo(window.construirUrlCatalogoNegocio?.(config) || '');
+            setTermino(String(config?.catalogo_termino || 'diseno').toLowerCase());
         } catch (e) {
             console.error('No se pudo armar el enlace del catálogo:', e);
         }
@@ -49,6 +53,7 @@ function CatalogoPanel() {
     // Categorias ya usadas: se ofrecen como sugerencia para que el salon no
     // termine con "Navidad", "navidad" y "Navideño" como tres filtros distintos.
     const grupos = React.useMemo(() => window.catalogoAgrupar(disenos), [disenos]);
+    const nombreTermino = (window.CATALOGO_TERMINOS || {})[termino] || { singular: 'diseño', plural: 'diseños' };
 
     const categoriasUsadas = React.useMemo(
         () => window.catalogoCategorias(disenos).map(c => c.nombre),
@@ -107,6 +112,38 @@ function CatalogoPanel() {
         if (!resultado.success) {
             alert(t('No se pudo guardar el orden. Revisa tu conexión.'));
             cargar();
+        }
+    };
+
+    const cambiarTermino = async (nuevo) => {
+        const anterior = termino;
+        setTermino(nuevo);
+        setGuardandoTermino(true);
+        try {
+            const negocioId = window.getNegocioId?.();
+            const respuesta = await fetch(
+                `${window.SUPABASE_URL}/rest/v1/negocios?id=eq.${negocioId}`,
+                {
+                    method: 'PATCH',
+                    headers: {
+                        apikey: window.SUPABASE_ANON_KEY,
+                        Authorization: `Bearer ${window.SUPABASE_ANON_KEY}`,
+                        'Content-Type': 'application/json',
+                        Prefer: 'return=minimal'
+                    },
+                    body: JSON.stringify({ catalogo_termino: nuevo })
+                }
+            );
+            if (!respuesta.ok) throw new Error(await respuesta.text());
+            // La config se cachea 2 min: sin refrescarla a la fuerza el panel
+            // seguiría mostrando la palabra vieja al recargar.
+            await window.cargarConfiguracionNegocio(true);
+        } catch (error) {
+            console.error('No se pudo guardar la palabra del catálogo:', error);
+            setTermino(anterior);
+            alert(t('No se pudo guardar. Revisa tu conexión.'));
+        } finally {
+            setGuardandoTermino(false);
         }
     };
 
@@ -231,8 +268,31 @@ function CatalogoPanel() {
             )}
 
             <div className="bg-white rounded-xl shadow-sm p-6">
+                {/* "Diseño" solo encaja en manicura: un spa enseña tratamientos
+                    y un estudio de pestañas estilos. Lo elige la dueña porque
+                    los datos del negocio no permiten adivinarlo. */}
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-5 pb-4 border-b border-gray-100">
+                    <label className="text-sm text-gray-600">
+                        {t('Tus clientas verán tu catálogo como:')}
+                    </label>
+                    <select
+                        value={termino}
+                        disabled={guardandoTermino}
+                        onChange={e => cambiarTermino(e.target.value)}
+                        className="px-3 py-2 border border-gray-200 rounded-lg text-sm font-medium disabled:opacity-60">
+                        <option value="diseno">{t('Diseños')}</option>
+                        <option value="trabajo">{t('Trabajos')}</option>
+                        <option value="tratamiento">{t('Tratamientos')}</option>
+                        <option value="estilo">{t('Estilos')}</option>
+                        <option value="servicio">{t('Servicios')}</option>
+                    </select>
+                    <span className="text-xs text-gray-400">
+                        {t('Ej: "Reservar este {singular}"', { singular: (window.CATALOGO_TERMINOS?.[termino] || {}).singular || 'diseño' })}
+                    </span>
+                </div>
+
                 <h2 className="text-xl font-bold mb-1">
-                    {editando ? t('Editar diseño') : t('Añadir diseño al catálogo')}
+                    {editando ? t('Editar {singular}', { singular: nombreTermino.singular }) : t('Añadir {singular} al catálogo', { singular: nombreTermino.singular })}
                 </h2>
                 <p className="text-sm text-gray-500 mb-4">
                     {t('Tus clientas verán estos trabajos y podrán reservar el que más les guste.')}
@@ -315,7 +375,7 @@ function CatalogoPanel() {
 
             <div className="bg-white rounded-xl shadow-sm p-6">
                 <h2 className="text-lg font-bold mb-4">
-                    {t('Diseños publicados ({n})', { n: disenos.length })}
+                    {t('Publicados ({n})', { n: disenos.length })}
                 </h2>
 
                 {cargando ? (

@@ -292,7 +292,7 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol, onMisReservas, onC
             className: "w-full text-white/90 font-medium py-2.5 rounded-full border border-white/30 hover:bg-white/10 transition flex items-center justify-center gap-2"
           },
           /* @__PURE__ */ React.createElement("span", null, "✨"),
-          /* @__PURE__ */ React.createElement("span", null, t("Ver diseños"))
+          /* @__PURE__ */ React.createElement("span", null, t("Ver {plural}", { plural: window.catalogoTerminos(config).plural }))
         ), cliente && onMisReservas && /* @__PURE__ */ React.createElement(
           "button",
           {

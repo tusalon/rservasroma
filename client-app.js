@@ -432,7 +432,7 @@ function ClientApp() {
                                         alt={disenoElegido.titulo}
                                         className="w-14 h-14 rounded-xl object-cover" />
                                     <div className="flex-1 min-w-0">
-                                        <p className="text-xs text-pink-500 font-medium">{window.t('Diseño elegido')}</p>
+                                        <p className="text-xs text-pink-500 font-medium">{window.t('Elegido del catálogo')}</p>
                                         <p className="text-sm font-bold text-gray-800 truncate">{disenoElegido.titulo}</p>
                                     </div>
                                     <button onClick={() => setDisenoElegido(null)}

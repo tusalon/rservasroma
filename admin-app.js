@@ -5397,7 +5397,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                                                                 className="w-12 h-12 rounded-lg object-cover shrink-0" />
                                                         )}
                                                         <div className="min-w-0">
-                                                            <p className="text-xs font-bold text-pink-700">{t('Diseño elegido del catálogo')}</p>
+                                                            <p className="text-xs font-bold text-pink-700">{t('Elegido del catálogo')}</p>
                                                             <p className="text-xs text-gray-700 truncate">{b.diseno_titulo}</p>
                                                         </div>
                                                     </div>

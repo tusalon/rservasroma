@@ -352,7 +352,7 @@ function ClientApp() {
             alt: disenoElegido.titulo,
             className: "w-14 h-14 rounded-xl object-cover"
           }
-        ), /* @__PURE__ */ React.createElement("div", { className: "flex-1 min-w-0" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs text-pink-500 font-medium" }, window.t("Diseño elegido")), /* @__PURE__ */ React.createElement("p", { className: "text-sm font-bold text-gray-800 truncate" }, disenoElegido.titulo)), /* @__PURE__ */ React.createElement(
+        ), /* @__PURE__ */ React.createElement("div", { className: "flex-1 min-w-0" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs text-pink-500 font-medium" }, window.t("Elegido del catálogo")), /* @__PURE__ */ React.createElement("p", { className: "text-sm font-bold text-gray-800 truncate" }, disenoElegido.titulo)), /* @__PURE__ */ React.createElement(
           "button",
           {
             onClick: () => setDisenoElegido(null),

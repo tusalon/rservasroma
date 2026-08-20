@@ -30,6 +30,9 @@ function Catalogo({ onGoBack, onReservarDiseno, cliente }) {
     // como color de marca: sin esto el botón de reservar queda blanco sobre
     // blanco y "Ver más" invisible. Es la misma regla que aplica el tema
     // global, así que el catálogo queda igual que el resto de la app.
+    // Diseños, tratamientos, estilos... según lo que haya elegido el salón.
+    const terminos = window.catalogoTerminos(config);
+
     const colorPrimario = window.asegurarColorVisible
         ? window.asegurarColorVisible(config?.color_primario, '#ec4899')
         : (config?.color_primario || '#ec4899');
@@ -60,7 +63,7 @@ function Catalogo({ onGoBack, onReservarDiseno, cliente }) {
             <div className="max-w-3xl mx-auto px-4 pb-20">
                 <div className="pt-4 pb-2 text-center">
                     <h1 className="text-2xl font-bold text-gray-800">
-                        ✨ {t('Nuestros diseños')}
+                        ✨ {t('Nuestros {plural}', { plural: terminos.plural })}
                     </h1>
                     <p className="text-sm text-gray-500 mt-1">
                         {t('Elige el que te enamore y resérvalo al momento.')}
@@ -70,7 +73,7 @@ function Catalogo({ onGoBack, onReservarDiseno, cliente }) {
                 {disenos.length === 0 ? (
                     <div className="bg-white rounded-2xl shadow-sm p-8 text-center mt-4">
                         <p className="text-4xl mb-3">📸</p>
-                        <p className="text-gray-600 font-medium">{t('Todavía no hay diseños publicados')}</p>
+                        <p className="text-gray-600 font-medium">{t('Todavía no hay {plural} publicados', { plural: terminos.plural })}</p>
                         <p className="text-sm text-gray-400 mt-1">{t('Vuelve pronto: el salón está preparando su catálogo.')}</p>
                     </div>
                 ) : (
@@ -133,6 +136,7 @@ function Catalogo({ onGoBack, onReservarDiseno, cliente }) {
                     diseno={disenos.find(d => d.id === abierto.id) || abierto}
                     colorPrimario={colorPrimario}
                     cliente={cliente}
+                    terminos={terminos}
                     onCerrar={() => setAbierto(null)}
                     onReservar={onReservarDiseno}
                     onVotoEnviado={(id, promedio, conteo) => {
@@ -194,7 +198,7 @@ function TarjetaDiseno({ diseno, onClick }) {
     );
 }
 
-function ModalDiseno({ diseno, colorPrimario, cliente, onCerrar, onReservar, onVotoEnviado }) {
+function ModalDiseno({ diseno, colorPrimario, cliente, terminos, onCerrar, onReservar, onVotoEnviado }) {
     window.useIdioma();
     const t = window.t;
     const votoPrevio = window.catalogoVotoPropio(diseno.id);
@@ -291,7 +295,7 @@ function ModalDiseno({ diseno, colorPrimario, cliente, onCerrar, onReservar, onV
                         className="w-full text-white font-bold py-3 rounded-full shadow-lg active:scale-[0.98] transition flex items-center justify-center gap-2"
                         style={{ backgroundColor: colorPrimario }}>
                         <span>💖</span>
-                        <span>{t('Reservar este diseño')}</span>
+                        <span>{t('Reservar este {singular}', { singular: terminos.singular })}</span>
                     </button>
 
                     <button onClick={compartir}

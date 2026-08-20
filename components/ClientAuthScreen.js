@@ -338,7 +338,7 @@ function ClientAuthScreen({ onAccessGranted, onGoBack, disenoPendiente }) {
                                 className="w-14 h-14 rounded-lg object-cover shrink-0" />
                             <div className="min-w-0 text-left">
                                 <p className="text-xs text-pink-200 font-medium">
-                                    {t('Para reservar este diseño')}
+                                    {t('Para reservar este {singular}', { singular: window.catalogoTerminos(config).singular })}
                                 </p>
                                 <p className="text-sm text-white font-bold truncate">{disenoPendiente.titulo}</p>
                                 <p className="text-xs text-white/70 mt-0.5">
