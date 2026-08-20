@@ -1,6 +1,6 @@
 // sw.js - Service Worker para Rservasroma
 
-const CACHE_NAME = 'rservasroma-v92';
+const CACHE_NAME = 'rservasroma-v93';
 const BASE = '/rservasroma';
 
 const urlsToCache = [
@@ -29,7 +29,7 @@ const urlsToCache = [
   `${BASE}/utils/hero-backgrounds.js?v=20260723-fotos`,
   `${BASE}/utils/native-push-notifications.js?v=20260722-platform-v4`,
   `${BASE}/utils/offline-panel.js`,
-  `${BASE}/utils/config-negocio-master.js?v=20260818-compartir-catalogo`,
+  `${BASE}/utils/config-negocio-master.js?v=20260818-contraste`,
   `${BASE}/utils/i18n.js?v=20260810-anticipo-global`,
   `${BASE}/utils/cuba-geo.js?v=20260727-wizard-ubicacion1`,
   `${BASE}/utils/phone-utils.js`,
@@ -49,7 +49,7 @@ const urlsToCache = [
 
   // Componentes cliente (compilados)
   `${BASE}/compiled/components/BookingForm.js?v=20260818-catalogo`,
-  `${BASE}/compiled/components/Catalogo.js?v=20260818-orden-limpieza-aviso`,
+  `${BASE}/compiled/components/Catalogo.js?v=20260818-contraste`,
   `${BASE}/compiled/components/Calendar.js?v=20260723-jsx1`,
   `${BASE}/compiled/components/ClientAuthScreen.js?v=20260818-registro-diseno`,
   `${BASE}/compiled/components/Confirmation.js?v=20260806-tel-prefijo`,
@@ -230,7 +230,7 @@ self.addEventListener('fetch', event => {
 
   const esAssetCriticoAdmin = [
     `${BASE}/compiled/admin-app.js?v=20260818-catalogo`,
-    `${BASE}/utils/config-negocio-master.js?v=20260818-compartir-catalogo`,
+    `${BASE}/utils/config-negocio-master.js?v=20260818-contraste`,
     `${BASE}/utils/native-push-notifications.js`,
     `${BASE}/utils/push-notifications.js`
   ].some(path => reqUrl.pathname === path);

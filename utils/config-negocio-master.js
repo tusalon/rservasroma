@@ -247,6 +247,12 @@ function asegurarColorVisible(hex, fallback = '#c0266f') {
     return getLuminancia(color) > 0.72 ? oscurecerHex(color, 0.45) : color;
 }
 
+// Lo usa tambien el catalogo: un salon puede tener el blanco como color de
+// marca (OASIS lo tiene), y pintar texto blanco sobre su propio color deja el
+// boton en blanco sobre blanco.
+window.asegurarColorVisible = asegurarColorVisible;
+window.getLuminanciaColor = getLuminancia;
+
 // ============================================================
 // 5. TEMA (idéntico al original)
 // ============================================================

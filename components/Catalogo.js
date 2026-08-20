@@ -26,7 +26,13 @@ function Catalogo({ onGoBack, onReservarDiseno, cliente }) {
         return () => { vivo = false; };
     }, []);
 
-    const colorPrimario = config?.color_primario || '#ec4899';
+    // El color va por asegurarColorVisible porque hay salones con el blanco
+    // como color de marca: sin esto el botón de reservar queda blanco sobre
+    // blanco y "Ver más" invisible. Es la misma regla que aplica el tema
+    // global, así que el catálogo queda igual que el resto de la app.
+    const colorPrimario = window.asegurarColorVisible
+        ? window.asegurarColorVisible(config?.color_primario, '#ec4899')
+        : (config?.color_primario || '#ec4899');
     // El catálogo se lee por secciones, como un álbum: cada categoría con su
     // título. Los chips de arriba sirven para saltar a una sola.
     const grupos = React.useMemo(() => window.catalogoAgrupar(disenos), [disenos]);

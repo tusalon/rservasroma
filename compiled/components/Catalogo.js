@@ -21,7 +21,7 @@ function Catalogo({ onGoBack, onReservarDiseno, cliente }) {
       vivo = false;
     };
   }, []);
-  const colorPrimario = config?.color_primario || "#ec4899";
+  const colorPrimario = window.asegurarColorVisible ? window.asegurarColorVisible(config?.color_primario, "#ec4899") : config?.color_primario || "#ec4899";
   const grupos = React.useMemo(() => window.catalogoAgrupar(disenos), [disenos]);
   const gruposVisibles = React.useMemo(() => categoria === "todas" ? grupos : grupos.filter((g) => g.nombre === categoria), [grupos, categoria]);
   if (cargando) {
