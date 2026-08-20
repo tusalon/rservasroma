@@ -4,10 +4,10 @@
 // recurso en Cloudinary exige firmar la peticion con el API secret, y ese
 // secret no puede viajar al navegador. Aqui vive como variable de entorno.
 //
-// Regla de seguridad propia: solo borra si NINGUNA fila de catalogo_disenos
-// sigue apuntando a esa imagen. Asi una llamada equivocada (o malintencionada)
-// nunca puede dejar sin foto a un diseno publicado. El orden correcto es
-// borrar primero la fila y despues llamar aqui.
+// Regla de seguridad propia: solo borra si NINGUNA fila de ninguna tabla sigue
+// apuntando a esa imagen (ver REFERENCIAS). Asi una llamada equivocada nunca
+// puede dejar sin foto a un diseno, un servicio o un fondo que siguen vivos.
+// El orden correcto es borrar primero la fila y despues llamar aqui.
 //
 // Desplegar:  npx supabase functions deploy borrar-imagen-catalogo
 // Secretos:   npx supabase secrets set CLOUDINARY_API_KEY=... CLOUDINARY_API_SECRET=...
@@ -16,8 +16,19 @@ import { corsHeaders, isOriginAllowed, json } from "../_shared/romahub-security.
 
 const CLOUD_NAME = "uyvla7fj";
 // Solo se tocan las carpetas del proyecto: aunque llegue otra URL de la misma
-// cuenta de Cloudinary, no se borra.
-const CARPETAS_PERMITIDAS = ["rservasroma/catalogo"];
+// cuenta de Cloudinary, no se borra. "servicios" entra en la lista porque un
+// catalogo puede importarse desde los servicios del negocio y quedarse con sus
+// fotos originales.
+const CARPETAS_PERMITIDAS = ["rservasroma/catalogo", "rservasroma/servicios"];
+
+// Tablas que pueden estar usando la imagen. Si CUALQUIERA la referencia, no se
+// borra: un catalogo importado comparte foto con el servicio del que salio, y
+// borrar el diseno no puede dejar al servicio sin imagen.
+const REFERENCIAS = [
+  { tabla: "catalogo_disenos", columna: "imagen_url" },
+  { tabla: "servicios", columna: "imagen" },
+  { tabla: "negocios", columna: "imagen_fondo_url" },
+];
 
 // De la URL de Cloudinary al public_id que pide la API de borrado.
 // https://res.cloudinary.com/<cloud>/image/upload/v123/rservasroma/catalogo/x.jpg
@@ -71,14 +82,26 @@ Deno.serve(async (req: Request) => {
     return json(req, { error: "Esa imagen no pertenece al catalogo." }, 403);
   }
 
-  // Nadie mas debe estar usandola. Si sigue referenciada, no se toca.
-  const enUso = await fetch(
-    `${SUPABASE_URL}/rest/v1/catalogo_disenos?imagen_url=eq.${encodeURIComponent(imagenUrl)}&select=id&limit=1`,
-    { headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` } },
-  ).then((r) => r.json()).catch(() => []);
+  // Nadie mas debe estar usandola. Si sigue referenciada en cualquier tabla,
+  // no se toca. Ante un fallo de consulta se aborta: mejor una foto huerfana
+  // que borrar una que alguien sigue mostrando.
+  const cabecerasServicio = { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` };
 
-  if (Array.isArray(enUso) && enUso.length > 0) {
-    return json(req, { error: "La imagen sigue en uso por un diseno." }, 409);
+  for (const { tabla, columna } of REFERENCIAS) {
+    const respuesta = await fetch(
+      `${SUPABASE_URL}/rest/v1/${tabla}?${columna}=eq.${encodeURIComponent(imagenUrl)}&select=id&limit=1`,
+      { headers: cabecerasServicio },
+    );
+    if (!respuesta.ok) {
+      return json(req, { error: `No se pudo comprobar ${tabla}; no se borra nada.` }, 503);
+    }
+    const filas = await respuesta.json().catch(() => null);
+    if (!Array.isArray(filas)) {
+      return json(req, { error: `Respuesta inesperada de ${tabla}; no se borra nada.` }, 503);
+    }
+    if (filas.length > 0) {
+      return json(req, { error: `La imagen sigue en uso en ${tabla}.` }, 409);
+    }
   }
 
   const timestamp = Math.floor(Date.now() / 1000);
