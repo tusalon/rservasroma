@@ -92,17 +92,6 @@ assert.equal(
 );
 assert.equal(JSON.stringify(catalogo.catalogoAgrupar([])), '[]');
 
-// --- Vocabulario del catalogo ---
-// Lo que protege: que un valor raro o ausente en la base no deje la app con
-// "Reservar este undefined". Sin eleccion se mantiene "diseno", que es lo
-// correcto para los 337 negocios de manicura y lo que ya veian.
-assert.equal(catalogo.catalogoTerminos({ catalogo_termino: 'tratamiento' }).singular, 'tratamiento');
-assert.equal(catalogo.catalogoTerminos({ catalogo_termino: 'ESTILO' }).plural, 'estilos');
-assert.equal(catalogo.catalogoTerminos({ catalogo_termino: '  servicio ' }).plural, 'servicios');
-assert.equal(catalogo.catalogoTerminos({ catalogo_termino: 'inventado' }).singular, 'diseño');
-assert.equal(catalogo.catalogoTerminos({}).singular, 'diseño');
-assert.equal(catalogo.catalogoTerminos(null).plural, 'diseños');
-
 // --- Miniaturas de Cloudinary ---
 const original = 'https://res.cloudinary.com/uyvla7fj/image/upload/v1/rservasroma/catalogo/diseno-1.jpg';
 assert.equal(

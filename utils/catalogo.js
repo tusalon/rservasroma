@@ -19,24 +19,6 @@ function catalogoHeaders(extra) {
     }, extra || {});
 }
 
-// Vocabulario del catalogo. "Diseno" solo encaja en manicura: un spa ensena
-// tratamientos y un estudio de pestanas estilos. Lo elige la duena en su panel
-// (negocios.catalogo_termino, ver sql-catalogo-termino.sql) porque los datos no
-// permiten adivinarlo: casi todos los negocios tienen especialidad = 'Unas'.
-// Todos los terminos son masculinos, asi que "este {singular}" siempre encaja.
-const CATALOGO_TERMINOS = {
-    diseno:      { singular: 'diseño',      plural: 'diseños' },
-    trabajo:     { singular: 'trabajo',     plural: 'trabajos' },
-    tratamiento: { singular: 'tratamiento', plural: 'tratamientos' },
-    estilo:      { singular: 'estilo',      plural: 'estilos' },
-    servicio:    { singular: 'servicio',    plural: 'servicios' }
-};
-
-function catalogoTerminos(config) {
-    const clave = String(config?.catalogo_termino || 'diseno').trim().toLowerCase();
-    return CATALOGO_TERMINOS[clave] || CATALOGO_TERMINOS.diseno;
-}
-
 // Huella del dispositivo: solo evita que el mismo telefono vote 200 veces el
 // mismo diseno. No se usa para identificar a nadie ni se cruza con el cliente.
 function catalogoIdDispositivo() {
@@ -351,8 +333,6 @@ async function catalogoReordenar(disenosOrdenados) {
 window.catalogoObtenerDisenos = catalogoObtenerDisenos;
 window.catalogoInvalidarCache = catalogoInvalidarCache;
 window.catalogoCategorias = catalogoCategorias;
-window.catalogoTerminos = catalogoTerminos;
-window.CATALOGO_TERMINOS = CATALOGO_TERMINOS;
 window.catalogoAgrupar = catalogoAgrupar;
 window.catalogoPromedio = catalogoPromedio;
 window.catalogoVotar = catalogoVotar;

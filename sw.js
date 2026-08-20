@@ -1,6 +1,6 @@
 // sw.js - Service Worker para Rservasroma
 
-const CACHE_NAME = 'rservasroma-v94';
+const CACHE_NAME = 'rservasroma-v95';
 const BASE = '/rservasroma';
 
 const urlsToCache = [
@@ -38,7 +38,7 @@ const urlsToCache = [
   `${BASE}/utils/push-notifications.js?v=20260722-platform-v4`,
   `${BASE}/utils/servicios.js`,
   `${BASE}/utils/storage.js?v=20260818-catalogo`,
-  `${BASE}/utils/catalogo.js?v=20260818-termino`,
+  `${BASE}/utils/catalogo.js?v=20260818-catalogo-neutro`,
   `${BASE}/utils/suscripcion.js?v=20260727-whatsapp-romahub1`,
   `${BASE}/utils/supabase-config.js?v=20260723-fotos`,
   `${BASE}/utils/timeLogic.js`,
@@ -49,9 +49,9 @@ const urlsToCache = [
 
   // Componentes cliente (compilados)
   `${BASE}/compiled/components/BookingForm.js?v=20260818-catalogo`,
-  `${BASE}/compiled/components/Catalogo.js?v=20260818-termino`,
+  `${BASE}/compiled/components/Catalogo.js?v=20260818-catalogo-neutro`,
   `${BASE}/compiled/components/Calendar.js?v=20260723-jsx1`,
-  `${BASE}/compiled/components/ClientAuthScreen.js?v=20260818-termino`,
+  `${BASE}/compiled/components/ClientAuthScreen.js?v=20260818-catalogo-neutro`,
   `${BASE}/compiled/components/Confirmation.js?v=20260806-tel-prefijo`,
   `${BASE}/compiled/components/Header.js?v=20260731-marca`,
   `${BASE}/compiled/components/InstallButton.js?v=20260723-jsx1`,
@@ -61,12 +61,12 @@ const urlsToCache = [
   `${BASE}/compiled/components/ProfesionalSelector.js?v=20260723-jsx1`,
   `${BASE}/compiled/components/ServiceSelectionCategorias.js?v=20260731-marca`,
   `${BASE}/compiled/components/TimeSlots.js?v=20260723-jsx1`,
-  `${BASE}/compiled/components/WelcomeScreen.js?v=20260818-termino`,
+  `${BASE}/compiled/components/WelcomeScreen.js?v=20260818-catalogo-neutro`,
   `${BASE}/compiled/components/WhatsAppButton.js?v=20260806-tel-prefijo`,
 
   // Componentes admin (compilados)
   `${BASE}/compiled/components/admin/ConfigPanel.js?v=20260731-marca`,
-  `${BASE}/compiled/components/admin/CatalogoPanel.js?v=20260818-termino`,
+  `${BASE}/compiled/components/admin/CatalogoPanel.js?v=20260818-catalogo-neutro`,
   `${BASE}/compiled/components/admin/RomaHubActivacion.js?v=20260731-marca`,
   `${BASE}/compiled/components/admin/EditarNegocio.js?v=20260727-admin-slug1`,
   `${BASE}/compiled/components/admin/HorariosPorDiaPanel.js?v=20260723-jsx1`,

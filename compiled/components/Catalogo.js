@@ -21,7 +21,6 @@ function Catalogo({ onGoBack, onReservarDiseno, cliente }) {
       vivo = false;
     };
   }, []);
-  const terminos = window.catalogoTerminos(config);
   const colorPrimario = window.asegurarColorVisible ? window.asegurarColorVisible(config?.color_primario, "#ec4899") : config?.color_primario || "#ec4899";
   const grupos = React.useMemo(() => window.catalogoAgrupar(disenos), [disenos]);
   const gruposVisibles = React.useMemo(() => categoria === "todas" ? grupos : grupos.filter((g) => g.nombre === categoria), [grupos, categoria]);
@@ -36,7 +35,7 @@ function Catalogo({ onGoBack, onReservarDiseno, cliente }) {
       userRol: "cliente",
       showBackButton: true
     }
-  ), /* @__PURE__ */ React.createElement("div", { className: "max-w-3xl mx-auto px-4 pb-20" }, /* @__PURE__ */ React.createElement("div", { className: "pt-4 pb-2 text-center" }, /* @__PURE__ */ React.createElement("h1", { className: "text-2xl font-bold text-gray-800" }, "✨ ", t("Nuestros {plural}", { plural: terminos.plural })), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500 mt-1" }, t("Elige el que te enamore y resérvalo al momento."))), disenos.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-2xl shadow-sm p-8 text-center mt-4" }, /* @__PURE__ */ React.createElement("p", { className: "text-4xl mb-3" }, "📸"), /* @__PURE__ */ React.createElement("p", { className: "text-gray-600 font-medium" }, t("Todavía no hay {plural} publicados", { plural: terminos.plural })), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-400 mt-1" }, t("Vuelve pronto: el salón está preparando su catálogo."))) : /* @__PURE__ */ React.createElement(React.Fragment, null, grupos.length > 1 && /* @__PURE__ */ React.createElement("div", { className: "sticky top-0 z-10 -mx-4 px-4 py-3 bg-pink-50/90 backdrop-blur" }, /* @__PURE__ */ React.createElement("div", { className: "flex gap-2 overflow-x-auto pb-1" }, /* @__PURE__ */ React.createElement(
+  ), /* @__PURE__ */ React.createElement("div", { className: "max-w-3xl mx-auto px-4 pb-20" }, /* @__PURE__ */ React.createElement("div", { className: "pt-4 pb-2 text-center" }, /* @__PURE__ */ React.createElement("h1", { className: "text-2xl font-bold text-gray-800" }, "✨ ", t("Nuestro catálogo")), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500 mt-1" }, t("Elige lo que te enamore y pide tu cita."))), disenos.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-2xl shadow-sm p-8 text-center mt-4" }, /* @__PURE__ */ React.createElement("p", { className: "text-4xl mb-3" }, "📸"), /* @__PURE__ */ React.createElement("p", { className: "text-gray-600 font-medium" }, t("Todavía no hay fotos en el catálogo")), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-400 mt-1" }, t("Vuelve pronto: el salón está preparando su catálogo."))) : /* @__PURE__ */ React.createElement(React.Fragment, null, grupos.length > 1 && /* @__PURE__ */ React.createElement("div", { className: "sticky top-0 z-10 -mx-4 px-4 py-3 bg-pink-50/90 backdrop-blur" }, /* @__PURE__ */ React.createElement("div", { className: "flex gap-2 overflow-x-auto pb-1" }, /* @__PURE__ */ React.createElement(
     BotonCategoria,
     {
       activo: categoria === "todas",
@@ -53,7 +52,7 @@ function Catalogo({ onGoBack, onReservarDiseno, cliente }) {
       onClick: () => setCategoria(g.nombre),
       texto: `${g.nombre} · ${g.disenos.length}`
     }
-  )))), /* @__PURE__ */ React.createElement("div", { className: "pt-3 space-y-6" }, gruposVisibles.map((grupo) => /* @__PURE__ */ React.createElement("section", { key: grupo.nombre }, /* @__PURE__ */ React.createElement("div", { className: "flex items-baseline justify-between mb-2" }, /* @__PURE__ */ React.createElement("h2", { className: "text-base font-bold text-gray-800" }, grupo.nombre), /* @__PURE__ */ React.createElement("span", { className: "text-xs text-gray-400" }, grupo.disenos.length === 1 ? t("1 diseño") : t("{n} diseños", { n: grupo.disenos.length }))), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 sm:grid-cols-3 gap-3" }, grupo.disenos.map((diseno) => /* @__PURE__ */ React.createElement(
+  )))), /* @__PURE__ */ React.createElement("div", { className: "pt-3 space-y-6" }, gruposVisibles.map((grupo) => /* @__PURE__ */ React.createElement("section", { key: grupo.nombre }, /* @__PURE__ */ React.createElement("div", { className: "flex items-baseline justify-between mb-2" }, /* @__PURE__ */ React.createElement("h2", { className: "text-base font-bold text-gray-800" }, grupo.nombre), /* @__PURE__ */ React.createElement("span", { className: "text-xs text-gray-400" }, grupo.disenos.length === 1 ? t("1 foto") : t("{n} fotos", { n: grupo.disenos.length }))), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 sm:grid-cols-3 gap-3" }, grupo.disenos.map((diseno) => /* @__PURE__ */ React.createElement(
     TarjetaDiseno,
     {
       key: diseno.id,
@@ -66,7 +65,6 @@ function Catalogo({ onGoBack, onReservarDiseno, cliente }) {
       diseno: disenos.find((d) => d.id === abierto.id) || abierto,
       colorPrimario,
       cliente,
-      terminos,
       onCerrar: () => setAbierto(null),
       onReservar: onReservarDiseno,
       onVotoEnviado: (id, promedio, conteo) => {
@@ -118,7 +116,7 @@ function TarjetaDiseno({ diseno, onClick }) {
     /* @__PURE__ */ React.createElement("div", { className: "p-2" }, /* @__PURE__ */ React.createElement("p", { className: "text-sm font-medium text-gray-800 line-clamp-2" }, diseno.titulo), diseno.servicio_nombre && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 mt-0.5 truncate" }, diseno.servicio_nombre))
   );
 }
-function ModalDiseno({ diseno, colorPrimario, cliente, terminos, onCerrar, onReservar, onVotoEnviado }) {
+function ModalDiseno({ diseno, colorPrimario, cliente, onCerrar, onReservar, onVotoEnviado }) {
   window.useIdioma();
   const t = window.t;
   const votoPrevio = window.catalogoVotoPropio(diseno.id);
@@ -204,7 +202,7 @@ function ModalDiseno({ diseno, colorPrimario, cliente, terminos, onCerrar, onRes
           style: { backgroundColor: colorPrimario }
         },
         /* @__PURE__ */ React.createElement("span", null, "💖"),
-        /* @__PURE__ */ React.createElement("span", null, t("Reservar este {singular}", { singular: terminos.singular }))
+        /* @__PURE__ */ React.createElement("span", null, t("Pedir mi cita"))
       ), /* @__PURE__ */ React.createElement(
         "button",
         {

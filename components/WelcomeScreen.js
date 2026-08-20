@@ -390,7 +390,7 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol, onMisReservas, onC
                             <button onClick={onCatalogo}
                                 className="w-full text-white/90 font-medium py-2.5 rounded-full border border-white/30 hover:bg-white/10 transition flex items-center justify-center gap-2">
                                 <span>✨</span>
-                                <span>{t('Ver {plural}', { plural: window.catalogoTerminos(config).plural })}</span>
+                                <span>{t('Explorar catálogo')}</span>
                             </button>
                         )}
 
