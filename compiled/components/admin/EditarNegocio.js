@@ -41,7 +41,11 @@ function EditarNegocio() {
     banco: "",
     tiempo_vencimiento: 2,
     whatsapp_moneda: "CUP",
-    whatsapp_mostrar_costos: true
+    whatsapp_mostrar_costos: true,
+    // 🆕 FIDELIZACIÓN: cada N citas completadas, la siguiente tiene descuento
+    fidelizacion_activa: false,
+    fidelizacion_cada_citas: 5,
+    fidelizacion_descuento_porcentaje: 50
   });
   const paisesTelefono = window.PHONE_COUNTRIES || [
     { id: "CU", nombre: "Cuba", bandera: "🇨🇺", codigo: "53", ejemplo: "53066647", localLength: 8 },
@@ -111,7 +115,11 @@ function EditarNegocio() {
           banco: configData.banco || "",
           tiempo_vencimiento: configData.tiempo_vencimiento || 2,
           whatsapp_moneda: ["CUP", "USD", "EUR", "MXN"].includes(String(configData.whatsapp_moneda || "").toUpperCase()) ? String(configData.whatsapp_moneda).toUpperCase() : "CUP",
-          whatsapp_mostrar_costos: configData.whatsapp_mostrar_costos !== false
+          whatsapp_mostrar_costos: configData.whatsapp_mostrar_costos !== false,
+          // 🆕 CARGAR CAMPOS DE FIDELIZACIÓN
+          fidelizacion_activa: configData.fidelizacion_activa === true,
+          fidelizacion_cada_citas: configData.fidelizacion_cada_citas || 5,
+          fidelizacion_descuento_porcentaje: configData.fidelizacion_descuento_porcentaje ?? 50
         });
       }
     } catch (error2) {
@@ -242,6 +250,10 @@ function EditarNegocio() {
         tiempo_vencimiento: config.tiempo_vencimiento ? parseInt(config.tiempo_vencimiento) : 2,
         whatsapp_moneda: ["CUP", "USD", "EUR", "MXN"].includes(String(config.whatsapp_moneda || "").toUpperCase()) ? String(config.whatsapp_moneda).toUpperCase() : "CUP",
         whatsapp_mostrar_costos: config.whatsapp_mostrar_costos !== false,
+        // 🆕 INCLUIR CAMPOS DE FIDELIZACIÓN
+        fidelizacion_activa: config.fidelizacion_activa === true,
+        fidelizacion_cada_citas: Math.max(1, parseInt(config.fidelizacion_cada_citas, 10) || 5),
+        fidelizacion_descuento_porcentaje: Math.max(0, Math.min(100, Number(config.fidelizacion_descuento_porcentaje) || 0)),
         updated_at: (/* @__PURE__ */ new Date()).toISOString()
       };
       console.log("📤 Enviando datos completos:", datosActualizar);
@@ -263,13 +275,18 @@ function EditarNegocio() {
       if (!response.ok) {
         const errorText = await response.text();
         console.error("❌ Error response:", errorText);
-        if (errorText.includes("codigo_pais") || errorText.includes("whatsapp_moneda") || errorText.includes("whatsapp_mostrar_costos") || errorText.includes("anticipos_por_servicio") || errorText.includes("municipio") || errorText.includes("provincia") || errorText.includes("imagen_fondo_url")) {
+        if (errorText.includes("codigo_pais") || errorText.includes("whatsapp_moneda") || errorText.includes("whatsapp_mostrar_costos") || errorText.includes("anticipos_por_servicio") || errorText.includes("municipio") || errorText.includes("provincia") || errorText.includes("imagen_fondo_url") || errorText.includes("fidelizacion")) {
           const datosCompatibles = { ...datosActualizar };
           if (errorText.includes("codigo_pais")) delete datosCompatibles.codigo_pais;
           if (errorText.includes("anticipos_por_servicio")) delete datosCompatibles.anticipos_por_servicio;
           if (errorText.includes("municipio")) delete datosCompatibles.municipio;
           if (errorText.includes("provincia")) delete datosCompatibles.provincia;
           if (errorText.includes("imagen_fondo_url")) delete datosCompatibles.imagen_fondo_url;
+          if (errorText.includes("fidelizacion")) {
+            delete datosCompatibles.fidelizacion_activa;
+            delete datosCompatibles.fidelizacion_cada_citas;
+            delete datosCompatibles.fidelizacion_descuento_porcentaje;
+          }
           if (errorText.includes("whatsapp_moneda") || errorText.includes("whatsapp_mostrar_costos")) {
             delete datosCompatibles.whatsapp_moneda;
             delete datosCompatibles.whatsapp_mostrar_costos;
@@ -639,7 +656,42 @@ function EditarNegocio() {
       className: "w-full border rounded-lg px-3 py-2",
       rows: "8"
     }
-  ), /* @__PURE__ */ React.createElement("div", { className: "bg-blue-50 p-3 rounded-lg mt-2 text-xs" }, /* @__PURE__ */ React.createElement("p", { className: "font-medium text-blue-700 mb-2" }, t("Variables disponibles:")), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 gap-2 text-blue-600" }, /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("code", null, "{monto_anticipo}"), " - ", t("Monto calculado")), /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("code", null, "{servicio}"), " - ", t("Nombre del servicio")), /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("code", null, "{fecha}"), " - ", t("Fecha del turno")), /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("code", null, "{hora}"), " - ", t("Hora del turno")), /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("code", null, "{profesional}"), " - ", t("Profesional")), /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("code", null, "{cbu}"), " - CBU"), /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("code", null, "{alias}"), " - ", t("Alias")), /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("code", null, "{titular}"), " - ", t("Titular")), /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("code", null, "{banco}"), " - ", t("Banco")), /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("code", null, "{tiempo_vencimiento}"), " - ", t("Horas para pagar")))))))), /* @__PURE__ */ React.createElement("div", { className: "pt-4 border-t" }, /* @__PURE__ */ React.createElement("h2", { className: "text-lg font-semibold mb-4 flex items-center gap-2" }, /* @__PURE__ */ React.createElement("i", { className: "icon-message-square text-amber-500" }), t("Mensajes")), /* @__PURE__ */ React.createElement("div", { className: "space-y-4" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, t("Mensaje de bienvenida")), /* @__PURE__ */ React.createElement(
+  ), /* @__PURE__ */ React.createElement("div", { className: "bg-blue-50 p-3 rounded-lg mt-2 text-xs" }, /* @__PURE__ */ React.createElement("p", { className: "font-medium text-blue-700 mb-2" }, t("Variables disponibles:")), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 gap-2 text-blue-600" }, /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("code", null, "{monto_anticipo}"), " - ", t("Monto calculado")), /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("code", null, "{servicio}"), " - ", t("Nombre del servicio")), /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("code", null, "{fecha}"), " - ", t("Fecha del turno")), /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("code", null, "{hora}"), " - ", t("Hora del turno")), /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("code", null, "{profesional}"), " - ", t("Profesional")), /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("code", null, "{cbu}"), " - CBU"), /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("code", null, "{alias}"), " - ", t("Alias")), /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("code", null, "{titular}"), " - ", t("Titular")), /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("code", null, "{banco}"), " - ", t("Banco")), /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("code", null, "{tiempo_vencimiento}"), " - ", t("Horas para pagar")))))))), /* @__PURE__ */ React.createElement("div", { className: "pt-4 border-t" }, /* @__PURE__ */ React.createElement("h2", { className: "text-lg font-semibold mb-4 flex items-center gap-2" }, "🎁 ", t("Fidelización")), /* @__PURE__ */ React.createElement("div", { className: "space-y-4" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between bg-gray-50 p-4 rounded-lg" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "font-medium text-gray-700" }, t("Premiar clientes frecuentes")), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-1" }, t("Si activás, cada N citas completadas la siguiente cita de la clienta tiene un descuento automático."))), /* @__PURE__ */ React.createElement("label", { className: "relative inline-flex items-center cursor-pointer" }, /* @__PURE__ */ React.createElement(
+    "input",
+    {
+      type: "checkbox",
+      checked: config.fidelizacion_activa,
+      onChange: (e) => setConfig({ ...config, fidelizacion_activa: e.target.checked }),
+      className: "sr-only peer"
+    }
+  ), /* @__PURE__ */ React.createElement("div", { className: "w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-amber-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600" }))), config.fidelizacion_activa && /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 gap-3" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, t("Cada cuántas citas")), /* @__PURE__ */ React.createElement(
+    "input",
+    {
+      type: "number",
+      min: "1",
+      step: "1",
+      value: config.fidelizacion_cada_citas,
+      onChange: (e) => setConfig({ ...config, fidelizacion_cada_citas: e.target.value }),
+      className: "w-full border rounded-lg px-3 py-2",
+      placeholder: t("Ej: 5")
+    }
+  )), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, t("Descuento (%)")), /* @__PURE__ */ React.createElement(
+    "input",
+    {
+      type: "number",
+      min: "0",
+      max: "100",
+      step: "1",
+      value: config.fidelizacion_descuento_porcentaje,
+      onChange: (e) => setConfig({ ...config, fidelizacion_descuento_porcentaje: e.target.value }),
+      className: "w-full border rounded-lg px-3 py-2",
+      placeholder: t("Ej: 50")
+    }
+  )), /* @__PURE__ */ React.createElement("p", { className: "col-span-2 text-xs text-gray-500" }, t("Con {cada} citas y {pct}%: la clienta completa {cada} citas normales y la {siguiente}.ª tiene {pct}% de descuento.", {
+    cada: config.fidelizacion_cada_citas || 5,
+    pct: config.fidelizacion_descuento_porcentaje || 0,
+    siguiente: (parseInt(config.fidelizacion_cada_citas, 10) || 5) + 1
+  }))))), /* @__PURE__ */ React.createElement("div", { className: "pt-4 border-t" }, /* @__PURE__ */ React.createElement("h2", { className: "text-lg font-semibold mb-4 flex items-center gap-2" }, /* @__PURE__ */ React.createElement("i", { className: "icon-message-square text-amber-500" }), t("Mensajes")), /* @__PURE__ */ React.createElement("div", { className: "space-y-4" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, t("Mensaje de bienvenida")), /* @__PURE__ */ React.createElement(
     "textarea",
     {
       value: config.mensaje_bienvenida,

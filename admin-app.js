@@ -2842,9 +2842,24 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
         }
 
         const montoActual = Number(bookingData.monto_cobrado || 0);
-        setCobroEditando(bookingData);
+        const fid = window.getFidelizacionConfig(config);
+        const posicion = fid.activa ? getPosicionCitaFidelizacion(bookingData.cliente_whatsapp, bookingData.id) : 0;
+        const esCitaPremiada = fid.activa && window.esPosicionPremiada(posicion, fid.ciclo);
+
+        // Si ya no tiene un cobro guardado, sugerir el monto con el descuento
+        // ya aplicado sobre el precio del servicio. La duena sigue pudiendo
+        // editarlo antes de guardar.
+        let montoSugerido = montoActual > 0 ? String(montoActual) : '';
+        if (esCitaPremiada && montoActual === 0) {
+            const precioServicio = getPrecioServicioAgenda(bookingData.servicio);
+            if (precioServicio > 0) {
+                montoSugerido = String(Number((precioServicio * (1 - fid.pct / 100)).toFixed(2)));
+            }
+        }
+
+        setCobroEditando({ ...bookingData, _fidelizacionPremiada: esCitaPremiada, _fidelizacionPct: fid.pct });
         setCobroForm({
-            monto_cobrado: montoActual > 0 ? String(montoActual) : '',
+            monto_cobrado: montoSugerido,
             notas_cobro: bookingData.notas_cobro || ''
         });
     };
@@ -3385,6 +3400,19 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
             tone,
             ultima
         };
+    };
+
+    // Posicion (1-based) de una reserva Completada dentro del historial de
+    // citas completadas de esa clienta, ordenado del turno mas viejo al mas
+    // nuevo. 0 si la reserva no aparece (no completada, o sin telefono).
+    const getPosicionCitaFidelizacion = (clienteWhatsapp, reservaId) => {
+        const phone = normalizePhone(clienteWhatsapp);
+        if (!phone) return 0;
+        const completadasOrdenadas = bookings
+            .filter(b => b.estado === 'Completado' && normalizePhone(b.cliente_whatsapp) === phone)
+            .sort((a, b) => `${a.fecha || ''} ${a.hora_inicio || ''}`.localeCompare(`${b.fecha || ''} ${b.hora_inicio || ''}`));
+        const index = completadasOrdenadas.findIndex(b => b.id === reservaId);
+        return index === -1 ? 0 : index + 1;
     };
 
     const getAgendaTitle = () => {
@@ -4982,6 +5010,20 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                                 <button onClick={() => setClienteDetalle(null)} className="w-10 h-10 rounded-full bg-white border text-gray-500 hover:text-gray-900 hover:bg-gray-50 text-xl leading-none">×</button>
                             </div>
 
+                            {(() => {
+                                const fid = window.getFidelizacionConfig(config);
+                                if (!fid.activa) return null;
+                                const faltan = window.faltanParaPremio(clienteDetalle.score.completadas, fid.ciclo);
+                                const premiada = faltan === 0;
+                                return (
+                                    <div className={`mx-5 mt-4 p-3 rounded-xl border text-sm font-semibold ${premiada ? 'bg-amber-50 border-amber-200 text-amber-800' : 'bg-pink-50 border-pink-100 text-pink-700'}`}>
+                                        {premiada
+                                            ? t('🎁 Su próxima cita tiene {pct}% de descuento de fidelidad.', { pct: fid.pct })
+                                            : t('Le faltan {n} citas completadas para su próximo descuento de fidelidad ({pct}%).', { n: faltan, pct: fid.pct })}
+                                    </div>
+                                );
+                            })()}
+
                             <div className="p-5 overflow-y-auto max-h-[68vh] space-y-3">
                                 {clienteDetalle.reservas.length === 0 ? (
                                     <div className="text-center py-10 bg-gray-50 rounded-xl border border-gray-100">
@@ -5249,6 +5291,11 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                             </div>
 
                             <div className="space-y-4">
+                                {cobroEditando._fidelizacionPremiada && (
+                                    <div className="p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-sm font-semibold">
+                                        {t('🎁 Esta es la cita premiada de fidelidad: {pct}% de descuento ya sugerido en el monto.', { pct: cobroEditando._fidelizacionPct })}
+                                    </div>
+                                )}
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">{t('Monto cobrado real')}</label>
                                     <input
