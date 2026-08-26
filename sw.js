@@ -1,6 +1,6 @@
 // sw.js - Service Worker para Rservasroma
 
-const CACHE_NAME = 'rservasroma-v95';
+const CACHE_NAME = 'rservasroma-v96';
 const BASE = '/rservasroma';
 
 const urlsToCache = [
@@ -17,7 +17,7 @@ const urlsToCache = [
 
   // App principal (JSX pre-compilado en compiled/ — ver scripts/build-jsx.sh)
   `${BASE}/compiled/client-app.js?v=20260818-termino`,
-  `${BASE}/compiled/admin-app.js?v=20260818-termino`,
+  `${BASE}/compiled/admin-app.js?v=20260826-frases1`,
 
   // Utils
   `${BASE}/utils/api.js?v=20260818-catalogo`,
@@ -46,6 +46,8 @@ const urlsToCache = [
   `${BASE}/utils/legacy-ios-fallback.css?v=20260731-tipografia`,
   `${BASE}/utils/roma-typography.css?v=20260731-tipografia`,
   `${BASE}/utils/roma-theme.js?v=20260731-tipografia`,
+  `${BASE}/utils/fidelizacion.js?v=20260826-fidelizacion1`,
+  `${BASE}/utils/frases-motivacionales.js?v=20260826-frases1`,
 
   // Componentes cliente (compilados)
   `${BASE}/compiled/components/BookingForm.js?v=20260818-catalogo`,
@@ -68,7 +70,7 @@ const urlsToCache = [
   `${BASE}/compiled/components/admin/ConfigPanel.js?v=20260731-marca`,
   `${BASE}/compiled/components/admin/CatalogoPanel.js?v=20260818-catalogo-neutro`,
   `${BASE}/compiled/components/admin/RomaHubActivacion.js?v=20260731-marca`,
-  `${BASE}/compiled/components/admin/EditarNegocio.js?v=20260727-admin-slug1`,
+  `${BASE}/compiled/components/admin/EditarNegocio.js?v=20260826-frases1`,
   `${BASE}/compiled/components/admin/HorariosPorDiaPanel.js?v=20260723-jsx1`,
   `${BASE}/compiled/components/admin/HorariosExcepcionPanel.js?v=20260723-jsx1`,
   `${BASE}/compiled/components/admin/ProfesionalesPanel.js?v=20260723-jsx1`,
@@ -228,9 +230,15 @@ self.addEventListener('fetch', event => {
     return;
   }
 
+  // reqUrl.pathname nunca trae el "?v=..." (eso vive en el search), asi que
+  // estas rutas se comparan sin query string: si no, esto nunca matcheaba y
+  // admin-app.js caia siempre en cache-first puro (bug real: un cambio de
+  // version aqui no bastaba para que una admin con el SW ya instalado
+  // recibiera el archivo nuevo hasta que la cache vieja se vaciara sola).
   const esAssetCriticoAdmin = [
-    `${BASE}/compiled/admin-app.js?v=20260818-termino`,
-    `${BASE}/utils/config-negocio-master.js?v=20260818-contraste`,
+    `${BASE}/compiled/admin-app.js`,
+    `${BASE}/compiled/components/admin/EditarNegocio.js`,
+    `${BASE}/utils/config-negocio-master.js`,
     `${BASE}/utils/native-push-notifications.js`,
     `${BASE}/utils/push-notifications.js`
   ].some(path => reqUrl.pathname === path);
