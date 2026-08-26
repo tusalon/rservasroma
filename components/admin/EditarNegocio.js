@@ -990,7 +990,7 @@ function EditarNegocio() {
                                 <div className="flex items-center justify-between bg-gray-50 p-4 rounded-lg">
                                     <div>
                                         <label className="font-medium text-gray-700">{t('Premiar clientes frecuentes')}</label>
-                                        <p className="text-xs text-gray-500 mt-1">{t('Si activás, cada N citas completadas la siguiente cita de la clienta tiene un descuento automático.')}</p>
+                                        <p className="text-xs text-gray-500 mt-1">{t('Si activas, cada N citas completadas la siguiente cita de la clienta tiene un descuento automático.')}</p>
                                     </div>
                                     <label className="relative inline-flex items-center cursor-pointer">
                                         <input

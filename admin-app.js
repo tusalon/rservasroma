@@ -419,6 +419,22 @@ function AdminApp() {
     
     const [config, setConfig] = React.useState(null);
     const [configVersion, setConfigVersion] = React.useState(0);
+
+    // Frase motivacional del dia: se muestra una vez por dia y se puede
+    // cerrar; al otro dia (fecha distinta a la guardada) vuelve a aparecer.
+    const [fraseDelDia, setFraseDelDia] = React.useState(() => {
+        try {
+            const hoy = new Date().toISOString().slice(0, 10);
+            if (localStorage.getItem('fraseMotivacionalVistaEl') === hoy) return null;
+            return window.getFraseDelDia ? window.getFraseDelDia() : null;
+        } catch (e) {
+            return null;
+        }
+    });
+    const cerrarFraseDelDia = () => {
+        try { localStorage.setItem('fraseMotivacionalVistaEl', new Date().toISOString().slice(0, 10)); } catch (e) {}
+        setFraseDelDia(null);
+    };
     
     const [tabActivo, setTabActivo] = React.useState('reservas');
     const [agendaDate, setAgendaDate] = React.useState(new Date());
@@ -4153,6 +4169,17 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                         ) : null;
                     })()}
                 </div>
+
+                {fraseDelDia && (
+                    <div className="bg-gradient-to-r from-pink-500 to-fuchsia-500 text-white p-4 rounded-xl shadow-sm flex items-center justify-between gap-3">
+                        <p className="font-medium italic">💪 {fraseDelDia}</p>
+                        <button
+                            onClick={cerrarFraseDelDia}
+                            className="text-white/80 hover:text-white text-xl leading-none flex-shrink-0"
+                            title={t('Cerrar')}
+                        >×</button>
+                    </div>
+                )}
 
                 {puedeGestionarAvanzado && pendientesConfiguracion.length > 0 ? (
                     <section

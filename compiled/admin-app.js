@@ -344,6 +344,22 @@ function AdminApp() {
   );
   const [config, setConfig] = React.useState(null);
   const [configVersion, setConfigVersion] = React.useState(0);
+  const [fraseDelDia, setFraseDelDia] = React.useState(() => {
+    try {
+      const hoy = (/* @__PURE__ */ new Date()).toISOString().slice(0, 10);
+      if (localStorage.getItem("fraseMotivacionalVistaEl") === hoy) return null;
+      return window.getFraseDelDia ? window.getFraseDelDia() : null;
+    } catch (e) {
+      return null;
+    }
+  });
+  const cerrarFraseDelDia = () => {
+    try {
+      localStorage.setItem("fraseMotivacionalVistaEl", (/* @__PURE__ */ new Date()).toISOString().slice(0, 10));
+    } catch (e) {
+    }
+    setFraseDelDia(null);
+  };
   const [tabActivo, setTabActivo] = React.useState("reservas");
   const [agendaDate, setAgendaDate] = React.useState(/* @__PURE__ */ new Date());
   const [agendaMode, setAgendaMode] = React.useState("dia");
@@ -3345,7 +3361,15 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
       },
       "📋"
     )) : null;
-  })()), puedeGestionarAvanzado && pendientesConfiguracion.length > 0 ? /* @__PURE__ */ React.createElement(
+  })()), fraseDelDia && /* @__PURE__ */ React.createElement("div", { className: "bg-gradient-to-r from-pink-500 to-fuchsia-500 text-white p-4 rounded-xl shadow-sm flex items-center justify-between gap-3" }, /* @__PURE__ */ React.createElement("p", { className: "font-medium italic" }, "💪 ", fraseDelDia), /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      onClick: cerrarFraseDelDia,
+      className: "text-white/80 hover:text-white text-xl leading-none flex-shrink-0",
+      title: t("Cerrar")
+    },
+    "×"
+  )), puedeGestionarAvanzado && pendientesConfiguracion.length > 0 ? /* @__PURE__ */ React.createElement(
     "section",
     {
       role: "alert",
