@@ -504,13 +504,38 @@ window.getRequiereAnticipo = async function() {
 const SESION_PANEL_MS = 7 * 24 * 60 * 60 * 1000;
 window.SESION_PANEL_MS = SESION_PANEL_MS;
 
+// "Mantener sesion iniciada": quien marca la casilla en el login no vuelve a
+// escribir la clave hasta que cierre sesion a proposito. Es la clave que decide
+// si el plazo de arriba se aplica o se ignora.
+const CLAVE_SESION_RECORDADA = 'sesionRecordada';
+window.CLAVE_SESION_RECORDADA = CLAVE_SESION_RECORDADA;
+
+window.sesionRecordada = function() {
+    try {
+        return localStorage.getItem(CLAVE_SESION_RECORDADA) === 'true';
+    } catch (e) {
+        return false;
+    }
+};
+
+// Borra la marca de "mantener sesion". La llaman los cierres de sesion: si la
+// bandera sobreviviera, la proxima sesion quedaria recordada sin que nadie lo
+// hubiera pedido.
+window.olvidarSesionRecordada = function() {
+    try { localStorage.removeItem(CLAVE_SESION_RECORDADA); } catch (e) {}
+};
+
 // Devuelve si la marca de tiempo sigue viva y, de paso, la renueva. Toda
 // comprobacion de sesion del panel debe pasar por aqui: si cada pagina vuelve a
-// calcular su propio limite, unas caducan antes que otras.
+// calcular su propio limite, unas caducan antes que otras. Por eso la casilla
+// de "mantener sesion" tambien se resuelve aqui y no en cada pantalla.
 function sesionPanelVigente(claveTiempo) {
     const marca = parseInt(localStorage.getItem(claveTiempo), 10);
     if (!marca || Number.isNaN(marca)) return false;
-    if (Date.now() - marca >= SESION_PANEL_MS) return false;
+    // Con la casilla marcada no se mira el reloj, pero igual se renueva la marca:
+    // asi, si mas adelante desmarca la casilla, el plazo cuenta desde su ultimo
+    // uso real y no desde el login original.
+    if (!window.sesionRecordada() && Date.now() - marca >= SESION_PANEL_MS) return false;
     localStorage.setItem(claveTiempo, String(Date.now()));
     return true;
 }

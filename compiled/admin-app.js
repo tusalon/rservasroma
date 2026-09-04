@@ -2611,6 +2611,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
       localStorage.removeItem("clienteAuth");
       localStorage.removeItem("negocioId");
       localStorage.removeItem("adminSlug");
+      window.olvidarSesionRecordada?.();
       window.location.href = "index.html";
     }
   };

@@ -17,6 +17,8 @@
         'Contraseña': 'Password',
         'Entrar →': 'Log in →',
         'Mostrar contraseña': 'Show password',
+        'Mantener sesión iniciada': 'Keep me logged in',
+        'No te vuelve a pedir la contraseña en este teléfono. Actívalo solo si el celular es tuyo.': "You won't be asked for the password again on this phone. Turn it on only if the phone is yours.",
         'Verificando...': 'Verifying...',
         'Error interno. Recarga la página.': 'Internal error. Reload the page.',
         'Error de conexión. Intentá de nuevo.': 'Connection error. Try again.',

@@ -40,9 +40,37 @@
                     window.location.replace(guardado
                         ? '?s=' + encodeURIComponent(guardado)
                         : 'app-clientes.html');
-                } else {
-                    window.location.replace('admin-login.html');
+                    return;
                 }
+
+                // Sesion del panel todavia viva -> derecho al panel, sin pedir la
+                // clave otra vez. Esta es la pantalla con la que arranca la APK de
+                // administracion, y antes caia siempre en el login aunque la sesion
+                // estuviera perfecta: la APK no pasa ninguno de los dos filtros de
+                // arriba (corre en localhost, no en tusalon.github.io), asi que la
+                // duena terminaba tecleando usuario y contraseña cada vez que abria.
+                //
+                // La comprobacion va escrita a mano porque este script corre antes
+                // que utils/config-negocio-master.js, donde vive sesionPanelVigente().
+                // El plazo y el nombre de la clave salen de ahi: si cambian alli,
+                // cambiarlos aqui (SESION_PANEL_MS y CLAVE_SESION_RECORDADA).
+                var SESION_PANEL_MS = 7 * 24 * 60 * 60 * 1000;
+                try {
+                    var slugPanel = (localStorage.getItem('adminSlug') || guardado || '').toLowerCase().trim();
+                    var esDuena = localStorage.getItem('adminAuth') === 'true';
+                    var esProfesional = !!localStorage.getItem('profesionalAuth');
+                    var marca = parseInt(localStorage.getItem(esDuena ? 'adminLoginTime' : 'profesionalLoginTime'), 10);
+                    var recordada = localStorage.getItem('sesionRecordada') === 'true';
+                    var viva = !!marca && !Number.isNaN(marca) &&
+                        (recordada || Date.now() - marca < SESION_PANEL_MS);
+
+                    if (slugPanel && (esDuena || esProfesional) && viva) {
+                        window.location.replace('admin.html?s=' + encodeURIComponent(slugPanel));
+                        return;
+                    }
+                } catch (e) {}
+
+                window.location.replace('admin-login.html');
             }
         })();
     </script>
@@ -630,8 +658,8 @@
     <!-- Scripts (rutas relativas) -->
     <script src="utils/supabase-config.js?v=20260723-fotos"></script>
     <script src="utils/hero-backgrounds.js?v=20260723-fotos"></script>
-    <script src="utils/config-negocio-master.js?v=20260818-contraste"></script>
-    <script src="utils/i18n.js?v=20260810-anticipo-global"></script>
+    <script src="utils/config-negocio-master.js?v=20260904-recordar1"></script>
+    <script src="utils/i18n.js?v=20260904-recordar1"></script>
     <script src="utils/phone-utils.js?v=20260616-preservar-cero-v2"></script>
     <script src="utils/storage.js?v=20260818-catalogo"></script>
     <script src="utils/catalogo.js?v=20260818-catalogo-neutro"></script>

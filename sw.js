@@ -1,6 +1,6 @@
 // sw.js - Service Worker para Rservasroma
 
-const CACHE_NAME = 'rservasroma-v97';
+const CACHE_NAME = 'rservasroma-v98';
 const BASE = '/rservasroma';
 
 const urlsToCache = [
@@ -17,7 +17,7 @@ const urlsToCache = [
 
   // App principal (JSX pre-compilado en compiled/ — ver scripts/build-jsx.sh)
   `${BASE}/compiled/client-app.js?v=20260818-termino`,
-  `${BASE}/compiled/admin-app.js?v=20260903-aprobacion1`,
+  `${BASE}/compiled/admin-app.js?v=20260904-recordar1`,
 
   // Utils
   `${BASE}/utils/api.js?v=20260903-aprobacion1`,
@@ -29,8 +29,8 @@ const urlsToCache = [
   `${BASE}/utils/hero-backgrounds.js?v=20260723-fotos`,
   `${BASE}/utils/native-push-notifications.js?v=20260722-platform-v4`,
   `${BASE}/utils/offline-panel.js`,
-  `${BASE}/utils/config-negocio-master.js?v=20260818-contraste`,
-  `${BASE}/utils/i18n.js?v=20260810-anticipo-global`,
+  `${BASE}/utils/config-negocio-master.js?v=20260904-recordar1`,
+  `${BASE}/utils/i18n.js?v=20260904-recordar1`,
   `${BASE}/utils/cuba-geo.js?v=20260727-wizard-ubicacion1`,
   `${BASE}/utils/phone-utils.js`,
   `${BASE}/utils/profesionales.js`,
@@ -39,7 +39,7 @@ const urlsToCache = [
   `${BASE}/utils/servicios.js`,
   `${BASE}/utils/storage.js?v=20260818-catalogo`,
   `${BASE}/utils/catalogo.js?v=20260818-catalogo-neutro`,
-  `${BASE}/utils/suscripcion.js?v=20260727-whatsapp-romahub1`,
+  `${BASE}/utils/suscripcion.js?v=20260904-recordar1`,
   `${BASE}/utils/supabase-config.js?v=20260723-fotos`,
   `${BASE}/utils/timeLogic.js`,
   `${BASE}/utils/whatsapp-helper.js?v=20260806-push-url`,

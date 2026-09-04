@@ -216,6 +216,9 @@
         document.getElementById('rservas-bloqueo-recargar').onclick = () => window.location.reload();
         document.getElementById('rservas-bloqueo-salir').onclick = () => {
             ['adminAuth', 'adminLoginTime', 'profesionalAuth', 'profesionalLoginTime'].forEach(k => localStorage.removeItem(k));
+            // Igual que en handleLogout: si la bandera de "mantener sesión"
+            // sobreviviera, el próximo login quedaría recordado sin pedirlo.
+            window.olvidarSesionRecordada?.();
             window.location.href = window.construirRutaConSlug('admin-login.html');
         };
     }

@@ -3133,6 +3133,9 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
             localStorage.removeItem('clienteAuth');
             localStorage.removeItem('negocioId');
             localStorage.removeItem('adminSlug');
+            // Sin esto, la próxima sesión quedaría "recordada" sin que nadie
+            // hubiera marcado la casilla, y no volvería a pedir la clave nunca.
+            window.olvidarSesionRecordada?.();
             window.location.href = 'index.html';
         }
     };

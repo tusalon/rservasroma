@@ -127,4 +127,52 @@ const DIA = 24 * 60 * 60 * 1000;
     assert.equal(window.sesionPanelVigente('adminLoginTime'), false, 'marca invalida = sin sesion');
 }
 
+// ── "Mantener sesion iniciada" (casilla del login) ────────────────────────
+// Quien la marca no vuelve a escribir la clave en ese telefono hasta que cierre
+// sesion a proposito. Se resuelve dentro de sesionPanelVigente() porque es el
+// unico sitio por el que pasan todas las pantallas del panel.
+
+// La misma sesion de 8 dias que caduca arriba, ahora con la casilla puesta.
+{
+    const hace8Dias = Date.now() - 8 * DIA;
+    const { window } = cargarConfig({ adminLoginTime: hace8Dias, sesionRecordada: 'true' });
+    assert.equal(
+        window.sesionPanelVigente('adminLoginTime'),
+        true,
+        'con "mantener sesion" no caduca aunque pasen mas de 7 dias'
+    );
+}
+
+// Aunque este recordada, la marca se renueva: si mañana desmarca la casilla, el
+// plazo cuenta desde su ultimo uso real y no desde el login original.
+{
+    const hace30Dias = Date.now() - 30 * DIA;
+    const { window, localStorage } = cargarConfig({ adminLoginTime: hace30Dias, sesionRecordada: 'true' });
+    window.sesionPanelVigente('adminLoginTime');
+    assert.ok(
+        parseInt(localStorage.getItem('adminLoginTime'), 10) > hace30Dias,
+        'una sesion recordada tambien renueva su marca de tiempo'
+    );
+}
+
+// La casilla alarga una sesion existente; no inventa una que nunca hubo.
+{
+    const { window } = cargarConfig({ sesionRecordada: 'true' });
+    assert.equal(
+        window.sesionPanelVigente('adminLoginTime'),
+        false,
+        'sin login previo la casilla no da acceso'
+    );
+}
+
+// Cerrar sesion borra la bandera: si sobreviviera, la sesion siguiente quedaria
+// recordada sin que nadie lo hubiera pedido.
+{
+    const { window, localStorage } = cargarConfig({ sesionRecordada: 'true' });
+    assert.equal(window.sesionRecordada(), true);
+    window.olvidarSesionRecordada();
+    assert.equal(window.sesionRecordada(), false, 'al cerrar sesion la bandera desaparece');
+    assert.equal(localStorage.getItem('sesionRecordada'), null, 'la clave se borra del almacenamiento');
+}
+
 console.log('OK: sesion deslizante del panel verificada');
