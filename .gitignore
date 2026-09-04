@@ -13,3 +13,6 @@ android/build/
 *.keystore
 *.jks
 android/app/google-services.json
+
+# Artefactos sueltos que no son parte de la app
+Auditoría de proyecto.html
