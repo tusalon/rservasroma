@@ -518,6 +518,16 @@ button {
       white-label y ese borde tiene que llevar el color del salon. -- */
 .border-pink-500,
 .border-pink-600 { border-color: var(--brand-primary, #FF1493); }
+
+/* La franja lateral de las tarjetas de turno usa border-l-pink-N, que es una
+   clase DISTINTA de border-pink-N y por eso se quedaba fuera del mapeo: en un
+   salon de marca negra las tarjetas seguian con la raya fucsia mientras el
+   resto de la pantalla ya iba en su color — incluido el puntito "Reservado"
+   de la leyenda, que si esta mapeado (bg-pink-500). Afecta a la lista de
+   turnos del panel y a "Mis Citas" de la clienta. */
+.border-l-pink-400,
+.border-l-pink-500,
+.border-l-pink-600 { border-left-color: var(--brand-primary, #FF1493); }
 .border-amber-100 { border-color: #fef3c7; }
 .border-amber-200 { border-color: #fde68a; }
 .border-amber-300 { border-color: #fcd34d; }
