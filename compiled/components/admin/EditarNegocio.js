@@ -45,7 +45,9 @@ function EditarNegocio() {
     // 🆕 FIDELIZACIÓN: cada N citas completadas, la siguiente tiene descuento
     fidelizacion_activa: false,
     fidelizacion_cada_citas: 5,
-    fidelizacion_descuento_porcentaje: 50
+    fidelizacion_descuento_porcentaje: 50,
+    // 🆕 APROBAR CLIENTAS NUEVAS antes de que puedan reservar
+    aprobar_clientes_nuevos: false
   });
   const paisesTelefono = window.PHONE_COUNTRIES || [
     { id: "CU", nombre: "Cuba", bandera: "🇨🇺", codigo: "53", ejemplo: "53066647", localLength: 8 },
@@ -119,7 +121,9 @@ function EditarNegocio() {
           // 🆕 CARGAR CAMPOS DE FIDELIZACIÓN
           fidelizacion_activa: configData.fidelizacion_activa === true,
           fidelizacion_cada_citas: configData.fidelizacion_cada_citas || 5,
-          fidelizacion_descuento_porcentaje: configData.fidelizacion_descuento_porcentaje ?? 50
+          fidelizacion_descuento_porcentaje: configData.fidelizacion_descuento_porcentaje ?? 50,
+          // 🆕 CARGAR APROBACIÓN DE CLIENTAS
+          aprobar_clientes_nuevos: configData.aprobar_clientes_nuevos === true
         });
       }
     } catch (error2) {
@@ -254,6 +258,8 @@ function EditarNegocio() {
         fidelizacion_activa: config.fidelizacion_activa === true,
         fidelizacion_cada_citas: Math.max(1, parseInt(config.fidelizacion_cada_citas, 10) || 5),
         fidelizacion_descuento_porcentaje: Math.max(0, Math.min(100, Number(config.fidelizacion_descuento_porcentaje) || 0)),
+        // 🆕 INCLUIR APROBACIÓN DE CLIENTAS
+        aprobar_clientes_nuevos: config.aprobar_clientes_nuevos === true,
         updated_at: (/* @__PURE__ */ new Date()).toISOString()
       };
       console.log("📤 Enviando datos completos:", datosActualizar);
@@ -275,7 +281,7 @@ function EditarNegocio() {
       if (!response.ok) {
         const errorText = await response.text();
         console.error("❌ Error response:", errorText);
-        if (errorText.includes("codigo_pais") || errorText.includes("whatsapp_moneda") || errorText.includes("whatsapp_mostrar_costos") || errorText.includes("anticipos_por_servicio") || errorText.includes("municipio") || errorText.includes("provincia") || errorText.includes("imagen_fondo_url") || errorText.includes("fidelizacion")) {
+        if (errorText.includes("codigo_pais") || errorText.includes("whatsapp_moneda") || errorText.includes("whatsapp_mostrar_costos") || errorText.includes("anticipos_por_servicio") || errorText.includes("municipio") || errorText.includes("provincia") || errorText.includes("imagen_fondo_url") || errorText.includes("fidelizacion") || errorText.includes("aprobar_clientes_nuevos")) {
           const datosCompatibles = { ...datosActualizar };
           if (errorText.includes("codigo_pais")) delete datosCompatibles.codigo_pais;
           if (errorText.includes("anticipos_por_servicio")) delete datosCompatibles.anticipos_por_servicio;
@@ -287,6 +293,7 @@ function EditarNegocio() {
             delete datosCompatibles.fidelizacion_cada_citas;
             delete datosCompatibles.fidelizacion_descuento_porcentaje;
           }
+          if (errorText.includes("aprobar_clientes_nuevos")) delete datosCompatibles.aprobar_clientes_nuevos;
           if (errorText.includes("whatsapp_moneda") || errorText.includes("whatsapp_mostrar_costos")) {
             delete datosCompatibles.whatsapp_moneda;
             delete datosCompatibles.whatsapp_mostrar_costos;
@@ -691,7 +698,15 @@ function EditarNegocio() {
     cada: config.fidelizacion_cada_citas || 5,
     pct: config.fidelizacion_descuento_porcentaje || 0,
     siguiente: (parseInt(config.fidelizacion_cada_citas, 10) || 5) + 1
-  }))))), /* @__PURE__ */ React.createElement("div", { className: "pt-4 border-t" }, /* @__PURE__ */ React.createElement("h2", { className: "text-lg font-semibold mb-4 flex items-center gap-2" }, /* @__PURE__ */ React.createElement("i", { className: "icon-message-square text-amber-500" }), t("Mensajes")), /* @__PURE__ */ React.createElement("div", { className: "space-y-4" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, t("Mensaje de bienvenida")), /* @__PURE__ */ React.createElement(
+  }))))), /* @__PURE__ */ React.createElement("div", { className: "pt-4 border-t" }, /* @__PURE__ */ React.createElement("h2", { className: "text-lg font-semibold mb-4 flex items-center gap-2" }, "👥 ", t("Clientas nuevas")), /* @__PURE__ */ React.createElement("div", { className: "space-y-4" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between bg-gray-50 p-4 rounded-lg" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "font-medium text-gray-700" }, t("Aprobar a mano las clientas nuevas")), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-1" }, t('Si activas, una clienta nueva no puede reservar hasta que tú la aceptes desde "Clientes Registrados". Tus clientas de siempre siguen entrando normal.'))), /* @__PURE__ */ React.createElement("label", { className: "relative inline-flex items-center cursor-pointer" }, /* @__PURE__ */ React.createElement(
+    "input",
+    {
+      type: "checkbox",
+      checked: config.aprobar_clientes_nuevos,
+      onChange: (e) => setConfig({ ...config, aprobar_clientes_nuevos: e.target.checked }),
+      className: "sr-only peer"
+    }
+  ), /* @__PURE__ */ React.createElement("div", { className: "w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-amber-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600" }))), config.aprobar_clientes_nuevos && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg p-3" }, t('Recuerda revisar la sección "Clientes Registrados" del panel: ahí te aparecen las que están esperando tu respuesta.')))), /* @__PURE__ */ React.createElement("div", { className: "pt-4 border-t" }, /* @__PURE__ */ React.createElement("h2", { className: "text-lg font-semibold mb-4 flex items-center gap-2" }, /* @__PURE__ */ React.createElement("i", { className: "icon-message-square text-amber-500" }), t("Mensajes")), /* @__PURE__ */ React.createElement("div", { className: "space-y-4" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, t("Mensaje de bienvenida")), /* @__PURE__ */ React.createElement(
     "textarea",
     {
       value: config.mensaje_bienvenida,

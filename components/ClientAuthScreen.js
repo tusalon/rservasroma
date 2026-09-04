@@ -10,6 +10,9 @@ function ClientAuthScreen({ onAccessGranted, onGoBack, disenoPendiente }) {
     const [whatsapp, setWhatsapp] = React.useState('');
     const [error, setError] = React.useState('');
     const [clienteBloqueado, setClienteBloqueado] = React.useState(null);
+    // Clienta registrada pero esperando que el salón la acepte (solo pasa si el
+    // negocio activó "aprobar a mano" en Editar Negocio).
+    const [clientePendiente, setClientePendiente] = React.useState(null);
     const [verificando, setVerificando] = React.useState(false);
     const [necesitaNombre, setNecesitaNombre] = React.useState(false);
     const [esProfesional, setEsProfesional] = React.useState(false);
@@ -140,6 +143,11 @@ function ClientAuthScreen({ onAccessGranted, onGoBack, disenoPendiente }) {
 
             const cliente = await window.verificarAccesoCliente(numeroCompleto);
             if (verificacionIdRef.current !== miVerificacion) return;
+            if (cliente?.pendiente) {
+                setClientePendiente(cliente);
+                setNecesitaNombre(false);
+                return;
+            }
             if (cliente) {
                 guardarNegocioEnSesion();
                 onAccessGranted(cliente.nombre, numeroCompleto);
@@ -239,6 +247,10 @@ function ClientAuthScreen({ onAccessGranted, onGoBack, disenoPendiente }) {
             }
 
             const clienteExistente = await window.verificarAccesoCliente(numeroCompleto);
+            if (clienteExistente?.pendiente) {
+                setClientePendiente(clienteExistente);
+                return;
+            }
             if (clienteExistente) {
                 guardarNegocioEnSesion();
                 onAccessGranted(clienteExistente.nombre, numeroCompleto);
@@ -246,7 +258,9 @@ function ClientAuthScreen({ onAccessGranted, onGoBack, disenoPendiente }) {
             }
 
             const nuevoCliente = await window.crearCliente(nombre.trim(), numeroCompleto);
-            if (nuevoCliente) {
+            if (nuevoCliente?.pendiente) {
+                setClientePendiente(nuevoCliente);
+            } else if (nuevoCliente) {
                 guardarNegocioEnSesion();
                 onAccessGranted(nuevoCliente.nombre || nombre.trim(), numeroCompleto);
             } else {
@@ -348,12 +362,29 @@ function ClientAuthScreen({ onAccessGranted, onGoBack, disenoPendiente }) {
                         </div>
                     )}
 
+                    {/* Esperando el visto bueno del salón: no se le muestra el
+                        formulario, para que no vuelva a intentarlo en círculos. */}
+                    {clientePendiente && (
+                        <div className="bg-white/15 border border-white/25 rounded-xl p-5 text-center">
+                            <p className="text-4xl mb-2">⏳</p>
+                            <h2 className="text-lg font-bold text-white mb-2">
+                                {t('Tu solicitud ya llegó')}
+                            </h2>
+                            <p className="text-sm text-white/85 leading-relaxed">
+                                {t('{negocio} tiene que aceptarte antes de que puedas reservar. Te avisamos por aquí mismo: vuelve a entrar con tu WhatsApp más tarde.', { negocio: nombreNegocio || t('El salón') })}
+                            </p>
+                        </div>
+                    )}
+
+                    {!clientePendiente && (
                     <h2 className="text-lg font-semibold text-white mb-4 flex items-center justify-center gap-2 bg-pink-500/30 p-3 rounded-lg">
                         <span>📱</span>
                         {necesitaNombre ? t('Primera vez aquí — bienvenida') : t('Entra con tu WhatsApp')}
                         <span>✨</span>
                     </h2>
+                    )}
 
+                    {!clientePendiente && (
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <div>
                             <label className="block text-sm font-medium text-white mb-1">
@@ -482,6 +513,7 @@ function ClientAuthScreen({ onAccessGranted, onGoBack, disenoPendiente }) {
                             )}
                         </div>
                     </form>
+                    )}
 
                     <div className="absolute -bottom-6 -right-6 text-7xl opacity-20 rotate-12 select-none">💇‍♀️</div>
                     <div className="absolute top-1/2 -translate-y-1/2 -right-8 text-5xl opacity-10 select-none">🌸</div>

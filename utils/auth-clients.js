@@ -1,10 +1,44 @@
-// utils/auth-clients.js - VERSIÓN CON REGISTRO AUTOMÁTICO
-// Los clientes se registran solos sin necesidad de aprobación
+// utils/auth-clients.js - REGISTRO AUTOMATICO, CON APROBACION OPCIONAL
+// Por defecto las clientas se registran solas y entran al instante. Si el salon
+// activa "aprobar_clientes_nuevos" en Editar Negocio, la clienta nueva queda
+// pendiente hasta que la duena la acepte desde el panel.
 
-console.log('🚀 auth-clients.js CARGADO - MODO REGISTRO AUTOMÁTICO');
+console.log('🚀 auth-clients.js CARGADO');
 
 // getNegocioId() la define utils/config-negocio-master.js (window.getNegocioId),
 // cargado antes que este archivo en todas las paginas que lo usan.
+
+// Una clienta esta aprobada si tiene fecha_aprobacion. La columna ya existia y
+// todas las filas anteriores a esta funcion la traen puesta, asi que la
+// clientela de siempre queda aprobada sola: la aprobacion solo afecta a las que
+// se registren despues de encender la opcion.
+window.clienteEstaAprobado = function(cliente) {
+    return !!(cliente && cliente.fecha_aprobacion);
+};
+
+// Devuelve la fila tal cual si esta aprobada, o marcada con pendiente:true si no.
+// Todas las funciones que devuelven una clienta pasan por aca, para que ninguna
+// via de entrada se olvide de la marca y deje pasar a una pendiente.
+function marcarSiPendiente(cliente) {
+    if (!cliente) return cliente;
+    const fila = Array.isArray(cliente) ? cliente[0] : cliente;
+    if (!fila) return null;
+    return window.clienteEstaAprobado(fila) ? fila : { ...fila, pendiente: true };
+}
+
+// Lee del negocio si hay que aprobar a mano a las clientas nuevas. Ante
+// cualquier duda (config que no carga, columna que no existe todavia en la base
+// de un salon) devuelve false, o sea el comportamiento de siempre: mejor dejar
+// entrar que dejar a un salon sin poder registrar clientas.
+window.negocioApruebaClientesAMano = async function() {
+    try {
+        const config = await window.cargarConfiguracionNegocio?.();
+        return config?.aprobar_clientes_nuevos === true;
+    } catch (error) {
+        console.warn('No se pudo leer aprobar_clientes_nuevos, se asume que no:', error);
+        return false;
+    }
+};
 
 function normalizarWhatsappCliente(whatsapp) {
     if (window.normalizarTelefonoInternacional) {
@@ -185,16 +219,20 @@ window.verificarAccesoCliente = async function(whatsapp) {
         }
         
         const data = await response.json();
-        
+
         // Si existe, devolverlo
         if (data && data.length > 0) {
+            // Una pendiente NO puede devolverse como null: quien llama a esto
+            // interpreta null como "no existe", intenta crearla, crearCliente la
+            // encuentra ya creada y la devuelve — y terminaria entrando igual.
+            // Por eso vuelve la fila entera, marcada, y quien llama decide.
             console.log('✅ Cliente encontrado:', data[0]);
-            return data[0];
+            return marcarSiPendiente(data[0]);
         }
-        
+
         console.log('📝 Cliente no encontrado');
         return null;
-        
+
     } catch (error) {
         console.error('Error en verificarAccesoCliente:', error);
         return null;
@@ -233,13 +271,28 @@ window.crearCliente = async function(nombre, whatsapp) {
             const existing = await checkResponse.json();
             if (existing && existing.length > 0) {
                 console.log('✅ Cliente ya existe en este negocio:', existing[0]);
-                return existing[0];
+                return marcarSiPendiente(existing[0]);
             }
         }
-        
+
         // SEGUNDO: Si no existe, CREARLO
         console.log('📝 Cliente no existe en este negocio, creando...');
-        
+
+        const apruebaAMano = await window.negocioApruebaClientesAMano();
+
+        const datosCliente = {
+            negocio_id: negocioId,
+            nombre: nombre,
+            whatsapp: whatsapp,
+            fecha_registro: new Date().toISOString()
+        };
+        // fecha_aprobacion tiene valor por defecto en la base (por eso todas las
+        // filas viejas la traen puesta aunque este codigo nunca la mandara). Para
+        // dejar a la clienta pendiente hay que mandar null explicito y pisar ese
+        // default; si el salon no pide aprobacion no se manda nada y el default
+        // hace lo de siempre.
+        if (apruebaAMano) datosCliente.fecha_aprobacion = null;
+
         const createResponse = await fetch(
             `${window.SUPABASE_URL}/rest/v1/clientes_autorizados`,
             {
@@ -250,12 +303,7 @@ window.crearCliente = async function(nombre, whatsapp) {
                     'Content-Type': 'application/json',
                     'Prefer': 'return=representation'
                 },
-                body: JSON.stringify({
-                    negocio_id: negocioId,
-                    nombre: nombre,
-                    whatsapp: whatsapp,
-                    fecha_registro: new Date().toISOString()
-                })
+                body: JSON.stringify(datosCliente)
             }
         );
         
@@ -282,18 +330,18 @@ window.crearCliente = async function(nombre, whatsapp) {
                     const retryData = await retryResponse.json();
                     if (retryData && retryData.length > 0) {
                         console.log('✅ Cliente recuperado después del conflicto:', retryData[0]);
-                        return retryData[0];
+                        return marcarSiPendiente(retryData[0]);
                     }
                 }
             }
-            
+
             return null;
         }
-        
+
         const nuevoCliente = await createResponse.json();
         console.log('✅ Cliente creado exitosamente:', nuevoCliente);
-        
-        return Array.isArray(nuevoCliente) ? nuevoCliente[0] : nuevoCliente;
+
+        return marcarSiPendiente(nuevoCliente);
         
     } catch (error) {
         console.error('❌ Error en crearCliente:', error);

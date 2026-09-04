@@ -2487,6 +2487,72 @@ function AdminApp() {
         }
     };
 
+    // Clientas esperando el visto bueno de la dueña: son las que no tienen
+    // fecha_aprobacion. Solo aparecen si el negocio activó "aprobar a mano" en
+    // Editar Negocio; con la opción apagada nunca se crea ninguna pendiente.
+    const clientesPendientes = React.useMemo(
+        () => clientesRegistrados.filter(c => !c.fecha_aprobacion),
+        [clientesRegistrados]
+    );
+    const clientesAprobados = React.useMemo(
+        () => clientesRegistrados.filter(c => c.fecha_aprobacion),
+        [clientesRegistrados]
+    );
+
+    const handleAceptarCliente = async (cliente) => {
+        if (!puedeGestionarAvanzado) {
+            alert(t('No tienes permiso para aceptar clientes.'));
+            return;
+        }
+        try {
+            const negocioId = getNegocioId();
+            const respuesta = await fetch(
+                `${window.SUPABASE_URL}/rest/v1/clientes_autorizados?negocio_id=eq.${negocioId}&id=eq.${cliente.id}`,
+                {
+                    method: 'PATCH',
+                    headers: {
+                        'apikey': window.SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${window.SUPABASE_ANON_KEY}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ fecha_aprobacion: new Date().toISOString() })
+                }
+            );
+            if (!respuesta.ok) throw new Error(await respuesta.text());
+            await loadClientesRegistrados();
+            alert(t('{nombre} ya puede reservar.', { nombre: cliente.nombre || t('La clienta') }));
+        } catch (error) {
+            console.error('Error aceptando cliente:', error);
+            alert(t('No se pudo aceptar a la clienta. Intenta de nuevo.'));
+        }
+    };
+
+    // Rechazar = bloquear + borrar el registro. Se reusa la lista negra que ya
+    // existe porque crearCliente() la consulta antes de registrar a nadie: sin
+    // eso, la clienta rechazada se volvería a registrar y reaparecería como
+    // pendiente una y otra vez.
+    const handleRechazarCliente = async (cliente) => {
+        if (!puedeGestionarAvanzado) {
+            alert(t('No tienes permiso para rechazar clientes.'));
+            return;
+        }
+        if (!confirm(t('¿Rechazar a {nombre}? No podrá reservar ni volver a registrarse con ese número.', { nombre: cliente.nombre || t('esta clienta') }))) return;
+
+        const bloqueado = await window.bloquearCliente?.({
+            nombre: cliente.nombre,
+            whatsapp: cliente.whatsapp,
+            motivo: 'Solicitud rechazada'
+        });
+        if (!bloqueado) {
+            alert(t('No se pudo rechazar. Revisa que la tabla clientes_bloqueados exista en Supabase.'));
+            return;
+        }
+        await window.eliminarCliente?.(cliente.whatsapp);
+        await loadClientesRegistrados();
+        await loadClientesBloqueados();
+        alert(t('Clienta rechazada. La puedes readmitir quitándola de la lista negra.'));
+    };
+
     const handleBloquearCliente = async (cliente = null) => {
         if (!puedeGestionarAvanzado) {
             alert(t('No tienes permiso para bloquear clientes.'));
@@ -4855,7 +4921,14 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                 {tabActivo === 'clientes' && (userRole === 'admin' || userNivel >= 2) && (
                     <div className="bg-white rounded-xl shadow-sm p-6">
                         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-5">
-                            <h2 className="text-xl font-bold">{t('Clientes Registrados ({n})', { n: clientesRegistrados.length })}</h2>
+                            <h2 className="text-xl font-bold">
+                                {t('Clientes Registrados ({n})', { n: clientesRegistrados.length })}
+                                {clientesPendientes.length > 0 && (
+                                    <span className="ml-2 px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 border border-amber-200 text-xs font-bold align-middle">
+                                        {t('{n} esperando tu respuesta', { n: clientesPendientes.length })}
+                                    </span>
+                                )}
+                            </h2>
                             <p className="text-sm text-gray-500">{t('Score calculado con el historial de reservas, completadas y canceladas.')}</p>
                             <div className="flex flex-wrap gap-2">
                                 {(userRole === 'admin' || userNivel >= 3) && (
@@ -4871,6 +4944,40 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                         </div>
                         {showClientesRegistrados && (
                             <div className="space-y-5 max-h-[42rem] overflow-y-auto pr-1">
+                                {clientesPendientes.length > 0 && (
+                                    <div className="border border-amber-200 bg-amber-50/60 rounded-xl p-4">
+                                        <h3 className="font-bold text-amber-900 mb-1">
+                                            ⏳ {t('Esperando tu respuesta ({n})', { n: clientesPendientes.length })}
+                                        </h3>
+                                        <p className="text-xs text-amber-700 mb-3">
+                                            {t('Estas clientas se registraron pero todavía no pueden reservar.')}
+                                        </p>
+                                        <div className="space-y-2">
+                                            {clientesPendientes.map((cliente) => (
+                                                <div key={cliente.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white border border-amber-100 rounded-lg p-3">
+                                                    <div className="min-w-0">
+                                                        <p className="font-bold text-gray-900 truncate">{cliente.nombre || t('Sin nombre')}</p>
+                                                        <p className="text-sm text-gray-500">+{cliente.whatsapp}</p>
+                                                        {cliente.fecha_registro && (
+                                                            <p className="text-xs text-gray-400 mt-0.5">
+                                                                {window.formatFechaCompleta ? window.formatFechaCompleta(cliente.fecha_registro.slice(0, 10)) : cliente.fecha_registro.slice(0, 10)}
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                    <div className="flex gap-2 flex-shrink-0">
+                                                        <button onClick={() => handleAceptarCliente(cliente)} className="px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm font-bold hover:bg-emerald-700">
+                                                            {t('Aceptar')}
+                                                        </button>
+                                                        <button onClick={() => handleRechazarCliente(cliente)} className="px-4 py-2 rounded-lg border border-gray-200 text-gray-600 text-sm hover:bg-red-50 hover:text-red-600 hover:border-red-200">
+                                                            {t('Rechazar')}
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
                                 {clientesRegistrados.length > 0 && (
                                     <div className="flex items-center gap-2 border border-pink-200 rounded-xl bg-pink-50/50 px-3 py-2">
                                         <span className="text-pink-400 text-sm">🔍</span>
@@ -4929,10 +5036,12 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                                     (() => {
                                         const q = busquedaClientes.toLowerCase().trim();
                                         const qNum = busquedaClientes.replace(/\D/g, '');
-                                        const filtrados = q ? clientesRegistrados.filter(c =>
+                                        // Solo las aprobadas: las pendientes ya tienen su
+                                        // propio bloque arriba, con Aceptar/Rechazar.
+                                        const filtrados = q ? clientesAprobados.filter(c =>
                                             (c.nombre || '').toLowerCase().includes(q) ||
                                             (qNum && (c.whatsapp || '').includes(qNum))
-                                        ) : clientesRegistrados;
+                                        ) : clientesAprobados;
                                         if (filtrados.length === 0) return <p className="text-center text-gray-400 text-sm py-4">{t('No hay clientes que coincidan con "{busqueda}"', { busqueda: busquedaClientes })}</p>;
                                         return filtrados.map((cliente, idx) => {
                                         const score = getClienteScore(cliente);

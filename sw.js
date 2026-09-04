@@ -1,6 +1,6 @@
 // sw.js - Service Worker para Rservasroma
 
-const CACHE_NAME = 'rservasroma-v96';
+const CACHE_NAME = 'rservasroma-v97';
 const BASE = '/rservasroma';
 
 const urlsToCache = [
@@ -17,11 +17,11 @@ const urlsToCache = [
 
   // App principal (JSX pre-compilado en compiled/ — ver scripts/build-jsx.sh)
   `${BASE}/compiled/client-app.js?v=20260818-termino`,
-  `${BASE}/compiled/admin-app.js?v=20260826-frases1`,
+  `${BASE}/compiled/admin-app.js?v=20260903-aprobacion1`,
 
   // Utils
-  `${BASE}/utils/api.js?v=20260818-catalogo`,
-  `${BASE}/utils/auth-clients.js`,
+  `${BASE}/utils/api.js?v=20260903-aprobacion1`,
+  `${BASE}/utils/auth-clients.js?v=20260903-aprobacion1`,
   `${BASE}/utils/auth-profesionales.js`,
   `${BASE}/utils/config.js`,
   `${BASE}/utils/client-native-links.js?v=20260721-native-origin-v1`,
@@ -53,7 +53,7 @@ const urlsToCache = [
   `${BASE}/compiled/components/BookingForm.js?v=20260818-catalogo`,
   `${BASE}/compiled/components/Catalogo.js?v=20260818-catalogo-neutro`,
   `${BASE}/compiled/components/Calendar.js?v=20260723-jsx1`,
-  `${BASE}/compiled/components/ClientAuthScreen.js?v=20260818-catalogo-neutro`,
+  `${BASE}/compiled/components/ClientAuthScreen.js?v=20260903-aprobacion1`,
   `${BASE}/compiled/components/Confirmation.js?v=20260806-tel-prefijo`,
   `${BASE}/compiled/components/Header.js?v=20260731-marca`,
   `${BASE}/compiled/components/InstallButton.js?v=20260723-jsx1`,
@@ -70,7 +70,7 @@ const urlsToCache = [
   `${BASE}/compiled/components/admin/ConfigPanel.js?v=20260731-marca`,
   `${BASE}/compiled/components/admin/CatalogoPanel.js?v=20260818-catalogo-neutro`,
   `${BASE}/compiled/components/admin/RomaHubActivacion.js?v=20260731-marca`,
-  `${BASE}/compiled/components/admin/EditarNegocio.js?v=20260826-frases1`,
+  `${BASE}/compiled/components/admin/EditarNegocio.js?v=20260903-aprobacion1`,
   `${BASE}/compiled/components/admin/HorariosPorDiaPanel.js?v=20260723-jsx1`,
   `${BASE}/compiled/components/admin/HorariosExcepcionPanel.js?v=20260723-jsx1`,
   `${BASE}/compiled/components/admin/ProfesionalesPanel.js?v=20260723-jsx1`,

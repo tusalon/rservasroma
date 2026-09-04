@@ -8,6 +8,7 @@ function ClientAuthScreen({ onAccessGranted, onGoBack, disenoPendiente }) {
   const [whatsapp, setWhatsapp] = React.useState("");
   const [error, setError] = React.useState("");
   const [clienteBloqueado, setClienteBloqueado] = React.useState(null);
+  const [clientePendiente, setClientePendiente] = React.useState(null);
   const [verificando, setVerificando] = React.useState(false);
   const [necesitaNombre, setNecesitaNombre] = React.useState(false);
   const [esProfesional, setEsProfesional] = React.useState(false);
@@ -104,6 +105,11 @@ function ClientAuthScreen({ onAccessGranted, onGoBack, disenoPendiente }) {
       }
       const cliente = await window.verificarAccesoCliente(numeroCompleto);
       if (verificacionIdRef.current !== miVerificacion) return;
+      if (cliente?.pendiente) {
+        setClientePendiente(cliente);
+        setNecesitaNombre(false);
+        return;
+      }
       if (cliente) {
         guardarNegocioEnSesion();
         onAccessGranted(cliente.nombre, numeroCompleto);
@@ -183,13 +189,19 @@ function ClientAuthScreen({ onAccessGranted, onGoBack, disenoPendiente }) {
         return;
       }
       const clienteExistente = await window.verificarAccesoCliente(numeroCompleto);
+      if (clienteExistente?.pendiente) {
+        setClientePendiente(clienteExistente);
+        return;
+      }
       if (clienteExistente) {
         guardarNegocioEnSesion();
         onAccessGranted(clienteExistente.nombre, numeroCompleto);
         return;
       }
       const nuevoCliente = await window.crearCliente(nombre.trim(), numeroCompleto);
-      if (nuevoCliente) {
+      if (nuevoCliente?.pendiente) {
+        setClientePendiente(nuevoCliente);
+      } else if (nuevoCliente) {
         guardarNegocioEnSesion();
         onAccessGranted(nuevoCliente.nombre || nombre.trim(), numeroCompleto);
       } else {
@@ -245,7 +257,7 @@ function ClientAuthScreen({ onAccessGranted, onGoBack, disenoPendiente }) {
       alt: disenoPendiente.titulo,
       className: "w-14 h-14 rounded-lg object-cover shrink-0"
     }
-  ), /* @__PURE__ */ React.createElement("div", { className: "min-w-0 text-left" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs text-pink-200 font-medium" }, t("Para pedir tu cita")), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-white font-bold truncate" }, disenoPendiente.titulo), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-white/70 mt-0.5" }, t("Entra con tu WhatsApp: es un paso y ya quedas registrada.")))), /* @__PURE__ */ React.createElement("h2", { className: "text-lg font-semibold text-white mb-4 flex items-center justify-center gap-2 bg-pink-500/30 p-3 rounded-lg" }, /* @__PURE__ */ React.createElement("span", null, "📱"), necesitaNombre ? t("Primera vez aquí — bienvenida") : t("Entra con tu WhatsApp"), /* @__PURE__ */ React.createElement("span", null, "✨")), /* @__PURE__ */ React.createElement("form", { onSubmit: handleSubmit, className: "space-y-4" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-white mb-1" }, t("Tu número de WhatsApp")), /* @__PURE__ */ React.createElement("div", { className: "flex" }, /* @__PURE__ */ React.createElement(
+  ), /* @__PURE__ */ React.createElement("div", { className: "min-w-0 text-left" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs text-pink-200 font-medium" }, t("Para pedir tu cita")), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-white font-bold truncate" }, disenoPendiente.titulo), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-white/70 mt-0.5" }, t("Entra con tu WhatsApp: es un paso y ya quedas registrada.")))), clientePendiente && /* @__PURE__ */ React.createElement("div", { className: "bg-white/15 border border-white/25 rounded-xl p-5 text-center" }, /* @__PURE__ */ React.createElement("p", { className: "text-4xl mb-2" }, "⏳"), /* @__PURE__ */ React.createElement("h2", { className: "text-lg font-bold text-white mb-2" }, t("Tu solicitud ya llegó")), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-white/85 leading-relaxed" }, t("{negocio} tiene que aceptarte antes de que puedas reservar. Te avisamos por aquí mismo: vuelve a entrar con tu WhatsApp más tarde.", { negocio: nombreNegocio || t("El salón") }))), !clientePendiente && /* @__PURE__ */ React.createElement("h2", { className: "text-lg font-semibold text-white mb-4 flex items-center justify-center gap-2 bg-pink-500/30 p-3 rounded-lg" }, /* @__PURE__ */ React.createElement("span", null, "📱"), necesitaNombre ? t("Primera vez aquí — bienvenida") : t("Entra con tu WhatsApp"), /* @__PURE__ */ React.createElement("span", null, "✨")), !clientePendiente && /* @__PURE__ */ React.createElement("form", { onSubmit: handleSubmit, className: "space-y-4" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-white mb-1" }, t("Tu número de WhatsApp")), /* @__PURE__ */ React.createElement("div", { className: "flex" }, /* @__PURE__ */ React.createElement(
     "select",
     {
       value: codigoPaisCliente,

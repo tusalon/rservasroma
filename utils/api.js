@@ -87,6 +87,16 @@ async function createBooking(bookingData) {
             error.code = 'CLIENTE_BLOQUEADO';
             throw error;
         }
+
+        // Segunda llave, en el mismo cuello de botella que la lista negra: si el
+        // salon aprueba a mano, una clienta pendiente no reserva aunque llegue al
+        // formulario por otro camino (enlace directo, sesion vieja en el celular).
+        const acceso = await window.verificarAccesoCliente?.(bookingData.cliente_whatsapp);
+        if (acceso?.pendiente) {
+            const error = new Error('Tu solicitud todavia esta esperando la aprobacion del salon.');
+            error.code = 'CLIENTE_PENDIENTE';
+            throw error;
+        }
         
         const dataForSupabase = {
             negocio_id: negocioId,
