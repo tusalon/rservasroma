@@ -438,29 +438,36 @@
             --tw-ring-color: rgba(var(--brand-secondary-rgb), 0.55) !important;
         }
 
+        /* OJO: sin "var(--tw-gradient-from-position)" al final del valor. Esa
+           variable solo existe en Tailwind v3 y la app ya carga la v4, donde no
+           está definida: el valor entero quedaba inválido y el degradado salía
+           de transparente a transparente. Como estas clases van casi siempre
+           con text-white, el resultado era texto blanco sobre nada — el atajo
+           "¿Repetir tu último turno?" y, peor, la hora seleccionada al reservar
+           se volvían invisibles. */
         .from-pink-50,
         .from-pink-100 {
-            --tw-gradient-from: var(--brand-surface) var(--tw-gradient-from-position) !important;
-            --tw-gradient-to: rgba(var(--brand-secondary-rgb), 0) var(--tw-gradient-to-position) !important;
+            --tw-gradient-from: var(--brand-surface) !important;
+            --tw-gradient-to: rgba(var(--brand-secondary-rgb), 0) !important;
             --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important;
         }
 
         .to-pink-100,
         .to-pink-200 {
-            --tw-gradient-to: var(--brand-surface-strong) var(--tw-gradient-to-position) !important;
+            --tw-gradient-to: var(--brand-surface-strong) !important;
         }
 
         .from-pink-500,
         .from-pink-600 {
-            --tw-gradient-from: var(--brand-primary) var(--tw-gradient-from-position) !important;
-            --tw-gradient-to: rgba(var(--brand-primary-rgb), 0) var(--tw-gradient-to-position) !important;
+            --tw-gradient-from: var(--brand-primary) !important;
+            --tw-gradient-to: rgba(var(--brand-primary-rgb), 0) !important;
             --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important;
         }
 
         .to-pink-500,
         .to-pink-600,
         .to-pink-700 {
-            --tw-gradient-to: var(--brand-secondary) var(--tw-gradient-to-position) !important;
+            --tw-gradient-to: var(--brand-secondary) !important;
         }
 
         .hover\:bg-pink-50:hover,
@@ -680,7 +687,7 @@
             if (!offline) window.RservasOffline?.syncFromSupabase?.();
         })();
     </script>
-    <script src="utils/auth-clients.js?v=20260903-aprobacion1"></script>
+    <script src="utils/auth-clients.js?v=20260904-aprobacion2"></script>
     <script src="utils/auth-profesionales.js?v=20260809-login-profesional"></script>
     <script src="utils/config.js"></script>
     <script src="utils/servicios.js?v=20260815-arranque"></script>

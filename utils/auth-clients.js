@@ -26,13 +26,23 @@ function marcarSiPendiente(cliente) {
     return window.clienteEstaAprobado(fila) ? fila : { ...fila, pendiente: true };
 }
 
-// Lee del negocio si hay que aprobar a mano a las clientas nuevas. Ante
-// cualquier duda (config que no carga, columna que no existe todavia en la base
-// de un salon) devuelve false, o sea el comportamiento de siempre: mejor dejar
-// entrar que dejar a un salon sin poder registrar clientas.
+// Lee del negocio si hay que aprobar a mano a las clientas nuevas.
+//
+// Pide la config FRESCA a proposito. El app de clientas arranca devolviendo la
+// copia de la visita anterior guardada en el telefono (arranque rapido) y
+// refresca contra la red en segundo plano; con la copia vieja, un salon que
+// acababa de activar la aprobacion seguia registrando clientas nuevas al
+// instante, que es justo lo que la duena quiso evitar. Esto pasa una sola vez
+// por registro, no en cada pantalla, asi que la peticion extra no se nota.
+//
+// Si la red falla se usa la copia local antes que asumir "no hay que aprobar":
+// para un salon que activo la opcion, colar a alguien sin permiso es peor que
+// hacerla esperar. Solo cuando no hay ninguna config (ni fresca ni guardada) se
+// vuelve al comportamiento de siempre, para no dejar a un salon sin registrar.
 window.negocioApruebaClientesAMano = async function() {
     try {
-        const config = await window.cargarConfiguracionNegocio?.();
+        const fresca = await window.cargarConfiguracionNegocio?.(true);
+        const config = fresca || await window.cargarConfiguracionNegocio?.();
         return config?.aprobar_clientes_nuevos === true;
     } catch (error) {
         console.warn('No se pudo leer aprobar_clientes_nuevos, se asume que no:', error);
