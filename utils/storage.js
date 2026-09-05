@@ -161,6 +161,11 @@ async function subirImagenACloudinary(file, opciones) {
 
 window.subirImagenACloudinary = subirImagenACloudinary;
 
+// Mismo compresor, pero para fotos que NO se suben a ningun lado: la del boton
+// de soporte viaja adjunta dentro del propio WhatsApp (ver utils/soporte.js).
+// Una foto de 12MB tarda una eternidad en pasar a base64 dentro de la WebView.
+window.comprimirImagenParaCompartir = comprimirImagenServicio;
+
 // Foto de un servicio (se ve como miniatura en el panel y al reservar).
 window.subirImagenServicio = function(file, servicioId) {
     return subirImagenACloudinary(file, {

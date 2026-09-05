@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Probar el boton de soporte</title>
+<style>
+  body { font-family: system-ui, sans-serif; margin: 0; padding: 24px; background: #f8fafc; color: #0f172a; }
+  h1 { font-size: 18px; }
+  p { font-size: 14px; color: #475569; max-width: 46ch; line-height: 1.5; }
+  button { font: inherit; padding: 8px 14px; border-radius: 8px; border: 1px solid #cbd5e1; background: #fff; cursor: pointer; }
+</style>
+</head>
+<body>
+<h1>Banco de pruebas del boton de soporte</h1>
+<p>Abre este archivo en el navegador para ver el boton flotante y el formulario
+sin tener que entrar al panel. No guarda nada: no hay claves de Supabase, asi
+que el ticket falla a proposito y se ve el aviso de "abre WhatsApp igual".</p>
+<p>
+  <button onclick="window.SOPORTE_ORIGEN='panel'; location.hash='panel'; location.reload();">Ver como panel</button>
+  <button onclick="window.SOPORTE_ORIGEN='clientas'; location.hash='clientas'; location.reload();">Ver como app de clientas</button>
+</p>
+<script>window.SOPORTE_ORIGEN = location.hash === '#clientas' ? 'clientas' : 'panel';</script>
+<script src="../utils/soporte.js"></script>
+</body>
+</html>
