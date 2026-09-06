@@ -83,7 +83,15 @@ function catalogoMapaPrecios(servicios) {
 
 async function catalogoObtenerDisenos(opciones) {
     const config = opciones || {};
-    const negocioId = window.getNegocioId?.();
+    // esperarNegocioId() y no getNegocioId(): en la PRIMERA visita de una
+    // clienta el id todavia se esta resolviendo contra Supabase, y la version
+    // sincrona devuelve vacio. El catalogo se rendia ahi mismo y pintaba
+    // "Todavia no hay fotos" en un salon que si las tiene; al recargar ya
+    // estaba en cache y aparecian. Es el mismo await que usan servicios.js,
+    // profesionales.js y config.js desde siempre.
+    const negocioId = window.esperarNegocioId
+        ? await window.esperarNegocioId()
+        : window.getNegocioId?.();
     if (!negocioId) {
         console.warn('catalogo: sin negocio_id');
         return [];
@@ -255,7 +263,9 @@ async function catalogoObtenerVotos(disenoId) {
 }
 
 async function catalogoCrearDiseno(datos) {
-    const negocioId = window.getNegocioId?.();
+    const negocioId = window.esperarNegocioId
+        ? await window.esperarNegocioId()
+        : window.getNegocioId?.();
     if (!negocioId) return { success: false, error: new Error('Sin negocio') };
 
     try {

@@ -2,6 +2,11 @@
 
 console.log('📅 dias-cerrados.js cargado');
 
+// OJO: aqui se usa esperarNegocioId(), no getNegocioId() a secas. En la
+// primera visita de una clienta el id se esta resolviendo todavia y la version
+// sincrona devuelve vacio: los dias cerrados salian como "ninguno" y la
+// clienta podia pedir turno un dia que el salon tiene cerrado. Mismo fallo que
+// vaciaba el catalogo (ver utils/catalogo.js).
 // getNegocioId() la define utils/config-negocio-master.js (window.getNegocioId),
 // cargado antes que este archivo en todas las paginas que lo usan.
 
@@ -15,7 +20,7 @@ const CACHE_DURATION_DIAS_CERRADOS = 10 * 60 * 1000; // 10 minutos
  */
 async function cargarDiasCerrados() {
     try {
-        const negocioId = getNegocioId();
+        const negocioId = window.esperarNegocioId ? await window.esperarNegocioId() : getNegocioId();
         if (!negocioId) return [];
         
         console.log('🌐 Cargando días cerrados para negocio:', negocioId);
@@ -53,7 +58,7 @@ async function cargarDiasCerrados() {
  */
 window.verificarDiaCerrado = async function(fechaStr) {
     try {
-        const negocioId = getNegocioId();
+        const negocioId = window.esperarNegocioId ? await window.esperarNegocioId() : getNegocioId();
         if (!negocioId) return null;
         
         if (Date.now() - ultimaActualizacionDiasCerrados < CACHE_DURATION_DIAS_CERRADOS && diasCerradosCacheData.length > 0) {
@@ -105,7 +110,7 @@ window.getDiasCerradosFechas = async function() {
  */
 window.agregarDiaCerrado = async function(fecha, motivo = '') {
     try {
-        const negocioId = getNegocioId();
+        const negocioId = window.esperarNegocioId ? await window.esperarNegocioId() : getNegocioId();
         if (!negocioId) {
             console.error('No hay negocioId');
             return false;
@@ -156,7 +161,7 @@ window.agregarDiaCerrado = async function(fecha, motivo = '') {
  */
 window.eliminarDiaCerrado = async function(fecha) {
     try {
-        const negocioId = getNegocioId();
+        const negocioId = window.esperarNegocioId ? await window.esperarNegocioId() : getNegocioId();
         if (!negocioId) {
             console.error('No hay negocioId');
             return false;

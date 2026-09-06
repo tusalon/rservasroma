@@ -1,6 +1,6 @@
 // sw.js - Service Worker para Rservasroma
 
-const CACHE_NAME = 'rservasroma-v104';
+const CACHE_NAME = 'rservasroma-v105';
 const BASE = '/rservasroma';
 
 const urlsToCache = [
@@ -25,7 +25,7 @@ const urlsToCache = [
   `${BASE}/utils/auth-profesionales.js`,
   `${BASE}/utils/config.js`,
   `${BASE}/utils/client-native-links.js?v=20260721-native-origin-v1`,
-  `${BASE}/utils/dias-cerrados.js`,
+  `${BASE}/utils/dias-cerrados.js?v=20260906-negocioid1`,
   `${BASE}/utils/hero-backgrounds.js?v=20260723-fotos`,
   `${BASE}/utils/native-push-notifications.js?v=20260722-platform-v4`,
   `${BASE}/utils/offline-panel.js`,
@@ -38,7 +38,7 @@ const urlsToCache = [
   `${BASE}/utils/push-notifications.js?v=20260722-platform-v4`,
   `${BASE}/utils/servicios.js`,
   `${BASE}/utils/storage.js?v=20260905-soporte1`,
-  `${BASE}/utils/catalogo.js?v=20260906-precios1`,
+  `${BASE}/utils/catalogo.js?v=20260906-negocioid1`,
   `${BASE}/utils/suscripcion.js?v=20260904-recordar1`,
   `${BASE}/utils/supabase-config.js?v=20260723-fotos`,
   `${BASE}/utils/timeLogic.js`,
