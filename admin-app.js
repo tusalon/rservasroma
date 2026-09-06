@@ -403,7 +403,28 @@ function AdminApp() {
     const [loading, setLoading] = React.useState(true);
     const [filterDate, setFilterDate] = React.useState('');
     const [statusFilter, setStatusFilter] = React.useState('activas');
-    
+    // La dueña que además atiende quiere ver solo su día sin dejar de ser
+    // admin. Guarda el id de la profesional elegida ('' = todo el salón).
+    //
+    // La clave lleva el slug porque todos los salones comparten el mismo
+    // origen (tusalon.github.io/rservasroma): sin él, el filtro de un salón se
+    // le aplicaría al siguiente que abriera el panel en ese teléfono.
+    const claveFiltroProfesional = () => {
+        let slug = '';
+        try { slug = window._rservasSlugActual || localStorage.getItem('adminSlug') || ''; } catch (e) {}
+        return 'filtroProfesionalAdmin:' + slug;
+    };
+    const [filtroProfesionalAdmin, setFiltroProfesionalAdmin] = React.useState(() => {
+        try { return localStorage.getItem(claveFiltroProfesional()) || ''; } catch (e) { return ''; }
+    });
+    const cambiarFiltroProfesionalAdmin = (valor) => {
+        setFiltroProfesionalAdmin(valor);
+        try {
+            if (valor) localStorage.setItem(claveFiltroProfesional(), valor);
+            else localStorage.removeItem(claveFiltroProfesional());
+        } catch (e) {}
+    };
+
     const [userRole, setUserRole] = React.useState(profesionalInicial ? 'profesional' : 'admin');
     const [userNivel, setUserNivel] = React.useState(profesionalInicial?.nivel || 3);
     const [profesional, setProfesional] = React.useState(profesionalInicial);
@@ -3143,10 +3164,20 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
     // en cada render de todo el componente AdminApp. Dependencias trazadas a mano hasta el
     // final de la cadena (filtrarReservasDelProfesional -> esProfesionalPanel/esReservaDelProfesional
     // -> userRole/profesional), sin dependencias ocultas adicionales.
-    const bookingsVisiblesPorRol = React.useMemo(
-        () => filtrarReservasDelProfesional(bookings),
-        [bookings, userRole, profesional]
-    );
+    // Un solo punto de filtrado: la lista, los contadores y la agenda salen
+    // todos de aquí, así que el filtro de la admin llega a los tres sin
+    // tocarlos uno por uno.
+    const bookingsVisiblesPorRol = React.useMemo(() => {
+        const delRol = filtrarReservasDelProfesional(bookings);
+        if (!esAdminPanel || !filtroProfesionalAdmin) return delRol;
+        const elegida = profesionalesList.find(p => String(p.id) === String(filtroProfesionalAdmin));
+        // Si la profesional guardada ya no existe (la borraron), se enseña
+        // todo el salón en vez de una lista vacía sin explicación.
+        if (!elegida) return delRol;
+        // La misma función que usan las profesionales al entrar con su clave,
+        // para que "solo las mías" signifique exactamente lo mismo en los dos.
+        return delRol.filter(reserva => esReservaDelProfesional(reserva, elegida));
+    }, [bookings, userRole, profesional, filtroProfesionalAdmin, profesionalesList]);
     const activasCount = bookingsVisiblesPorRol.filter(b => b.estado === 'Reservado').length;
     const pendientesCount = bookingsVisiblesPorRol.filter(b => b.estado === 'Pendiente').length;
     const completadasCount = bookingsVisiblesPorRol.filter(b => b.estado === 'Completado').length;
@@ -5522,6 +5553,28 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                         )}
 
                         <div className="bg-white p-4 rounded-xl shadow-sm space-y-3">
+                            {esAdminPanel && profesionalesList.length > 1 && (
+                                <div className="space-y-2">
+                                    <p className="text-xs uppercase tracking-wide text-gray-500 font-bold">{t('Ver turnos de')}</p>
+                                    <select
+                                        value={filtroProfesionalAdmin}
+                                        onChange={(e) => cambiarFiltroProfesionalAdmin(e.target.value)}
+                                        className="w-full sm:w-auto border border-gray-300 bg-white text-gray-900 rounded-lg px-3 py-2 text-sm font-semibold shadow-sm min-h-[42px]"
+                                        style={{ colorScheme: 'light' }}
+                                    >
+                                        <option value="">{t('Todo el salón')}</option>
+                                        {profesionalesList.map(p => (
+                                            <option key={p.id} value={p.id}>{p.nombre}</option>
+                                        ))}
+                                    </select>
+                                    {filtroProfesionalAdmin && (
+                                        <p className="text-xs text-gray-500">
+                                            {t('La agenda y los contadores también muestran solo estos turnos.')}
+                                        </p>
+                                    )}
+                                </div>
+                            )}
+
                             <div className="space-y-2">
                                 <p className="text-xs uppercase tracking-wide text-gray-500 font-bold">{t('Filtrar por día')}</p>
                                 <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 items-center">
@@ -5544,7 +5597,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                                 <button onClick={() => setStatusFilter('completadas')} className={`px-4 py-2 rounded-lg text-sm font-medium ${statusFilter === 'completadas' ? 'bg-pink-500 text-white' : 'bg-gray-100 text-gray-700'}`}>{t('Completadas ({n})', { n: completadasCount })}</button>
                                 <button onClick={() => setStatusFilter('ausentes')} className={`px-4 py-2 rounded-lg text-sm font-medium ${statusFilter === 'ausentes' ? 'bg-slate-600 text-white' : 'bg-gray-100 text-gray-700'}`}>{t('Ausentes ({n})', { n: ausentesCount })}</button>
                                 <button onClick={() => setStatusFilter('canceladas')} className={`px-4 py-2 rounded-lg text-sm font-medium ${statusFilter === 'canceladas' ? 'bg-pink-500 text-white' : 'bg-gray-100 text-gray-700'}`}>{t('Canceladas ({n})', { n: canceladasCount })}</button>
-                                <button onClick={() => setStatusFilter('todas')} className={`px-4 py-2 rounded-lg text-sm font-medium ${statusFilter === 'todas' ? 'bg-pink-500 text-white' : 'bg-gray-100 text-gray-700'}`}>{t('Todas ({n})', { n: bookings.length })}</button>
+                                <button onClick={() => setStatusFilter('todas')} className={`px-4 py-2 rounded-lg text-sm font-medium ${statusFilter === 'todas' ? 'bg-pink-500 text-white' : 'bg-gray-100 text-gray-700'}`}>{t('Todas ({n})', { n: bookingsVisiblesPorRol.length })}</button>
                                 {puedeGestionarAvanzado && statusFilter === 'canceladas' && (
                                     <button onClick={borrarCanceladas} className="px-4 py-2 bg-red-700 text-white rounded-lg text-sm">🗑️ {t('Borrar todas')}</button>
                                 )}

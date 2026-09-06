@@ -112,41 +112,51 @@ async function calcularMontoAnticipo(configNegocio, servicioNombre) {
     return moneda === 'CUP' ? Math.round(resultado) : Math.round(resultado * 100) / 100;
 }
 
+// Devuelve { min, max }. Iguales cuando el servicio tiene precio fijo; se
+// separan cuando alguno está guardado como rango (precio_desde / precio_hasta).
+//
+// POR QUÉ UN RANGO Y NO UN NÚMERO
+// La clienta ya ve "Desde 500 - 800 CUP" al elegir el servicio, pero el
+// WhatsApp le llegaba con "500 CUP" a secas, que es solo el mínimo. Llegaba al
+// salón esperando pagar 500 y le cobraban 800. El mensaje tiene que decir lo
+// mismo que vio al reservar.
 async function calcularTotalReserva(booking) {
-    if (!booking) return 0;
+    if (!booking) return { min: 0, max: 0 };
 
-    const calcularTotalPorServicios = async () => {
-        let precioServicio = 0;
-        if (window.salonServicios) {
-            const servicios = await window.salonServicios.getAll(true);
-            const nombres = String(booking.servicio || '').split(' + ').map(nombre => nombre.trim()).filter(Boolean);
-            const serviciosEncontrados = servicios.filter(s => nombres.includes(s.nombre));
-
-            if (serviciosEncontrados.length > 0) {
-                precioServicio = serviciosEncontrados.reduce((total, servicio) => {
-                    const precio = window.getPrecioServicioBase
-                        ? window.getPrecioServicioBase(servicio)
-                        : (parseFloat(servicio.precio) || 0);
-                    return total + precio;
-                }, 0);
-            } else {
-                const servicio = servicios.find(s => s.nombre === booking.servicio);
-                if (servicio) {
-                    precioServicio = window.getPrecioServicioBase
-                        ? window.getPrecioServicioBase(servicio)
-                        : (parseFloat(servicio.precio) || 0);
-                }
-            }
-        }
-
-        return precioServicio;
+    const serviciosDeLaReserva = async () => {
+        if (!window.salonServicios) return [];
+        const servicios = await window.salonServicios.getAll(true);
+        const nombres = String(booking.servicio || '').split(' + ').map(nombre => nombre.trim()).filter(Boolean);
+        const encontrados = servicios.filter(s => nombres.includes(s.nombre));
+        if (encontrados.length > 0) return encontrados;
+        const unico = servicios.find(s => s.nombre === booking.servicio);
+        return unico ? [unico] : [];
     };
 
+    const rangoPorServicios = async () => {
+        const servicios = await serviciosDeLaReserva();
+        return servicios.reduce((rango, servicio) => {
+            const desde = window.getPrecioServicioBase
+                ? window.getPrecioServicioBase(servicio)
+                : (parseFloat(servicio.precio) || 0);
+            const hasta = window.getPrecioServicioHasta
+                ? window.getPrecioServicioHasta(servicio)
+                : null;
+            return {
+                min: rango.min + desde,
+                max: rango.max + (hasta && hasta > desde ? hasta : desde)
+            };
+        }, { min: 0, max: 0 });
+    };
+
+    const rango = await rangoPorServicios();
+
+    // Un rango de verdad manda sobre cualquier total ya guardado en la fila:
+    // ese total se calculó con el precio "desde" y esconde el tope.
+    if (rango.max > rango.min) return rango;
+
     const nombresServicio = String(booking.servicio || '').split(' + ').map(nombre => nombre.trim()).filter(Boolean);
-    if (nombresServicio.length > 1) {
-        const totalServicios = await calcularTotalPorServicios();
-        if (totalServicios > 0) return totalServicios;
-    }
+    if (nombresServicio.length > 1 && rango.min > 0) return rango;
 
     const valoresDirectos = [
         booking.total_pagar,
@@ -158,20 +168,36 @@ async function calcularTotalReserva(booking) {
 
     for (const valor of valoresDirectos) {
         const numero = parseFloat(valor);
-        if (Number.isFinite(numero) && numero > 0) return numero;
+        if (Number.isFinite(numero) && numero > 0) return { min: numero, max: numero };
     }
 
-    return calcularTotalPorServicios();
+    return rango;
 }
 
+// Acepta un número suelto (anticipo, total fijo) o un { min, max } de
+// calcularTotalReserva. Es el único sitio donde se decide cómo se escribe un
+// importe, así que el rango sale igual en la línea del total y en el
+// {total_pagar} de la plantilla de pago.
 function formatearMontoReserva(monto, moneda = 'CUP') {
-    const numero = parseFloat(monto);
-    if (!Number.isFinite(numero) || numero <= 0) return '';
-    // USD: siempre 2 decimales (25.00, 12.50). CUP: sin decimales si es entero
-    const limpio = moneda === 'USD'
-        ? numero.toFixed(2)
-        : (numero % 1 === 0 ? numero.toFixed(0) : numero.toFixed(2));
-    return `${limpio} ${moneda}`;
+    const limpiar = (valor) => {
+        const numero = parseFloat(valor);
+        if (!Number.isFinite(numero) || numero <= 0) return null;
+        // USD: siempre 2 decimales (25.00, 12.50). CUP: sin decimales si es entero
+        return moneda === 'USD'
+            ? numero.toFixed(2)
+            : (numero % 1 === 0 ? numero.toFixed(0) : numero.toFixed(2));
+    };
+
+    if (monto && typeof monto === 'object') {
+        const desde = limpiar(monto.min);
+        const hasta = limpiar(monto.max);
+        if (!desde) return '';
+        if (hasta && hasta !== desde) return `entre ${desde} y ${hasta} ${moneda}`;
+        return `${desde} ${moneda}`;
+    }
+
+    const unico = limpiar(monto);
+    return unico ? `${unico} ${moneda}` : '';
 }
 
 function getPreferenciasWhatsApp(configNegocio = {}) {
