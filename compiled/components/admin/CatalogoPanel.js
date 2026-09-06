@@ -16,8 +16,15 @@ function CatalogoPanel() {
     orden: "99"
   };
   const [form, setForm] = React.useState(formVacio);
-  const [urlCatalogo, setUrlCatalogo] = React.useState("");
+  const [configNegocio, setConfigNegocio] = React.useState(null);
   const [copiado, setCopiado] = React.useState(false);
+  const [conPrecios, setConPrecios] = React.useState(() => {
+    try {
+      return localStorage.getItem("catalogoCompartirConPrecios") === "true";
+    } catch (e) {
+      return false;
+    }
+  });
   const [votos, setVotos] = React.useState({});
   const [cargandoVotos, setCargandoVotos] = React.useState(null);
   const [guardandoOrden, setGuardandoOrden] = React.useState(false);
@@ -32,12 +39,22 @@ function CatalogoPanel() {
     setServicios(serviciosLista || []);
     setCargando(false);
     try {
-      const config = await window.cargarConfiguracionNegocio();
-      setUrlCatalogo(window.construirUrlCatalogoNegocio?.(config) || "");
+      setConfigNegocio(await window.cargarConfiguracionNegocio());
     } catch (e) {
-      console.error("No se pudo armar el enlace del catálogo:", e);
+      console.error("No se pudo leer la configuración del negocio:", e);
     }
   }, []);
+  const urlCatalogo = React.useMemo(
+    () => window.construirUrlCatalogoNegocio?.(configNegocio, { conPrecios }) || "",
+    [configNegocio, conPrecios]
+  );
+  const cambiarPrecios = (valor) => {
+    setConPrecios(valor);
+    try {
+      localStorage.setItem("catalogoCompartirConPrecios", String(valor));
+    } catch (e) {
+    }
+  };
   React.useEffect(() => {
     cargar();
   }, [cargar]);
@@ -178,7 +195,23 @@ function CatalogoPanel() {
     }
     cargar();
   };
-  return /* @__PURE__ */ React.createElement("div", { className: "space-y-4" }, urlCatalogo && disenos.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "bg-gradient-to-r from-pink-500 to-pink-400 rounded-xl shadow-sm p-5 text-white" }, /* @__PURE__ */ React.createElement("h2", { className: "text-lg font-bold" }, "🔗 ", t("Comparte tu catálogo")), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-white/90 mt-1" }, t("Pégalo en tu biografía de Instagram o mándalo por WhatsApp: abre directo en tu catálogo.")), /* @__PURE__ */ React.createElement("p", { className: "text-xs bg-white/20 rounded-lg px-3 py-2 mt-3 break-all font-mono" }, urlCatalogo), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-2 mt-3" }, /* @__PURE__ */ React.createElement(
+  return /* @__PURE__ */ React.createElement("div", { className: "space-y-4" }, urlCatalogo && disenos.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "bg-gradient-to-r from-pink-500 to-pink-400 rounded-xl shadow-sm p-5 text-white" }, /* @__PURE__ */ React.createElement("h2", { className: "text-lg font-bold" }, "🔗 ", t("Comparte tu catálogo")), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-white/90 mt-1" }, t("Pégalo en tu biografía de Instagram o mándalo por WhatsApp: abre directo en tu catálogo.")), /* @__PURE__ */ React.createElement("p", { className: "text-xs bg-white/20 rounded-lg px-3 py-2 mt-3 break-all font-mono" }, urlCatalogo), /* @__PURE__ */ React.createElement("div", { className: "mt-3 rounded-lg bg-white/15 p-3" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold uppercase tracking-wide text-white/80" }, t("¿Con precios?")), /* @__PURE__ */ React.createElement("div", { className: "flex gap-2 mt-2" }, /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      type: "button",
+      onClick: () => cambiarPrecios(false),
+      className: `flex-1 px-3 py-2 rounded-lg text-sm font-bold transition ${!conPrecios ? "bg-white text-pink-600" : "bg-white/20 text-white hover:bg-white/30"}`
+    },
+    t("Sin precios")
+  ), /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      type: "button",
+      onClick: () => cambiarPrecios(true),
+      className: `flex-1 px-3 py-2 rounded-lg text-sm font-bold transition ${conPrecios ? "bg-white text-pink-600" : "bg-white/20 text-white hover:bg-white/30"}`
+    },
+    t("Con precios")
+  )), /* @__PURE__ */ React.createElement("p", { className: "text-[11px] text-white/80 mt-2 leading-snug" }, conPrecios ? t("Cada foto mostrará el precio del servicio que tenga enlazado.") : t("Las fotos saldrán sin precio. La clienta lo verá igual al pedir su cita."))), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-2 mt-3" }, /* @__PURE__ */ React.createElement(
     "button",
     {
       onClick: compartirCatalogo,

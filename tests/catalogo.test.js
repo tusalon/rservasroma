@@ -29,6 +29,8 @@ function cargar(archivo, fetchFalso) {
         document: { createElement() { return {}; } },
         console: { log() {}, warn() {}, error() {} },
         Image: function () {},
+        setTimeout: () => 0,
+        URLSearchParams,
         URL: { createObjectURL() { return ''; }, revokeObjectURL() {} },
         fetch: fetchFalso || (() => { throw new Error('La prueba no debe consultar la red'); })
     };
@@ -113,6 +115,67 @@ assert.equal(storage.urlImagenCloudinary(null, 400), '');
 const id1 = catalogo.catalogoIdDispositivo();
 const id2 = catalogo.catalogoIdDispositivo();
 assert.equal(id1, id2, 'El mismo dispositivo debe reusar su huella, no generar una nueva');
+
+// --- Precios en el catalogo compartido ---
+// Lo que protege: la duena elige al compartir si la galeria sale con precios.
+// Dos cosas pueden salir mal y las dos se ven feas en publico: que el enlace
+// normal empiece a ensenar precios solo, y que un servicio sin precio puesto
+// aparezca como "0 CUP" debajo de la foto.
+{
+    const servicios = cargar('servicios.js');
+    const modulo = cargar('catalogo.js');
+    modulo.formatearPrecioServicio = servicios.formatearPrecioServicio;
+    modulo.getPrecioServicioBase = servicios.getPrecioServicioBase;
+    modulo.getPrecioServicioHasta = servicios.getPrecioServicioHasta;
+
+    // El parametro solo lo pone quien comparte.
+    assert.equal(modulo.catalogoQuierePrecios('?ir=catalogo&precios=1'), true);
+    assert.equal(modulo.catalogoQuierePrecios('ir=catalogo&precios=1'), true, 'Da igual que venga con "?" o sin el');
+    assert.equal(modulo.catalogoQuierePrecios('?ir=catalogo'), false, 'El enlace de siempre sigue saliendo sin precios');
+    assert.equal(modulo.catalogoQuierePrecios(''), false);
+    assert.equal(modulo.catalogoQuierePrecios('?precios=0'), false);
+
+    const mapa = modulo.catalogoMapaPrecios([
+        { id: 'a', precio: 500, precio_moneda: 'CUP' },
+        { id: 'b', precio_desde: 500, precio_hasta: 800, precio_moneda: 'CUP' },
+        { id: 'c', precio: 0 },
+        { id: 'd', precio_desde: null, precio_hasta: null },
+        { precio: 900 }
+    ]);
+
+    assert.equal(mapa.a, '500 CUP');
+    assert.equal(mapa.b, 'Desde 500 - 800 CUP', 'Un servicio con rango se ensena como rango');
+    assert.equal('c' in mapa, false, 'Un servicio sin precio no puede salir como "0 CUP"');
+    assert.equal('d' in mapa, false, 'Sin precio ni rango tampoco sale');
+    assert.equal(Object.keys(mapa).length, 2, 'Un servicio sin id no entra en el mapa');
+
+    // Sin el formateador cargado (orden de <script>) no revienta la galeria.
+    const suelto = cargar('catalogo.js');
+    assert.equal(JSON.stringify(suelto.catalogoMapaPrecios([{ id: 'a', precio: 500 }])), '{}');
+    assert.equal(JSON.stringify(modulo.catalogoMapaPrecios(null)), '{}');
+}
+
+// --- El enlace que se comparte lleva (o no) el parametro ---
+{
+    const fuente = fs.readFileSync(path.join(__dirname, '..', 'utils', 'config-negocio-master.js'), 'utf8');
+    const inicio = fuente.indexOf('function construirUrlCatalogoNegocio');
+    const fin = fuente.indexOf('window.construirUrlCatalogoNegocio');
+    const construir = new Function(
+        'construirUrlClientesNegocio',
+        fuente.slice(inicio, fin) + 'return construirUrlCatalogoNegocio;'
+    )(() => 'https://tusalon.github.io/rservasroma/?s=yuly_nails');
+
+    assert.equal(
+        construir({}),
+        'https://tusalon.github.io/rservasroma/?s=yuly_nails&ir=catalogo',
+        'Sin elegir nada, el enlace es el de siempre'
+    );
+    assert.equal(
+        construir({}, { conPrecios: true }),
+        'https://tusalon.github.io/rservasroma/?s=yuly_nails&ir=catalogo&precios=1'
+    );
+    assert.equal(construir({}, { conPrecios: false }).includes('precios'), false);
+}
 
 // --- Reordenar: renumera 1..N y solo toca lo que cambia ---
 // Lo que protege: los disenos nacen todos con orden 99. Si al mover uno solo se

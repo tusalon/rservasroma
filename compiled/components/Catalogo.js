@@ -6,21 +6,32 @@ function Catalogo({ onGoBack, onReservarDiseno, cliente }) {
   const [categoria, setCategoria] = React.useState("todas");
   const [abierto, setAbierto] = React.useState(null);
   const [config, setConfig] = React.useState(null);
+  const [precios, setPrecios] = React.useState({});
+  const mostrarPrecios = React.useMemo(
+    () => window.catalogoQuierePrecios ? window.catalogoQuierePrecios() : false,
+    []
+  );
   React.useEffect(() => {
     let vivo = true;
     Promise.all([
       window.catalogoObtenerDisenos(),
-      window.cargarConfiguracionNegocio()
-    ]).then(([lista, configData]) => {
+      window.cargarConfiguracionNegocio(),
+      // El .catch() no sobra: sin el, un fallo pidiendo los servicios
+      // tumba el Promise.all entero y la galeria sale vacia aunque las
+      // fotos ya estuvieran descargadas. Los precios son un adorno; los
+      // disenos, no.
+      mostrarPrecios && window.salonServicios ? window.salonServicios.getAll(true).catch(() => null) : Promise.resolve(null)
+    ]).then(([lista, configData, servicios]) => {
       if (!vivo) return;
       setDisenos(lista || []);
       setConfig(configData);
+      if (servicios) setPrecios(window.catalogoMapaPrecios?.(servicios) || {});
       setCargando(false);
     }).catch(() => vivo && setCargando(false));
     return () => {
       vivo = false;
     };
-  }, []);
+  }, [mostrarPrecios]);
   const colorPrimario = window.asegurarColorVisible ? window.asegurarColorVisible(config?.color_primario, "#ec4899") : config?.color_primario || "#ec4899";
   const grupos = React.useMemo(() => window.catalogoAgrupar(disenos), [disenos]);
   const gruposVisibles = React.useMemo(() => categoria === "todas" ? grupos : grupos.filter((g) => g.nombre === categoria), [grupos, categoria]);
@@ -57,12 +68,14 @@ function Catalogo({ onGoBack, onReservarDiseno, cliente }) {
     {
       key: diseno.id,
       diseno,
+      precio: precios[String(diseno.servicio_id)],
       onClick: () => setAbierto(diseno)
     }
   )))))))), abierto && /* @__PURE__ */ React.createElement(
     ModalDiseno,
     {
       diseno: disenos.find((d) => d.id === abierto.id) || abierto,
+      precio: precios[String(abierto.servicio_id)],
       colorPrimario,
       cliente,
       onCerrar: () => setAbierto(null),
@@ -84,7 +97,7 @@ function BotonCategoria({ activo, color, onClick, texto }) {
     texto
   );
 }
-function TarjetaDiseno({ diseno, onClick }) {
+function TarjetaDiseno({ diseno, onClick, precio }) {
   const [cargada, setCargada] = React.useState(false);
   const promedio = window.catalogoPromedio(diseno);
   const miniatura = window.urlImagenCloudinary(diseno.imagen_url, 500);
@@ -113,10 +126,10 @@ function TarjetaDiseno({ diseno, onClick }) {
         className: `relative w-full h-full object-cover transition-opacity duration-500 ${cargada ? "opacity-100" : "opacity-0"}`
       }
     ), promedio !== null && /* @__PURE__ */ React.createElement("span", { className: "absolute right-2 top-2 bg-white/90 text-pink-600 text-xs font-bold px-2 py-0.5 rounded-full shadow-sm" }, "❤️ ", promedio, "%")),
-    /* @__PURE__ */ React.createElement("div", { className: "p-2" }, /* @__PURE__ */ React.createElement("p", { className: "text-sm font-medium text-gray-800 line-clamp-2" }, diseno.titulo), diseno.servicio_nombre && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 mt-0.5 truncate" }, diseno.servicio_nombre))
+    /* @__PURE__ */ React.createElement("div", { className: "p-2" }, /* @__PURE__ */ React.createElement("p", { className: "text-sm font-medium text-gray-800 line-clamp-2" }, diseno.titulo), diseno.servicio_nombre && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 mt-0.5 truncate" }, diseno.servicio_nombre), precio && /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold text-gray-700 mt-0.5 truncate" }, precio))
   );
 }
-function ModalDiseno({ diseno, colorPrimario, cliente, onCerrar, onReservar, onVotoEnviado }) {
+function ModalDiseno({ diseno, precio, colorPrimario, cliente, onCerrar, onReservar, onVotoEnviado }) {
   window.useIdioma();
   const t = window.t;
   const votoPrevio = window.catalogoVotoPropio(diseno.id);
@@ -186,7 +199,7 @@ function ModalDiseno({ diseno, colorPrimario, cliente, onCerrar, onReservar, onV
         },
         "✕"
       )),
-      /* @__PURE__ */ React.createElement("div", { className: "p-4 space-y-4" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h2", { className: "text-lg font-bold text-gray-800" }, diseno.titulo), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 mt-0.5" }, diseno.categoria, promedio !== null && ` · ❤️ ${promedio}% (${diseno.votos_conteo})`)), descripcion && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("p", { className: `text-sm text-gray-600 whitespace-pre-line ${textoCompleto || !descripcionLarga ? "" : "line-clamp-4"}` }, descripcion), descripcionLarga && /* @__PURE__ */ React.createElement(
+      /* @__PURE__ */ React.createElement("div", { className: "p-4 space-y-4" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h2", { className: "text-lg font-bold text-gray-800" }, diseno.titulo), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 mt-0.5" }, diseno.categoria, promedio !== null && ` · ❤️ ${promedio}% (${diseno.votos_conteo})`), precio && /* @__PURE__ */ React.createElement("p", { className: "text-base font-bold mt-1", style: { color: colorPrimario } }, precio)), descripcion && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("p", { className: `text-sm text-gray-600 whitespace-pre-line ${textoCompleto || !descripcionLarga ? "" : "line-clamp-4"}` }, descripcion), descripcionLarga && /* @__PURE__ */ React.createElement(
         "button",
         {
           onClick: () => setTextoCompleto(!textoCompleto),

@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Probar el interruptor de precios del catalogo</title>
+<script src="../vendor/react.production.min.js"></script>
+<script src="../vendor/react-dom.production.min.js"></script>
+<script src="../vendor/tailwind-browser.js"></script>
+<style> body { margin: 0; padding: 16px; background: #f8fafc; font-family: system-ui, sans-serif; } </style>
+</head>
+<body>
+<p style="font-size:13px;color:#475569;max-width:52ch;">
+  Monta el CatalogoPanel real con datos de mentira, para ver el interruptor
+  "Con precios / Sin precios" y el enlace que sale, sin entrar al panel de
+  ningun salon.
+</p>
+<div id="raiz"></div>
+
+<script>
+// --- Globales que el panel espera ---
+window.useIdioma = () => {};
+window.t = (texto, vars) => String(texto).replace(/\{(\w+)\}/g, (_, k) => (vars && vars[k] !== undefined ? vars[k] : ''));
+window.catalogoInvalidarCache = () => {};
+window.catalogoObtenerDisenos = async () => ([
+    { id: 1, titulo: 'French clasico', categoria: 'French', imagen_url: '', servicio_id: 's1', orden: 1, activo: true }
+]);
+window.salonServicios = { getAll: async () => ([{ id: 's1', nombre: 'Builder Gel', precio: 1600, precio_moneda: 'CUP', activo: true }]) };
+window.cargarConfiguracionNegocio = async () => ({ id: 'n1', nombre: 'Salon de prueba', slug: 'dnailspassion' });
+window.catalogoAgrupar = (lista) => [{ nombre: 'French', disenos: lista }];
+window.catalogoCategorias = () => ([{ nombre: 'French', total: 1 }]);
+window.catalogoPromedio = () => null;
+window.urlImagenCloudinary = (url) => url || '';
+window.construirUrlClientesNegocio = (config) => 'https://tusalon.github.io/rservasroma/?s=' + (config?.slug || 'demo');
+window.construirUrlCatalogoNegocio = (config, opciones) => {
+    const base = window.construirUrlClientesNegocio(config);
+    const precios = opciones && opciones.conPrecios ? '&precios=1' : '';
+    return base + (base.includes('?') ? '&' : '?') + 'ir=catalogo' + precios;
+};
+</script>
+<script src="../compiled/components/admin/CatalogoPanel.js"></script>
+<script>
+ReactDOM.createRoot(document.getElementById('raiz')).render(React.createElement(CatalogoPanel));
+</script>
+</body>
+</html>

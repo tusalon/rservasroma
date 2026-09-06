@@ -18,8 +18,13 @@ function CatalogoPanel() {
         categoria: '', servicio_id: '', orden: '99'
     };
     const [form, setForm] = React.useState(formVacio);
-    const [urlCatalogo, setUrlCatalogo] = React.useState('');
+    const [configNegocio, setConfigNegocio] = React.useState(null);
     const [copiado, setCopiado] = React.useState(false);
+    // Si comparte con precios o sin ellos. Se recuerda porque un salon suele
+    // decidirlo una vez: obligarla a marcarlo cada vez que comparte sobra.
+    const [conPrecios, setConPrecios] = React.useState(() => {
+        try { return localStorage.getItem('catalogoCompartirConPrecios') === 'true'; } catch (e) { return false; }
+    });
     // Votos por diseño, cargados solo cuando la dueña abre "Ver quién votó".
     const [votos, setVotos] = React.useState({});
     const [cargandoVotos, setCargandoVotos] = React.useState(null);
@@ -37,12 +42,21 @@ function CatalogoPanel() {
         setCargando(false);
 
         try {
-            const config = await window.cargarConfiguracionNegocio();
-            setUrlCatalogo(window.construirUrlCatalogoNegocio?.(config) || '');
+            setConfigNegocio(await window.cargarConfiguracionNegocio());
         } catch (e) {
-            console.error('No se pudo armar el enlace del catálogo:', e);
+            console.error('No se pudo leer la configuración del negocio:', e);
         }
     }, []);
+
+    const urlCatalogo = React.useMemo(
+        () => window.construirUrlCatalogoNegocio?.(configNegocio, { conPrecios }) || '',
+        [configNegocio, conPrecios]
+    );
+
+    const cambiarPrecios = (valor) => {
+        setConPrecios(valor);
+        try { localStorage.setItem('catalogoCompartirConPrecios', String(valor)); } catch (e) {}
+    };
 
     React.useEffect(() => { cargar(); }, [cargar]);
 
@@ -217,6 +231,26 @@ function CatalogoPanel() {
                     <p className="text-xs bg-white/20 rounded-lg px-3 py-2 mt-3 break-all font-mono">
                         {urlCatalogo}
                     </p>
+                    <div className="mt-3 rounded-lg bg-white/15 p-3">
+                        <p className="text-xs font-bold uppercase tracking-wide text-white/80">
+                            {t('¿Con precios?')}
+                        </p>
+                        <div className="flex gap-2 mt-2">
+                            <button type="button" onClick={() => cambiarPrecios(false)}
+                                className={`flex-1 px-3 py-2 rounded-lg text-sm font-bold transition ${!conPrecios ? 'bg-white text-pink-600' : 'bg-white/20 text-white hover:bg-white/30'}`}>
+                                {t('Sin precios')}
+                            </button>
+                            <button type="button" onClick={() => cambiarPrecios(true)}
+                                className={`flex-1 px-3 py-2 rounded-lg text-sm font-bold transition ${conPrecios ? 'bg-white text-pink-600' : 'bg-white/20 text-white hover:bg-white/30'}`}>
+                                {t('Con precios')}
+                            </button>
+                        </div>
+                        <p className="text-[11px] text-white/80 mt-2 leading-snug">
+                            {conPrecios
+                                ? t('Cada foto mostrará el precio del servicio que tenga enlazado.')
+                                : t('Las fotos saldrán sin precio. La clienta lo verá igual al pedir su cita.')}
+                        </p>
+                    </div>
                     <div className="flex flex-wrap gap-2 mt-3">
                         <button onClick={compartirCatalogo}
                             className="px-4 py-2 rounded-lg bg-white text-pink-600 text-sm font-bold hover:bg-pink-50">

@@ -1,6 +1,6 @@
 // sw.js - Service Worker para Rservasroma
 
-const CACHE_NAME = 'rservasroma-v101';
+const CACHE_NAME = 'rservasroma-v102';
 const BASE = '/rservasroma';
 
 const urlsToCache = [
@@ -29,7 +29,7 @@ const urlsToCache = [
   `${BASE}/utils/hero-backgrounds.js?v=20260723-fotos`,
   `${BASE}/utils/native-push-notifications.js?v=20260722-platform-v4`,
   `${BASE}/utils/offline-panel.js`,
-  `${BASE}/utils/config-negocio-master.js?v=20260904-recordar1`,
+  `${BASE}/utils/config-negocio-master.js?v=20260906-precios1`,
   `${BASE}/utils/i18n.js?v=20260904-recordar1`,
   `${BASE}/utils/cuba-geo.js?v=20260727-wizard-ubicacion1`,
   `${BASE}/utils/phone-utils.js`,
@@ -38,7 +38,7 @@ const urlsToCache = [
   `${BASE}/utils/push-notifications.js?v=20260722-platform-v4`,
   `${BASE}/utils/servicios.js`,
   `${BASE}/utils/storage.js?v=20260905-soporte1`,
-  `${BASE}/utils/catalogo.js?v=20260818-catalogo-neutro`,
+  `${BASE}/utils/catalogo.js?v=20260906-precios1`,
   `${BASE}/utils/suscripcion.js?v=20260904-recordar1`,
   `${BASE}/utils/supabase-config.js?v=20260723-fotos`,
   `${BASE}/utils/timeLogic.js`,
@@ -52,7 +52,7 @@ const urlsToCache = [
 
   // Componentes cliente (compilados)
   `${BASE}/compiled/components/BookingForm.js?v=20260818-catalogo`,
-  `${BASE}/compiled/components/Catalogo.js?v=20260818-catalogo-neutro`,
+  `${BASE}/compiled/components/Catalogo.js?v=20260906-precios1`,
   `${BASE}/compiled/components/Calendar.js?v=20260723-jsx1`,
   `${BASE}/compiled/components/ClientAuthScreen.js?v=20260903-aprobacion1`,
   `${BASE}/compiled/components/Confirmation.js?v=20260806-tel-prefijo`,
@@ -69,7 +69,7 @@ const urlsToCache = [
 
   // Componentes admin (compilados)
   `${BASE}/compiled/components/admin/ConfigPanel.js?v=20260731-marca`,
-  `${BASE}/compiled/components/admin/CatalogoPanel.js?v=20260818-catalogo-neutro`,
+  `${BASE}/compiled/components/admin/CatalogoPanel.js?v=20260906-precios1`,
   `${BASE}/compiled/components/admin/RomaHubActivacion.js?v=20260731-marca`,
   `${BASE}/compiled/components/admin/EditarNegocio.js?v=20260903-aprobacion1`,
   `${BASE}/compiled/components/admin/HorariosPorDiaPanel.js?v=20260723-jsx1`,

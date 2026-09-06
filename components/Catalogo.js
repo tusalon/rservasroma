@@ -11,20 +11,37 @@ function Catalogo({ onGoBack, onReservarDiseno, cliente }) {
     const [categoria, setCategoria] = React.useState('todas');
     const [abierto, setAbierto] = React.useState(null);
     const [config, setConfig] = React.useState(null);
+    const [precios, setPrecios] = React.useState({});
+
+    // Los precios solo salen si el enlace que compartio el salon los pide. Y
+    // solo entonces se piden los servicios: sin la opcion no se gasta ni una
+    // consulta de mas al abrir la galeria.
+    const mostrarPrecios = React.useMemo(
+        () => (window.catalogoQuierePrecios ? window.catalogoQuierePrecios() : false),
+        []
+    );
 
     React.useEffect(() => {
         let vivo = true;
         Promise.all([
             window.catalogoObtenerDisenos(),
-            window.cargarConfiguracionNegocio()
-        ]).then(([lista, configData]) => {
+            window.cargarConfiguracionNegocio(),
+            // El .catch() no sobra: sin el, un fallo pidiendo los servicios
+            // tumba el Promise.all entero y la galeria sale vacia aunque las
+            // fotos ya estuvieran descargadas. Los precios son un adorno; los
+            // disenos, no.
+            mostrarPrecios && window.salonServicios
+                ? window.salonServicios.getAll(true).catch(() => null)
+                : Promise.resolve(null)
+        ]).then(([lista, configData, servicios]) => {
             if (!vivo) return;
             setDisenos(lista || []);
             setConfig(configData);
+            if (servicios) setPrecios(window.catalogoMapaPrecios?.(servicios) || {});
             setCargando(false);
         }).catch(() => vivo && setCargando(false));
         return () => { vivo = false; };
-    }, []);
+    }, [mostrarPrecios]);
 
     // El color va por asegurarColorVisible porque hay salones con el blanco
     // como color de marca: sin esto el botón de reservar queda blanco sobre
@@ -115,6 +132,7 @@ function Catalogo({ onGoBack, onReservarDiseno, cliente }) {
                                             <TarjetaDiseno
                                                 key={diseno.id}
                                                 diseno={diseno}
+                                                precio={precios[String(diseno.servicio_id)]}
                                                 onClick={() => setAbierto(diseno)}
                                             />
                                         ))}
@@ -131,6 +149,7 @@ function Catalogo({ onGoBack, onReservarDiseno, cliente }) {
                     /* Se relee de la lista para que el promedio del modal se
                        actualice en cuanto la clienta envía su voto. */
                     diseno={disenos.find(d => d.id === abierto.id) || abierto}
+                    precio={precios[String(abierto.servicio_id)]}
                     colorPrimario={colorPrimario}
                     cliente={cliente}
                     onCerrar={() => setAbierto(null)}
@@ -157,7 +176,7 @@ function BotonCategoria({ activo, color, onClick, texto }) {
     );
 }
 
-function TarjetaDiseno({ diseno, onClick }) {
+function TarjetaDiseno({ diseno, onClick, precio }) {
     const [cargada, setCargada] = React.useState(false);
     const promedio = window.catalogoPromedio(diseno);
     const miniatura = window.urlImagenCloudinary(diseno.imagen_url, 500);
@@ -189,12 +208,15 @@ function TarjetaDiseno({ diseno, onClick }) {
                 {diseno.servicio_nombre && (
                     <p className="text-xs text-gray-400 mt-0.5 truncate">{diseno.servicio_nombre}</p>
                 )}
+                {precio && (
+                    <p className="text-xs font-bold text-gray-700 mt-0.5 truncate">{precio}</p>
+                )}
             </div>
         </button>
     );
 }
 
-function ModalDiseno({ diseno, colorPrimario, cliente, onCerrar, onReservar, onVotoEnviado }) {
+function ModalDiseno({ diseno, precio, colorPrimario, cliente, onCerrar, onReservar, onVotoEnviado }) {
     window.useIdioma();
     const t = window.t;
     const votoPrevio = window.catalogoVotoPropio(diseno.id);
@@ -268,6 +290,9 @@ function ModalDiseno({ diseno, colorPrimario, cliente, onCerrar, onReservar, onV
                             {diseno.categoria}
                             {promedio !== null && ` · ❤️ ${promedio}% (${diseno.votos_conteo})`}
                         </p>
+                        {precio && (
+                            <p className="text-base font-bold mt-1" style={{ color: colorPrimario }}>{precio}</p>
+                        )}
                     </div>
 
                     {descripcion && (
