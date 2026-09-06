@@ -1,0 +1,17 @@
+{
+  "artboards": [
+    { "file": "Botones.dc.html", "x": 0, "y": 0, "w": 900, "h": 620, "title": "Opciones de botón" },
+    { "file": "Main.dc.html", "x": 1020, "y": 0, "w": 390, "h": 844, "title": "Panel con la opción A" },
+    { "file": "Modal.dc.html", "x": 1510, "y": 0, "w": 390, "h": 844, "title": "Hoja de soporte" }
+  ],
+  "annotations": [
+    {
+      "id": "nota-tokens",
+      "x": 0,
+      "y": -150,
+      "w": 900,
+      "text": "Todo sale de los tokens reales de la app:\nInter (self-hosted), color de marca #FF1493 por salón,\nsombras en dos capas rgba(17,12,46,·) e iconos Lucide."
+    }
+  ],
+  "launch": { "view": "canvas" }
+}

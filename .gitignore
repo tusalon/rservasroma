@@ -16,3 +16,7 @@ android/app/google-services.json
 
 # Artefactos sueltos que no son parte de la app
 Auditoría de proyecto.html
+
+# Lienzo de diseño ya montado (~2 MB, se regenera con seed-canvas)
+design/*.html
+!design/*.dc.html

@@ -1,0 +1,83 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      font-variant-numeric: tabular-nums;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: #FF1493; }
+    a:hover { color: #c0266f; }
+  </style>
+</helmet>
+
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #FEF5FA;">
+
+  <!-- Panel apagado detrás de la hoja -->
+  <div style="position: absolute; inset: 0; padding: 16px 14px; display: flex; flex-direction: column; gap: 12px;">
+    <div style="height: 58px; background: #ffffff; border-radius: 12px;"></div>
+    <div style="height: 64px; background: #ffffff; border-radius: 12px;"></div>
+    <div style="height: 64px; background: #ffffff; border-radius: 12px;"></div>
+  </div>
+  <div style="position: absolute; inset: 0; background: rgba(0, 0, 0, 0.6);"></div>
+
+  <!-- Hoja de soporte -->
+  <div style="position: absolute; left: 0; right: 0; bottom: 0; background: #ffffff; border-radius: 24px 24px 0 0; padding: 20px 18px 26px; box-shadow: 0 8px 16px rgba(17,12,46,0.05), 0 20px 44px rgba(17,12,46,0.12);">
+
+    <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;">
+      <div style="display: flex; align-items: flex-start; gap: 11px;">
+        <div style="width: 38px; height: 38px; border-radius: 9999px; background: #FEF5FA; border: 1px solid #FBC9E4; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FF1493" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m4.93 4.93 4.24 4.24"/><path d="m14.83 9.17 4.24-4.24"/><path d="m14.83 14.83 4.24 4.24"/><path d="m9.17 14.83-4.24 4.24"/><circle cx="12" cy="12" r="4"/></svg>
+        </div>
+        <div>
+          <h2 style="margin: 0; font-size: 18px; font-weight: 700; color: #1f2937; letter-spacing: -0.008em;">Soporte</h2>
+          <p style="margin: 3px 0 0; font-size: 13px; color: #6b7280; line-height: 1.4;">Cuéntanos qué te pasa y te ayudamos.</p>
+        </div>
+      </div>
+      <div style="width: 34px; height: 34px; border-radius: 9999px; background: #f3f4f6; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+      </div>
+    </div>
+
+    <!-- Lo que escribe -->
+    <div style="margin-top: 16px; border: 1.5px solid #FBC9E4; border-radius: 12px; padding: 12px 13px; min-height: 96px; background: #ffffff;">
+      <p style="margin: 0; font-size: 15px; color: #1f2937; line-height: 1.45;">No me deja guardar un servicio nuevo, me sale un error en rojo.</p>
+    </div>
+    <p style="margin: 5px 2px 0; font-size: 11px; color: #9ca3af; text-align: right;">61/1500</p>
+
+    <!-- Foto adjunta: misma anatomía que "Elegir foto" del catálogo -->
+    <div style="margin-top: 12px; display: flex; align-items: flex-start; gap: 12px;">
+      <div style="width: 72px; height: 72px; border-radius: 12px; background: #FEF5FA; border: 1px solid #FBC9E4; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#FF1493" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
+      </div>
+      <div style="flex-grow: 1;">
+        <div style="display: inline-flex; align-items: center; gap: 7px; padding: 8px 14px; border-radius: 8px; background: #FF1493;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
+          <span style="font-size: 14px; font-weight: 700; color: #ffffff;">Adjuntar foto</span>
+        </div>
+        <p style="margin: 8px 0 0; font-size: 12px; color: #9ca3af; line-height: 1.4;">La foto viaja dentro del propio WhatsApp.</p>
+      </div>
+    </div>
+
+    <!-- Enviar -->
+    <div style="margin-top: 18px; display: flex; align-items: center; justify-content: center; gap: 9px; padding: 14px; border-radius: 12px; background: #25D366; box-shadow: 0 2px 4px rgba(17,12,46,0.04), 0 6px 16px rgba(17,12,46,0.08);">
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22z"/></svg>
+      <span style="font-size: 15px; font-weight: 700; color: #ffffff;">Enviar por WhatsApp</span>
+    </div>
+
+    <p style="margin: 11px 0 0; font-size: 11px; color: #9ca3af; text-align: center; line-height: 1.45;">Tu mensaje queda registrado aunque WhatsApp no llegue a abrirse.</p>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

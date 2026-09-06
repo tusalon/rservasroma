@@ -1,0 +1,119 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      font-variant-numeric: tabular-nums;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: #FF1493; }
+    a:hover { color: #c0266f; }
+  </style>
+</helmet>
+
+<div style="width: 900px; padding: 28px; background: #ffffff; box-sizing: border-box;">
+
+  <h1 style="margin: 0; font-size: 22px; font-weight: 700; color: #1f2937; letter-spacing: -0.021em;">El botón de soporte, cuatro tratamientos</h1>
+  <p style="margin: 6px 0 0; font-size: 14px; color: #6b7280; line-height: 1.5; max-width: 66ch;">Cada recuadro es un trozo del panel al color del salón. Cambia el color arriba para ver cómo se comporta cada opción en un salón que no usa el fucsia por defecto.</p>
+
+  <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; margin-top: 24px;">
+
+    <!-- AHORA -->
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+      <div style="display: flex; align-items: baseline; gap: 9px;">
+        <span style="font-size: 15px; font-weight: 700; color: #1f2937;">Ahora</span>
+        <span style="font-size: 12px; font-weight: 600; color: #b91c1c; background: #fee2e2; padding: 2px 8px; border-radius: 9999px;">lo que está en la APK</span>
+      </div>
+      <div style="position: relative; height: 168px; border-radius: 14px; background: {{fondo}}; border: 1px solid #e5e7eb; overflow: hidden;">
+        <div style="position: absolute; left: 16px; top: 16px; right: 16px; height: 34px; border-radius: 9px; background: #ffffff;"></div>
+        <div style="position: absolute; left: 16px; top: 60px; right: 16px; height: 34px; border-radius: 9px; background: #ffffff;"></div>
+        <div style="position: absolute; right: 16px; bottom: 16px; display: flex; align-items: center; gap: 6px; padding: 10px 16px; border-radius: 9999px; background: #0f172a; box-shadow: 0 6px 18px rgba(15,23,42,0.35);">
+          <span style="font-size: 16px;">🆘</span>
+          <span style="font-size: 13px; font-weight: 800; color: #ffffff;">Soporte</span>
+        </div>
+      </div>
+      <p style="margin: 0; font-size: 13px; color: #6b7280; line-height: 1.5;">Gris pizarra, emoji y una sombra dura: tres cosas que no existen en ninguna otra pantalla. Grita más que los turnos.</p>
+    </div>
+
+    <!-- A -->
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+      <div style="display: flex; align-items: baseline; gap: 9px;">
+        <span style="font-size: 15px; font-weight: 700; color: #1f2937;">A · Flotante discreto</span>
+        <span style="font-size: 12px; font-weight: 600; color: #047857; background: #d1fae5; padding: 2px 8px; border-radius: 9999px;">recomendado</span>
+      </div>
+      <div style="position: relative; height: 168px; border-radius: 14px; background: {{fondo}}; border: 1px solid #e5e7eb; overflow: hidden;">
+        <div style="position: absolute; left: 16px; top: 16px; right: 16px; height: 34px; border-radius: 9px; background: #ffffff;"></div>
+        <div style="position: absolute; left: 16px; top: 60px; right: 16px; height: 34px; border-radius: 9px; background: #ffffff;"></div>
+        <div style="position: absolute; right: 16px; bottom: 16px; width: 52px; height: 52px; border-radius: 9999px; background: #ffffff; border: 1px solid {{borde}}; box-shadow: 0 4px 8px rgba(17,12,46,0.04), 0 12px 28px rgba(17,12,46,0.10); display: flex; align-items: center; justify-content: center;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="{{accent}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m4.93 4.93 4.24 4.24"/><path d="m14.83 9.17 4.24-4.24"/><path d="m14.83 14.83 4.24 4.24"/><path d="m9.17 14.83-4.24 4.24"/><circle cx="12" cy="12" r="4"/></svg>
+        </div>
+      </div>
+      <p style="margin: 0; font-size: 13px; color: #6b7280; line-height: 1.5;">El mismo botón redondo de la cabecera, en blanco para despegarse del fondo. Se lee como parte de la app y no compite con la agenda. A cambio, es discreto: quien no lo busque puede no verlo.</p>
+    </div>
+
+    <!-- B -->
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+      <span style="font-size: 15px; font-weight: 700; color: #1f2937;">B · Flotante de marca</span>
+      <div style="position: relative; height: 168px; border-radius: 14px; background: {{fondo}}; border: 1px solid #e5e7eb; overflow: hidden;">
+        <div style="position: absolute; left: 16px; top: 16px; right: 16px; height: 34px; border-radius: 9px; background: #ffffff;"></div>
+        <div style="position: absolute; left: 16px; top: 60px; right: 16px; height: 34px; border-radius: 9px; background: #ffffff;"></div>
+        <div style="position: absolute; right: 16px; bottom: 16px; width: 52px; height: 52px; border-radius: 9999px; background: {{accent}}; box-shadow: 0 4px 8px rgba(17,12,46,0.04), 0 12px 28px rgba(17,12,46,0.10); display: flex; align-items: center; justify-content: center;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m4.93 4.93 4.24 4.24"/><path d="m14.83 9.17 4.24-4.24"/><path d="m14.83 14.83 4.24 4.24"/><path d="m9.17 14.83-4.24 4.24"/><circle cx="12" cy="12" r="4"/></svg>
+        </div>
+      </div>
+      <p style="margin: 0; font-size: 13px; color: #6b7280; line-height: 1.5;">Relleno del color del salón. Se encuentra a la primera, que importa cuando la dueña está atascada. A cambio, un círculo de marca sólido compite con los botones de acción del panel.</p>
+    </div>
+
+    <!-- C -->
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+      <span style="font-size: 15px; font-weight: 700; color: #1f2937;">C · En la cabecera</span>
+      <div style="position: relative; height: 168px; border-radius: 14px; background: {{fondo}}; border: 1px solid #e5e7eb; overflow: hidden;">
+        <div style="position: absolute; left: 16px; top: 16px; right: 16px; height: 48px; border-radius: 9px; background: #ffffff; display: flex; align-items: center; justify-content: flex-end; padding-right: 10px; gap: 7px; box-sizing: border-box;">
+          <div style="width: 32px; height: 32px; border-radius: 9999px; background: {{surface}}; border: 1px solid {{borde}}; display: flex; align-items: center; justify-content: center;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="{{accent}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+          </div>
+          <div style="width: 32px; height: 32px; border-radius: 9999px; background: {{surface}}; border: 1px solid {{borde}}; display: flex; align-items: center; justify-content: center;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="{{accent}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m4.93 4.93 4.24 4.24"/><path d="m14.83 9.17 4.24-4.24"/><path d="m14.83 14.83 4.24 4.24"/><path d="m9.17 14.83-4.24 4.24"/><circle cx="12" cy="12" r="4"/></svg>
+          </div>
+          <div style="width: 32px; height: 32px; border-radius: 9999px; background: {{surface}}; border: 1px solid {{borde}}; display: flex; align-items: center; justify-content: center;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="{{accent}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg>
+          </div>
+        </div>
+        <div style="position: absolute; left: 16px; top: 76px; right: 16px; height: 34px; border-radius: 9px; background: #ffffff;"></div>
+      </div>
+      <p style="margin: 0; font-size: 13px; color: #6b7280; line-height: 1.5;">Sin capa flotante: un icono más en la fila de recargar y salir. Lo más limpio y lo que menos tapa. A cambio, es lo más fácil de no encontrar, y en la app de clientas no hay una fila así donde meterlo.</p>
+    </div>
+
+  </div>
+</div>
+
+<script data-dc-script data-props='{"accent":{"editor":"color","default":"#FF1493","options":["#FF1493","#7c3aed","#0ea5e9","#b45309"]}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const hex = this.props.accent ?? '#FF1493';
+    const n = parseInt(String(hex).slice(1), 16);
+    const r = (n >> 16) & 255;
+    const g = (n >> 8) & 255;
+    const b = n & 255;
+    return {
+      accent: hex,
+      // Equivalentes de --brand-surface y del borde rosa de la app, pero
+      // derivados del color elegido para poder probar otros salones.
+      surface: 'rgba(' + r + ', ' + g + ', ' + b + ', 0.08)',
+      borde: 'rgba(' + r + ', ' + g + ', ' + b + ', 0.30)',
+      fondo: 'rgba(' + r + ', ' + g + ', ' + b + ', 0.05)'
+    };
+  }
+}
+</script>
+</body>
+</html>

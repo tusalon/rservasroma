@@ -28,6 +28,32 @@
     var ID_OVERLAY = 'soporte-rservas-overlay';
     var ID_BOTON = 'soporte-rservas-boton';
 
+    // Iconos de trazo, del mismo juego (Lucide) que usa el resto del panel.
+    // Nada de emoji: un 🆘 se dibuja distinto en cada telefono y no se puede
+    // teñir del color del salon.
+    var TRAZOS = {
+        soporte: '<circle cx="12" cy="12" r="10"/><path d="m4.93 4.93 4.24 4.24"/><path d="m14.83 9.17 4.24-4.24"/><path d="m14.83 14.83 4.24 4.24"/><path d="m9.17 14.83-4.24 4.24"/><circle cx="12" cy="12" r="4"/>',
+        camara: '<path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/>',
+        cerrar: '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+        chat: '<path d="M7.9 20A9 9 0 1 0 4 16.1L2 22z"/>'
+    };
+
+    function icono(nombre, tamano, grosor) {
+        return '<svg width="' + tamano + '" height="' + tamano + '" viewBox="0 0 24 24" fill="none" ' +
+            'stroke="currentColor" stroke-width="' + (grosor || 2) + '" stroke-linecap="round" ' +
+            'stroke-linejoin="round" aria-hidden="true" focusable="false">' + TRAZOS[nombre] + '</svg>';
+    }
+
+    // Tokens de la app con respaldo fijo delante: los navegadores viejos
+    // (WebView antigua, iOS 14) ignoran la segunda declaracion y se quedan con
+    // el fucsia por defecto en vez de quedarse sin color.
+    var MARCA = 'color:#FF1493;color:var(--brand-primary,#FF1493);';
+    var BORDE_MARCA = 'border-color:#FBC9E4;border-color:rgb(var(--brand-secondary-rgb,249 168 212)/0.62);';
+    var FONDO_MARCA = 'background:#FEF5FA;background:var(--brand-surface,rgba(249,168,212,0.12));';
+    var RELLENO_MARCA = 'background:#FF1493;background:var(--brand-primary,#FF1493);';
+    // Sombra de dos capas tintada en azul noche, como --shadow-lg del tema.
+    var SOMBRA = 'box-shadow:0 4px 8px rgba(17,12,46,0.04),0 12px 28px rgba(17,12,46,0.10);';
+
     // ---------- Parte pura (la que se prueba en tests/soporte.test.js) ----------
 
     function validarMensajeSoporte(texto) {
@@ -248,6 +274,18 @@
         fotoElegida = null;
     }
 
+    function quitarFoto() {
+        fotoElegida = null;
+        var input = document.getElementById('soporte-foto');
+        if (input) input.value = '';
+        var preview = document.getElementById('soporte-preview');
+        if (preview) preview.innerHTML = icono('camara', 26, 1.75);
+        var texto = document.getElementById('soporte-elegir-texto');
+        if (texto) texto.textContent = 'Adjuntar foto';
+        var pie = document.getElementById('soporte-pie-foto');
+        if (pie) pie.textContent = 'Opcional. La foto viaja dentro del propio WhatsApp.';
+    }
+
     function pintarEstado(html, color) {
         var caja = document.getElementById('soporte-estado');
         if (!caja) return;
@@ -262,33 +300,46 @@
         var esClientas = origenActual() === 'clientas';
         var overlay = document.createElement('div');
         overlay.id = ID_OVERLAY;
-        overlay.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:2147483000;display:flex;align-items:flex-end;justify-content:center;';
+        // Mismo velo y misma hoja inferior que el modal del catálogo
+        // (components/Catalogo.js): negro al 60% y esquinas de 24px arriba.
+        overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:2147483000;display:flex;align-items:flex-end;justify-content:center;';
         overlay.innerHTML =
-            '<div id="soporte-caja" style="background:#fff;width:100%;max-width:480px;border-radius:20px 20px 0 0;padding:20px 18px 24px;max-height:92vh;overflow-y:auto;box-shadow:0 -8px 30px rgba(0,0,0,.25);font-family:inherit;">' +
+            '<div id="soporte-caja" style="background:#fff;width:100%;max-width:480px;border-radius:24px 24px 0 0;padding:20px 18px 26px;max-height:92vh;overflow-y:auto;box-shadow:0 8px 16px rgba(17,12,46,0.05),0 20px 44px rgba(17,12,46,0.12);font-family:inherit;">' +
                 '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">' +
-                    '<div>' +
-                        '<h2 style="margin:0;font-size:18px;font-weight:800;color:#0f172a;">🆘 Soporte RservasRoma</h2>' +
-                        '<p style="margin:4px 0 0;font-size:13px;color:#64748b;line-height:1.4;">' +
-                            (esClientas
-                                ? 'Cuéntanos qué falla en la app y te ayudamos.'
-                                : 'Cuéntanos qué te pasa. Puedes adjuntar una foto de lo que ves.') +
-                        '</p>' +
+                    '<div style="display:flex;align-items:flex-start;gap:11px;">' +
+                        '<div style="width:38px;height:38px;border-radius:9999px;border:1px solid;' + FONDO_MARCA + BORDE_MARCA + MARCA +
+                            'display:flex;align-items:center;justify-content:center;flex-shrink:0;">' + icono('soporte', 20) + '</div>' +
+                        '<div>' +
+                            '<h2 style="margin:0;font-size:18px;font-weight:700;color:#1f2937;letter-spacing:-0.008em;">Soporte</h2>' +
+                            '<p style="margin:3px 0 0;font-size:13px;color:#6b7280;line-height:1.4;">' +
+                                (esClientas
+                                    ? 'Cuéntanos qué falla en la app y te ayudamos.'
+                                    : 'Cuéntanos qué te pasa y te ayudamos.') +
+                            '</p>' +
+                        '</div>' +
                     '</div>' +
-                    '<button type="button" id="soporte-cerrar" aria-label="Cerrar" style="border:none;background:#f1f5f9;color:#475569;font-size:20px;line-height:1;width:32px;height:32px;border-radius:999px;cursor:pointer;flex-shrink:0;">&times;</button>' +
+                    '<button type="button" id="soporte-cerrar" aria-label="Cerrar" style="border:none;background:#f3f4f6;color:#6b7280;width:34px;height:34px;border-radius:9999px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;padding:0;">' + icono('cerrar', 17) + '</button>' +
                 '</div>' +
-                '<textarea id="soporte-mensaje" rows="5" maxlength="' + MAX_MENSAJE + '" aria-label="Cuéntanos qué problema tienes" placeholder="Ejemplo: no me deja guardar un servicio nuevo, me sale un error en rojo." ' +
-                    'style="width:100%;margin-top:14px;padding:12px;border:1.5px solid #e2e8f0;border-radius:12px;font-size:15px;font-family:inherit;resize:vertical;box-sizing:border-box;color:#0f172a;background:#fff;"></textarea>' +
-                '<div id="soporte-contador" style="text-align:right;font-size:11px;color:#94a3b8;margin-top:2px;">0/' + MAX_MENSAJE + '</div>' +
+                '<textarea id="soporte-mensaje" rows="4" maxlength="' + MAX_MENSAJE + '" aria-label="Cuéntanos qué problema tienes" placeholder="Ejemplo: no me deja guardar un servicio nuevo, me sale un error en rojo." ' +
+                    'style="width:100%;margin-top:16px;padding:12px 13px;border:1.5px solid #FBC9E4;border-color:rgb(var(--brand-secondary-rgb,249 168 212)/0.62);border-radius:12px;font-size:15px;font-family:inherit;line-height:1.45;resize:vertical;box-sizing:border-box;color:#1f2937;background:#fff;"></textarea>' +
+                '<div id="soporte-contador" style="text-align:right;font-size:11px;color:#9ca3af;margin-top:5px;">0/' + MAX_MENSAJE + '</div>' +
                 '<input type="file" id="soporte-foto" accept="image/*" style="display:none;">' +
-                '<button type="button" id="soporte-elegir-foto" style="width:100%;margin-top:10px;padding:11px;border:1.5px dashed #cbd5e1;background:#f8fafc;border-radius:12px;font-size:14px;font-weight:600;color:#475569;cursor:pointer;font-family:inherit;">📷 Adjuntar foto (opcional)</button>' +
-                '<div id="soporte-preview" style="display:none;margin-top:10px;align-items:center;gap:10px;background:#f1f5f9;border-radius:12px;padding:8px;">' +
-                    '<img id="soporte-preview-img" alt="" style="width:52px;height:52px;object-fit:cover;border-radius:8px;flex-shrink:0;">' +
-                    '<span id="soporte-preview-nombre" style="font-size:12px;color:#475569;flex:1;word-break:break-all;"></span>' +
-                    '<button type="button" id="soporte-quitar-foto" style="border:none;background:#fee2e2;color:#b91c1c;font-size:12px;font-weight:700;padding:6px 10px;border-radius:8px;cursor:pointer;flex-shrink:0;">Quitar</button>' +
+                // Misma anatomía que "Elegir foto" del catálogo: cuadro de vista
+                // previa a la izquierda y botón sólido de marca al lado.
+                '<div style="margin-top:12px;display:flex;align-items:flex-start;gap:12px;">' +
+                    '<div id="soporte-preview" style="width:72px;height:72px;border-radius:12px;border:1px solid;flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;' + FONDO_MARCA + BORDE_MARCA + MARCA + '">' +
+                        icono('camara', 26, 1.75) +
+                    '</div>' +
+                    '<div style="flex:1;min-width:0;">' +
+                        '<button type="button" id="soporte-elegir-foto" style="display:inline-flex;align-items:center;gap:7px;padding:8px 14px;border:none;border-radius:8px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;' + RELLENO_MARCA + '">' +
+                            icono('camara', 15) + '<span id="soporte-elegir-texto">Adjuntar foto</span></button>' +
+                        '<p id="soporte-pie-foto" style="margin:8px 0 0;font-size:12px;color:#9ca3af;line-height:1.4;">Opcional. La foto viaja dentro del propio WhatsApp.</p>' +
+                    '</div>' +
                 '</div>' +
-                '<div id="soporte-estado" style="display:none;margin-top:12px;font-size:13px;line-height:1.45;"></div>' +
-                '<button type="button" id="soporte-enviar" style="width:100%;margin-top:14px;padding:14px;border:none;border-radius:12px;background:#25D366;color:#fff;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit;">Enviar por WhatsApp</button>' +
-                '<p style="margin:10px 0 0;font-size:11px;color:#94a3b8;text-align:center;line-height:1.4;">Tu mensaje queda registrado aunque WhatsApp no llegue a abrirse.</p>' +
+                '<div id="soporte-estado" style="display:none;margin-top:14px;font-size:13px;line-height:1.45;"></div>' +
+                '<button type="button" id="soporte-enviar" style="width:100%;margin-top:18px;padding:14px;border:none;border-radius:12px;background:#25D366;color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:9px;box-shadow:0 2px 4px rgba(17,12,46,0.04),0 6px 16px rgba(17,12,46,0.08);">' +
+                    icono('chat', 19) + '<span id="soporte-enviar-texto">Enviar por WhatsApp</span></button>' +
+                '<p style="margin:11px 0 0;font-size:11px;color:#9ca3af;text-align:center;line-height:1.45;">Tu mensaje queda registrado aunque WhatsApp no llegue a abrirse.</p>' +
             '</div>';
 
         document.body.appendChild(overlay);
@@ -312,15 +363,14 @@
             var file = input.files && input.files[0];
             if (!file) return;
             fotoElegida = file;
-            var preview = document.getElementById('soporte-preview');
-            document.getElementById('soporte-preview-img').src = URL.createObjectURL(file);
-            document.getElementById('soporte-preview-nombre').textContent = file.name || 'foto.jpg';
-            preview.style.display = 'flex';
-        };
-        document.getElementById('soporte-quitar-foto').onclick = function () {
-            fotoElegida = null;
-            input.value = '';
-            document.getElementById('soporte-preview').style.display = 'none';
+            // La miniatura ocupa el mismo cuadro que el icono: se ve de un
+            // vistazo que la foto quedó adjunta sin añadir otra caja debajo.
+            document.getElementById('soporte-preview').innerHTML =
+                '<img alt="" src="' + URL.createObjectURL(file) + '" style="width:100%;height:100%;object-fit:cover;">';
+            document.getElementById('soporte-elegir-texto').textContent = 'Cambiar foto';
+            document.getElementById('soporte-pie-foto').innerHTML =
+                'Foto adjunta. <button type="button" id="soporte-quitar-foto" style="border:none;background:none;padding:0;font:inherit;font-weight:700;color:#b91c1c;cursor:pointer;">Quitar</button>';
+            document.getElementById('soporte-quitar-foto').onclick = quitarFoto;
         };
 
         document.getElementById('soporte-enviar').onclick = enviarSoporte;
@@ -333,14 +383,14 @@
 
         var validacion = validarMensajeSoporte(textarea.value);
         if (!validacion.ok) {
-            pintarEstado('⚠️ ' + validacion.error, '#b45309');
+            pintarEstado(validacion.error, '#b45309');
             textarea.focus();
             return;
         }
 
         boton.disabled = true;
         boton.style.opacity = '.6';
-        boton.textContent = 'Enviando...';
+        document.getElementById('soporte-enviar-texto').textContent = 'Enviando...';
         pintarEstado('', '');
 
         var contexto = await contextoSoporte();
@@ -387,26 +437,26 @@
 
         boton.disabled = false;
         boton.style.opacity = '1';
-        boton.textContent = 'Enviar por WhatsApp';
+        document.getElementById('soporte-enviar-texto').textContent = 'Enviar por WhatsApp';
 
         if (resultado === 'cancelado') {
             pintarEstado(guardado
-                ? '📩 No enviaste el WhatsApp, pero tu mensaje ya nos llegó igual.'
-                : '⚠️ No se envió nada. Intenta de nuevo.', guardado ? '#047857' : '#b91c1c');
+                ? 'No enviaste el WhatsApp, pero tu mensaje ya nos llegó igual.'
+                : 'No se envió nada. Intenta de nuevo.', guardado ? '#047857' : '#b91c1c');
             return;
         }
 
         if (resultado === 'error' && !guardado) {
-            pintarEstado('⚠️ No se pudo enviar. Revisa tu conexión e intenta otra vez.', '#b91c1c');
+            pintarEstado('No se pudo enviar. Revisa tu conexión e intenta otra vez.', '#b91c1c');
             return;
         }
 
-        var aviso = '✅ Listo, ya tenemos tu mensaje.';
+        var aviso = 'Listo, ya tenemos tu mensaje.';
         if (resultado === 'whatsapp-sin-foto') {
-            aviso += '<br>📷 Este teléfono no puede mandar la foto sola: adjúntala tú en el chat que se acaba de abrir.';
+            aviso += '<br>Este teléfono no puede mandar la foto sola: adjúntala tú en el chat que se acaba de abrir.';
         }
         if (!guardado) {
-            aviso = '📲 Se abrió WhatsApp con tu mensaje. Dale a enviar para que nos llegue.';
+            aviso = 'Se abrió WhatsApp con tu mensaje. Dale a enviar para que nos llegue.';
         }
         pintarEstado(aviso, guardado ? '#047857' : '#b45309');
         if (guardado) setTimeout(cerrarSoporte, 4000);
@@ -427,13 +477,17 @@
         boton.type = 'button';
         boton.title = 'Soporte de RservasRoma';
         boton.setAttribute('aria-label', 'Soporte de RservasRoma');
-        boton.innerHTML = esClientas ? '🆘' : '🆘 <span style="font-size:13px;font-weight:800;">Soporte</span>';
+        boton.innerHTML = icono('soporte', 24);
+        // El mismo botón redondo que recargar y salir en la cabecera del panel,
+        // pero en blanco: sobre el fondo rosa claro de la app, uno relleno del
+        // color de marca se leería como una acción más de la agenda, y uno del
+        // color del fondo desaparecería. 52px para que sea un objetivo cómodo.
         boton.style.cssText =
-            'position:fixed;bottom:16px;' + lado +
-            'z-index:2147482000;display:flex;align-items:center;gap:6px;' +
-            'background:#0f172a;color:#fff;border:none;border-radius:999px;cursor:pointer;' +
-            'box-shadow:0 6px 18px rgba(15,23,42,.35);font-family:inherit;' +
-            (esClientas ? 'width:44px;height:44px;justify-content:center;font-size:18px;' : 'padding:10px 16px;font-size:16px;');
+            'position:fixed;bottom:20px;' + lado +
+            'z-index:2147482000;display:flex;align-items:center;justify-content:center;' +
+            'width:52px;height:52px;padding:0;border-radius:9999px;cursor:pointer;' +
+            'background:#fff;border:1px solid;font-family:inherit;' +
+            BORDE_MARCA + MARCA + SOMBRA;
         boton.onclick = abrirSoporte;
         document.body.appendChild(boton);
     }
