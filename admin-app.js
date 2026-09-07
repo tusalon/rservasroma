@@ -5513,15 +5513,28 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                             </div>
                         )}
 
-                        {/* TURNOS DE MAÑANA — recordatorios por WhatsApp */}
-                        {turnosManana.length > 0 && (
+                        {/* TURNOS DE MAÑANA — recordatorios por WhatsApp
+                            Se dibuja SIEMPRE, aunque no haya ninguno. Antes solo
+                            aparecía con turnos, así que una profesional que abría
+                            el panel un día sin nada para el siguiente no veía
+                            rastro de la opción y daba por hecho que no existía
+                            (le pasó a Oriana en Divine Touch). Un aviso vacío
+                            cuesta una línea; una función que parece no estar,
+                            mucho más. */}
+                        {!loading && (
                             <div className="bg-white rounded-xl shadow-sm border-l-4 border-l-amber-400 overflow-hidden">
                                 <div className="p-4 bg-gradient-to-r from-amber-50 to-white border-b border-amber-100">
                                     <h3 className="font-bold text-gray-900 flex items-center gap-2">
                                         <span className="text-xl">🔔</span>
                                         {t('Turnos de mañana ({n})', { n: turnosManana.length })}
                                     </h3>
-                                    <p className="text-xs text-gray-500 mt-1">{t('Envía el recordatorio por WhatsApp con un toque. Quedará marcado como recordado en este dispositivo.')}</p>
+                                    <p className="text-xs text-gray-500 mt-1">
+                                        {turnosManana.length > 0
+                                            ? t('Envía el recordatorio por WhatsApp con un toque. Quedará marcado como recordado en este dispositivo.')
+                                            : (esProfesionalPanel
+                                                ? t('Mañana no tienes turnos. Cuando tengas, aquí podrás recordárselos por WhatsApp con un toque.')
+                                                : t('Mañana no hay turnos. Cuando los haya, aquí podrás recordárselos por WhatsApp con un toque.'))}
+                                    </p>
                                 </div>
                                 <div className="divide-y divide-gray-100">
                                     {turnosManana.map(b => {
