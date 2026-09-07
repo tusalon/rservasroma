@@ -1,6 +1,6 @@
-// sw.js - Service Worker para Rservasroma
+﻿// sw.js - Service Worker para Rservasroma
 
-const CACHE_NAME = 'rservasroma-v106';
+const CACHE_NAME = 'rservasroma-v107';
 const BASE = '/rservasroma';
 
 const urlsToCache = [
@@ -15,7 +15,7 @@ const urlsToCache = [
   `${BASE}/editar-negocio.html`,
   `${BASE}/manifest.json`,
 
-  // App principal (JSX pre-compilado en compiled/ — ver scripts/build-jsx.sh)
+  // App principal (JSX pre-compilado en compiled/ â€” ver scripts/build-jsx.sh)
   `${BASE}/compiled/client-app.js?v=20260818-termino`,
   `${BASE}/compiled/admin-app.js?v=20260906-manana1`,
 
@@ -100,7 +100,7 @@ const urlsToCache = [
   `${BASE}/icons/badge.svg`,
 ];
 
-// URLs externas — nunca interceptar
+// URLs externas â€” nunca interceptar
 const BYPASS = [
   'supabase.co',
   'ntfy.sh',
@@ -114,7 +114,7 @@ const BYPASS = [
 ];
 
 // ============================================
-// INSTALACIÓN
+// INSTALACIÃ“N
 // ============================================
 self.addEventListener('install', event => {
   self.skipWaiting();
@@ -126,7 +126,7 @@ self.addEventListener('install', event => {
 });
 
 // ============================================
-// ACTIVACIÓN — limpia caches anteriores
+// ACTIVACIÃ“N â€” limpia caches anteriores
 // ============================================
 self.addEventListener('activate', event => {
   event.waitUntil(
@@ -140,23 +140,23 @@ self.addEventListener('activate', event => {
 
 // ============================================
 // FETCH
-// - Documentos HTML (navegación): RED PRIMERO, caché como respaldo offline.
-//   Cache-first aquí retrasaba cualquier arreglo de lógica crítica (el gate
+// - Documentos HTML (navegaciÃ³n): RED PRIMERO, cachÃ© como respaldo offline.
+//   Cache-first aquÃ­ retrasaba cualquier arreglo de lÃ³gica crÃ­tica (el gate
 //   de index.html que decide admin-login vs app de clientas) hasta que el
-//   dispositivo revalidara el SW en segundo plano — podía tardar varias
-//   aperturas de la app, o sobrevivir incluso a una actualización del APK
-//   (el WebView conserva su caché entre versiones). Con red primero, el
-//   HTML llega actualizado de inmediato mientras haya conexión.
-// - Todo lo demás (JS, CSS, imágenes): Cache First, sin cambios.
+//   dispositivo revalidara el SW en segundo plano â€” podÃ­a tardar varias
+//   aperturas de la app, o sobrevivir incluso a una actualizaciÃ³n del APK
+//   (el WebView conserva su cachÃ© entre versiones). Con red primero, el
+//   HTML llega actualizado de inmediato mientras haya conexiÃ³n.
+// - Todo lo demÃ¡s (JS, CSS, imÃ¡genes): Cache First, sin cambios.
 // ============================================
 self.addEventListener('fetch', event => {
   if (!event.request.url.startsWith('http')) return;
   if (BYPASS.some(b => event.request.url.includes(b))) return;
   if (event.request.method !== 'GET') return;
 
-  // Manifest dinámico por salón — sin blob URLs. La app de clientas y la
+  // Manifest dinÃ¡mico por salÃ³n â€” sin blob URLs. La app de clientas y la
   // administrativa (mode=admin) tienen id y start_url distintos para que un
-  // mismo salón pueda tener instaladas ambas sin que una sustituya a la otra.
+  // mismo salÃ³n pueda tener instaladas ambas sin que una sustituya a la otra.
   const reqUrl = new URL(event.request.url);
   if (reqUrl.pathname === `${BASE}/manifest.json` && reqUrl.searchParams.has('s')) {
     const slug   = reqUrl.searchParams.get('s') || '';
@@ -171,7 +171,7 @@ self.addEventListener('fetch', event => {
       name: nombre,
       short_name: nombre.split(/\s+/).slice(0, 2).join(' '),
       description: esAdmin
-        ? 'Panel de administración de ' + nombre
+        ? 'Panel de administraciÃ³n de ' + nombre
         : 'Reserva tu turno online en ' + nombre,
       start_url: appUrl,
       scope: BASE_URL + '/',
@@ -185,7 +185,7 @@ self.addEventListener('fetch', event => {
     };
 
     if (!esAdmin) {
-      // Android: mantener presionado el ícono → acceso directo a Mis Citas.
+      // Android: mantener presionado el Ã­cono â†’ acceso directo a Mis Citas.
       manifest.shortcuts = [
         {
           name: 'Mis Citas',
@@ -201,13 +201,13 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // Documento HTML (navegación real del navegador/WebView): red primero CON
-  // TOPE DE ESPERA. La red-primero pura hacía que en conexiones lentas cada
+  // Documento HTML (navegaciÃ³n real del navegador/WebView): red primero CON
+  // TOPE DE ESPERA. La red-primero pura hacÃ­a que en conexiones lentas cada
   // apertura esperara la descarga completa del HTML aunque hubiera copia en
-  // caché. Ahora: si hay caché y la red tarda más del tope, se responde la
-  // caché al instante y la respuesta de red (cuando llegue) actualiza la
-  // caché en segundo plano — los arreglos críticos llegan como mucho una
-  // apertura después. Sin caché previa se espera a la red como antes.
+  // cachÃ©. Ahora: si hay cachÃ© y la red tarda mÃ¡s del tope, se responde la
+  // cachÃ© al instante y la respuesta de red (cuando llegue) actualiza la
+  // cachÃ© en segundo plano â€” los arreglos crÃ­ticos llegan como mucho una
+  // apertura despuÃ©s. Sin cachÃ© previa se espera a la red como antes.
   const esNavegacion = event.request.mode === 'navigate' || event.request.destination === 'document';
   if (esNavegacion) {
     const NAV_TIMEOUT_MS = 2500;
@@ -221,7 +221,7 @@ self.addEventListener('fetch', event => {
     event.waitUntil(red.then(() => {}, () => {}));
     event.respondWith(
       caches.match(event.request).then(cached => {
-        if (!cached) return red.catch(() => new Response('Sin conexión', { status: 408 }));
+        if (!cached) return red.catch(() => new Response('Sin conexiÃ³n', { status: 408 }));
         return Promise.race([
           red.catch(() => cached),
           new Promise(resolve => setTimeout(() => resolve(cached), NAV_TIMEOUT_MS))
@@ -245,7 +245,7 @@ self.addEventListener('fetch', event => {
   ].some(path => reqUrl.pathname === path);
 
   if (esAssetCriticoAdmin) {
-    // Mismo patrón que la navegación: red primero con tope; con caché previa
+    // Mismo patrÃ³n que la navegaciÃ³n: red primero con tope; con cachÃ© previa
     // no se bloquea el arranque en conexiones lentas.
     const ASSET_TIMEOUT_MS = 3000;
     const redAsset = fetch(event.request, { cache: 'no-store' }).then(response => {
@@ -258,7 +258,7 @@ self.addEventListener('fetch', event => {
     event.waitUntil(redAsset.then(() => {}, () => {}));
     event.respondWith(
       caches.match(event.request).then(cached => {
-        if (!cached) return redAsset.catch(() => new Response('Sin conexión', { status: 408 }));
+        if (!cached) return redAsset.catch(() => new Response('Sin conexiÃ³n', { status: 408 }));
         return Promise.race([
           redAsset.catch(() => cached),
           new Promise(resolve => setTimeout(() => resolve(cached), ASSET_TIMEOUT_MS))
@@ -282,7 +282,7 @@ self.addEventListener('fetch', event => {
         if (event.request.url.match(/\.(jpg|jpeg|png|gif|svg|webp)$/)) {
           return caches.match(`${BASE}/icons/icon-192x192.png`);
         }
-        return new Response('Sin conexión', { status: 408 });
+        return new Response('Sin conexiÃ³n', { status: 408 });
       });
     })
   );
@@ -301,9 +301,9 @@ self.addEventListener('message', event => {
 // ============================================
 // WEB PUSH
 // ============================================
-// Numerito sobre el ícono de la app instalada (PWA en Android Chrome e iOS
-// 16.4+). El conteo es el número real de notificaciones del sistema aún sin
-// abrir de este SW — se recalcula solas, sin contador aparte que se desincronice.
+// Numerito sobre el Ã­cono de la app instalada (PWA en Android Chrome e iOS
+// 16.4+). El conteo es el nÃºmero real de notificaciones del sistema aÃºn sin
+// abrir de este SW â€” se recalcula solas, sin contador aparte que se desincronice.
 async function actualizarBadgeApp() {
   try {
     if (!navigator.setAppBadge) return;
@@ -318,12 +318,12 @@ self.addEventListener('push', event => {
   try {
     payload = event.data ? event.data.json() : {};
   } catch {
-    payload = { title: 'RservasRoma', body: event.data ? event.data.text() : 'Nueva notificación' };
+    payload = { title: 'RservasRoma', body: event.data ? event.data.text() : 'Nueva notificaciÃ³n' };
   }
 
   event.waitUntil((async () => {
     await self.registration.showNotification(payload.title || 'RservasRoma', {
-      body: payload.body || 'Tienes una nueva notificación',
+      body: payload.body || 'Tienes una nueva notificaciÃ³n',
       icon: `${BASE}/icons/icon-192x192.png`,
       badge: `${BASE}/icons/badge.svg`,
       tag: payload.tag || 'rservasroma',

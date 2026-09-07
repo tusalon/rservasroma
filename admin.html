@@ -47,9 +47,76 @@
                     if (appleTitle) appleTitle.setAttribute('content', nombreSalon);
                 }
             } catch (e) {}
+            // El panel registraba el service worker y ya: nunca miraba si había
+            // una versión nueva. La app de clientas sí lo hace desde siempre
+            // (ver index.html), así que el panel se quedaba con el código
+            // cacheado durante semanas sin que nadie se enterara — a una
+            // profesional de Divine Touch le faltaba "Turnos de mañana" en el
+            // teléfono aunque llevara días publicado. Mismo mecanismo que allí.
             if ('serviceWorker' in navigator) {
+                var registroSW = null;
+
+                var avisarActualizacion = function(sw) {
+                    if (document.getElementById('toast-update-admin')) return;
+                    var toast = document.createElement('div');
+                    toast.id = 'toast-update-admin';
+                    toast.style.cssText = 'position:fixed;left:50%;bottom:18px;transform:translateX(-50%);' +
+                        'background:#fff;border:1px solid #FBC9E4;border-radius:14px;padding:12px 14px;' +
+                        'display:flex;align-items:center;gap:10px;z-index:2147483600;min-width:260px;max-width:92vw;' +
+                        'box-shadow:0 4px 8px rgba(17,12,46,0.04),0 12px 28px rgba(17,12,46,0.10);font-family:inherit;';
+                    toast.innerHTML =
+                        '<span style="flex:1;font-size:14px;color:#1f2937;">Hay una versión nueva del panel</span>' +
+                        '<button type="button" id="btn-actualizar-admin" style="background:#FF1493;' +
+                        'background:var(--brand-primary,#FF1493);color:#fff;border:none;border-radius:10px;' +
+                        'padding:10px 16px;font-size:13px;font-weight:700;min-height:44px;cursor:pointer;' +
+                        'font-family:inherit;">Actualizar</button>' +
+                        '<button type="button" id="btn-cerrar-actualizar-admin" aria-label="Cerrar" ' +
+                        'style="background:#f3f4f6;color:#6b7280;border:none;border-radius:10px;min-width:44px;' +
+                        'min-height:44px;font-size:18px;line-height:1;cursor:pointer;flex-shrink:0;' +
+                        'font-family:inherit;">&times;</button>';
+                    document.body.appendChild(toast);
+                    document.getElementById('btn-actualizar-admin').onclick = function() {
+                        toast.remove();
+                        // sw.js ya hace skipWaiting() al instalar, asi que el
+                        // worker nuevo suele estar activo y basta con recargar.
+                        // El postMessage cubre el caso raro de uno en espera.
+                        if (sw && sw.postMessage) { try { sw.postMessage({ type: 'SKIP_WAITING' }); } catch (e) {} }
+                        window.location.reload();
+                    };
+                    document.getElementById('btn-cerrar-actualizar-admin').onclick = function() {
+                        toast.remove();
+                    };
+                };
+
                 window.addEventListener('load', function() {
-                    navigator.serviceWorker.register('sw.js').catch(function() {});
+                    navigator.serviceWorker.register('sw.js').then(function(registro) {
+                        registroSW = registro;
+                        if (registro.waiting) avisarActualizacion(registro.waiting);
+                        registro.addEventListener('updatefound', function() {
+                            var nuevo = registro.installing;
+                            if (!nuevo) return;
+                            nuevo.addEventListener('statechange', function() {
+                                if (nuevo.state === 'installed' && navigator.serviceWorker.controller) {
+                                    avisarActualizacion(nuevo);
+                                }
+                            });
+                        });
+                    }).catch(function() {});
+
+                    // A diferencia de la app de clientas, aquí NO se recarga
+                    // sola: la dueña puede estar a medio escribir una reserva
+                    // manual y perderla. Se le avisa y ella decide cuándo.
+                    navigator.serviceWorker.addEventListener('controllerchange', function() {
+                        avisarActualizacion(navigator.serviceWorker.controller);
+                    });
+                });
+
+                // iOS congela las PWA instaladas al salir: al reabrirlas desde
+                // el ícono muchas veces no vuelve a dispararse "load" y la
+                // revisión se queda estancada en la de la primera apertura.
+                // Es justo el caso del iPhone que se quedó atrás.
+                window.addEventListener('pageshow', function() {
+                    if (registroSW) registroSW.update().catch(function() {});
                 });
             }
         })();
