@@ -91,4 +91,37 @@ assert.equal(typeof detectar, 'function', 'phone-utils debe exportar detectarPai
 assert.equal(soportaContactos(), false,
     'en Node no existe navigator.contacts: la detección debe decir que no');
 
+// --- Samsung Internet viejo: la API está, pero rota ---
+// Dato de mdn/browser-compat-data: expuesta en la 14, "This API was exposed
+// but failed upon opening a contact selector", retirada en la 22. Si no se
+// filtra, el botón sale y no hace nada al tocarlo: peor que no tenerlo.
+{
+    // OJO: en Node 24 "navigator" ya es un global de solo lectura (un
+    // Navigator de verdad), asi que asignarlo a secas no hace nada y la
+    // prueba pasaria por el motivo equivocado. Hay que redefinirlo.
+    const navOriginal = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
+    const winOriginal = Object.getOwnPropertyDescriptor(globalThis, 'window');
+    const definir = (nombre, valor) =>
+        Object.defineProperty(globalThis, nombre, { value: valor, configurable: true, writable: true });
+
+    const fingirNavegador = (ua) => {
+        definir('navigator', { contacts: { select: () => {} }, userAgent: ua });
+        definir('window', { ContactsManager: function () {} });
+        return soportaContactos();
+    };
+
+    const CHROME = 'Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 Chrome/120.0.0.0 Mobile Safari/537.36';
+    assert.equal(fingirNavegador(CHROME), true, 'Chrome en Android sí');
+
+    const SAMSUNG_ROTO = 'Mozilla/5.0 (Linux; Android 12) AppleWebKit/537.36 SamsungBrowser/19.0 Chrome/102.0.0.0 Mobile Safari/537.36';
+    assert.equal(fingirNavegador(SAMSUNG_ROTO), false, 'Samsung Internet 19 está roto: no se ofrece el botón');
+
+    const SAMSUNG_NUEVO = 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 SamsungBrowser/23.0 Chrome/115.0.0.0 Mobile Safari/537.36';
+    assert.equal(fingirNavegador(SAMSUNG_NUEVO), true, 'de la 22 en adelante ya no expone la API rota');
+
+    if (navOriginal) Object.defineProperty(globalThis, 'navigator', navOriginal);
+    if (winOriginal) Object.defineProperty(globalThis, 'window', winOriginal);
+    else delete globalThis.window;
+}
+
 console.log('OK: contactos.test.js');

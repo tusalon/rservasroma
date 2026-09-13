@@ -5,19 +5,36 @@
 // marca a quién quiere y solo eso llega a la app. Ni se guarda la agenda ni
 // se sube a ningún sitio.
 //
-// DÓNDE FUNCIONA (medido: en escritorio no existe, por eso la detección)
-//   Chrome/Samsung en Android  -> sí
-//   iPhone (cualquier navegador) -> no, Apple no la implementa
-//   Escritorio                 -> no
-// Por eso el botón se pinta solo si soportaContactos() dice que sí: donde no
-// hay, no aparece nada roto ni un botón que no hace nada.
+// DÓNDE FUNCIONA. Segun la tabla oficial (mdn/browser-compat-data,
+// api/ContactsManager.json), no de memoria:
+//   Chrome Android          -> si, desde la 80
+//   WebView Android (APK)   -> "mirror" de Chrome Android, o sea que si
+//   Safari iOS              -> existe desde 14.5 PERO detras de una
+//                              preferencia experimental apagada de fabrica,
+//                              asi que en la practica el iPhone no lo tiene
+//   Escritorio              -> no (comprobado aqui: 'contacts' in navigator
+//                              es false)
+//   Samsung Internet 14-21  -> expuesta pero ROTA: "This API was exposed but
+//                              failed upon opening a contact selector".
+//                              Retirada en la 22.
+// Por eso el boton se pinta solo si soportaContactos() dice que si: donde no
+// hay, no aparece un boton que no hace nada.
 
 function soportaContactos() {
-    return typeof navigator !== 'undefined' &&
-        'contacts' in navigator &&
+    if (typeof navigator === 'undefined' || typeof window === 'undefined') return false;
+
+    const hayApi = 'contacts' in navigator &&
         typeof navigator.contacts?.select === 'function' &&
-        typeof window !== 'undefined' &&
         'ContactsManager' in window;
+    if (!hayApi) return false;
+
+    // Samsung Internet 14-21 la anuncia y luego revienta al abrir el selector.
+    // Detectarla por la API es imposible: hay que mirar la version del
+    // navegador. De la 22 en adelante ya no la expone, asi que no llega aqui.
+    const samsung = /SamsungBrowser\/(\d+)/.exec(navigator.userAgent || '');
+    if (samsung && parseInt(samsung[1], 10) < 22) return false;
+
+    return true;
 }
 
 // Separa un teléfono de la agenda en código de país + número local.
