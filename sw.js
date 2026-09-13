@@ -1,6 +1,6 @@
 ﻿// sw.js - Service Worker para Rservasroma
 
-const CACHE_NAME = 'rservasroma-v110';
+const CACHE_NAME = 'rservasroma-v111';
 const BASE = '/rservasroma';
 
 const urlsToCache = [
@@ -48,7 +48,7 @@ const urlsToCache = [
   `${BASE}/utils/roma-typography.css?v=20260731-tipografia`,
   `${BASE}/utils/roma-theme.js?v=20260731-tipografia`,
   `${BASE}/utils/fidelizacion.js?v=20260912-fidelidad1`,
-  `${BASE}/utils/contactos.js?v=20260913-contactos2`,
+  `${BASE}/utils/clientes-conocidos.js?v=20260913-conocidos1`,
   `${BASE}/utils/frases-motivacionales.js?v=20260826-frases1`,
 
   // Componentes cliente (compilados)

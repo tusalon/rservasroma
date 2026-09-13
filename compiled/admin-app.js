@@ -2956,49 +2956,25 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
       alert(t("No se pudo guardar. Revisa tu conexión e intenta otra vez."));
     }
   };
-  const soportaContactos = React.useMemo(
-    () => window.soportaContactos ? window.soportaContactos() : false,
-    []
+  const claveTelefono = (valor) => window.normalizarTelefonoLocal ? window.normalizarTelefonoLocal(valor) : String(valor || "").replace(/\D/g, "");
+  const clientesConocidos = React.useMemo(
+    () => window.indexarClientesConocidos ? window.indexarClientesConocidos(bookings, claveTelefono) : {},
+    [bookings]
   );
-  const rellenarReservaDesdeContacto = async () => {
-    const elegidos = await window.elegirContactos({ codigoPaisPorDefecto: codigoPaisNegocio });
-    if (elegidos.length === 0) return;
-    const c = elegidos[0];
-    setNuevaReservaData((prev) => ({
-      ...prev,
-      cliente_nombre: c.nombre,
-      cliente_codigo_pais: c.codigoPais,
-      cliente_whatsapp: c.local
-    }));
-  };
-  const [importandoContactos, setImportandoContactos] = React.useState(false);
-  const importarClientesDesdeContactos = async () => {
-    if (!puedeGestionarReservas && userRole !== "admin" && userNivel < 3) {
-      alert(t("No tienes permiso para importar clientes."));
-      return;
-    }
-    const elegidos = await window.elegirContactos({
-      multiple: true,
-      codigoPaisPorDefecto: codigoPaisNegocio
+  const clienteReconocido = React.useMemo(
+    () => window.buscarClienteConocido ? window.buscarClienteConocido(clientesConocidos, nuevaReservaData.cliente_whatsapp, claveTelefono) : null,
+    [clientesConocidos, nuevaReservaData.cliente_whatsapp]
+  );
+  const escribirTelefonoManual = (valor) => {
+    const telefono = String(valor || "").replace(/\D/g, "");
+    setNuevaReservaData((prev) => {
+      const siguiente = { ...prev, cliente_whatsapp: telefono };
+      if (reservaEditando) return siguiente;
+      if (String(prev.cliente_nombre || "").trim()) return siguiente;
+      const conocida = window.buscarClienteConocido ? window.buscarClienteConocido(clientesConocidos, telefono, claveTelefono) : null;
+      if (conocida) siguiente.cliente_nombre = conocida.nombre;
+      return siguiente;
     });
-    if (elegidos.length === 0) return;
-    setImportandoContactos(true);
-    try {
-      let creados = 0;
-      let fallidos = 0;
-      for (const contacto of elegidos) {
-        const creado = await window.crearCliente?.(contacto.nombre, contacto.completo);
-        if (creado) creados++;
-        else fallidos++;
-      }
-      await loadClientesRegistrados();
-      alert(t("Contactos añadidos: {creados}. Fallidos: {fallidos}.", { creados, fallidos }));
-    } catch (error) {
-      console.error("Error importando contactos:", error);
-      alert(t("No se pudieron añadir los contactos."));
-    } finally {
-      setImportandoContactos(false);
-    }
   };
   const getAgendaTitle = () => {
     const localeFecha = idioma === "en" ? "en-US" : "es-CU";
@@ -3574,16 +3550,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
     },
     /* @__PURE__ */ React.createElement("span", { className: "min-w-0" }, /* @__PURE__ */ React.createElement("span", { className: "block font-medium text-gray-800 truncate" }, cliente.nombre || t("Cliente sin nombre")), /* @__PURE__ */ React.createElement("span", { className: "block text-xs text-gray-500" }, "+", String(cliente.whatsapp || "").replace(/\D/g, ""))),
     /* @__PURE__ */ React.createElement("span", { className: "text-xs text-pink-600 font-semibold shrink-0" }, t("Usar"))
-  )))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between gap-2 mb-1" }, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700" }, t("Nombre del Cliente *")), soportaContactos && /* @__PURE__ */ React.createElement(
-    "button",
-    {
-      type: "button",
-      onClick: rellenarReservaDesdeContacto,
-      className: "px-2.5 py-1 rounded-lg bg-pink-50 text-pink-600 border border-pink-200 text-xs font-bold hover:bg-pink-100"
-    },
-    "📇 ",
-    t("Desde contactos")
-  )), /* @__PURE__ */ React.createElement("input", { type: "text", value: nuevaReservaData.cliente_nombre, onChange: (e) => setNuevaReservaData({ ...nuevaReservaData, cliente_nombre: e.target.value }), className: "w-full border rounded-lg px-3 py-2", placeholder: t("Ej: Juan Pérez") })), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, t("WhatsApp del Cliente *")), /* @__PURE__ */ React.createElement("div", { className: "flex" }, /* @__PURE__ */ React.createElement(
+  )))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, t("Nombre del Cliente *")), /* @__PURE__ */ React.createElement("input", { type: "text", value: nuevaReservaData.cliente_nombre, onChange: (e) => setNuevaReservaData({ ...nuevaReservaData, cliente_nombre: e.target.value }), className: "w-full border rounded-lg px-3 py-2", placeholder: t("Ej: Juan Pérez") })), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, t("WhatsApp del Cliente *")), /* @__PURE__ */ React.createElement("div", { className: "flex" }, /* @__PURE__ */ React.createElement(
     "select",
     {
       value: codigoPaisClienteManual,
@@ -3598,7 +3565,11 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
       className: "w-32 px-2 rounded-l-lg border border-r-0 border-gray-300 bg-gray-50 text-sm"
     },
     paisesTelefono.map((pais) => /* @__PURE__ */ React.createElement("option", { key: pais.id, value: pais.codigo }, pais.bandera, " +", pais.codigo))
-  ), /* @__PURE__ */ React.createElement("input", { type: "tel", value: nuevaReservaData.cliente_whatsapp, onChange: (e) => setNuevaReservaData({ ...nuevaReservaData, cliente_whatsapp: String(e.target.value || "").replace(/\D/g, "") }), className: "w-full px-4 py-2 rounded-r-lg border border-gray-300", placeholder: paisTelefono.ejemplo || "55002272" }))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, !reservaEditando ? t("Servicios *") : t("Servicio *")), reservaEditando ? /* @__PURE__ */ React.createElement(
+  ), /* @__PURE__ */ React.createElement("input", { type: "tel", value: nuevaReservaData.cliente_whatsapp, onChange: (e) => escribirTelefonoManual(e.target.value), className: "w-full px-4 py-2 rounded-r-lg border border-gray-300", placeholder: paisTelefono.ejemplo || "55002272" })), clienteReconocido && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-lg px-2.5 py-1.5 mt-1.5" }, t("Ya vino antes: {nombre} · {n} turno{s}", {
+    nombre: clienteReconocido.nombre,
+    n: clienteReconocido.turnos,
+    s: clienteReconocido.turnos === 1 ? "" : "s"
+  }))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, !reservaEditando ? t("Servicios *") : t("Servicio *")), reservaEditando ? /* @__PURE__ */ React.createElement(
     "select",
     {
       value: nuevaReservaData.servicio,
@@ -3771,15 +3742,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
     else if (disponible) className += " bg-white text-gray-800 border-gray-200 hover:bg-gray-50";
     else className += " bg-gray-100 text-gray-400 border-gray-200";
     return /* @__PURE__ */ React.createElement("div", { key: idx, className, title: esCerrado ? t("Día cerrado") : esPasado ? t("Fecha pasada") : disponible ? t("{n} turno(s) disponible(s)", { n: disponiblesDia }) : t("Sin horarios disponibles") }, /* @__PURE__ */ React.createElement("span", { className: "text-base leading-tight" }, date.getDate()), !esCerrado && !esPasado && /* @__PURE__ */ React.createElement("span", { className: `mt-0.5 min-w-5 px-1.5 py-0.5 rounded-full border text-[11px] font-bold leading-none ${tonoConteo}` }, disponiblesDia), esCerrado && /* @__PURE__ */ React.createElement("span", { className: "text-xs" }, "x"));
-  }))), modoDisponibilidad === "mes" && /* @__PURE__ */ React.createElement("div", { className: "mt-4 p-3 bg-gray-50 rounded-lg text-xs" }, /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-4" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2" }, /* @__PURE__ */ React.createElement("div", { className: "w-5 h-5 bg-green-100 border border-green-300 rounded-full flex items-center justify-center text-[10px] font-bold text-green-700" }, "6"), /* @__PURE__ */ React.createElement("span", null, t("4+ tranquilo"))), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2" }, /* @__PURE__ */ React.createElement("div", { className: "w-5 h-5 bg-yellow-100 border border-yellow-300 rounded-full flex items-center justify-center text-[10px] font-bold text-yellow-700" }, "3"), /* @__PURE__ */ React.createElement("span", null, t("3 medio"))), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2" }, /* @__PURE__ */ React.createElement("div", { className: "w-5 h-5 bg-red-100 border border-red-300 rounded-full flex items-center justify-center text-[10px] font-bold text-red-700" }, "2"), /* @__PURE__ */ React.createElement("span", null, t("1-2 urgente"))), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2" }, /* @__PURE__ */ React.createElement("div", { className: "w-5 h-5 bg-gray-100 border border-gray-200 rounded-full flex items-center justify-center text-[10px] font-bold text-gray-400" }, "0"), /* @__PURE__ */ React.createElement("span", null, t("Sin horarios"))))))), /* @__PURE__ */ React.createElement("div", { className: "bg-white p-2 rounded-xl shadow-sm flex flex-wrap gap-2" }, tabsDisponibles.map((tab) => /* @__PURE__ */ React.createElement("button", { key: tab.id, onClick: () => setTabActivo(tab.id), className: `px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 ${tabActivo === tab.id ? "bg-pink-500 text-white shadow-md" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}` }, /* @__PURE__ */ React.createElement("span", null, tab.icono), /* @__PURE__ */ React.createElement("span", null, tab.label)))), tabActivo === "estadisticas" && renderEstadisticas(), tabActivo === "configuracion" && /* @__PURE__ */ React.createElement("div", { className: "space-y-4" }, userRole === "admin" && /* @__PURE__ */ React.createElement(RomaHubActivacion, null), /* @__PURE__ */ React.createElement(ConfigPanel, { profesionalId: userRole === "profesional" ? profesional?.id : null, modoRestringido: userRole === "profesional" && userNivel === 2 })), tabActivo === "servicios" && (userRole === "admin" || userNivel >= 3) && /* @__PURE__ */ React.createElement(ServiciosPanel, null), tabActivo === "catalogo" && (userRole === "admin" || userNivel >= 3) && /* @__PURE__ */ React.createElement(CatalogoPanel, null), tabActivo === "profesionales" && (userRole === "admin" || userNivel >= 3) && /* @__PURE__ */ React.createElement(ProfesionalesPanel, null), tabActivo === "clientes" && (userRole === "admin" || userNivel >= 2) && /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-xl shadow-sm p-6" }, /* @__PURE__ */ React.createElement("div", { className: "flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-5" }, /* @__PURE__ */ React.createElement("h2", { className: "text-xl font-bold" }, t("Clientes Registrados ({n})", { n: clientesRegistrados.length }), clientesPendientes.length > 0 && /* @__PURE__ */ React.createElement("span", { className: "ml-2 px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 border border-amber-200 text-xs font-bold align-middle" }, t("{n} esperando tu respuesta", { n: clientesPendientes.length }))), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500" }, t("Score calculado con el historial de reservas, completadas y canceladas.")), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-2" }, (userRole === "admin" || userNivel >= 3) && /* @__PURE__ */ React.createElement("label", { className: `px-4 py-2 rounded-lg bg-gray-900 text-white text-sm font-bold hover:bg-black cursor-pointer ${importandoClientesCsv ? "opacity-60 pointer-events-none" : ""}` }, importandoClientesCsv ? t("Importando...") : t("Cargar CSV"), /* @__PURE__ */ React.createElement("input", { type: "file", accept: ".csv,text/csv", onChange: handleImportarClientesCsv, className: "hidden", disabled: importandoClientesCsv })), (userRole === "admin" || userNivel >= 3) && soportaContactos && /* @__PURE__ */ React.createElement(
-    "button",
-    {
-      onClick: importarClientesDesdeContactos,
-      disabled: importandoContactos,
-      className: "px-4 py-2 rounded-lg bg-pink-50 text-pink-600 border border-pink-200 text-sm font-bold hover:bg-pink-100 disabled:opacity-60"
-    },
-    importandoContactos ? t("Añadiendo...") : "📇 " + t("Desde contactos")
-  ), /* @__PURE__ */ React.createElement("button", { onClick: () => {
+  }))), modoDisponibilidad === "mes" && /* @__PURE__ */ React.createElement("div", { className: "mt-4 p-3 bg-gray-50 rounded-lg text-xs" }, /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-4" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2" }, /* @__PURE__ */ React.createElement("div", { className: "w-5 h-5 bg-green-100 border border-green-300 rounded-full flex items-center justify-center text-[10px] font-bold text-green-700" }, "6"), /* @__PURE__ */ React.createElement("span", null, t("4+ tranquilo"))), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2" }, /* @__PURE__ */ React.createElement("div", { className: "w-5 h-5 bg-yellow-100 border border-yellow-300 rounded-full flex items-center justify-center text-[10px] font-bold text-yellow-700" }, "3"), /* @__PURE__ */ React.createElement("span", null, t("3 medio"))), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2" }, /* @__PURE__ */ React.createElement("div", { className: "w-5 h-5 bg-red-100 border border-red-300 rounded-full flex items-center justify-center text-[10px] font-bold text-red-700" }, "2"), /* @__PURE__ */ React.createElement("span", null, t("1-2 urgente"))), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2" }, /* @__PURE__ */ React.createElement("div", { className: "w-5 h-5 bg-gray-100 border border-gray-200 rounded-full flex items-center justify-center text-[10px] font-bold text-gray-400" }, "0"), /* @__PURE__ */ React.createElement("span", null, t("Sin horarios"))))))), /* @__PURE__ */ React.createElement("div", { className: "bg-white p-2 rounded-xl shadow-sm flex flex-wrap gap-2" }, tabsDisponibles.map((tab) => /* @__PURE__ */ React.createElement("button", { key: tab.id, onClick: () => setTabActivo(tab.id), className: `px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 ${tabActivo === tab.id ? "bg-pink-500 text-white shadow-md" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}` }, /* @__PURE__ */ React.createElement("span", null, tab.icono), /* @__PURE__ */ React.createElement("span", null, tab.label)))), tabActivo === "estadisticas" && renderEstadisticas(), tabActivo === "configuracion" && /* @__PURE__ */ React.createElement("div", { className: "space-y-4" }, userRole === "admin" && /* @__PURE__ */ React.createElement(RomaHubActivacion, null), /* @__PURE__ */ React.createElement(ConfigPanel, { profesionalId: userRole === "profesional" ? profesional?.id : null, modoRestringido: userRole === "profesional" && userNivel === 2 })), tabActivo === "servicios" && (userRole === "admin" || userNivel >= 3) && /* @__PURE__ */ React.createElement(ServiciosPanel, null), tabActivo === "catalogo" && (userRole === "admin" || userNivel >= 3) && /* @__PURE__ */ React.createElement(CatalogoPanel, null), tabActivo === "profesionales" && (userRole === "admin" || userNivel >= 3) && /* @__PURE__ */ React.createElement(ProfesionalesPanel, null), tabActivo === "clientes" && (userRole === "admin" || userNivel >= 2) && /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-xl shadow-sm p-6" }, /* @__PURE__ */ React.createElement("div", { className: "flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-5" }, /* @__PURE__ */ React.createElement("h2", { className: "text-xl font-bold" }, t("Clientes Registrados ({n})", { n: clientesRegistrados.length }), clientesPendientes.length > 0 && /* @__PURE__ */ React.createElement("span", { className: "ml-2 px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 border border-amber-200 text-xs font-bold align-middle" }, t("{n} esperando tu respuesta", { n: clientesPendientes.length }))), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500" }, t("Score calculado con el historial de reservas, completadas y canceladas.")), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-2" }, (userRole === "admin" || userNivel >= 3) && /* @__PURE__ */ React.createElement("label", { className: `px-4 py-2 rounded-lg bg-gray-900 text-white text-sm font-bold hover:bg-black cursor-pointer ${importandoClientesCsv ? "opacity-60 pointer-events-none" : ""}` }, importandoClientesCsv ? t("Importando...") : t("Cargar CSV"), /* @__PURE__ */ React.createElement("input", { type: "file", accept: ".csv,text/csv", onChange: handleImportarClientesCsv, className: "hidden", disabled: importandoClientesCsv })), /* @__PURE__ */ React.createElement("button", { onClick: () => {
     setShowClientesRegistrados(!showClientesRegistrados);
     if (!showClientesRegistrados) {
       loadClientesRegistrados();
