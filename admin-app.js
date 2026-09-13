@@ -475,6 +475,10 @@ function AdminApp() {
     const [busquedaClienteManual, setBusquedaClienteManual] = React.useState('');
     const [busquedaClientes, setBusquedaClientes] = React.useState('');
     const [clienteDetalle, setClienteDetalle] = React.useState(null);
+    // { telefonoNormalizado: citas que no cuentan }. Se lee una vez para todo
+    // el salón y se cruza en memoria (ver utils/fidelizacion.js).
+    const [ajustesFidelizacion, setAjustesFidelizacion] = React.useState({});
+    const [guardandoAjusteFid, setGuardandoAjusteFid] = React.useState(false);
 
     const [showNuevaReservaModal, setShowNuevaReservaModal] = React.useState(false);
     const [creandoReservaManual, setCreandoReservaManual] = React.useState(false);
@@ -845,6 +849,15 @@ function AdminApp() {
                 const profesionales = await window.salonProfesionales.getAll(true);
                 setProfesionalesList(profesionales || []);
                 setProfesionalesManualFiltrados(profesionales || []);
+            }
+            if (window.cargarAjustesFidelizacion) {
+                // esperarNegocioId y no getNegocioId: al montar, el id puede
+                // estar todavía resolviéndose y volvería un mapa vacío, con lo
+                // que los contadores saldrían sin los ajustes hasta recargar.
+                const negocioId = window.esperarNegocioId
+                    ? await window.esperarNegocioId()
+                    : window.getNegocioId?.();
+                setAjustesFidelizacion(await window.cargarAjustesFidelizacion(negocioId));
             }
         };
         cargarDatosModal();
@@ -3528,7 +3541,37 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
             .filter(b => b.estado === 'Completado' && normalizePhone(b.cliente_whatsapp) === phone)
             .sort((a, b) => `${a.fecha || ''} ${a.hora_inicio || ''}`.localeCompare(`${b.fecha || ''} ${b.hora_inicio || ''}`));
         const index = completadasOrdenadas.findIndex(b => b.id === reservaId);
-        return index === -1 ? 0 : index + 1;
+        if (index === -1) return 0;
+        // El mismo ajuste que se ve en la ficha de la clienta. Sin esto, el
+        // contador diria "2/6" y al cobrar la cita saldria marcada como
+        // premiada igual: dos cuentas distintas para lo mismo.
+        const descontadas = Math.min(completadasOrdenadas.length, ajustesFidelizacion[phone] || 0);
+        return Math.max(0, index + 1 - descontadas);
+    };
+
+    // Guarda el nuevo ajuste y lo refleja al momento. Se pinta primero y se
+    // guarda después (igual que el orden del catálogo): en 3G, esperar al
+    // servidor para ver moverse el contador hace que se toque el botón dos
+    // veces. Si el guardado falla se deshace y se avisa.
+    const cambiarAjusteFidelizacion = async (whatsapp, nuevoAjuste) => {
+        const phone = normalizePhone(whatsapp);
+        if (!phone || guardandoAjusteFid) return;
+
+        const anterior = ajustesFidelizacion[phone] || 0;
+        if (nuevoAjuste === anterior) return;
+
+        setAjustesFidelizacion(prev => ({ ...prev, [phone]: nuevoAjuste }));
+        setGuardandoAjusteFid(true);
+        const negocioId = window.esperarNegocioId
+            ? await window.esperarNegocioId()
+            : window.getNegocioId?.();
+        const resultado = await window.guardarAjusteFidelizacion(negocioId, phone, nuevoAjuste);
+        setGuardandoAjusteFid(false);
+
+        if (!resultado.success) {
+            setAjustesFidelizacion(prev => ({ ...prev, [phone]: anterior }));
+            alert(t('No se pudo guardar. Revisa tu conexión e intenta otra vez.'));
+        }
     };
 
     const getAgendaTitle = () => {
@@ -5183,13 +5226,82 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                             {(() => {
                                 const fid = window.getFidelizacionConfig(config);
                                 if (!fid.activa) return null;
-                                const faltan = window.faltanParaPremio(clienteDetalle.score.completadas, fid.ciclo);
-                                const premiada = faltan === 0;
+                                const phone = normalizePhone(clienteDetalle.cliente.whatsapp);
+                                const ajuste = ajustesFidelizacion[phone] || 0;
+                                const completadas = clienteDetalle.score.completadas;
+                                const p = window.progresoFidelizacion(completadas, ajuste, fid.ciclo);
                                 return (
-                                    <div className={`mx-5 mt-4 p-3 rounded-xl border text-sm font-semibold ${premiada ? 'bg-amber-50 border-amber-200 text-amber-800' : 'bg-pink-50 border-pink-100 text-pink-700'}`}>
-                                        {premiada
-                                            ? t('🎁 Su próxima cita tiene {pct}% de descuento de fidelidad.', { pct: fid.pct })
-                                            : t('Le faltan {n} citas completadas para su próximo descuento de fidelidad ({pct}%).', { n: faltan, pct: fid.pct })}
+                                    <div className={`mx-5 mt-4 p-4 rounded-xl border ${p.premiada ? 'bg-amber-50 border-amber-200' : 'bg-pink-50 border-pink-100'}`}>
+                                        <div className="flex items-center justify-between gap-3">
+                                            <span className={`text-sm font-semibold ${p.premiada ? 'text-amber-800' : 'text-pink-700'}`}>
+                                                {t('Fidelidad')}
+                                            </span>
+                                            <span className={`text-2xl font-bold tabular-nums ${p.premiada ? 'text-amber-700' : 'text-pink-600'}`}>
+                                                {p.enCiclo}/{p.ciclo}
+                                            </span>
+                                        </div>
+
+                                        {/* Una marca por cita del ciclo: se lee de un vistazo
+                                            cuánto le falta sin tener que contar el número. */}
+                                        <div className="flex gap-1.5 mt-2.5">
+                                            {Array.from({ length: p.ciclo }, (_, i) => (
+                                                <span
+                                                    key={i}
+                                                    className={`h-2 flex-1 rounded-full ${i < p.enCiclo
+                                                        ? (p.premiada ? 'bg-amber-500' : 'bg-pink-500')
+                                                        : 'bg-white border border-gray-200'}`}
+                                                />
+                                            ))}
+                                        </div>
+
+                                        <p className={`text-xs mt-2.5 ${p.premiada ? 'text-amber-800' : 'text-pink-700'}`}>
+                                            {p.premiada
+                                                ? t('🎁 Su próxima cita tiene {pct}% de descuento de fidelidad.', { pct: fid.pct })
+                                                : t('Le faltan {n} citas completadas para su próximo descuento ({pct}%).', { n: p.faltan, pct: fid.pct })}
+                                        </p>
+
+                                        {ajuste > 0 && (
+                                            <p className="text-xs text-gray-500 mt-1">
+                                                {t('No se están contando {n} citas completadas.', { n: ajuste })}
+                                            </p>
+                                        )}
+
+                                        <div className="flex flex-wrap gap-2 mt-3">
+                                            <button
+                                                onClick={() => cambiarAjusteFidelizacion(
+                                                    clienteDetalle.cliente.whatsapp,
+                                                    window.ajusteQuitandoUna(completadas, ajuste)
+                                                )}
+                                                disabled={guardandoAjusteFid || p.efectivas === 0}
+                                                className="px-3 py-2 rounded-lg bg-white border border-gray-200 text-gray-700 text-sm font-bold disabled:opacity-40 disabled:cursor-not-allowed"
+                                                title={t('Descontar una cita que no debía contar')}
+                                            >
+                                                −1 {t('cita')}
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    if (!confirm(t('¿Poner el contador de fidelidad de esta clienta en 0/{n}?', { n: p.ciclo }))) return;
+                                                    cambiarAjusteFidelizacion(
+                                                        clienteDetalle.cliente.whatsapp,
+                                                        window.ajusteParaReiniciar(completadas)
+                                                    );
+                                                }}
+                                                disabled={guardandoAjusteFid || p.efectivas === 0}
+                                                className="px-3 py-2 rounded-lg bg-white border border-gray-200 text-gray-700 text-sm font-bold disabled:opacity-40 disabled:cursor-not-allowed"
+                                            >
+                                                {t('Reiniciar')}
+                                            </button>
+                                            {ajuste > 0 && (
+                                                <button
+                                                    onClick={() => cambiarAjusteFidelizacion(clienteDetalle.cliente.whatsapp, 0)}
+                                                    disabled={guardandoAjusteFid}
+                                                    className="px-3 py-2 rounded-lg bg-white border border-gray-200 text-gray-500 text-sm font-medium disabled:opacity-40"
+                                                    title={t('Volver a contar todas sus citas completadas')}
+                                                >
+                                                    {t('Deshacer ajustes')}
+                                                </button>
+                                            )}
+                                        </div>
                                     </div>
                                 );
                             })()}

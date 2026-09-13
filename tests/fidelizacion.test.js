@@ -2,7 +2,10 @@
 // cada N citas completadas, la siguiente cita tiene descuento.
 
 const assert = require('node:assert/strict');
-const { getFidelizacionConfig, esPosicionPremiada, faltanParaPremio } = require('../utils/fidelizacion.js');
+const {
+    getFidelizacionConfig, esPosicionPremiada, faltanParaPremio,
+    progresoFidelizacion, ajusteParaReiniciar, ajusteQuitandoUna
+} = require('../utils/fidelizacion.js');
 
 // Config apagada por defecto.
 {
@@ -55,6 +58,50 @@ const { getFidelizacionConfig, esPosicionPremiada, faltanParaPremio } = require(
 
     const fidVacio = getFidelizacionConfig({ fidelizacion_activa: true, fidelizacion_cada_citas: '', fidelizacion_descuento_porcentaje: 50 });
     assert.equal(fidVacio.ciclo, 6, 'cada_citas vacio cae al default (5), ciclo = 6');
+}
+
+// --- Progreso "3/6" y ajustes a mano ---
+// Lo que protege: la duena ve un contador y dos botones. Si la cuenta se va,
+// le promete un descuento a una clienta que no toca, o se lo niega a una que
+// si. Y el ajuste tiene que aguantar que la clienta siga completando citas.
+{
+    const ciclo = 6; // cada_citas = 5
+
+    // Sin ajuste, el contador es la posicion dentro del ciclo.
+    assert.equal(progresoFidelizacion(3, 0, ciclo).enCiclo, 3, 'con 3 completadas va 3/6');
+    assert.equal(progresoFidelizacion(3, 0, ciclo).faltan, 2, 'de 3/6 le faltan 2 antes de la premiada');
+    assert.equal(progresoFidelizacion(5, 0, ciclo).premiada, true, 'en 5/6 la siguiente es la premiada');
+    assert.equal(progresoFidelizacion(6, 0, ciclo).enCiclo, 0, 'cobrada la premiada, el ciclo vuelve a 0/6');
+
+    // Quitar una cita retrocede el contador.
+    assert.equal(progresoFidelizacion(3, 1, ciclo).enCiclo, 2, 'quitando 1 de 3 completadas queda 2/6');
+    assert.equal(progresoFidelizacion(3, 1, ciclo).efectivas, 2);
+
+    // Reiniciar deja el contador en cero aunque tenga historial largo.
+    assert.equal(progresoFidelizacion(37, ajusteParaReiniciar(37), ciclo).enCiclo, 0,
+        'reiniciar a una clienta con 37 citas la deja en 0/6');
+
+    // Y despues de reiniciar, la siguiente cita completada vuelve a sumar:
+    // el ajuste es un desplazamiento fijo, no un contador congelado.
+    assert.equal(progresoFidelizacion(38, ajusteParaReiniciar(37), ciclo).enCiclo, 1,
+        'tras reiniciar, la cita siguiente cuenta como 1/6');
+
+    // El ajuste nunca deja el contador en negativo aunque se quede viejo
+    // (por ejemplo si se borraron reservas completadas despues de ajustar).
+    const desfasado = progresoFidelizacion(2, 10, ciclo);
+    assert.equal(desfasado.efectivas, 0, 'un ajuste mayor que el total no baja de 0');
+    assert.equal(desfasado.enCiclo, 0);
+
+    // Quitar de una clienta sin citas no genera un ajuste imposible.
+    assert.equal(ajusteQuitandoUna(0, 0), 0, 'sin citas completadas no hay nada que quitar');
+    assert.equal(ajusteQuitandoUna(3, 0), 1);
+    assert.equal(ajusteQuitandoUna(3, 2), 3);
+    assert.equal(ajusteQuitandoUna(3, 3), 3, 'el ajuste no puede pasar del total real');
+
+    // Valores basura no rompen la cuenta.
+    assert.equal(progresoFidelizacion(null, null, ciclo).enCiclo, 0);
+    assert.equal(progresoFidelizacion('4', '1', ciclo).enCiclo, 3, 'acepta numeros como texto');
+    assert.equal(progresoFidelizacion(3, 0, 0).enCiclo, 0, 'ciclo 0 no revienta ni divide por cero');
 }
 
 console.log('fidelizacion.test.js OK');

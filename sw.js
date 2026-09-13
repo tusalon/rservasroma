@@ -1,6 +1,6 @@
 ﻿// sw.js - Service Worker para Rservasroma
 
-const CACHE_NAME = 'rservasroma-v107';
+const CACHE_NAME = 'rservasroma-v108';
 const BASE = '/rservasroma';
 
 const urlsToCache = [
@@ -17,7 +17,7 @@ const urlsToCache = [
 
   // App principal (JSX pre-compilado en compiled/ â€” ver scripts/build-jsx.sh)
   `${BASE}/compiled/client-app.js?v=20260818-termino`,
-  `${BASE}/compiled/admin-app.js?v=20260906-manana1`,
+  `${BASE}/compiled/admin-app.js?v=20260912-fidelidad1`,
 
   // Utils
   `${BASE}/utils/api.js?v=20260903-aprobacion1`,
@@ -47,7 +47,7 @@ const urlsToCache = [
   `${BASE}/utils/legacy-ios-fallback.css?v=20260904-bordes1`,
   `${BASE}/utils/roma-typography.css?v=20260731-tipografia`,
   `${BASE}/utils/roma-theme.js?v=20260731-tipografia`,
-  `${BASE}/utils/fidelizacion.js?v=20260826-fidelizacion1`,
+  `${BASE}/utils/fidelizacion.js?v=20260912-fidelidad1`,
   `${BASE}/utils/frases-motivacionales.js?v=20260826-frases1`,
 
   // Componentes cliente (compilados)
@@ -237,7 +237,7 @@ self.addEventListener('fetch', event => {
   // version aqui no bastaba para que una admin con el SW ya instalado
   // recibiera el archivo nuevo hasta que la cache vieja se vaciara sola).
   const esAssetCriticoAdmin = [
-    `${BASE}/compiled/admin-app.js`,
+    `${BASE}/compiled/admin-app.js?v=20260912-fidelidad1`,
     `${BASE}/compiled/components/admin/EditarNegocio.js`,
     `${BASE}/utils/config-negocio-master.js`,
     `${BASE}/utils/native-push-notifications.js`,

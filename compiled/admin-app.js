@@ -400,6 +400,8 @@ function AdminApp() {
   const [busquedaClienteManual, setBusquedaClienteManual] = React.useState("");
   const [busquedaClientes, setBusquedaClientes] = React.useState("");
   const [clienteDetalle, setClienteDetalle] = React.useState(null);
+  const [ajustesFidelizacion, setAjustesFidelizacion] = React.useState({});
+  const [guardandoAjusteFid, setGuardandoAjusteFid] = React.useState(false);
   const [showNuevaReservaModal, setShowNuevaReservaModal] = React.useState(false);
   const [creandoReservaManual, setCreandoReservaManual] = React.useState(false);
   const creandoReservaManualRef = React.useRef(false);
@@ -696,6 +698,10 @@ function AdminApp() {
         const profesionales = await window.salonProfesionales.getAll(true);
         setProfesionalesList(profesionales || []);
         setProfesionalesManualFiltrados(profesionales || []);
+      }
+      if (window.cargarAjustesFidelizacion) {
+        const negocioId = window.esperarNegocioId ? await window.esperarNegocioId() : window.getNegocioId?.();
+        setAjustesFidelizacion(await window.cargarAjustesFidelizacion(negocioId));
       }
     };
     cargarDatosModal();
@@ -2931,7 +2937,24 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
     if (!phone) return 0;
     const completadasOrdenadas = bookings.filter((b) => b.estado === "Completado" && normalizePhone(b.cliente_whatsapp) === phone).sort((a, b) => `${a.fecha || ""} ${a.hora_inicio || ""}`.localeCompare(`${b.fecha || ""} ${b.hora_inicio || ""}`));
     const index = completadasOrdenadas.findIndex((b) => b.id === reservaId);
-    return index === -1 ? 0 : index + 1;
+    if (index === -1) return 0;
+    const descontadas = Math.min(completadasOrdenadas.length, ajustesFidelizacion[phone] || 0);
+    return Math.max(0, index + 1 - descontadas);
+  };
+  const cambiarAjusteFidelizacion = async (whatsapp, nuevoAjuste) => {
+    const phone = normalizePhone(whatsapp);
+    if (!phone || guardandoAjusteFid) return;
+    const anterior = ajustesFidelizacion[phone] || 0;
+    if (nuevoAjuste === anterior) return;
+    setAjustesFidelizacion((prev) => ({ ...prev, [phone]: nuevoAjuste }));
+    setGuardandoAjusteFid(true);
+    const negocioId = window.esperarNegocioId ? await window.esperarNegocioId() : window.getNegocioId?.();
+    const resultado = await window.guardarAjusteFidelizacion(negocioId, phone, nuevoAjuste);
+    setGuardandoAjusteFid(false);
+    if (!resultado.success) {
+      setAjustesFidelizacion((prev) => ({ ...prev, [phone]: anterior }));
+      alert(t("No se pudo guardar. Revisa tu conexión e intenta otra vez."));
+    }
   };
   const getAgendaTitle = () => {
     const localeFecha = idioma === "en" ? "en-US" : "es-CU";
@@ -3762,9 +3785,53 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
   })())), clienteDetalle && /* @__PURE__ */ React.createElement("div", { className: "fixed inset-0 bg-black/50 z-[80] flex items-end sm:items-center justify-center p-0 sm:p-4", onClick: () => setClienteDetalle(null) }, /* @__PURE__ */ React.createElement("div", { className: "bg-white w-full sm:max-w-2xl max-h-[88vh] rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden", onClick: (event) => event.stopPropagation() }, /* @__PURE__ */ React.createElement("div", { className: "p-5 border-b bg-gradient-to-r from-white to-pink-50 flex items-start justify-between gap-4" }, /* @__PURE__ */ React.createElement("div", { className: "min-w-0" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold uppercase text-pink-500 tracking-wide" }, t("Historial del cliente")), /* @__PURE__ */ React.createElement("h3", { className: "text-2xl font-bold text-gray-900 truncate" }, clienteDetalle.cliente.nombre || t("Cliente")), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500" }, "+", clienteDetalle.cliente.whatsapp), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-2 mt-3" }, /* @__PURE__ */ React.createElement("span", { className: `px-2.5 py-1 rounded-full border text-xs font-semibold ${clienteDetalle.score.tone}` }, clienteDetalle.score.label), /* @__PURE__ */ React.createElement("span", { className: "px-2.5 py-1 rounded-full bg-white border text-xs font-semibold text-gray-700" }, t("Score {n}/100", { n: clienteDetalle.score.score })), /* @__PURE__ */ React.createElement("span", { className: "px-2.5 py-1 rounded-full bg-pink-50 text-pink-700 border border-pink-100 text-xs font-semibold" }, t("{n} turnos", { n: clienteDetalle.reservas.length })))), /* @__PURE__ */ React.createElement("button", { onClick: () => setClienteDetalle(null), className: "w-10 h-10 rounded-full bg-white border text-gray-500 hover:text-gray-900 hover:bg-gray-50 text-xl leading-none" }, "×")), (() => {
     const fid = window.getFidelizacionConfig(config);
     if (!fid.activa) return null;
-    const faltan = window.faltanParaPremio(clienteDetalle.score.completadas, fid.ciclo);
-    const premiada = faltan === 0;
-    return /* @__PURE__ */ React.createElement("div", { className: `mx-5 mt-4 p-3 rounded-xl border text-sm font-semibold ${premiada ? "bg-amber-50 border-amber-200 text-amber-800" : "bg-pink-50 border-pink-100 text-pink-700"}` }, premiada ? t("🎁 Su próxima cita tiene {pct}% de descuento de fidelidad.", { pct: fid.pct }) : t("Le faltan {n} citas completadas para su próximo descuento de fidelidad ({pct}%).", { n: faltan, pct: fid.pct }));
+    const phone = normalizePhone(clienteDetalle.cliente.whatsapp);
+    const ajuste = ajustesFidelizacion[phone] || 0;
+    const completadas = clienteDetalle.score.completadas;
+    const p = window.progresoFidelizacion(completadas, ajuste, fid.ciclo);
+    return /* @__PURE__ */ React.createElement("div", { className: `mx-5 mt-4 p-4 rounded-xl border ${p.premiada ? "bg-amber-50 border-amber-200" : "bg-pink-50 border-pink-100"}` }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between gap-3" }, /* @__PURE__ */ React.createElement("span", { className: `text-sm font-semibold ${p.premiada ? "text-amber-800" : "text-pink-700"}` }, t("Fidelidad")), /* @__PURE__ */ React.createElement("span", { className: `text-2xl font-bold tabular-nums ${p.premiada ? "text-amber-700" : "text-pink-600"}` }, p.enCiclo, "/", p.ciclo)), /* @__PURE__ */ React.createElement("div", { className: "flex gap-1.5 mt-2.5" }, Array.from({ length: p.ciclo }, (_, i) => /* @__PURE__ */ React.createElement(
+      "span",
+      {
+        key: i,
+        className: `h-2 flex-1 rounded-full ${i < p.enCiclo ? p.premiada ? "bg-amber-500" : "bg-pink-500" : "bg-white border border-gray-200"}`
+      }
+    ))), /* @__PURE__ */ React.createElement("p", { className: `text-xs mt-2.5 ${p.premiada ? "text-amber-800" : "text-pink-700"}` }, p.premiada ? t("🎁 Su próxima cita tiene {pct}% de descuento de fidelidad.", { pct: fid.pct }) : t("Le faltan {n} citas completadas para su próximo descuento ({pct}%).", { n: p.faltan, pct: fid.pct })), ajuste > 0 && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-1" }, t("No se están contando {n} citas completadas.", { n: ajuste })), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-2 mt-3" }, /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        onClick: () => cambiarAjusteFidelizacion(
+          clienteDetalle.cliente.whatsapp,
+          window.ajusteQuitandoUna(completadas, ajuste)
+        ),
+        disabled: guardandoAjusteFid || p.efectivas === 0,
+        className: "px-3 py-2 rounded-lg bg-white border border-gray-200 text-gray-700 text-sm font-bold disabled:opacity-40 disabled:cursor-not-allowed",
+        title: t("Descontar una cita que no debía contar")
+      },
+      "−1 ",
+      t("cita")
+    ), /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        onClick: () => {
+          if (!confirm(t("¿Poner el contador de fidelidad de esta clienta en 0/{n}?", { n: p.ciclo }))) return;
+          cambiarAjusteFidelizacion(
+            clienteDetalle.cliente.whatsapp,
+            window.ajusteParaReiniciar(completadas)
+          );
+        },
+        disabled: guardandoAjusteFid || p.efectivas === 0,
+        className: "px-3 py-2 rounded-lg bg-white border border-gray-200 text-gray-700 text-sm font-bold disabled:opacity-40 disabled:cursor-not-allowed"
+      },
+      t("Reiniciar")
+    ), ajuste > 0 && /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        onClick: () => cambiarAjusteFidelizacion(clienteDetalle.cliente.whatsapp, 0),
+        disabled: guardandoAjusteFid,
+        className: "px-3 py-2 rounded-lg bg-white border border-gray-200 text-gray-500 text-sm font-medium disabled:opacity-40",
+        title: t("Volver a contar todas sus citas completadas")
+      },
+      t("Deshacer ajustes")
+    )));
   })(), /* @__PURE__ */ React.createElement("div", { className: "p-5 overflow-y-auto max-h-[68vh] space-y-3" }, clienteDetalle.reservas.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "text-center py-10 bg-gray-50 rounded-xl border border-gray-100" }, /* @__PURE__ */ React.createElement("p", { className: "text-gray-500" }, t("Este cliente aún no tiene turnos registrados."))) : clienteDetalle.reservas.map((reserva, index) => {
     const estado = reserva.estado || "Reservado";
     const estadoClass = agendaStatusStyle[estado] || "bg-gray-50 border-l-gray-400 border-gray-100 text-gray-900";
