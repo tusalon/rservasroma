@@ -3574,6 +3574,60 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
         }
     };
 
+    // El selector de contactos solo existe en algunos teléfonos (Android). Se
+    // resuelve una vez: si no está, los botones ni se pintan.
+    const soportaContactos = React.useMemo(
+        () => (window.soportaContactos ? window.soportaContactos() : false),
+        []
+    );
+
+    const rellenarReservaDesdeContacto = async () => {
+        const elegidos = await window.elegirContactos({ codigoPaisPorDefecto: codigoPaisNegocio });
+        if (elegidos.length === 0) return; // canceló
+        const c = elegidos[0];
+        setNuevaReservaData(prev => ({
+            ...prev,
+            cliente_nombre: c.nombre,
+            cliente_codigo_pais: c.codigoPais,
+            cliente_whatsapp: c.local
+        }));
+    };
+
+    const [importandoContactos, setImportandoContactos] = React.useState(false);
+
+    // Mismo destino que "Cargar CSV": crearCliente() sobre clientes_autorizados.
+    // Se reusa tal cual para que un cliente añadido desde la agenda quede
+    // exactamente igual que uno importado por CSV.
+    const importarClientesDesdeContactos = async () => {
+        if (!puedeGestionarReservas && userRole !== 'admin' && userNivel < 3) {
+            alert(t('No tienes permiso para importar clientes.'));
+            return;
+        }
+        const elegidos = await window.elegirContactos({
+            multiple: true,
+            codigoPaisPorDefecto: codigoPaisNegocio
+        });
+        if (elegidos.length === 0) return;
+
+        setImportandoContactos(true);
+        try {
+            let creados = 0;
+            let fallidos = 0;
+            for (const contacto of elegidos) {
+                const creado = await window.crearCliente?.(contacto.nombre, contacto.completo);
+                if (creado) creados++;
+                else fallidos++;
+            }
+            await loadClientesRegistrados();
+            alert(t('Contactos añadidos: {creados}. Fallidos: {fallidos}.', { creados, fallidos }));
+        } catch (error) {
+            console.error('Error importando contactos:', error);
+            alert(t('No se pudieron añadir los contactos.'));
+        } finally {
+            setImportandoContactos(false);
+        }
+    };
+
     const getAgendaTitle = () => {
         const localeFecha = idioma === 'en' ? 'en-US' : 'es-CU';
         if (agendaMode === 'dia') {
@@ -4442,7 +4496,19 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                                     </div>
                                 )}
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">{t('Nombre del Cliente *')}</label>
+                                    <div className="flex items-center justify-between gap-2 mb-1">
+                                        <label className="block text-sm font-medium text-gray-700">{t('Nombre del Cliente *')}</label>
+                                        {/* Solo donde el teléfono lo ofrece (Android). Ver utils/contactos.js. */}
+                                        {soportaContactos && (
+                                            <button
+                                                type="button"
+                                                onClick={rellenarReservaDesdeContacto}
+                                                className="px-2.5 py-1 rounded-lg bg-pink-50 text-pink-600 border border-pink-200 text-xs font-bold hover:bg-pink-100"
+                                            >
+                                                📇 {t('Desde contactos')}
+                                            </button>
+                                        )}
+                                    </div>
                                     <input type="text" value={nuevaReservaData.cliente_nombre} onChange={(e) => setNuevaReservaData({...nuevaReservaData, cliente_nombre: e.target.value})} className="w-full border rounded-lg px-3 py-2" placeholder={t('Ej: Juan Pérez')} />
                                 </div>
                                 <div>
@@ -5013,6 +5079,15 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                                         {importandoClientesCsv ? t('Importando...') : t('Cargar CSV')}
                                         <input type="file" accept=".csv,text/csv" onChange={handleImportarClientesCsv} className="hidden" disabled={importandoClientesCsv} />
                                     </label>
+                                )}
+                                {(userRole === 'admin' || userNivel >= 3) && soportaContactos && (
+                                    <button
+                                        onClick={importarClientesDesdeContactos}
+                                        disabled={importandoContactos}
+                                        className="px-4 py-2 rounded-lg bg-pink-50 text-pink-600 border border-pink-200 text-sm font-bold hover:bg-pink-100 disabled:opacity-60"
+                                    >
+                                        {importandoContactos ? t('Añadiendo...') : '📇 ' + t('Desde contactos')}
+                                    </button>
                                 )}
                                 <button onClick={() => { setShowClientesRegistrados(!showClientesRegistrados); if (!showClientesRegistrados) { loadClientesRegistrados(); loadClientesBloqueados(); } }} className="px-4 py-2 rounded-lg bg-pink-50 text-pink-600 text-sm font-medium hover:bg-pink-100">
                                     {showClientesRegistrados ? t('Ocultar') : t('Mostrar')}
