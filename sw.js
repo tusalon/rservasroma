@@ -1,6 +1,6 @@
 ﻿// sw.js - Service Worker para Rservasroma
 
-const CACHE_NAME = 'rservasroma-v111';
+const CACHE_NAME = 'rservasroma-v112';
 const BASE = '/rservasroma';
 
 const urlsToCache = [
@@ -32,7 +32,7 @@ const urlsToCache = [
   `${BASE}/utils/config-negocio-master.js?v=20260906-precios1`,
   `${BASE}/utils/i18n.js?v=20260904-recordar1`,
   `${BASE}/utils/cuba-geo.js?v=20260727-wizard-ubicacion1`,
-  `${BASE}/utils/phone-utils.js`,
+  `${BASE}/utils/phone-utils.js?v=20260919-telqatar1`,
   `${BASE}/utils/profesionales.js`,
   `${BASE}/utils/push-config.js?v=20260717-push-activo`,
   `${BASE}/utils/push-notifications.js?v=20260722-platform-v4`,
@@ -75,7 +75,7 @@ const urlsToCache = [
   `${BASE}/compiled/components/admin/EditarNegocio.js?v=20260903-aprobacion1`,
   `${BASE}/compiled/components/admin/HorariosPorDiaPanel.js?v=20260723-jsx1`,
   `${BASE}/compiled/components/admin/HorariosExcepcionPanel.js?v=20260723-jsx1`,
-  `${BASE}/compiled/components/admin/ProfesionalesPanel.js?v=20260723-jsx1`,
+  `${BASE}/compiled/components/admin/ProfesionalesPanel.js?v=20260919-telqatar1`,
   `${BASE}/compiled/components/admin/ImportarServicios.js?v=20260723-jsx1`,
   `${BASE}/compiled/components/admin/ServiciosPanelCategorias.js?v=20260731-marca`,
   `${BASE}/compiled/components/admin/SetupWizard.js?v=20260731-marca`,

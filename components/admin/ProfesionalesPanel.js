@@ -188,7 +188,14 @@ function ProfesionalesPanel() {
 function ProfesionalForm({ profesional, onGuardar, onCancelar }) {
     window.useIdioma();
     const t = window.t;
-    const [form, setForm] = React.useState(profesional ? { ...profesional, password: '' } : {
+    // En el campo se enseña solo la parte local; el prefijo lo pone el
+    // selector de al lado. Si no se recortara, editar a alguien guardado como
+    // "97412345678" mostraría "+974 97412345678" y al guardar se duplicaría.
+    const soloLocal = (valor) => (window.localDeProfesional
+        ? window.localDeProfesional(valor)
+        : String(valor || '').replace(/\D/g, ''));
+
+    const [form, setForm] = React.useState(profesional ? { ...profesional, telefono: soloLocal(profesional.telefono), password: '' } : {
         nombre: '',
         especialidad: '',
         telefono: '',
@@ -197,6 +204,22 @@ function ProfesionalForm({ profesional, onGuardar, onCancelar }) {
         color: 'bg-amber-600',
         avatar: '👤'
     });
+
+    // El país sale del número que ya está guardado, no de una columna nueva:
+    // en la base el teléfono se guarda internacional completo, así que al
+    // editar se deduce con el mismo detector que usa el resto de la app.
+    const paisGuardado = React.useMemo(() => {
+        const detectado = window.detectarPaisTelefono
+            ? window.detectarPaisTelefono(profesional?.telefono)
+            : null;
+        if (detectado) return detectado.codigo;
+        return window.getCodigoPaisTelefono ? window.getCodigoPaisTelefono() : '53';
+    }, [profesional]);
+
+    const [codigoPaisProfesional, setCodigoPaisProfesional] = React.useState(paisGuardado);
+    const paisProfesional = window.getCountryByPhoneCode
+        ? window.getCountryByPhoneCode(codigoPaisProfesional)
+        : ((window.PHONE_COUNTRIES || []).find((p) => p.codigo === codigoPaisProfesional) || { ejemplo: '55002272' });
 
     const avatares = ['👤', '💇', '💅', '👑', '⭐', '🔰'];
     const colores = [
@@ -225,7 +248,12 @@ function ProfesionalForm({ profesional, onGuardar, onCancelar }) {
             return;
         }
 
-        const payload = { ...form };
+        const payload = {
+            ...form,
+            telefono: window.telefonoGuardadoDeProfesional
+                ? window.telefonoGuardadoDeProfesional(form.telefono, codigoPaisProfesional)
+                : String(form.telefono || '').replace(/\D/g, '')
+        };
         if (!String(payload.password || '').trim()) {
             delete payload.password;
         }
@@ -279,24 +307,32 @@ function ProfesionalForm({ profesional, onGuardar, onCancelar }) {
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                         {t('Teléfono')}
                     </label>
+                    {/* Antes el prefijo era un <span> clavado al país del salón.
+                        Una profesional que se muda fuera (caso real: Qatar) no
+                        podía registrar su número sin que la pantalla quedara
+                        mintiendo ("+53 97412345678"), y el siguiente que lo
+                        viera se lo "arreglaba" y le rompía el acceso. */}
                     <div className="flex">
-                        <span className="inline-flex items-center px-3 rounded-l-lg border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm">
-                            {window.getPhoneCountryConfig ? window.getPhoneCountryConfig().bandera : '🇨🇺'} +{window.getPhoneCountryConfig ? window.getPhoneCountryConfig().codigo : '53'}
-                        </span>
+                        <select
+                            value={codigoPaisProfesional}
+                            onChange={(e) => setCodigoPaisProfesional(e.target.value)}
+                            className="w-32 px-2 rounded-l-lg border border-r-0 border-gray-300 bg-gray-50 text-sm"
+                        >
+                            {(window.PHONE_COUNTRIES || []).map((pais) => (
+                                <option key={pais.id} value={pais.codigo}>{pais.bandera} +{pais.codigo}</option>
+                            ))}
+                        </select>
                         <input
                             type="tel"
                             value={form.telefono}
-                            onChange={(e) => {
-                                const value = window.normalizarTelefonoLocal
-                                    ? window.normalizarTelefonoLocal(e.target.value)
-                                    : e.target.value.replace(/\D/g, '');
-                                setForm({...form, telefono: value});
-                            }}
+                            onChange={(e) => setForm({ ...form, telefono: String(e.target.value || '').replace(/\D/g, '') })}
                             className="w-full px-4 py-2 rounded-r-lg border border-gray-300"
-                            placeholder={window.getPhoneCountryConfig ? window.getPhoneCountryConfig().ejemplo : '55002272'}
+                            placeholder={paisProfesional.ejemplo || '55002272'}
                         />
                     </div>
-                    <p className="text-xs text-gray-400 mt-1">{t('Numero local despues del codigo de pais.')}</p>
+                    <p className="text-xs text-gray-400 mt-1">
+                        {t('Con esto entra al panel:')} <span className="font-semibold">+{codigoPaisProfesional} {form.telefono || '…'}</span>
+                    </p>
                 </div>
 
                 <div>

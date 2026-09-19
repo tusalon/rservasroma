@@ -124,7 +124,8 @@ function ProfesionalesPanel() {
 function ProfesionalForm({ profesional, onGuardar, onCancelar }) {
   window.useIdioma();
   const t = window.t;
-  const [form, setForm] = React.useState(profesional ? { ...profesional, password: "" } : {
+  const soloLocal = (valor) => window.localDeProfesional ? window.localDeProfesional(valor) : String(valor || "").replace(/\D/g, "");
+  const [form, setForm] = React.useState(profesional ? { ...profesional, telefono: soloLocal(profesional.telefono), password: "" } : {
     nombre: "",
     especialidad: "",
     telefono: "",
@@ -133,6 +134,13 @@ function ProfesionalForm({ profesional, onGuardar, onCancelar }) {
     color: "bg-amber-600",
     avatar: "👤"
   });
+  const paisGuardado = React.useMemo(() => {
+    const detectado = window.detectarPaisTelefono ? window.detectarPaisTelefono(profesional?.telefono) : null;
+    if (detectado) return detectado.codigo;
+    return window.getCodigoPaisTelefono ? window.getCodigoPaisTelefono() : "53";
+  }, [profesional]);
+  const [codigoPaisProfesional, setCodigoPaisProfesional] = React.useState(paisGuardado);
+  const paisProfesional = window.getCountryByPhoneCode ? window.getCountryByPhoneCode(codigoPaisProfesional) : (window.PHONE_COUNTRIES || []).find((p) => p.codigo === codigoPaisProfesional) || { ejemplo: "55002272" };
   const avatares = ["👤", "💇", "💅", "👑", "⭐", "🔰"];
   const colores = [
     { value: "bg-amber-600", label: t("Ámbar") },
@@ -157,7 +165,10 @@ function ProfesionalForm({ profesional, onGuardar, onCancelar }) {
       alert(t("Ingresa una contraseña para el acceso del profesional"));
       return;
     }
-    const payload = { ...form };
+    const payload = {
+      ...form,
+      telefono: window.telefonoGuardadoDeProfesional ? window.telefonoGuardadoDeProfesional(form.telefono, codigoPaisProfesional) : String(form.telefono || "").replace(/\D/g, "")
+    };
     if (!String(payload.password || "").trim()) {
       delete payload.password;
     }
@@ -191,19 +202,24 @@ function ProfesionalForm({ profesional, onGuardar, onCancelar }) {
       className: "w-full border rounded-lg px-3 py-2"
     },
     niveles.map((n) => /* @__PURE__ */ React.createElement("option", { key: n.value, value: n.value }, n.label))
-  ), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-1" }, niveles.find((n) => n.value === form.nivel)?.desc)), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, t("Teléfono")), /* @__PURE__ */ React.createElement("div", { className: "flex" }, /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center px-3 rounded-l-lg border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm" }, window.getPhoneCountryConfig ? window.getPhoneCountryConfig().bandera : "🇨🇺", " +", window.getPhoneCountryConfig ? window.getPhoneCountryConfig().codigo : "53"), /* @__PURE__ */ React.createElement(
+  ), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-1" }, niveles.find((n) => n.value === form.nivel)?.desc)), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, t("Teléfono")), /* @__PURE__ */ React.createElement("div", { className: "flex" }, /* @__PURE__ */ React.createElement(
+    "select",
+    {
+      value: codigoPaisProfesional,
+      onChange: (e) => setCodigoPaisProfesional(e.target.value),
+      className: "w-32 px-2 rounded-l-lg border border-r-0 border-gray-300 bg-gray-50 text-sm"
+    },
+    (window.PHONE_COUNTRIES || []).map((pais) => /* @__PURE__ */ React.createElement("option", { key: pais.id, value: pais.codigo }, pais.bandera, " +", pais.codigo))
+  ), /* @__PURE__ */ React.createElement(
     "input",
     {
       type: "tel",
       value: form.telefono,
-      onChange: (e) => {
-        const value = window.normalizarTelefonoLocal ? window.normalizarTelefonoLocal(e.target.value) : e.target.value.replace(/\D/g, "");
-        setForm({ ...form, telefono: value });
-      },
+      onChange: (e) => setForm({ ...form, telefono: String(e.target.value || "").replace(/\D/g, "") }),
       className: "w-full px-4 py-2 rounded-r-lg border border-gray-300",
-      placeholder: window.getPhoneCountryConfig ? window.getPhoneCountryConfig().ejemplo : "55002272"
+      placeholder: paisProfesional.ejemplo || "55002272"
     }
-  )), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 mt-1" }, t("Numero local despues del codigo de pais."))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, t("Contraseña")), /* @__PURE__ */ React.createElement(
+  )), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 mt-1" }, t("Con esto entra al panel:"), " ", /* @__PURE__ */ React.createElement("span", { className: "font-semibold" }, "+", codigoPaisProfesional, " ", form.telefono || "…"))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, t("Contraseña")), /* @__PURE__ */ React.createElement(
     "input",
     {
       type: "password",

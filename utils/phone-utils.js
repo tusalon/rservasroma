@@ -20,7 +20,13 @@
         { id: 'IT', nombre: 'Italia',     bandera: '\uD83C\uDDEE\uD83C\uDDF9', codigo: '39',  ejemplo: '3123456789',  localLength: 10 },
         { id: 'FR', nombre: 'Francia',    bandera: '\uD83C\uDDEB\uD83C\uDDF7', codigo: '33',  ejemplo: '612345678',   localLength: 9  },
         { id: 'CN', nombre: 'China',      bandera: '\uD83C\uDDE8\uD83C\uDDF3', codigo: '86',  ejemplo: '13123456789', localLength: 11 },
-        { id: 'DE', nombre: 'Alemania',   bandera: '\uD83C\uDDE9\uD83C\uDDEA', codigo: '49',  ejemplo: '15123456789', localLength: 11 }
+        { id: 'DE', nombre: 'Alemania',   bandera: '\uD83C\uDDE9\uD83C\uDDEA', codigo: '49',  ejemplo: '15123456789', localLength: 11 },
+        // Qatar entra por un caso real: una profesional de Divine Touch se mudo
+        // alli y necesitaba entrar al panel con su numero nuevo. Comprobado
+        // ANTES de anadirlo que ningun numero guardado empieza por 974 con mas
+        // de 8 digitos (0 de 13.510 reservas, 0 de 381 profesionales, 0 de 440
+        // negocios), asi que no cambia como se lee ninguno de los que ya hay.
+        { id: 'QA', nombre: 'Qatar',      bandera: '\uD83C\uDDF6\uD83C\uDDE6', codigo: '974', ejemplo: '33123456',    localLength: 8  }
     ];
 
     // Sugerencia de moneda seg\u00FAn el pa\u00EDs del negocio (Europa -> Euro, M\u00E9xico -> MXN).
@@ -127,6 +133,42 @@
         return local ? `+${country.codigo} ${local}` : `+${country.codigo}`;
     }
 
+    // ---- Telefono de una PROFESIONAL (es su usuario para entrar al panel) ----
+    //
+    // OJO: no se guarda siempre igual, y no es un capricho. El login hace esto
+    // (utils/auth-profesionales.js, telefonoLocalParaLogin): normaliza a
+    // internacional con el codigo del SALON y despues le quita ese prefijo. O
+    // sea que para una profesional del mismo pais que el salon busca el numero
+    // LOCAL, y para una de fuera busca el INTERNACIONAL completo.
+    //
+    // Guardar siempre internacional romperia el acceso de todas las cubanas de
+    // un salon cubano; guardar siempre local haria imposible el caso de una
+    // profesional en el extranjero. Estas dos funciones son el espejo exacto de
+    // lo que hace el login, para que lo guardado y lo buscado coincidan.
+    function telefonoGuardadoDeProfesional(telefonoLocal, codigoPaisProfesional) {
+        const codigoSalon = normalizarCodigoPais(getCodigoPaisTelefono());
+        const internacional = normalizarTelefonoInternacional(telefonoLocal, codigoPaisProfesional);
+        if (!internacional) return '';
+        return internacional.startsWith(codigoSalon)
+            ? internacional.slice(codigoSalon.length)
+            : internacional;
+    }
+
+    // Lo contrario: de lo guardado saca la parte local para pintarla en el
+    // campo, quitando el prefijo del pais que se le detecte (no el del salon:
+    // si no, un numero de Qatar se mostraria entero y al guardar se duplicaria).
+    function localDeProfesional(telefonoGuardado) {
+        const digits = onlyDigits(telefonoGuardado);
+        if (!digits) return '';
+        const pais = detectarTelefonoInternacional(digits);
+        return pais && digits.startsWith(pais.codigo)
+            ? digits.slice(pais.codigo.length)
+            : digits;
+    }
+
+    window.telefonoGuardadoDeProfesional = telefonoGuardadoDeProfesional;
+    window.localDeProfesional = localDeProfesional;
+    window.getCountryByPhoneCode = getCountryByCode;
     window.PHONE_COUNTRIES = COUNTRIES;
     window.DEFAULT_PHONE_COUNTRY_CODE = DEFAULT_COUNTRY_CODE;
     window.onlyPhoneDigits = onlyDigits;
