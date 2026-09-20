@@ -1,6 +1,6 @@
 ﻿// sw.js - Service Worker para Rservasroma
 
-const CACHE_NAME = 'rservasroma-v112';
+const CACHE_NAME = 'rservasroma-v113';
 const BASE = '/rservasroma';
 
 const urlsToCache = [
@@ -104,6 +104,10 @@ const urlsToCache = [
 // URLs externas â€” nunca interceptar
 const BYPASS = [
   'supabase.co',
+  // Roma Finanzas vive en /finanzas/ y trae su PROPIO service worker.
+  // Si este SW le contesta las peticiones, ella arranca en blanco o con
+  // archivos viejos. Se le deja pasar entero y que gestione lo suyo.
+  '/finanzas/',
   'ntfy.sh',
   'unsplash.com',
   'wa.me',

@@ -31,6 +31,9 @@ $files = @(
 # porque todos los <script> apuntan a archivos que no existen en el paquete.
 $directories = @(
     "compiled",
+    # Roma Finanzas ya compilada (viene de su propio repo). Sin esta carpeta
+    # la pestana Finanzas existe en la APK pero abre una pagina que no esta.
+    "finanzas",
     "components",
     "utils",
     "icons",

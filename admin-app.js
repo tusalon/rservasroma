@@ -4134,6 +4134,14 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
             tabs.push({ id: 'profesionales', icono: '👩‍💼', label: t('Profesionales') });
         }
 
+        // Roma Finanzas no es una pestana normal: es otra app servida desde
+        // /finanzas/. Por eso lleva 'url' y no contenido propio aqui.
+        // Solo se comprueba que tenga acceso; si esta vencido lo dice ella,
+        // que es donde vive esa regla. No se duplica aqui.
+        if (userRole === 'admin' && config?.acceso_finanzas) {
+            tabs.push({ id: 'finanzas', icono: '💰', label: t('Finanzas'), url: 'finanzas/?desde=panel' });
+        }
+
         return tabs;
     };
 
@@ -5017,7 +5025,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                 {/* PESTAÑAS */}
                 <div className="bg-white p-2 rounded-xl shadow-sm flex flex-wrap gap-2">
                     {tabsDisponibles.map(tab => (
-                        <button key={tab.id} onClick={() => setTabActivo(tab.id)} className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 ${tabActivo === tab.id ? 'bg-pink-500 text-white shadow-md' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>
+                        <button key={tab.id} onClick={() => tab.url ? (window.location.href = tab.url) : setTabActivo(tab.id)} className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 ${tabActivo === tab.id ? 'bg-pink-500 text-white shadow-md' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>
                             <span>{tab.icono}</span>
                             <span>{tab.label}</span>
                         </button>

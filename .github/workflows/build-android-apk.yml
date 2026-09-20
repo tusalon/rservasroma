@@ -8,6 +8,8 @@ on:
     paths:
       - "android/**"
       - "components/**"
+      # Roma Finanzas viaja dentro de la APK: si cambia su build, hay APK nueva.
+      - "finanzas/**"
       - "icons/**"
       - "images/**"
       - "scripts/**"
