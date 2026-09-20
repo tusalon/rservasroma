@@ -9,19 +9,27 @@ console.log('👤 auth-profesionales.js cargado');
 // FUNCIONES DE AUTENTICACIÓN PARA PROFESIONALES
 // ============================================
 
-// profesionales.telefono se guarda en formato LOCAL (sin codigo de pais), asi
-// que hay que llegar a esa misma forma escriba el profesional su numero suelto
-// (54349239) o completo (5354349239).
+// profesionales.telefono NO se guarda siempre igual: la del mismo pais que el
+// salon se guarda LOCAL (54349239) y la que vive fuera, INTERNACIONAL completa
+// (97466438320). Esa regla vive en telefonoGuardadoDeProfesional (phone-utils),
+// que es la que usa el panel al guardar la ficha.
 //
-// Ojo: normalizarTelefonoLocal(valor, pais) NO quita el prefijo cuando se le
-// pasa el pais explicito — solo lo hace cuando lo deduce. Por eso se pasa por
-// la forma internacional y se recorta el codigo, que funciona en los dos casos.
-function telefonoLocalParaLogin(telefono, codigoPais) {
-    const codigo = String(codigoPais || '').replace(/\D/g, '');
+// Aqui se LLAMA a esa misma funcion en vez de repetirla. Antes habia una copia
+// y se desincronizaron: el panel aprendio a guardar numeros de otro pais y el
+// login siguio dando por hecho que todo el mundo era del pais del salon. Yanela
+// (Divine Touch, vive en Qatar) tecleaba su numero de alla y no entraba.
+//
+// codigoPaisProfesional es el pais que ELLA elige en la pantalla de entrada.
+// Si no viene, se asume el del salon, que es el caso de 377 de las 381.
+function telefonoLocalParaLogin(telefono, codigoPais, codigoPaisProfesional) {
+    const codigoSalon = String(codigoPais || '').replace(/\D/g, '');
 
-    if (codigo && window.normalizarTelefonoInternacional) {
-        const internacional = window.normalizarTelefonoInternacional(telefono, codigo);
-        return internacional.startsWith(codigo) ? internacional.slice(codigo.length) : internacional;
+    if (codigoSalon && window.telefonoGuardadoDeProfesional) {
+        return window.telefonoGuardadoDeProfesional(
+            telefono,
+            codigoPaisProfesional || codigoSalon,
+            codigoSalon
+        );
     }
 
     // Sin pais conocido (login desde la app de clientas, con el negocio ya en
@@ -37,7 +45,7 @@ function telefonoLocalParaLogin(telefono, codigoPais) {
 window.loginProfesional = async function(telefono, password, opciones = {}) {
     try {
         const negocioId = opciones.negocioId || getNegocioId();
-        const telefonoLimpio = telefonoLocalParaLogin(telefono, opciones.codigoPais);
+        const telefonoLimpio = telefonoLocalParaLogin(telefono, opciones.codigoPais, opciones.codigoPaisProfesional);
         const passwordLimpio = String(password || '').trim();
         if (!negocioId || !telefonoLimpio || !passwordLimpio) {
             return null;

@@ -33,12 +33,21 @@ function cargarPhoneUtils(codigoPaisDelSalon) {
     return window;
 }
 
-// Copia EXACTA de telefonoLocalParaLogin (utils/auth-profesionales.js). Si esa
-// cambia y esta no, el test falla y avisa: es justo lo que queremos.
-function loQueBuscaElLogin(w, telefonoQueTeclea, codigoPaisDelSalon) {
-    const codigo = String(codigoPaisDelSalon || '').replace(/\D/g, '');
-    const internacional = w.normalizarTelefonoInternacional(telefonoQueTeclea, codigo);
-    return internacional.startsWith(codigo) ? internacional.slice(codigo.length) : internacional;
+// Copia EXACTA de telefonoLocalParaLogin (utils/auth-profesionales.js).
+//
+// Antes esta copia repetia la logica a mano, y por eso NO detecto el fallo de
+// Yanela: el panel aprendio a guardar numeros de otro pais y el login siguio
+// dando por hecho el pais del salon. El test pasaba porque probaba la copia,
+// no lo que corria en su telefono.
+// Ahora el login llama a telefonoGuardadoDeProfesional, la misma que usa el
+// panel al guardar. Aqui se refleja eso: si se vuelven a separar, falla.
+function loQueBuscaElLogin(w, telefonoQueTeclea, codigoPaisDelSalon, codigoPaisProfesional) {
+    const codigoSalon = String(codigoPaisDelSalon || '').replace(/\D/g, '');
+    return w.telefonoGuardadoDeProfesional(
+        telefonoQueTeclea,
+        codigoPaisProfesional || codigoSalon,
+        codigoSalon
+    );
 }
 
 // --- Salón cubano, profesional cubana: nada cambia respecto a hoy ---
@@ -117,6 +126,44 @@ function loQueBuscaElLogin(w, telefonoQueTeclea, codigoPaisDelSalon) {
     assert.equal(w.telefonoGuardadoDeProfesional(null, '53'), '');
     assert.equal(w.localDeProfesional(''), '');
     assert.equal(w.localDeProfesional(null), '');
+}
+
+// --- EL FALLO REAL DE YANELA (Divine Touch, vive en Qatar) ---
+// La duena guardo su numero con el selector: quedo 97466438320. Yanela entro
+// y tecleo SU numero, el de alla, que es lo que hace cualquiera. No entraba.
+{
+    const w = cargarPhoneUtils('53');
+    const GUARDADO = w.telefonoGuardadoDeProfesional('66438320', '974');
+    assert.equal(GUARDADO, '97466438320', 'es lo que la duena dejo guardado de verdad');
+
+    // Eligiendo Qatar en la pantalla de entrada, teclea solo su numero:
+    assert.equal(loQueBuscaElLogin(w, '66438320', '53', '974'), GUARDADO,
+        'con su pais elegido, entra tecleando su numero de siempre');
+
+    // Y sigue entrando si lo escribe completo, de las formas en que se escribe:
+    ['97466438320', '+974 66438320', '+97466438320', '00974 66438320'].forEach((tecleado) => {
+        assert.equal(loQueBuscaElLogin(w, tecleado, '53', '974'), GUARDADO, tecleado);
+        assert.equal(loQueBuscaElLogin(w, tecleado, '53'), GUARDADO, tecleado + ' sin elegir pais');
+    });
+}
+
+// --- El 00 de marcacion internacional no puede colarse en el numero ---
+{
+    const w = cargarPhoneUtils('53');
+    assert.equal(w.normalizarTelefonoInternacional('0053 52014345'), '5352014345');
+    assert.equal(w.normalizarTelefonoLocal('005352014345'), '52014345');
+    // Un numero normal que empieza por 0 no se toca (no hay dos ceros).
+    assert.equal(w.normalizarTelefonoLocal('052014345'), '052014345');
+}
+
+// --- Las 377 que trabajan donde su salon: nada les cambia ---
+// Sin elegir pais, el login tiene que dar exactamente lo mismo que antes.
+{
+    const w = cargarPhoneUtils('53');
+    [['52014345', '52014345'], ['5352014345', '52014345'], ['+53 52014345', '52014345']]
+        .forEach(([tecleado, esperado]) => {
+            assert.equal(loQueBuscaElLogin(w, tecleado, '53'), esperado, tecleado);
+        });
 }
 
 console.log('OK: telefono-profesional.test.js');

@@ -46,6 +46,13 @@
 
     const onlyDigits = (value) => String(value || '').replace(/\D/g, '');
 
+    // Quien vive fuera marca "00" delante del pais (00974...) porque asi se
+    // llama desde alli. Es prefijo de marcacion, no parte del numero, y sin
+    // quitarlo no entra nadie. Comprobado antes de tocarlo que NINGUN numero
+    // guardado empieza por 00: 0 de 381 profesionales, 0 de 13.625 reservas
+    // y 0 de 4.698 clientas.
+    const quitarIdd = (digits) => digits.replace(/^00(?=\d{6,})/, '');
+
     function normalizarCodigoPais(value) {
         const digits = onlyDigits(value);
         return digits || DEFAULT_COUNTRY_CODE;
@@ -90,7 +97,7 @@
     }
 
     function normalizarTelefonoLocal(value, codigoPais = null) {
-        const digits = onlyDigits(value);
+        const digits = quitarIdd(onlyDigits(value));
         if (!digits) return '';
 
         const codigoExplicito = codigoPais !== null && codigoPais !== undefined && String(codigoPais).trim() !== '';
@@ -105,7 +112,7 @@
     }
 
     function normalizarTelefonoInternacional(value, codigoPais = null) {
-        const digits = onlyDigits(value);
+        const digits = quitarIdd(onlyDigits(value));
         const codigoExplicito = codigoPais !== null && codigoPais !== undefined && String(codigoPais).trim() !== '';
 
         if (!codigoExplicito) {
@@ -145,8 +152,8 @@
     // un salon cubano; guardar siempre local haria imposible el caso de una
     // profesional en el extranjero. Estas dos funciones son el espejo exacto de
     // lo que hace el login, para que lo guardado y lo buscado coincidan.
-    function telefonoGuardadoDeProfesional(telefonoLocal, codigoPaisProfesional) {
-        const codigoSalon = normalizarCodigoPais(getCodigoPaisTelefono());
+    function telefonoGuardadoDeProfesional(telefonoLocal, codigoPaisProfesional, codigoPaisSalon = null) {
+        const codigoSalon = normalizarCodigoPais(codigoPaisSalon || getCodigoPaisTelefono());
         const internacional = normalizarTelefonoInternacional(telefonoLocal, codigoPaisProfesional);
         if (!internacional) return '';
         return internacional.startsWith(codigoSalon)

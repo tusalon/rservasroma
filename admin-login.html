@@ -92,7 +92,7 @@
 
     .input-wrap { position: relative; }
 
-    input {
+    input, select {
       width: 100%;
       background: rgba(255,255,255,0.06);
       border: 1.5px solid rgba(255,255,255,0.10);
@@ -104,7 +104,9 @@
       transition: border-color 0.2s;
     }
 
-    input:focus { border-color: #FF1493; }
+    input:focus, select:focus { border-color: #FF1493; }
+    select { appearance: none; cursor: pointer; margin-bottom: 8px; }
+    select option { background: #1A1A1A; color: #fff; }
     input::placeholder { color: rgba(255,255,255,0.25); }
 
     .toggle-eye {
@@ -254,6 +256,12 @@
 
       <div class="field hidden" id="campoTelefono">
         <label for="telefono" id="txtLabelTelefono">Tu teléfono</label>
+        <!-- Solo lo toca quien vive en otro pais. Si se deja como esta, el
+             login se comporta igual que siempre para las 377 de 381 que
+             trabajan en el mismo pais que su salon. -->
+        <select id="paisTelefono">
+          <option value="">Mismo país del salón</option>
+        </select>
         <input type="tel" id="telefono" placeholder="51234567" autocomplete="tel">
       </div>
 
@@ -290,8 +298,8 @@
   <script src="utils/i18n.js?v=20260904-recordar1"></script>
   <!-- phone-utils normaliza el teléfono del profesional al mismo formato local
        con el que se guardó; auth-profesionales trae loginProfesional(). -->
-  <script src="utils/phone-utils.js?v=20260919-telqatar1"></script>
-  <script src="utils/auth-profesionales.js?v=20260809-login-profesional"></script>
+  <script src="utils/phone-utils.js?v=20260920-telpaislogin1"></script>
+  <script src="utils/auth-profesionales.js?v=20260920-telpaislogin1"></script>
   <script src="utils/offline-panel.js?v=20260626-offline-panel-live"></script>
   <script>window.SOPORTE_ORIGEN = 'panel';</script>
   <script src="utils/soporte.js?v=20260906-soporteA1"></script>
@@ -321,6 +329,16 @@
       errorMsg.classList.add('hidden');
       errorMsg.textContent = '';
     }
+
+    (function llenarPaises() {
+      var sel = document.getElementById('paisTelefono');
+      (window.PHONE_COUNTRIES || []).forEach(function(pais) {
+        var o = document.createElement('option');
+        o.value = pais.codigo;
+        o.textContent = pais.bandera + '  ' + pais.nombre + '  +' + pais.codigo;
+        sel.appendChild(o);
+      });
+    })();
 
     document.getElementById('toggleModo').addEventListener('click', function() {
       modoProfesional = !modoProfesional;
@@ -508,7 +526,9 @@
           var telefono = document.getElementById('telefono').value.trim();
           var profesional = await window.loginProfesional(telefono, password, {
             negocioId: negocio.id,
-            codigoPais: negocio.codigo_pais
+            codigoPais: negocio.codigo_pais,
+            // Vacio = el del salon. Solo llega con valor si ella lo cambio.
+            codigoPaisProfesional: document.getElementById('paisTelefono').value || null
           });
 
           if (!profesional) {
