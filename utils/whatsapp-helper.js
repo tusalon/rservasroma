@@ -75,8 +75,7 @@ async function calcularMontoAnticipo(configNegocio, servicioNombre) {
         const total = serviciosEncontrados.reduce((suma, servicio) => {
             return suma + window.getAnticipoServicio(servicio, configNegocio);
         }, 0);
-        const moneda = String(configNegocio?.whatsapp_moneda || 'CUP').toUpperCase();
-        return moneda === 'USD' ? Math.round(total * 100) / 100 : Math.round(total);
+        return redondearAnticipo(total, configNegocio, serviciosEncontrados);
     }
 
     if (configNegocio.tipo_anticipo === 'fijo') {
@@ -107,9 +106,16 @@ async function calcularMontoAnticipo(configNegocio, servicioNombre) {
 
     const porcentaje = (configNegocio.valor_anticipo || 0) / 100;
     const resultado = precioServicio * porcentaje;
-    // Para CUP redondear a entero, el resto de monedas preserva 2 decimales
-    const moneda = String(configNegocio?.whatsapp_moneda || 'CUP').toUpperCase();
-    return moneda === 'CUP' ? Math.round(resultado) : Math.round(resultado * 100) / 100;
+    return redondearAnticipo(resultado, configNegocio, await serviciosDeReservaPorNombre(servicioNombre));
+}
+
+// CUP en enteros, el resto con centavos, segun la moneda EN QUE VA el anticipo
+// (no la del negocio: un 50% de 25 USD son 12.50 USD, no 13).
+function redondearAnticipo(valor, configNegocio, servicios) {
+    const moneda = window.getMonedaAnticipo
+        ? window.getMonedaAnticipo(configNegocio, servicios)
+        : String(configNegocio?.whatsapp_moneda || 'CUP').toUpperCase();
+    return moneda === 'CUP' ? Math.round(valor) : Math.round(valor * 100) / 100;
 }
 
 // Devuelve { min, max }. Iguales cuando el servicio tiene precio fijo; se
@@ -233,11 +239,19 @@ function formatearMontoReserva(monto, moneda = 'CUP') {
 // del negocio. El porcentaje y el anticipo propio de cada servicio salen del
 // precio del servicio, asi que van en la moneda del servicio. Si la reserva
 // mezcla monedas no hay una sola correcta y se queda la del negocio.
-function monedaDelAnticipo(configNegocio = {}, totalReserva = null) {
-    const delNegocio = getPreferenciasWhatsApp(configNegocio).moneda;
-    const esFijoGlobal = !configNegocio?.anticipos_por_servicio && configNegocio?.tipo_anticipo === 'fijo';
-    if (esFijoGlobal) return delNegocio;
-    return (totalReserva && totalReserva.moneda) || delNegocio;
+// La regla vive en utils/servicios.js (getMonedaAnticipo); aqui solo se le
+// pasan los servicios de la reserva.
+function monedaDelAnticipo(configNegocio = {}, servicios = []) {
+    return window.getMonedaAnticipo
+        ? window.getMonedaAnticipo(configNegocio, servicios)
+        : getPreferenciasWhatsApp(configNegocio).moneda;
+}
+
+async function serviciosDeReservaPorNombre(nombreServicio) {
+    if (!window.salonServicios) return [];
+    const nombres = String(nombreServicio || '').split(' + ').map(n => n.trim()).filter(Boolean);
+    const servicios = await window.salonServicios.getAll(true);
+    return servicios.filter(s => nombres.includes(s.nombre));
 }
 
 function getPreferenciasWhatsApp(configNegocio = {}) {
@@ -484,7 +498,7 @@ window.enviarMensajePago = async function(booking, configNegocio) {
         const totalReserva = await calcularTotalReserva(booking);
         const lineaTotalReserva = generarLineaTotalReserva(totalReserva, configNegocio);
         const totalPagar = formatearMontoWhatsApp(totalReserva, configNegocio);
-        const montoAnticipoFormateado = formatearMontoReserva(montoAnticipo, monedaDelAnticipo(configNegocio, totalReserva));
+        const montoAnticipoFormateado = formatearMontoReserva(montoAnticipo, monedaDelAnticipo(configNegocio, await serviciosDeReservaPorNombre(booking.servicio)));
         const { fechaConDia, horaFormateada } = getFechaHora(booking);
         const profesional = getProfesional(booking);
         const lineaCalendario = generarLineaCalendarioCliente(booking);
@@ -711,7 +725,7 @@ window.notificarReservaPendiente = async function(booking) {
         const totalReserva = await calcularTotalReserva(booking);
         const lineaTotalReserva = generarLineaTotalReserva(totalReserva, configNegocio);
         const totalPagar = formatearMontoWhatsApp(totalReserva, configNegocio);
-        const montoAnticipoFormateado = formatearMontoReserva(montoAnticipo, monedaDelAnticipo(configNegocio, totalReserva));
+        const montoAnticipoFormateado = formatearMontoReserva(montoAnticipo, monedaDelAnticipo(configNegocio, await serviciosDeReservaPorNombre(booking.servicio)));
         const { fechaConDia, horaFormateada } = getFechaHora(booking);
         const profesional = getProfesional(booking);
         const lineaCalendario = generarLineaCalendarioCliente(booking);

@@ -72,15 +72,56 @@ function getAnticipoServicio(servicio = {}, configNegocio = {}) {
     return getPrecioServicioBase(servicio) * (valorGlobal / 100);
 }
 
-function calcularMontoAnticipoReservaSync(configNegocio = {}, servicioSeleccionado = {}) {
-    if (!configNegocio?.requiere_anticipo) return 0;
-    const servicios = servicioSeleccionado?.esMultiple && Array.isArray(servicioSeleccionado.servicios)
+function serviciosDeSeleccion(servicioSeleccionado = {}) {
+    return servicioSeleccionado?.esMultiple && Array.isArray(servicioSeleccionado.servicios)
         ? servicioSeleccionado.servicios
         : [servicioSeleccionado].filter(Boolean);
+}
 
+// EN QUE MONEDA VA EL ANTICIPO. Es la unica regla; la usan la pantalla de
+// reserva, la de confirmacion y el WhatsApp.
+//
+// - PORCENTAJE (global o del servicio): sale del precio del servicio, asi que
+//   va en la moneda del servicio. Un 50% de 25 USD son 12.50 USD.
+// - FIJO (global o del servicio): es un numero que escribe la duena, y no se
+//   guarda en que moneda. Va en la del negocio, como siempre. Medido el
+//   23-09-2026 en los 11 salones con anticipo fijo propio en servicios en USD:
+//   7 lo pusieron en CUP (OASIS: servicio de 6 USD, anticipo 1000) y 4 en USD
+//   (Eden Studio 1, Roy Skin 2...). Tomar la moneda del servicio le pediria a
+//   una clienta "1000 USD" por una limpieza de 6.
+// - Si la reserva junta servicios cuyo anticipo va en monedas distintas, no
+//   hay una sola correcta: la del negocio.
+function getMonedaNegocio(configNegocio = {}) {
+    const moneda = String(configNegocio?.whatsapp_moneda || '').toUpperCase();
+    return ['CUP', 'USD', 'EUR', 'MXN'].includes(moneda) ? moneda : 'CUP';
+}
+
+function getMonedaAnticipoServicio(servicio = {}, configNegocio = {}) {
+    const propio = configNegocio?.anticipos_por_servicio
+        && servicio.requiere_anticipo === true
+        && parsePrecioServicio(servicio.valor_anticipo, 0) > 0;
+    const tipo = propio ? servicio.tipo_anticipo : configNegocio?.tipo_anticipo;
+    return tipo === 'porcentaje' ? getMonedaServicio(servicio) : getMonedaNegocio(configNegocio);
+}
+
+// seleccion: el servicio elegido, uno multiple ({ esMultiple, servicios }) o
+// una lista de servicios.
+function getMonedaAnticipo(configNegocio = {}, seleccion = null) {
+    const servicios = Array.isArray(seleccion) ? seleccion : (seleccion ? serviciosDeSeleccion(seleccion) : []);
+    const monedas = [...new Set(servicios.map(servicio => getMonedaAnticipoServicio(servicio, configNegocio)))];
+    return monedas.length === 1 ? monedas[0] : getMonedaNegocio(configNegocio);
+}
+
+// CUP se cobra en enteros; USD, EUR y MXN llevan centavos.
+function redondearSegunMoneda(valor, moneda) {
+    return moneda === 'CUP' ? Math.round(valor) : Math.round(valor * 100) / 100;
+}
+
+function calcularMontoAnticipoReservaSync(configNegocio = {}, servicioSeleccionado = {}) {
+    if (!configNegocio?.requiere_anticipo) return 0;
+    const servicios = serviciosDeSeleccion(servicioSeleccionado);
     const total = servicios.reduce((suma, servicio) => suma + getAnticipoServicio(servicio, configNegocio), 0);
-    const moneda = String(configNegocio?.whatsapp_moneda || 'CUP').toUpperCase();
-    return moneda === 'USD' ? Math.round(total * 100) / 100 : Math.round(total);
+    return redondearSegunMoneda(total, getMonedaAnticipo(configNegocio, servicioSeleccionado));
 }
 
 window.parsePrecioServicio = parsePrecioServicio;
@@ -90,6 +131,8 @@ window.getPrecioServicioHasta = getPrecioServicioHasta;
 window.getMonedaServicio = getMonedaServicio;
 window.getAnticipoServicio = getAnticipoServicio;
 window.calcularMontoAnticipoReservaSync = calcularMontoAnticipoReservaSync;
+window.getMonedaAnticipo = getMonedaAnticipo;
+window.redondearSegunMoneda = redondearSegunMoneda;
 
 function extraerColumnaFaltante(errorTexto) {
     const texto = String(errorTexto || '');

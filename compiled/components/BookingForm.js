@@ -12,7 +12,7 @@ function BookingForm({ service, profesional, date, time, onSubmit, onCancel, cli
         const configNegocio = await window.cargarConfiguracionNegocio();
         const monto = window.calcularMontoAnticipoReservaSync ? window.calcularMontoAnticipoReservaSync(configNegocio, service) : 0;
         const requiere = configNegocio?.requiere_anticipo === true && (!configNegocio?.anticipos_por_servicio || monto > 0);
-        const moneda = window.getPreferenciasWhatsAppNegocio ? window.getPreferenciasWhatsAppNegocio().moneda || "" : "";
+        const moneda = window.getMonedaAnticipo ? window.getMonedaAnticipo(configNegocio, service) : window.getPreferenciasWhatsAppNegocio ? window.getPreferenciasWhatsAppNegocio().moneda || "" : "";
         if (vigente) setAnticipoInfo({ requiere, monto, moneda });
       } catch (e) {
       }
@@ -115,7 +115,8 @@ function BookingForm({ service, profesional, date, time, onSubmit, onCancel, cli
           hora_inicio: time,
           hora_fin: cursor,
           reservas_relacionadas: creadas,
-          _montoAnticipo: requiereAnticipo2 ? montoAnticipoReserva2 : 0
+          _montoAnticipo: requiereAnticipo2 ? montoAnticipoReserva2 : 0,
+          _monedaAnticipo: window.getMonedaAnticipo ? window.getMonedaAnticipo(configNegocio2, service) : ""
         };
         try {
           if (requiereAnticipo2) {
@@ -184,7 +185,7 @@ function BookingForm({ service, profesional, date, time, onSubmit, onCancel, cli
         } catch (errPosterior) {
           console.error("Reserva creada; falló la notificación al salón:", errPosterior);
         }
-        onSubmit({ ...result.data, _montoAnticipo: requiereAnticipo ? montoAnticipoReserva : 0 });
+        onSubmit({ ...result.data, _montoAnticipo: requiereAnticipo ? montoAnticipoReserva : 0, _monedaAnticipo: window.getMonedaAnticipo ? window.getMonedaAnticipo(configNegocio, service) : "" });
       } else {
         setError(t("No se pudo guardar la reserva. Intenta de nuevo."));
       }

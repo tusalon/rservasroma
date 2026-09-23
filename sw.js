@@ -1,6 +1,6 @@
 ﻿// sw.js - Service Worker para Rservasroma
 
-const CACHE_NAME = 'rservasroma-v115';
+const CACHE_NAME = 'rservasroma-v116';
 const BASE = '/rservasroma';
 
 const urlsToCache = [
@@ -36,13 +36,13 @@ const urlsToCache = [
   `${BASE}/utils/profesionales.js`,
   `${BASE}/utils/push-config.js?v=20260717-push-activo`,
   `${BASE}/utils/push-notifications.js?v=20260722-platform-v4`,
-  `${BASE}/utils/servicios.js`,
+  `${BASE}/utils/servicios.js?v=20260923-anticipo1`,
   `${BASE}/utils/storage.js?v=20260905-soporte1`,
   `${BASE}/utils/catalogo.js?v=20260906-negocioid1`,
   `${BASE}/utils/suscripcion.js?v=20260904-recordar1`,
   `${BASE}/utils/supabase-config.js?v=20260723-fotos`,
   `${BASE}/utils/timeLogic.js`,
-  `${BASE}/utils/whatsapp-helper.js?v=20260923-moneda1`,
+  `${BASE}/utils/whatsapp-helper.js?v=20260923-anticipo1`,
   `${BASE}/utils/soporte.js?v=20260906-soporteA1`,
   `${BASE}/utils/legacy-ios-fallback.css?v=20260904-bordes1`,
   `${BASE}/utils/roma-typography.css?v=20260731-tipografia`,
@@ -52,11 +52,11 @@ const urlsToCache = [
   `${BASE}/utils/frases-motivacionales.js?v=20260826-frases1`,
 
   // Componentes cliente (compilados)
-  `${BASE}/compiled/components/BookingForm.js?v=20260818-catalogo`,
+  `${BASE}/compiled/components/BookingForm.js?v=20260923-anticipo1`,
   `${BASE}/compiled/components/Catalogo.js?v=20260906-precios1`,
   `${BASE}/compiled/components/Calendar.js?v=20260723-jsx1`,
   `${BASE}/compiled/components/ClientAuthScreen.js?v=20260903-aprobacion1`,
-  `${BASE}/compiled/components/Confirmation.js?v=20260806-tel-prefijo`,
+  `${BASE}/compiled/components/Confirmation.js?v=20260923-anticipo1`,
   `${BASE}/compiled/components/Header.js?v=20260731-marca`,
   `${BASE}/compiled/components/InstallButton.js?v=20260723-jsx1`,
   `${BASE}/compiled/components/MultiProfesionalSelector.js?v=20260723-jsx1`,

@@ -81,16 +81,51 @@ const NEGOCIO_SIN_TOCAR = { whatsapp_moneda: 'CUP', whatsapp_mostrar_costos: tru
         assert.equal(w.formatearMontoWhatsApp(total, NEGOCIO_SIN_TOCAR), '500 CUP');
     }
 
-    // --- Anticipo ---
+    // --- Anticipo: de que moneda es (regla unica en utils/servicios.js) ---
     {
-        const w = cargarHelper([{ id: 1, nombre: 'Masaje', precio: 20, precio_moneda: 'USD' }]);
-        const total = await w.calcularTotalReserva({ servicio: 'Masaje' });
-        // Porcentaje: sale del precio del servicio -> moneda del servicio.
-        assert.equal(w.monedaDelAnticipo({ whatsapp_moneda: 'CUP', tipo_anticipo: 'porcentaje' }, total), 'USD');
-        // Fijo global: lo escribio la duena en Editar Negocio -> moneda del negocio.
-        assert.equal(w.monedaDelAnticipo({ whatsapp_moneda: 'CUP', tipo_anticipo: 'fijo' }, total), 'CUP');
-        // Por servicio: va junto al precio del servicio -> moneda del servicio.
-        assert.equal(w.monedaDelAnticipo({ whatsapp_moneda: 'CUP', anticipos_por_servicio: true }, total), 'USD');
+        const w = cargarHelper([]);
+        const g = w.window.getMonedaAnticipo;
+        const masaje = { nombre: 'Masaje', precio: 25, precio_moneda: 'USD' };
+        const negocioCUP = { requiere_anticipo: true, whatsapp_moneda: 'CUP' };
+
+        // Porcentaje global: sale del precio -> moneda del servicio, con centavos.
+        const porc = { ...negocioCUP, tipo_anticipo: 'porcentaje', valor_anticipo: 50 };
+        assert.equal(g(porc, masaje), 'USD');
+        assert.equal(w.window.calcularMontoAnticipoReservaSync(porc, masaje), 12.5, '12.50, no 13');
+
+        // Fijo global: lo escribio la duena -> moneda del negocio.
+        const fijo = { ...negocioCUP, tipo_anticipo: 'fijo', valor_anticipo: 500 };
+        assert.equal(g(fijo, masaje), 'CUP');
+        assert.equal(w.window.calcularMontoAnticipoReservaSync(fijo, masaje), 500);
+
+        // EL CASO REAL DE OASIS: servicio de 6 USD con anticipo FIJO propio de
+        // 1000. Ese 1000 es CUP. Si saliera "1000 USD" la clienta huye.
+        const oasis = { ...negocioCUP, anticipos_por_servicio: true, tipo_anticipo: 'fijo', valor_anticipo: 1000 };
+        const limpieza = { nombre: 'Limpieza facial', precio: 6, precio_moneda: 'USD', requiere_anticipo: true, tipo_anticipo: 'fijo', valor_anticipo: 1000 };
+        assert.equal(g(oasis, limpieza), 'CUP');
+
+        // Porcentaje propio del servicio -> moneda del servicio.
+        const conPorcPropio = { ...limpieza, tipo_anticipo: 'porcentaje', valor_anticipo: 50 };
+        assert.equal(g(oasis, conPorcPropio), 'USD');
+        assert.equal(w.window.calcularMontoAnticipoReservaSync(oasis, conPorcPropio), 3);
+
+        // Anticipos de monedas distintas en una reserva: la del negocio.
+        assert.equal(g(oasis, { esMultiple: true, servicios: [limpieza, conPorcPropio] }), 'CUP');
+        assert.equal(g(porc, null), 'CUP', 'sin servicios: la del negocio');
+
+        // Todo en CUP, como la mayoria: en enteros, igual que antes.
+        assert.equal(w.window.calcularMontoAnticipoReservaSync(porc, { nombre: 'Manicura', precio: 333, precio_moneda: 'CUP' }), 167);
+    }
+
+    // --- El WhatsApp usa la misma regla ---
+    {
+        const w = cargarHelper([{ id: 1, nombre: 'Masaje', precio: 25, precio_moneda: 'USD' }]);
+        const porc = { requiere_anticipo: true, tipo_anticipo: 'porcentaje', valor_anticipo: 50, whatsapp_moneda: 'CUP' };
+        assert.equal(await w.calcularMontoAnticipo(porc, 'Masaje'), 12.5);
+        const servicios = await w.serviciosDeReservaPorNombre('Masaje');
+        assert.equal(w.formatearMontoReserva(12.5, w.monedaDelAnticipo(porc, servicios)), '12.50 USD');
+        const fijo = { requiere_anticipo: true, tipo_anticipo: 'fijo', valor_anticipo: 500, whatsapp_moneda: 'CUP' };
+        assert.equal(w.formatearMontoReserva(500, w.monedaDelAnticipo(fijo, servicios)), '500 CUP');
     }
 
     console.log('OK: moneda-whatsapp.test.js');

@@ -77,7 +77,9 @@ function Confirmation({ booking, onReset }) {
     const esPendientePago = booking.estado === 'Pendiente';
     const montoAnticipo = Number(booking._montoAnticipo || 0);
     const monedaNegocio = window.getPreferenciasWhatsAppNegocio ? (window.getPreferenciasWhatsAppNegocio().moneda || '') : '';
-    const textoAnticipo = montoAnticipo > 0 ? `${montoAnticipo} ${monedaNegocio}`.trim() : '';
+    // _monedaAnticipo la pone BookingForm con la regla unica (moneda del servicio);
+    // la del negocio queda solo para reservas que llegan sin ella.
+    const textoAnticipo = montoAnticipo > 0 ? `${montoAnticipo} ${booking._monedaAnticipo || monedaNegocio}`.trim() : '';
     // Sin normalizar, un movil local (8 digitos en Cuba) llegaba a wa.me sin
     // codigo de pais y WhatsApp respondia "numero invalido".
     const telefonoAnticipo = telefonoDuenno && window.normalizarTelefonoInternacional

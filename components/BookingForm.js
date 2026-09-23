@@ -22,7 +22,11 @@ function BookingForm({ service, profesional, date, time, onSubmit, onCancel, cli
                     ? window.calcularMontoAnticipoReservaSync(configNegocio, service)
                     : 0;
                 const requiere = configNegocio?.requiere_anticipo === true && (!configNegocio?.anticipos_por_servicio || monto > 0);
-                const moneda = window.getPreferenciasWhatsAppNegocio ? (window.getPreferenciasWhatsAppNegocio().moneda || '') : '';
+                // La moneda del anticipo sale de la regla unica (utils/servicios.js),
+                // no del negocio: un servicio de 20 USD pide el anticipo en USD.
+                const moneda = window.getMonedaAnticipo
+                    ? window.getMonedaAnticipo(configNegocio, service)
+                    : (window.getPreferenciasWhatsAppNegocio ? (window.getPreferenciasWhatsAppNegocio().moneda || '') : '');
                 if (vigente) setAnticipoInfo({ requiere, monto, moneda });
             } catch (e) {}
         };
@@ -146,7 +150,8 @@ function BookingForm({ service, profesional, date, time, onSubmit, onCancel, cli
                     hora_inicio: time,
                     hora_fin: cursor,
                     reservas_relacionadas: creadas,
-                    _montoAnticipo: requiereAnticipo ? montoAnticipoReserva : 0
+                    _montoAnticipo: requiereAnticipo ? montoAnticipoReserva : 0,
+                    _monedaAnticipo: window.getMonedaAnticipo ? window.getMonedaAnticipo(configNegocio, service) : ''
                 };
 
                 // Avisar al salón no debe ocultar una reserva ya creada si falla.
@@ -239,7 +244,7 @@ function BookingForm({ service, profesional, date, time, onSubmit, onCancel, cli
                     console.error('Reserva creada; falló la notificación al salón:', errPosterior);
                 }
 
-                onSubmit({ ...result.data, _montoAnticipo: requiereAnticipo ? montoAnticipoReserva : 0 });
+                onSubmit({ ...result.data, _montoAnticipo: requiereAnticipo ? montoAnticipoReserva : 0, _monedaAnticipo: window.getMonedaAnticipo ? window.getMonedaAnticipo(configNegocio, service) : '' });
             } else {
                 setError(t('No se pudo guardar la reserva. Intenta de nuevo.'));
             }
