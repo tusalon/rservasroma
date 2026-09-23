@@ -133,20 +133,36 @@ async function calcularTotalReserva(booking) {
         return unico ? [unico] : [];
     };
 
+    // LA MONEDA SALE DE LOS SERVICIOS, NO DEL NEGOCIO
+    // La clienta ve cada precio con su servicios.precio_moneda ("25 USD"),
+    // pero el mensaje usaba negocios.whatsapp_moneda, que casi nadie toca y
+    // vale CUP por defecto. Medido: 23 salones con servicios en USD/EUR y el
+    // WhatsApp diciendo otra cosa. 8 de ellos tienen servicios MEZCLADOS
+    // (LAG Barberia: 4 en CUP y 11 en USD), asi que una moneda por negocio no
+    // puede acertar nunca. Se suma por moneda y, si hay mas de una, se
+    // escriben por separado: 25 USD + 500 CUP no se pueden sumar.
     const rangoPorServicios = async () => {
         const servicios = await serviciosDeLaReserva();
-        return servicios.reduce((rango, servicio) => {
+        const porMoneda = {};
+        servicios.forEach((servicio) => {
+            const moneda = window.getMonedaServicio ? window.getMonedaServicio(servicio) : null;
             const desde = window.getPrecioServicioBase
                 ? window.getPrecioServicioBase(servicio)
                 : (parseFloat(servicio.precio) || 0);
             const hasta = window.getPrecioServicioHasta
                 ? window.getPrecioServicioHasta(servicio)
                 : null;
-            return {
-                min: rango.min + desde,
-                max: rango.max + (hasta && hasta > desde ? hasta : desde)
-            };
-        }, { min: 0, max: 0 });
+            const clave = moneda || '';
+            const parte = porMoneda[clave] || { moneda, min: 0, max: 0 };
+            parte.min += desde;
+            parte.max += (hasta && hasta > desde ? hasta : desde);
+            porMoneda[clave] = parte;
+        });
+        const partes = Object.values(porMoneda);
+        const rango = partes.reduce((r, p) => ({ min: r.min + p.min, max: r.max + p.max }), { min: 0, max: 0 });
+        if (partes.length === 1 && partes[0].moneda) rango.moneda = partes[0].moneda;
+        if (partes.length > 1) rango.partes = partes;
+        return rango;
     };
 
     const rango = await rangoPorServicios();
@@ -168,7 +184,11 @@ async function calcularTotalReserva(booking) {
 
     for (const valor of valoresDirectos) {
         const numero = parseFloat(valor);
-        if (Number.isFinite(numero) && numero > 0) return { min: numero, max: numero };
+        if (Number.isFinite(numero) && numero > 0) {
+            return rango.moneda
+                ? { min: numero, max: numero, moneda: rango.moneda }
+                : { min: numero, max: numero };
+        }
     }
 
     return rango;
@@ -189,6 +209,15 @@ function formatearMontoReserva(monto, moneda = 'CUP') {
     };
 
     if (monto && typeof monto === 'object') {
+        if (Array.isArray(monto.partes) && monto.partes.length > 1) {
+            return monto.partes
+                .map((parte) => formatearMontoReserva({ min: parte.min, max: parte.max }, parte.moneda || moneda))
+                .filter(Boolean)
+                .join(' + ');
+        }
+        if (monto.moneda && monto.moneda !== moneda) {
+            return formatearMontoReserva({ min: monto.min, max: monto.max }, monto.moneda);
+        }
         const desde = limpiar(monto.min);
         const hasta = limpiar(monto.max);
         if (!desde) return '';
@@ -198,6 +227,17 @@ function formatearMontoReserva(monto, moneda = 'CUP') {
 
     const unico = limpiar(monto);
     return unico ? `${unico} ${moneda}` : '';
+}
+
+// El anticipo global FIJO lo escribe la duena en Editar Negocio, en la moneda
+// del negocio. El porcentaje y el anticipo propio de cada servicio salen del
+// precio del servicio, asi que van en la moneda del servicio. Si la reserva
+// mezcla monedas no hay una sola correcta y se queda la del negocio.
+function monedaDelAnticipo(configNegocio = {}, totalReserva = null) {
+    const delNegocio = getPreferenciasWhatsApp(configNegocio).moneda;
+    const esFijoGlobal = !configNegocio?.anticipos_por_servicio && configNegocio?.tipo_anticipo === 'fijo';
+    if (esFijoGlobal) return delNegocio;
+    return (totalReserva && totalReserva.moneda) || delNegocio;
 }
 
 function getPreferenciasWhatsApp(configNegocio = {}) {
@@ -444,7 +484,7 @@ window.enviarMensajePago = async function(booking, configNegocio) {
         const totalReserva = await calcularTotalReserva(booking);
         const lineaTotalReserva = generarLineaTotalReserva(totalReserva, configNegocio);
         const totalPagar = formatearMontoWhatsApp(totalReserva, configNegocio);
-        const montoAnticipoFormateado = formatearMontoWhatsApp(montoAnticipo, configNegocio);
+        const montoAnticipoFormateado = formatearMontoReserva(montoAnticipo, monedaDelAnticipo(configNegocio, totalReserva));
         const { fechaConDia, horaFormateada } = getFechaHora(booking);
         const profesional = getProfesional(booking);
         const lineaCalendario = generarLineaCalendarioCliente(booking);
@@ -671,7 +711,7 @@ window.notificarReservaPendiente = async function(booking) {
         const totalReserva = await calcularTotalReserva(booking);
         const lineaTotalReserva = generarLineaTotalReserva(totalReserva, configNegocio);
         const totalPagar = formatearMontoWhatsApp(totalReserva, configNegocio);
-        const montoAnticipoFormateado = formatearMontoWhatsApp(montoAnticipo, configNegocio);
+        const montoAnticipoFormateado = formatearMontoReserva(montoAnticipo, monedaDelAnticipo(configNegocio, totalReserva));
         const { fechaConDia, horaFormateada } = getFechaHora(booking);
         const profesional = getProfesional(booking);
         const lineaCalendario = generarLineaCalendarioCliente(booking);
