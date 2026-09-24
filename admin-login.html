@@ -4,6 +4,26 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Rservasroma — Acceso</title>
+  <meta name="theme-color" content="#FF1493">
+  <meta name="mobile-web-app-capable" content="yes">
+  <link rel="icon" type="image/png" href="icons/icon-192x192.png">
+  <!-- INSTALABLE DESDE AQUI. tusalon.github.io/rservasroma sin sesion trae a
+       este login, y las duenas instalan desde ahi. Sin manifest Chrome no
+       ofrece instalar: solo un acceso directo. El manifest general abre
+       /rservasroma/, que ya decide solo: con sesion va al panel del salon,
+       sin sesion vuelve aqui. En iPhone no se pone, igual que en admin.html
+       e index.html: con manifest el icono abria "esperando enlace". -->
+  <script>
+    (function() {
+      try {
+        if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) return;
+        var link = document.createElement('link');
+        link.rel = 'manifest';
+        link.href = 'manifest.json';
+        document.head.appendChild(link);
+      } catch (e) {}
+    })();
+  </script>
 
   <script src="vendor/bcrypt.min.js"></script>
   <script>
@@ -601,6 +621,16 @@
         btn.disabled = false;
       }
     });
+  </script>
+  <script>
+    // El mismo Service Worker que admin.html e index.html. En Cuba no hay Play
+    // Store y muchos telefonos tienen un Chrome viejo, que sin Service Worker
+    // no deja instalar la web como app.
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('sw.js').catch(function() {});
+      });
+    }
   </script>
 </body>
 </html>
