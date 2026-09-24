@@ -3,8 +3,17 @@
 
 console.log('📱 whatsapp-helper.js cargado');
 
+// Este enlace lo abre la CLIENTA en su telefono, asi que tiene que ser la
+// direccion publica. En la APK del panel la app corre en https://localhost
+// (Capacitor sirve los archivos desde el propio telefono) y el enlace salia
+// "https://localhost/admin.html/calendar.html?...": WhatsApp no lo convierte en
+// enlace porque localhost no es un dominio, y aunque lo hiciera apuntaria al
+// telefono de la clienta, donde no hay nada.
+const BASE_PUBLICA_RSERVASROMA = 'https://tusalon.github.io/rservasroma/';
+
 function getBaseUrl() {
     try {
+        if (window.location.hostname !== 'tusalon.github.io') return BASE_PUBLICA_RSERVASROMA;
         // Usa la URL actual del sitio: https://tusalon.github.io/dalila/ etc.
         const parts = window.location.pathname.split('/').filter(Boolean);
         const slug = parts[0] || '';
