@@ -629,50 +629,23 @@ setTimeout(async () => {
 window.actualizarManifestPWA = function(config) {
     if (!config || !window._rservasSlugActual) return;
 
+    // YA NO SE FABRICA UN MANIFEST AQUI.
+    // Esta funcion creaba un manifest "blob:" y lo ponia ENCIMA del bueno. Dos
+    // fallos medidos el 24-09-2026:
+    //  - Android: los iconos iban con ruta relativa ('icons/...') y una URL
+    //    blob: no se puede usar de base -> "Invalid URL". Chrome se quedaba sin
+    //    icono valido y no ofrecia instalar la web como app.
+    //  - iPhone: index.html y admin.html NO ponen manifest a proposito (con uno,
+    //    el icono abria "esperando enlace"); esta funcion lo creaba igual.
+    // El manifest por salon ya lo sirve el Service Worker (manifest.json?s=...
+    // y ?mode=admin), con el nombre y los iconos en ruta completa, y lo enlazan
+    // index.html y admin.html. Aqui solo queda lo que no es el manifest.
     const slug     = window._rservasSlugActual;
     const nombre   = config.nombre || 'Mi Salón';
     const shortName = nombre.split(' ').slice(0, 2).join(' ');
     const color    = config.color_primario || '#FF1493';
-    const startUrl = window.location.origin + window.location.pathname + '?s=' + slug;
-
-    const manifestData = {
-        id: startUrl,
-        name: nombre,
-        short_name: shortName,
-        description: 'Reserva tu turno en ' + nombre,
-        start_url: startUrl,
-        scope: window.location.origin + window.location.pathname,
-        display: 'standalone',
-        orientation: 'portrait',
-        background_color: '#ffffff',
-        theme_color: color,
-        lang: 'es',
-        icons: [
-            { src: 'icons/icon-72x72.png',   sizes: '72x72',   type: 'image/png' },
-            { src: 'icons/icon-96x96.png',   sizes: '96x96',   type: 'image/png' },
-            { src: 'icons/icon-128x128.png', sizes: '128x128', type: 'image/png' },
-            { src: 'icons/icon-144x144.png', sizes: '144x144', type: 'image/png' },
-            { src: 'icons/icon-152x152.png', sizes: '152x152', type: 'image/png' },
-            { src: 'icons/icon-192x192.png', sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
-            { src: 'icons/icon-384x384.png', sizes: '384x384', type: 'image/png' },
-            { src: 'icons/icon-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' }
-        ]
-    };
 
     try {
-        const blob = new Blob([JSON.stringify(manifestData)], { type: 'application/manifest+json' });
-        const url  = URL.createObjectURL(blob);
-        let link   = document.querySelector('link[rel="manifest"]');
-        if (!link) {
-            link     = document.createElement('link');
-            link.rel = 'manifest';
-            document.head.appendChild(link);
-        }
-        const anterior = window.__rservasManifestBlobUrl;
-        link.href = url;
-        link.dataset.negocioSlug = slug;
-        window.__rservasManifestBlobUrl = url;
-        if (anterior) setTimeout(() => URL.revokeObjectURL(anterior), 1000);
         const themeMeta = document.querySelector('meta[name="theme-color"]');
         if (themeMeta) themeMeta.setAttribute('content', color);
         if (nombre) {
@@ -681,9 +654,8 @@ window.actualizarManifestPWA = function(config) {
             document.querySelector('meta[name="apple-mobile-web-app-title"]')?.setAttribute('content', shortName);
         }
         window.dispatchEvent(new CustomEvent('rservas-manifest-ready', { detail: { slug, nombre } }));
-        console.log('📱 Manifest PWA actualizado para:', nombre);
     } catch (e) {
-        console.warn('⚠️ No se pudo actualizar el manifest:', e);
+        console.warn('⚠️ No se pudo actualizar el nombre del salón:', e);
     }
 };
 

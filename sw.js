@@ -1,6 +1,6 @@
 ﻿// sw.js - Service Worker para Rservasroma
 
-const CACHE_NAME = 'rservasroma-v117';
+const CACHE_NAME = 'rservasroma-v118';
 const BASE = '/rservasroma';
 
 const urlsToCache = [
@@ -29,7 +29,7 @@ const urlsToCache = [
   `${BASE}/utils/hero-backgrounds.js?v=20260723-fotos`,
   `${BASE}/utils/native-push-notifications.js?v=20260722-platform-v4`,
   `${BASE}/utils/offline-panel.js`,
-  `${BASE}/utils/config-negocio-master.js?v=20260906-precios1`,
+  `${BASE}/utils/config-negocio-master.js?v=20260924-sinblob1`,
   `${BASE}/utils/i18n.js?v=20260904-recordar1`,
   `${BASE}/utils/cuba-geo.js?v=20260727-wizard-ubicacion1`,
   `${BASE}/utils/phone-utils.js?v=20260920-telpaislogin1`,
