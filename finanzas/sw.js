@@ -1,13 +1,13 @@
-const ROMA_FINANZAS_CACHE = 'roma-finanzas-2.4.0';
+const ROMA_FINANZAS_CACHE = 'roma-finanzas-2.4.1';
 const ROMA_SUPABASE_ORIGIN = 'https://zorhclhvykikaachfrmp.supabase.co';
 
 const LOCAL_ASSETS = [
     './',
     './index.html',
     './manifest.json',
-    './assets/app-2.4.0.js',
-    './assets/app-2.4.0.css',
-    './assets/register-sw-2.4.0.js',
+    './assets/app-2.4.1.js',
+    './assets/app-2.4.1.css',
+    './assets/register-sw-2.4.1.js',
     './vendor/lucide.css',
     './vendor/lucide.woff2',
     './vendor/lucide.ttf',
