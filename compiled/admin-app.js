@@ -3297,7 +3297,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
       tabs.push({ id: "profesionales", icono: "👩‍💼", label: t("Profesionales") });
     }
     if (userRole === "admin" && config?.acceso_finanzas) {
-      tabs.push({ id: "finanzas", icono: "💰", label: t("Finanzas"), url: "finanzas/?desde=panel" });
+      tabs.push({ id: "finanzas", icono: "💰", label: t("Finanzas"), url: "finanzas/index.html?desde=panel" });
     }
     return tabs;
   };

@@ -4136,10 +4136,17 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
 
         // Roma Finanzas no es una pestana normal: es otra app servida desde
         // /finanzas/. Por eso lleva 'url' y no contenido propio aqui.
+        //
+        // OJO: con "index.html" escrito, no "finanzas/" a secas. En la web
+        // GitHub sirve el index de la carpeta, pero dentro de la APK el
+        // servidor de Capacitor no: entrega el index.html PRINCIPAL, que ve la
+        // sesion y redirige a 'admin.html?s=...' relativo a /finanzas/. La
+        // duena acababa en localhost/finanzas/admin.html -> "Pagina web no
+        // disponible" (Nails Gretel, 25-09-2026).
         // Solo se comprueba que tenga acceso; si esta vencido lo dice ella,
         // que es donde vive esa regla. No se duplica aqui.
         if (userRole === 'admin' && config?.acceso_finanzas) {
-            tabs.push({ id: 'finanzas', icono: '💰', label: t('Finanzas'), url: 'finanzas/?desde=panel' });
+            tabs.push({ id: 'finanzas', icono: '💰', label: t('Finanzas'), url: 'finanzas/index.html?desde=panel' });
         }
 
         return tabs;
