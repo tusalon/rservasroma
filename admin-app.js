@@ -510,7 +510,7 @@ function AdminApp() {
     const [diasCerradosFechas, setDiasCerradosFechas] = React.useState([]);
     const [profesionalSeleccionadoDispo, setProfesionalSeleccionadoDispo] = React.useState(null);
     const [cobroEditando, setCobroEditando] = React.useState(null);
-    const [cobroForm, setCobroForm] = React.useState({ monto_cobrado: '', notas_cobro: '' });
+    const [cobroForm, setCobroForm] = React.useState({ monto_cobrado: '', notas_cobro: '', moneda_cobrada: '' });
     const [guardandoCobro, setGuardandoCobro] = React.useState(false);
 
     const [serviciosList, setServiciosList] = React.useState([]);
@@ -2976,9 +2976,21 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
         setCobroEditando({ ...bookingData, _fidelizacionPremiada: esCitaPremiada, _fidelizacionPct: fid.pct });
         setCobroForm({
             monto_cobrado: montoSugerido,
-            notas_cobro: bookingData.notas_cobro || ''
+            notas_cobro: bookingData.notas_cobro || '',
+            moneda_cobrada: bookingData.moneda_cobrada || monedaServicioDeReserva(bookingData)
         });
     };
+
+    // La moneda en que se cobro una cita. Si la duena no la eligio (cobros de
+    // antes de existir reservas.moneda_cobrada), la del servicio, que es lo que
+    // se venia suponiendo.
+    const monedaServicioDeReserva = (reserva) => {
+        const nombre = extraerNombresServicioAgenda(reserva?.servicio)[0];
+        const servicio = nombre ? buscarServicioAgenda(nombre) : null;
+        if (servicio && window.getMonedaServicio) return window.getMonedaServicio(servicio);
+        return String(config?.whatsapp_moneda || 'CUP').toUpperCase();
+    };
+    const monedaDelCobro = (reserva) => reserva?.moneda_cobrada || monedaServicioDeReserva(reserva);
 
     const guardarCobroReal = async () => {
         if (!cobroEditando || guardandoCobro) return;
@@ -3008,7 +3020,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                         : Number((monto * (totalPrecios > 0 ? precios[index] / totalPrecios : 1 / reservas.length)).toFixed(2));
                 acumulado += montoReserva;
 
-                const response = await fetch(
+                const guardar = (conMoneda) => fetch(
                     `${window.SUPABASE_URL}/rest/v1/reservas?negocio_id=eq.${negocioId}&id=eq.${reserva.id}`,
                     {
                         method: 'PATCH',
@@ -3020,19 +3032,32 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                         body: JSON.stringify({
                             monto_cobrado: montoReserva,
                             notas_cobro: cobroForm.notas_cobro || null,
-                            cobro_registrado_at: new Date().toISOString()
+                            cobro_registrado_at: new Date().toISOString(),
+                            ...(conMoneda && cobroForm.moneda_cobrada ? { moneda_cobrada: cobroForm.moneda_cobrada } : {})
                         })
                     }
                 );
 
+                let response = await guardar(true);
+                // Si todavia no se corrio sql-moneda-cobro-real.sql, la columna
+                // no existe y el PATCH entero falla. Se guarda el cobro sin la
+                // moneda, como antes, en vez de dejar a la duena sin poder
+                // registrar el cobro.
                 if (!response.ok) {
-                    throw new Error(await response.text());
+                    const detalle = await response.text();
+                    if (detalle.includes('moneda_cobrada')) {
+                        console.warn('Falta la columna moneda_cobrada: se guarda el cobro sin moneda.');
+                        response = await guardar(false);
+                        if (!response.ok) throw new Error(await response.text());
+                    } else {
+                        throw new Error(detalle);
+                    }
                 }
             }
 
             alert(t('Cobro real guardado'));
             setCobroEditando(null);
-            setCobroForm({ monto_cobrado: '', notas_cobro: '' });
+            setCobroForm({ monto_cobrado: '', notas_cobro: '', moneda_cobrada: '' });
             fetchBookings();
         } catch (error) {
             console.error('Error guardando cobro real:', error);
@@ -5648,15 +5673,27 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                                 )}
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">{t('Monto cobrado real')}</label>
-                                    <input
-                                        type="number"
-                                        min="0"
-                                        step="0.01"
-                                        value={cobroForm.monto_cobrado}
-                                        onChange={(e) => setCobroForm({...cobroForm, monto_cobrado: e.target.value})}
-                                        className="w-full border rounded-lg px-3 py-2"
-                                        placeholder={t('Ej: 2500')}
-                                    />
+                                    <div className="flex gap-2">
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            step="0.01"
+                                            value={cobroForm.monto_cobrado}
+                                            onChange={(e) => setCobroForm({...cobroForm, monto_cobrado: e.target.value})}
+                                            className="flex-1 min-w-0 border rounded-lg px-3 py-2"
+                                            placeholder={t('Ej: 2500')}
+                                        />
+                                        <select
+                                            value={cobroForm.moneda_cobrada || monedaServicioDeReserva(cobroEditando)}
+                                            onChange={(e) => setCobroForm({...cobroForm, moneda_cobrada: e.target.value})}
+                                            className="border rounded-lg px-3 py-2 font-bold bg-white"
+                                            aria-label={t('Moneda del cobro')}
+                                        >
+                                            {[...new Set([monedaServicioDeReserva(cobroEditando), 'CUP', 'USD'])].map(m => (
+                                                <option key={m} value={m}>{m}</option>
+                                            ))}
+                                        </select>
+                                    </div>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">{t('Nota opcional')}</label>
@@ -5846,7 +5883,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                                                 )}
                                                 {Number(b.monto_cobrado || 0) > 0 && (
                                                     <div className="mt-2 rounded-lg bg-green-50 border border-green-100 p-2">
-                                                        <p className="text-xs font-bold text-green-700">{t('Cobro real: {monto}', { monto: '$' + Number(b.monto_cobrado).toLocaleString(idioma === 'en' ? 'en-US' : 'es-CU') })}</p>
+                                                        <p className="text-xs font-bold text-green-700">{t('Cobro real: {monto}', { monto: Number(b.monto_cobrado).toLocaleString(idioma === 'en' ? 'en-US' : 'es-CU') + ' ' + monedaDelCobro(b) })}</p>
                                                         {b.notas_cobro && <p className="text-xs text-green-700 mt-1">{b.notas_cobro}</p>}
                                                     </div>
                                                 )}
