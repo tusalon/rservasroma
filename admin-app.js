@@ -5687,6 +5687,11 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                                             value={cobroForm.moneda_cobrada || monedaServicioDeReserva(cobroEditando)}
                                             onChange={(e) => setCobroForm({...cobroForm, moneda_cobrada: e.target.value})}
                                             className="border rounded-lg px-3 py-2 font-bold bg-white"
+                                            // Ancho fijo EN LINEA: legacy-ios-fallback.css pone
+                                            // "select { width: 100% }" a toda la app, y en esta fila
+                                            // el selector se comia todo y la casilla del monto se
+                                            // quedaba en una raya donde no se podia escribir.
+                                            style={{ width: '6.5rem', flex: '0 0 auto' }}
                                             aria-label={t('Moneda del cobro')}
                                         >
                                             {[...new Set([monedaServicioDeReserva(cobroEditando), 'CUP', 'USD'])].map(m => (

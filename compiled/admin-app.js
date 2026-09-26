@@ -3963,6 +3963,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
       value: cobroForm.moneda_cobrada || monedaServicioDeReserva(cobroEditando),
       onChange: (e) => setCobroForm({ ...cobroForm, moneda_cobrada: e.target.value }),
       className: "border rounded-lg px-3 py-2 font-bold bg-white",
+      style: { width: "6.5rem", flex: "0 0 auto" },
       "aria-label": t("Moneda del cobro")
     },
     [.../* @__PURE__ */ new Set([monedaServicioDeReserva(cobroEditando), "CUP", "USD"])].map((m) => /* @__PURE__ */ React.createElement("option", { key: m, value: m }, m))
