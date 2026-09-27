@@ -285,7 +285,7 @@ function BookingForm({ service, profesional, date, time, onSubmit, onCancel, cli
                                 {service.nombre.toLowerCase().includes('corte') ? '💇‍♀️' :
                                  service.nombre.toLowerCase().includes('peinado') ? '💆‍♀️' :
                                  service.nombre.toLowerCase().includes('maquillaje') ? '💄' :
-                                 service.nombre.toLowerCase().includes('pesta') ? '👁️' : '💅'}
+                                 service.nombre.toLowerCase().includes('pesta') ? '👁️' : '✨'}
                             </span>
                             <span className="font-medium">{service.nombre}</span>
                         </div>
@@ -354,7 +354,7 @@ function BookingForm({ service, profesional, date, time, onSubmit, onCancel, cli
                                 <>
                                     <span>✨</span>
                                     {t('Confirmar Reserva')}
-                                    <span>💅</span>
+                                    <span>✨</span>
                                 </>
                             )}
                         </button>

@@ -434,7 +434,7 @@ function MyBookings({ cliente, onVolver }) {
 
                 {filtro === 'historial' && historialCount > 0 && (
                     <div className="bg-pink-50 border border-pink-200 rounded-xl p-4 mb-4 flex items-center gap-3">
-                        <span className="text-3xl">💅</span>
+                        <span className="text-3xl">✨</span>
                         <div>
                             <p className="font-semibold text-pink-800">{t('{n} visita{s} en total', { n: historialCount, s: historialCount !== 1 ? 's' : '' })}</p>
                             <p className="text-xs text-pink-500">{t('Gracias por elegirnos siempre')}</p>
@@ -485,7 +485,7 @@ function MyBookings({ cliente, onVolver }) {
                                                   booking.estado === 'Cancelado' ? 'bg-gray-100 text-gray-500' : 'bg-pink-100 text-pink-500'}`}>
                                                 {booking.estado === 'Reservado' || booking.estado === 'Confirmado' ? '✅ ' + t('Confirmado') :
                                                  booking.estado === 'Pendiente' ? '⏳ ' + t('Falta el anticipo') :
-                                                 booking.estado === 'Completado' ? '💅 ' + t('Completado') :
+                                                 booking.estado === 'Completado' ? '✨ ' + t('Completado') :
                                                  booking.estado === 'Ausente' ? t('No asististe') :
                                                  booking.estado}
                                             </span>

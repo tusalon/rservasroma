@@ -2361,7 +2361,7 @@ function AdminApp() {
                             const hora = window.formatTo12Hour ? window.formatTo12Hour(result.data.hora_inicio) : result.data.hora_inicio;
                             window.enviarNotificacionPush(
                                 `${cfg.nombre || 'Salon'} - Reserva manual`,
-                                `👤 ${result.data.cliente_nombre}\n💅 ${result.data.servicio}\n📅 ${fecha} ${hora}`,
+                                `👤 ${result.data.cliente_nombre}\n✨ ${result.data.servicio}\n📅 ${fecha} ${hora}`,
                                 'calendar', 'default',
                                 { profesionalId: result.data.profesional_id || result.data.trabajador_id || result.data.barbero_id }
                             ).catch(e => console.warn('ntfy:', e));
@@ -2789,7 +2789,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
 
                 window.enviarWhatsApp(bookingData.cliente_whatsapp, mensajeCliente);
 
-                if (window.enviarNotificacionPush) window.enviarNotificacionPush(`${nombreNegocio} - Pago confirmado`, `✅ ${bookingData.cliente_nombre}\n💅 ${bookingData.servicio}\n📅 ${fechaConDia} ${horaFormateada}`, 'white_check_mark', 'default', { profesionalId: bookingData.profesional_id || bookingData.trabajador_id || bookingData.barbero_id }).catch(() => {});
+                if (window.enviarNotificacionPush) window.enviarNotificacionPush(`${nombreNegocio} - Pago confirmado`, `✅ ${bookingData.cliente_nombre}\n✨ ${bookingData.servicio}\n📅 ${fechaConDia} ${horaFormateada}`, 'white_check_mark', 'default', { profesionalId: bookingData.profesional_id || bookingData.trabajador_id || bookingData.barbero_id }).catch(() => {});
                 if (window.enviarPushCliente) window.enviarPushCliente({ whatsapp: bookingData.cliente_whatsapp, title: `✅ Pago confirmado — ${nombreNegocio}`, body: `Tu cita de ${bookingData.servicio} el ${fechaConDia} a las ${horaFormateada} está confirmada.` }).catch(() => {});
 
                 fetchBookings();
@@ -2851,7 +2851,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
 
             window.enviarWhatsApp(bookingData.cliente_whatsapp, mensajeCliente);
 
-            if (window.enviarNotificacionPush) window.enviarNotificacionPush(`${nombreNegocio} - Pago confirmado`, `✅ ${bookingData.cliente_nombre}\n💅 ${bookingData.servicio}\n📅 ${fechaConDia} ${horaFormateada}`, 'white_check_mark', 'default', { profesionalId: bookingData.profesional_id || bookingData.trabajador_id || bookingData.barbero_id }).catch(() => {});
+            if (window.enviarNotificacionPush) window.enviarNotificacionPush(`${nombreNegocio} - Pago confirmado`, `✅ ${bookingData.cliente_nombre}\n✨ ${bookingData.servicio}\n📅 ${fechaConDia} ${horaFormateada}`, 'white_check_mark', 'default', { profesionalId: bookingData.profesional_id || bookingData.trabajador_id || bookingData.barbero_id }).catch(() => {});
             if (window.enviarPushCliente) window.enviarPushCliente({ whatsapp: bookingData.cliente_whatsapp, title: `✅ Pago confirmado — ${nombreNegocio}`, body: `Tu cita de ${bookingData.servicio} el ${fechaConDia} a las ${horaFormateada} está confirmada.` }).catch(() => {});
 
             fetchBookings();
@@ -3350,7 +3350,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
             '',
             `🗓️ ${fechaLegible}`,
             `🕐 ${hora}`,
-            `💅 Servicio: ${b.servicio}`
+            `✨ Servicio: ${b.servicio}`
         ];
         if (profesionalNombre) lineas.push(`👩‍🎨 Profesional: ${profesionalNombre}`);
         lineas.push('', 'Si no puedes asistir, avísanos por aquí. ¡Te esperamos! ✨');
@@ -4000,7 +4000,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
             { label: t('Ausentes'), value: stats.estados.Ausente, tone: 'text-slate-700 bg-slate-50 border-slate-100' },
             { label: t('Sin cobro'), value: stats.citasSinCobro, tone: 'text-amber-700 bg-amber-50 border-amber-100' },
             { label: t('Valoracion'), value: stats.valoracionesCount ? `⭐ ${stats.valoracionPromedio.toFixed(1)} (${stats.valoracionesCount})` : t('Sin datos'), tone: 'text-yellow-700 bg-yellow-50 border-yellow-100' },
-            { label: t('Servicio'), value: stats.valoracionServicioCount ? `💅 ${stats.valoracionServicioPromedio.toFixed(1)} (${stats.valoracionServicioCount})` : t('Sin datos'), tone: 'text-pink-700 bg-pink-50 border-pink-100' }
+            { label: t('Servicio'), value: stats.valoracionServicioCount ? `✨ ${stats.valoracionServicioPromedio.toFixed(1)} (${stats.valoracionServicioCount})` : t('Sin datos'), tone: 'text-pink-700 bg-pink-50 border-pink-100' }
         ];
 
         return (
@@ -4055,7 +4055,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                                 [t('Ausentes'), `${stats.estados.Ausente} (${stats.tasaAusentes}%)`],
                                 [t('Ticket promedio real'), formatMoneyEstadistica(stats.ticketPromedio)],
                                 [t('Valoracion de reserva'), stats.valoracionesCount ? `⭐ ${stats.valoracionPromedio.toFixed(1)} / 5 (${stats.valoracionesCount})` : t('Sin datos')],
-                                [t('Valoracion del servicio'), stats.valoracionServicioCount ? `💅 ${stats.valoracionServicioPromedio.toFixed(1)} / 5 (${stats.valoracionServicioCount})` : t('Sin datos')]
+                                [t('Valoracion del servicio'), stats.valoracionServicioCount ? `✨ ${stats.valoracionServicioPromedio.toFixed(1)} / 5 (${stats.valoracionServicioCount})` : t('Sin datos')]
                             ].map(([label, value]) => (
                                 <div key={label} className="flex justify-between gap-3 text-sm border-b border-gray-100 pb-2 last:border-b-0">
                                     <span className="text-gray-500">{label}</span>
@@ -4154,7 +4154,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
         }
 
         if (userRole === 'admin' || (userRole === 'profesional' && userNivel >= 3)) {
-            tabs.push({ id: 'servicios', icono: '💅', label: t('Servicios') });
+            tabs.push({ id: 'servicios', icono: '✨', label: t('Servicios') });
             tabs.push({ id: 'catalogo', icono: '🖼️', label: t('Catálogo') });
             tabs.push({ id: 'profesionales', icono: '👩‍💼', label: t('Profesionales') });
         }
@@ -4284,7 +4284,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                             />
                         ) : (
                             <div className="w-12 h-12 bg-gradient-to-br from-pink-500 to-pink-600 rounded-xl shadow-lg flex items-center justify-center">
-                                <span className="text-2xl text-white">💅</span>
+                                <span className="text-2xl text-white">✨</span>
                             </div>
                         )}
                         <div>
@@ -5905,7 +5905,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                                                     )}
                                                     {Number(b.valoracion_servicio) > 0 && (
                                                         <span className="px-2 py-1 rounded-full text-xs font-semibold bg-pink-100 text-pink-700 whitespace-nowrap" title={t('Valoracion del servicio')}>
-                                                            💅 {Number(b.valoracion_servicio)}
+                                                            ✨ {Number(b.valoracion_servicio)}
                                                         </span>
                                                     )}
                                                 </span>

@@ -225,8 +225,7 @@ function ClientAuthScreen({ onAccessGranted, onGoBack, disenoPendiente }) {
     image: window.getHeroBackgroundImage ? window.getHeroBackgroundImage(config) : config?.imagen_fondo_url || "https://images.unsplash.com/photo-1604654894610-df63bc536371?q=60&w=800&auto=format&fit=crop",
     label: "Fondo de salon"
   };
-  const especialidad = (config?.especialidad || "").toLowerCase();
-  const sticker = especialidad.includes("uña") ? "💅" : especialidad.includes("pelo") ? "💇‍♀️" : especialidad.includes("belleza") ? "🌸" : "💖";
+  const sticker = "✨";
   return /* @__PURE__ */ React.createElement("div", { className: "client-auth-screen min-h-screen flex items-center justify-center p-4 relative overflow-hidden" }, /* @__PURE__ */ React.createElement("div", { className: "client-auth-background absolute inset-0 z-0 bg-gradient-to-br from-pink-200 via-pink-300 to-pink-400" }, /* @__PURE__ */ React.createElement(
     "img",
     {
@@ -324,7 +323,7 @@ function ClientAuthScreen({ onAccessGranted, onGoBack, disenoPendiente }) {
       disabled: verificando,
       className: "w-full bg-pink-500 text-white py-4 rounded-full font-bold hover:bg-pink-600 transition-all duration-300 transform hover:scale-[1.02] hover:shadow-xl active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg text-lg border border-pink-200/70"
     },
-    /* @__PURE__ */ React.createElement("span", { className: "text-xl" }, necesitaNombre ? "💅" : "📱"),
+    /* @__PURE__ */ React.createElement("span", { className: "text-xl" }, necesitaNombre ? "✨" : "📱"),
     verificando ? t("Verificando...") : necesitaNombre ? t("Registrarme y reservar") : t("Continuar"),
     /* @__PURE__ */ React.createElement("span", { className: "text-xl" }, "✨")
   ))), /* @__PURE__ */ React.createElement("div", { className: "absolute -bottom-6 -right-6 text-7xl opacity-20 rotate-12 select-none" }, "💇‍♀️"), /* @__PURE__ */ React.createElement("div", { className: "absolute top-1/2 -translate-y-1/2 -right-8 text-5xl opacity-10 select-none" }, "🌸"))));

@@ -712,7 +712,7 @@ function SetupWizard() {
                         <window.LanguageToggle />
                     </div>
                     <div className="w-16 h-16 bg-amber-600 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4">
-                        💅
+                        ✨
                     </div>
                     <h1 className="text-2xl font-bold text-gray-900">{t('¡Vamos a dejar tu salón listo!')}</h1>
                     <p className="text-gray-600 mt-3 leading-relaxed">
@@ -749,7 +749,7 @@ function SetupWizard() {
                 <div className="text-center mb-8">
                     <div className="flex justify-center mb-4">
                         <div className="w-16 h-16 bg-amber-600 rounded-2xl flex items-center justify-center text-3xl">
-                            💅
+                            ✨
                         </div>
                     </div>
                     <h1 className="text-3xl font-bold text-gray-900">
@@ -943,7 +943,7 @@ function SetupWizard() {
                     <div className="bg-white rounded-xl shadow-sm p-6 space-y-4 animate-fade-in">
                         <div className="flex items-start justify-between gap-4">
                             <div>
-                                <h2 className="text-xl font-bold mb-1">💅 {t('Servicios')}</h2>
+                                <h2 className="text-xl font-bold mb-1">✨ {t('Servicios')}</h2>
                                 <p className="text-sm text-gray-500 mb-3">{t('Empieza con uno y agrega los que necesites con precio, duracion y reglas.')}</p>
                             </div>
                             <button type="button" onClick={agregarServicio} className="px-3 py-2 bg-pink-600 text-white rounded-full text-sm font-semibold hover:bg-pink-700">{t('Anadir servicio')}</button>

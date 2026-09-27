@@ -98,7 +98,7 @@ function ProfesionalSelector({ onSelect, selectedProfesional, selectedService })
                     <p className="text-pink-700 font-medium">{t('"{servicio}" aún no tiene turnos online', { servicio: selectedService.nombre })}</p>
                     <p className="text-sm text-pink-600">{t('Escríbenos y te lo coordinamos directamente 💖')}</p>
                     <button
-                        onClick={() => window.contactarSalonWhatsApp?.(`Hola! Quiero reservar "${selectedService.nombre}" pero no aparece disponible en la app 💅`)}
+                        onClick={() => window.contactarSalonWhatsApp?.(`Hola! Quiero reservar "${selectedService.nombre}" pero no aparece disponible en la app ✨`)}
                         className="bg-green-500 hover:bg-green-600 text-white font-bold px-5 py-3 rounded-xl shadow-sm transition-colors"
                     >
                         💬 {t('Reservar por WhatsApp')}

@@ -132,7 +132,7 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol, onMisReservas, onC
     image: window.getHeroBackgroundImage ? window.getHeroBackgroundImage(config) : config?.imagen_fondo_url || "https://images.unsplash.com/photo-1604654894610-df63bc536371?q=60&w=800&auto=format&fit=crop",
     label: "Fondo de salon"
   };
-  const sticker = config?.especialidad?.toLowerCase().includes("uñas") ? "💅" : config?.especialidad?.toLowerCase().includes("pelo") ? "💇‍♀️" : config?.especialidad?.toLowerCase().includes("belleza") ? "🌸" : "💖";
+  const sticker = "✨";
   const abrirWhatsApp = () => {
     if (!config?.telefono) {
       alert("📱 " + t("El número de WhatsApp no está configurado"));

@@ -216,7 +216,7 @@ function ServiciosPanel() {
                 <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                     <div>
                         <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                            <span>💅</span> {t('Servicios')}
+                            <span>✨</span> {t('Servicios')}
                         </h2>
                         <p className="text-sm text-gray-500 mt-1">
                             {t('Controla servicios, categorías, precios, duración y profesionales.')}

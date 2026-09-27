@@ -100,6 +100,6 @@ function Confirmation({ booking, onReset }) {
     },
     /* @__PURE__ */ React.createElement("span", null, "✨"),
     t("Reservar otro turno"),
-    /* @__PURE__ */ React.createElement("span", null, "💅")
+    /* @__PURE__ */ React.createElement("span", null, "✨")
   ), telefonoDuenno && /* @__PURE__ */ React.createElement("div", { className: "text-sm text-pink-600 bg-white/80 backdrop-blur-sm p-4 rounded-lg flex items-center justify-center gap-2 border border-pink-300" }, /* @__PURE__ */ React.createElement("span", { className: "text-pink-500 text-xl" }, "📱"), /* @__PURE__ */ React.createElement("span", null, t("Contacto:"), " ", telefonoContacto))));
 }

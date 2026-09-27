@@ -1,6 +1,6 @@
 ﻿// sw.js - Service Worker para Rservasroma
 
-const CACHE_NAME = 'rservasroma-v122';
+const CACHE_NAME = 'rservasroma-v123';
 const BASE = '/rservasroma';
 
 const urlsToCache = [
@@ -17,7 +17,7 @@ const urlsToCache = [
 
   // App principal (JSX pre-compilado en compiled/ â€” ver scripts/build-jsx.sh)
   `${BASE}/compiled/client-app.js?v=20260818-termino`,
-  `${BASE}/compiled/admin-app.js?v=20260925-monedacobro2`,
+  `${BASE}/compiled/admin-app.js?v=20260926-generico1`,
 
   // Utils
   `${BASE}/utils/api.js?v=20260903-aprobacion1`,
@@ -42,7 +42,7 @@ const urlsToCache = [
   `${BASE}/utils/suscripcion.js?v=20260904-recordar1`,
   `${BASE}/utils/supabase-config.js?v=20260723-fotos`,
   `${BASE}/utils/timeLogic.js`,
-  `${BASE}/utils/whatsapp-helper.js?v=20260924-calendario1`,
+  `${BASE}/utils/whatsapp-helper.js?v=20260926-generico1`,
   `${BASE}/utils/soporte.js?v=20260906-soporteA1`,
   `${BASE}/utils/legacy-ios-fallback.css?v=20260904-bordes1`,
   `${BASE}/utils/roma-typography.css?v=20260731-tipografia`,
@@ -52,20 +52,20 @@ const urlsToCache = [
   `${BASE}/utils/frases-motivacionales.js?v=20260826-frases1`,
 
   // Componentes cliente (compilados)
-  `${BASE}/compiled/components/BookingForm.js?v=20260923-anticipo1`,
-  `${BASE}/compiled/components/Catalogo.js?v=20260906-precios1`,
+  `${BASE}/compiled/components/BookingForm.js?v=20260926-generico1`,
+  `${BASE}/compiled/components/Catalogo.js?v=20260926-generico1`,
   `${BASE}/compiled/components/Calendar.js?v=20260723-jsx1`,
-  `${BASE}/compiled/components/ClientAuthScreen.js?v=20260903-aprobacion1`,
-  `${BASE}/compiled/components/Confirmation.js?v=20260923-anticipo1`,
+  `${BASE}/compiled/components/ClientAuthScreen.js?v=20260926-generico1`,
+  `${BASE}/compiled/components/Confirmation.js?v=20260926-generico1`,
   `${BASE}/compiled/components/Header.js?v=20260731-marca`,
   `${BASE}/compiled/components/InstallButton.js?v=20260723-jsx1`,
-  `${BASE}/compiled/components/MultiProfesionalSelector.js?v=20260723-jsx1`,
+  `${BASE}/compiled/components/MultiProfesionalSelector.js?v=20260926-generico1`,
   `${BASE}/compiled/components/MultiTimeSlots.js?v=20260723-jsx1`,
-  `${BASE}/compiled/components/MyBookings.js?v=20260731-marca`,
-  `${BASE}/compiled/components/ProfesionalSelector.js?v=20260723-jsx1`,
+  `${BASE}/compiled/components/MyBookings.js?v=20260926-generico1`,
+  `${BASE}/compiled/components/ProfesionalSelector.js?v=20260926-generico1`,
   `${BASE}/compiled/components/ServiceSelectionCategorias.js?v=20260731-marca`,
   `${BASE}/compiled/components/TimeSlots.js?v=20260723-jsx1`,
-  `${BASE}/compiled/components/WelcomeScreen.js?v=20260818-catalogo-neutro`,
+  `${BASE}/compiled/components/WelcomeScreen.js?v=20260926-generico1`,
   `${BASE}/compiled/components/WhatsAppButton.js?v=20260806-tel-prefijo`,
 
   // Componentes admin (compilados)
@@ -77,8 +77,8 @@ const urlsToCache = [
   `${BASE}/compiled/components/admin/HorariosExcepcionPanel.js?v=20260723-jsx1`,
   `${BASE}/compiled/components/admin/ProfesionalesPanel.js?v=20260919-telqatar1`,
   `${BASE}/compiled/components/admin/ImportarServicios.js?v=20260723-jsx1`,
-  `${BASE}/compiled/components/admin/ServiciosPanelCategorias.js?v=20260731-marca`,
-  `${BASE}/compiled/components/admin/SetupWizard.js?v=20260731-marca`,
+  `${BASE}/compiled/components/admin/ServiciosPanelCategorias.js?v=20260926-generico1`,
+  `${BASE}/compiled/components/admin/SetupWizard.js?v=20260926-generico1`,
 
   // Vendors (sin babel.min.js: ya no se transpila en el navegador)
   `${BASE}/vendor/react.production.min.js`,

@@ -167,9 +167,10 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol, onMisReservas, onC
             : (config?.imagen_fondo_url || 'https://images.unsplash.com/photo-1604654894610-df63bc536371?q=60&w=800&auto=format&fit=crop'),
         label: 'Fondo de salon'
     };
-    const sticker = config?.especialidad?.toLowerCase().includes('uñas') ? '💅' :
-                    config?.especialidad?.toLowerCase().includes('pelo') ? '💇‍♀️' :
-                    config?.especialidad?.toLowerCase().includes('belleza') ? '🌸' : '💖';
+    // Uno para todos. Antes salia segun negocios.especialidad, pero ese campo
+    // se rellena solo con "Uñas" al crear la cuenta: 405 de 440 lo tienen,
+    // incluidas lashistas, barberias y spas, que veian un 💅 (26-09-2026).
+    const sticker = '✨';
 
     // ============================================
     // FUNCIONES PARA ABRIR REDES SOCIALES

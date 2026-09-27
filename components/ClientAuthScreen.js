@@ -294,10 +294,9 @@ function ClientAuthScreen({ onAccessGranted, onGoBack, disenoPendiente }) {
             : (config?.imagen_fondo_url || 'https://images.unsplash.com/photo-1604654894610-df63bc536371?q=60&w=800&auto=format&fit=crop'),
         label: 'Fondo de salon'
     };
-    const especialidad = (config?.especialidad || '').toLowerCase();
-    const sticker = especialidad.includes('uña') ? '💅' :
-                    especialidad.includes('pelo') ? '💇‍♀️' :
-                    especialidad.includes('belleza') ? '🌸' : '💖';
+    // Uno para todos: ver WelcomeScreen.js. La especialidad dice "Uñas" en
+    // 405 de 440 negocios, sean de lo que sean.
+    const sticker = '✨';
 
     return (
         <div className="client-auth-screen min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
@@ -506,7 +505,7 @@ function ClientAuthScreen({ onAccessGranted, onGoBack, disenoPendiente }) {
                                     disabled={verificando}
                                     className="w-full bg-pink-500 text-white py-4 rounded-full font-bold hover:bg-pink-600 transition-all duration-300 transform hover:scale-[1.02] hover:shadow-xl active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg text-lg border border-pink-200/70"
                                 >
-                                    <span className="text-xl">{necesitaNombre ? '💅' : '📱'}</span>
+                                    <span className="text-xl">{necesitaNombre ? '✨' : '📱'}</span>
                                     {verificando ? t('Verificando...') : necesitaNombre ? t('Registrarme y reservar') : t('Continuar')}
                                     <span className="text-xl">✨</span>
                                 </button>

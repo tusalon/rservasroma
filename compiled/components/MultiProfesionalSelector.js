@@ -53,7 +53,7 @@ function MultiProfesionalSelector({ selectedService, selectedProfesional, onSele
       "button",
       {
         type: "button",
-        onClick: () => window.contactarSalonWhatsApp?.(`Hola! Quiero reservar "${servicio.nombre}" pero no aparece disponible en la app 💅`),
+        onClick: () => window.contactarSalonWhatsApp?.(`Hola! Quiero reservar "${servicio.nombre}" pero no aparece disponible en la app ✨`),
         className: "bg-green-500 hover:bg-green-600 text-white font-bold px-4 py-2 rounded-lg transition-colors"
       },
       "💬 ",

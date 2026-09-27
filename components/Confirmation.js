@@ -244,7 +244,7 @@ function Confirmation({ booking, onReset }) {
                 >
                     <span>✨</span>
                     {t('Reservar otro turno')}
-                    <span>💅</span>
+                    <span>✨</span>
                 </button>
 
                 {telefonoDuenno && (

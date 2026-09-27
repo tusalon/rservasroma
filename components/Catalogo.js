@@ -252,7 +252,7 @@ function ModalDiseno({ diseno, precio, colorPrimario, cliente, onCerrar, onReser
     const compartir = async () => {
         const datos = {
             title: diseno.titulo,
-            text: `${diseno.titulo} 💅`,
+            text: `${diseno.titulo} ✨`,
             url: window.location.href
         };
         try {
