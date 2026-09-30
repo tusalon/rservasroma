@@ -322,9 +322,39 @@ const minutesToHoraLegible = (minutosTotales) => {
   const minutos = minutosTotales % 60;
   return `${horas.toString().padStart(2, "0")}:${minutos.toString().padStart(2, "0")}`;
 };
+function AsignarServiciosModal({ asignacion, onCerrar, onGuardar }) {
+  const [marcadas, setMarcadas] = React.useState(() => /* @__PURE__ */ new Set());
+  const clave = (servicioId, profesionalId) => `${servicioId}|${profesionalId}`;
+  const alternar = (servicioId, profesionalId) => setMarcadas((prev) => {
+    const siguiente = new Set(prev);
+    const k = clave(servicioId, profesionalId);
+    if (siguiente.has(k)) siguiente.delete(k);
+    else siguiente.add(k);
+    return siguiente;
+  });
+  const guardar = () => onGuardar([...marcadas].map((k) => k.split("|").map((v) => /^\d+$/.test(v) ? Number(v) : v)));
+  React.useEffect(() => {
+    const alPulsar = (e) => {
+      if (e.key === "Escape") onCerrar();
+    };
+    document.addEventListener("keydown", alPulsar);
+    return () => document.removeEventListener("keydown", alPulsar);
+  }, [onCerrar]);
+  const chip = (activo) => `min-h-[44px] rounded-full border px-3 text-sm font-medium transition ${activo ? "bg-amber-600 border-amber-600 text-white" : "bg-white border-gray-300 text-gray-800 hover:bg-gray-50"}`;
+  const esServicios = asignacion.modo === "servicios";
+  return /* @__PURE__ */ React.createElement("div", { className: "fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4", onClick: (e) => {
+    if (e.target === e.currentTarget) onCerrar();
+  } }, /* @__PURE__ */ React.createElement("div", { role: "dialog", "aria-modal": "true", "aria-labelledby": "asignar-titulo", className: "bg-white w-full sm:max-w-lg rounded-t-2xl sm:rounded-2xl p-5 max-h-[90vh] overflow-y-auto" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-start justify-between gap-3" }, /* @__PURE__ */ React.createElement("div", { className: "min-w-0" }, /* @__PURE__ */ React.createElement("h3", { id: "asignar-titulo", className: "text-lg font-bold text-gray-900" }, esServicios ? t("¿Quién hace cada servicio?") : t("Servicios de {p}", { p: asignacion.profesional.nombre })), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-600 mt-0.5" }, esServicios ? t("Toca a las profesionales que pueden hacer cada uno.") : t("Toca los servicios que hace."))), /* @__PURE__ */ React.createElement("button", { type: "button", onClick: onCerrar, "aria-label": t("Cerrar"), className: "w-11 h-11 -mr-2 -mt-1 rounded-lg text-2xl leading-none text-gray-500 hover:bg-gray-100" }, "×")), /* @__PURE__ */ React.createElement("div", { className: "mt-4 space-y-4" }, esServicios ? asignacion.servicios.map((s) => /* @__PURE__ */ React.createElement("div", { key: s.id }, /* @__PURE__ */ React.createElement("p", { className: "text-sm font-semibold text-gray-900 break-words" }, s.nombre), /* @__PURE__ */ React.createElement("div", { className: "mt-1.5 flex flex-wrap gap-2" }, asignacion.profesionales.map((p) => {
+    const activo = marcadas.has(clave(s.id, p.id));
+    return /* @__PURE__ */ React.createElement("button", { key: p.id, type: "button", "aria-pressed": activo, onClick: () => alternar(s.id, p.id), className: chip(activo) }, activo ? "✓ " : "", p.nombre);
+  })))) : /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-2" }, asignacion.servicios.map((s) => {
+    const activo = marcadas.has(clave(s.id, asignacion.profesional.id));
+    return /* @__PURE__ */ React.createElement("button", { key: s.id, type: "button", "aria-pressed": activo, onClick: () => alternar(s.id, asignacion.profesional.id), className: chip(activo) }, activo ? "✓ " : "", s.nombre);
+  }))), /* @__PURE__ */ React.createElement("div", { className: "mt-5 flex gap-2" }, /* @__PURE__ */ React.createElement("button", { type: "button", onClick: onCerrar, className: "flex-1 min-h-[44px] rounded-lg border border-gray-300 bg-white font-semibold text-gray-800 hover:bg-gray-50" }, t("Cancelar")), /* @__PURE__ */ React.createElement("button", { type: "button", onClick: guardar, disabled: marcadas.size === 0, className: "flex-1 min-h-[44px] rounded-lg bg-amber-600 font-bold text-white hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed" }, t("Guardar"), marcadas.size ? ` (${marcadas.size})` : ""))));
+}
 function AdminApp() {
   const idioma = window.useIdioma();
-  const t = window.t;
+  const t2 = window.t;
   const profesionalInicial = window.getProfesionalAutenticado?.() || null;
   const [bookings, setBookings] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
@@ -436,6 +466,11 @@ function AdminApp() {
   const [profesionalesList, setProfesionalesList] = React.useState([]);
   const [conteoServiciosActivos, setConteoServiciosActivos] = React.useState(null);
   const [conteoProfesionalesActivos, setConteoProfesionalesActivos] = React.useState(null);
+  const [detalleConfig, setDetalleConfig] = React.useState(null);
+  const [versionDetalleConfig, setVersionDetalleConfig] = React.useState(0);
+  const [arreglandoAviso, setArreglandoAviso] = React.useState("");
+  const [asignacionAbierta, setAsignacionAbierta] = React.useState(null);
+  const [profesionalHorarioInicial, setProfesionalHorarioInicial] = React.useState(null);
   const [profesionalesManualFiltrados, setProfesionalesManualFiltrados] = React.useState([]);
   const [horariosDisponibles, setHorariosDisponibles] = React.useState([]);
   const [modoHorarioManualCompleto, setModoHorarioManualCompleto] = React.useState(false);
@@ -461,9 +496,9 @@ function AdminApp() {
       pendientesConfiguracion.push({
         id: "ubicacion",
         icono: "icon-map-pin",
-        titulo: t("Falta la ubicación de tu salón"),
-        detalle: esNegocioCuba ? t("Sin provincia y municipio tus clientas no pueden encontrarte por zona en RomaHub.") : t("Completa el estado o provincia y la ciudad o municipio de tu negocio."),
-        accion: t("Completar ubicación"),
+        titulo: t2("Falta la ubicación de tu salón"),
+        detalle: esNegocioCuba ? t2("Sin provincia y municipio tus clientas no pueden encontrarte por zona en RomaHub.") : t2("Completa el estado o provincia y la ciudad o municipio de tu negocio."),
+        accion: t2("Completar ubicación"),
         onClick: abrirEdicionNegocio
       });
     }
@@ -471,9 +506,9 @@ function AdminApp() {
       pendientesConfiguracion.push({
         id: "logo",
         icono: "icon-image",
-        titulo: t("Tu salón no tiene logo"),
-        detalle: t("Con logo tu página de reservas se ve como tu marca y no como una app genérica."),
-        accion: t("Subir logo"),
+        titulo: t2("Tu salón no tiene logo"),
+        detalle: t2("Con logo tu página de reservas se ve como tu marca y no como una app genérica."),
+        accion: t2("Subir logo"),
         onClick: abrirEdicionNegocio
       });
     }
@@ -482,9 +517,9 @@ function AdminApp() {
     pendientesConfiguracion.push({
       id: "servicios",
       icono: "icon-scissors",
-      titulo: t("No tienes servicios activos"),
-      detalle: t("Sin al menos un servicio tus clientas no tienen qué reservar."),
-      accion: t("Agregar servicio"),
+      titulo: t2("No tienes servicios activos"),
+      detalle: t2("Sin al menos un servicio tus clientas no tienen qué reservar."),
+      accion: t2("Agregar servicio"),
       onClick: () => setTabActivo("servicios")
     });
   }
@@ -492,11 +527,113 @@ function AdminApp() {
     pendientesConfiguracion.push({
       id: "profesionales",
       icono: "icon-users",
-      titulo: t("No tienes profesionales activos"),
-      detalle: t("Hace falta al menos una persona que atienda para poder dar turnos."),
-      accion: t("Agregar profesional"),
+      titulo: t2("No tienes profesionales activos"),
+      detalle: t2("Hace falta al menos una persona que atienda para poder dar turnos."),
+      accion: t2("Agregar profesional"),
       onClick: () => setTabActivo("profesionales")
     });
+  }
+  const asignarParesServicioProfesional = async (pares) => {
+    const negocioId = config?.id || window.NEGOCIO_ID_POR_DEFECTO;
+    if (!negocioId || !pares.length) return true;
+    const response = await fetch(`${window.SUPABASE_URL}/rest/v1/servicios_profesionales`, {
+      method: "POST",
+      headers: {
+        apikey: window.SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${window.SUPABASE_ANON_KEY}`,
+        "Content-Type": "application/json",
+        Prefer: "return=minimal"
+      },
+      body: JSON.stringify(pares.map(([servicioId, profesionalId]) => ({
+        negocio_id: negocioId,
+        servicio_id: servicioId,
+        profesional_id: profesionalId
+      })))
+    });
+    return response.ok;
+  };
+  const arreglarAviso = async (avisoId, arreglo) => {
+    setArreglandoAviso(avisoId);
+    try {
+      const ok = await arreglo();
+      if (!ok) throw new Error("respuesta no valida");
+      setVersionDetalleConfig((v) => v + 1);
+    } catch (error) {
+      console.error("No se pudo arreglar el aviso", avisoId, error);
+      alert(t2("No se pudo guardar. Revisa tu conexión e inténtalo de nuevo."));
+    } finally {
+      setArreglandoAviso("");
+    }
+  };
+  if (detalleConfig) {
+    const { servicios, profesionales, asignaciones, conHoras } = detalleConfig;
+    const idsProfesionales = new Set(profesionales.map((p) => String(p.id)));
+    const asignadasPorServicio = {};
+    const serviciosPorProfesional = {};
+    asignaciones.forEach((a) => {
+      if (!idsProfesionales.has(String(a.profesional_id))) return;
+      (asignadasPorServicio[a.servicio_id] = asignadasPorServicio[a.servicio_id] || []).push(a.profesional_id);
+      (serviciosPorProfesional[a.profesional_id] = serviciosPorProfesional[a.profesional_id] || []).push(a.servicio_id);
+    });
+    const listaCorta = (items) => {
+      const nombres = items.slice(0, 3).map((item) => item.nombre);
+      return items.length > 3 ? `${nombres.join(", ")}… (+${items.length - 3})` : nombres.join(", ");
+    };
+    if (profesionales.length >= 2 && servicios.length > 0) {
+      const sinProfesional = servicios.filter((s) => !(asignadasPorServicio[s.id] || []).length);
+      if (sinProfesional.length > 0) {
+        pendientesConfiguracion.push({
+          id: "servicios-sin-profesional",
+          icono: "icon-scissors",
+          titulo: sinProfesional.length === 1 ? t2("Nadie puede hacer «{s}»", { s: sinProfesional[0].nombre }) : t2("{n} servicios que nadie puede hacer", { n: sinProfesional.length }),
+          detalle: `${t2("Tus clientas los ven pero no pueden reservarlos hasta que una profesional los tenga asignados.")} ${sinProfesional.length > 1 ? listaCorta(sinProfesional) : ""}`.trim(),
+          acciones: [
+            {
+              texto: t2("Todas pueden hacerlo"),
+              onClick: () => arreglarAviso("servicios-sin-profesional", () => asignarParesServicioProfesional(sinProfesional.flatMap((s) => profesionales.map((p) => [s.id, p.id]))))
+            },
+            {
+              texto: t2("Elegir quién"),
+              secundaria: true,
+              onClick: () => setAsignacionAbierta({ modo: "servicios", servicios: sinProfesional, profesionales })
+            }
+          ]
+        });
+      }
+      profesionales.filter((p) => !(serviciosPorProfesional[p.id] || []).length).forEach((p) => pendientesConfiguracion.push({
+        id: `profesional-sin-servicios-${p.id}`,
+        icono: "icon-user",
+        titulo: t2("{p} no tiene servicios", { p: p.nombre }),
+        detalle: t2("Tus clientas no pueden reservar con {p} en ningún servicio.", { p: p.nombre }),
+        acciones: [
+          {
+            texto: t2("Darle todos los servicios"),
+            onClick: () => arreglarAviso(`profesional-sin-servicios-${p.id}`, () => asignarParesServicioProfesional(servicios.map((s) => [s.id, p.id])))
+          },
+          {
+            texto: t2("Elegir servicios"),
+            secundaria: true,
+            onClick: () => setAsignacionAbierta({ modo: "profesional", servicios, profesional: p })
+          }
+        ]
+      }));
+    }
+    if (servicios.length > 0) {
+      profesionales.filter((p) => !conHoras.has(String(p.id))).forEach((p) => pendientesConfiguracion.push({
+        id: `profesional-sin-horario-${p.id}`,
+        icono: "icon-clock",
+        titulo: t2("{p} no tiene horario", { p: p.nombre }),
+        detalle: t2("Sin días y horas de trabajo nadie puede reservar con {p}.", { p: p.nombre }),
+        acciones: [{
+          texto: t2("Poner horario"),
+          onClick: () => {
+            setProfesionalHorarioInicial(p.id);
+            setTabActivo("configuracion");
+            setTimeout(() => document.getElementById("configuracion-profesional")?.scrollIntoView({ behavior: "smooth", block: "start" }), 300);
+          }
+        }]
+      }));
+    }
   }
   const normalizarTextoProfesional = (value) => String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ").trim().toLowerCase();
   const esReservaDelProfesional = (booking, profesionalActual = profesional) => {
@@ -715,10 +852,13 @@ function AdminApp() {
         apikey: window.SUPABASE_ANON_KEY,
         Authorization: `Bearer ${window.SUPABASE_ANON_KEY}`
       };
+      const id = encodeURIComponent(negocioId);
       try {
-        const [resServicios, resProfesionales] = await Promise.all([
-          fetch(`${window.SUPABASE_URL}/rest/v1/servicios?negocio_id=eq.${encodeURIComponent(negocioId)}&activo=eq.true&select=id`, { headers }),
-          fetch(`${window.SUPABASE_URL}/rest/v1/profesionales?negocio_id=eq.${encodeURIComponent(negocioId)}&activo=eq.true&select=id`, { headers })
+        const [resServicios, resProfesionales, resAsignaciones, resHorarios] = await Promise.all([
+          fetch(`${window.SUPABASE_URL}/rest/v1/servicios?negocio_id=eq.${id}&activo=eq.true&select=id,nombre&order=nombre`, { headers }),
+          fetch(`${window.SUPABASE_URL}/rest/v1/profesionales?negocio_id=eq.${id}&activo=eq.true&select=id,nombre&order=nombre`, { headers }),
+          fetch(`${window.SUPABASE_URL}/rest/v1/servicios_profesionales?negocio_id=eq.${id}&select=servicio_id,profesional_id`, { headers }),
+          fetch(`${window.SUPABASE_URL}/rest/v1/horarios_profesionales?negocio_id=eq.${id}&select=profesional_id,horarios_por_dia`, { headers })
         ]);
         if (!resServicios.ok || !resProfesionales.ok) return;
         const servicios = await resServicios.json();
@@ -726,6 +866,15 @@ function AdminApp() {
         if (cancelado) return;
         setConteoServiciosActivos(Array.isArray(servicios) ? servicios.length : null);
         setConteoProfesionalesActivos(Array.isArray(profesionales) ? profesionales.length : null);
+        if (!resAsignaciones.ok || !resHorarios.ok) {
+          setDetalleConfig(null);
+          return;
+        }
+        const asignaciones = await resAsignaciones.json();
+        const horarios = await resHorarios.json();
+        if (cancelado) return;
+        const conHoras = new Set((horarios || []).filter((h) => Object.values(h.horarios_por_dia || {}).some((horas) => Array.isArray(horas) && horas.length > 0)).map((h) => String(h.profesional_id)));
+        setDetalleConfig({ servicios, profesionales, asignaciones: asignaciones || [], conHoras });
       } catch (error) {
         console.warn("No se pudo verificar la configuracion pendiente:", error);
       }
@@ -734,7 +883,12 @@ function AdminApp() {
     return () => {
       cancelado = true;
     };
-  }, [config]);
+  }, [config, versionDetalleConfig, tabActivo]);
+  React.useEffect(() => {
+    const recontar = () => setVersionDetalleConfig((v) => v + 1);
+    window.addEventListener("rservas:configuracion-cambiada", recontar);
+    return () => window.removeEventListener("rservas:configuracion-cambiada", recontar);
+  }, []);
   React.useEffect(() => {
     const filtrarProfesionalesManual = async () => {
       if (!nuevaReservaData.servicio) {
@@ -1180,26 +1334,26 @@ function AdminApp() {
           const hora = indiceToHoraLegible(horaIndice);
           const slotStart = timeToMinutes(hora);
           const slotEnd = slotStart + 60;
-          if (esCerrado) return { hora, estado: "Cerrado", detalle: t("Local cerrado") };
-          if (esPasado) return { hora, estado: "Pasado", detalle: t("Fecha pasada") };
-          if (esLibre) return { hora, estado: "Libre", detalle: t("{nombre} no trabaja", { nombre: profesionalObj?.nombre || t("Profesional") }) };
-          if (!trabaja) return { hora, estado: "No trabaja", detalle: t("Dia no laboral") };
-          if (slotTieneDescanso(slotStart, slotEnd, descansosDelDia)) return { hora, estado: "Descanso", detalle: t("Descanso configurado") };
+          if (esCerrado) return { hora, estado: "Cerrado", detalle: t2("Local cerrado") };
+          if (esPasado) return { hora, estado: "Pasado", detalle: t2("Fecha pasada") };
+          if (esLibre) return { hora, estado: "Libre", detalle: t2("{nombre} no trabaja", { nombre: profesionalObj?.nombre || t2("Profesional") }) };
+          if (!trabaja) return { hora, estado: "No trabaja", detalle: t2("Dia no laboral") };
+          if (slotTieneDescanso(slotStart, slotEnd, descansosDelDia)) return { hora, estado: "Descanso", detalle: t2("Descanso configurado") };
           const reserva = reservasDia.find((item) => {
             const reservaStart = timeToMinutes(item.hora_inicio);
             const reservaEnd = timeToMinutes(item.hora_fin);
             return slotStart < reservaEnd && slotEnd > reservaStart;
           });
           if (reserva) {
-            return { hora, estado: "Ocupado", detalle: `${reserva.cliente_nombre || t("Cliente")} - ${reserva.servicio || t("Servicio")}` };
+            return { hora, estado: "Ocupado", detalle: `${reserva.cliente_nombre || t2("Cliente")} - ${reserva.servicio || t2("Servicio")}` };
           }
-          return { hora, estado: "Disponible", detalle: t("Disponible") };
+          return { hora, estado: "Disponible", detalle: t2("Disponible") };
         });
         return {
           fecha: fechaStr,
           diaNombre: diaSemana.charAt(0).toUpperCase() + diaSemana.slice(1),
           turnos,
-          libres: turnos.filter((t2) => t2.estado === "Disponible").length
+          libres: turnos.filter((t3) => t3.estado === "Disponible").length
         };
       });
       setDisponibilidadSemanal(semana);
@@ -1307,7 +1461,7 @@ function AdminApp() {
       ""
     ].filter(Boolean);
     disponibilidadSemanal.forEach((dia) => {
-      const disponibles = dia.turnos.filter((t2) => t2.estado === "Disponible").map((t2) => formatTo12Hour(t2.hora));
+      const disponibles = dia.turnos.filter((t3) => t3.estado === "Disponible").map((t3) => formatTo12Hour(t3.hora));
       const estado = disponibles.length > 0 ? disponibles.join(", ") : "Sin turnos disponibles";
       lineas.push(`${dia.diaNombre} ${dia.fecha}: ${estado}`);
     });
@@ -1564,7 +1718,7 @@ function AdminApp() {
         `Disponibilidad semanal - ${nombreNegocio}`,
         `Disponibilidad semanal de ${nombreNegocio}`
       );
-      if (!compartido) alert(t("Imagen generada. Si no se abrio el menu de compartir, revisa Descargas."));
+      if (!compartido) alert(t2("Imagen generada. Si no se abrio el menu de compartir, revisa Descargas."));
     } catch (error) {
       console.error("Error generando imagen de disponibilidad:", error);
       compartirDisponibilidadSemanalTexto();
@@ -1707,7 +1861,7 @@ function AdminApp() {
   };
   const compartirDisponibilidadMensual = async () => {
     if (!diasMesConDatos) {
-      alert(t("Todavia no se cargo la disponibilidad del mes. Intenta de nuevo."));
+      alert(t2("Todavia no se cargo la disponibilidad del mes. Intenta de nuevo."));
       return;
     }
     try {
@@ -1718,7 +1872,7 @@ function AdminApp() {
         `Disponibilidad mensual - ${nombreNegocio}`,
         `Disponibilidad mensual de ${nombreNegocio}`
       );
-      if (!compartido) alert(t("Imagen mensual generada. Si no se abrio el menu de compartir, revisa Descargas."));
+      if (!compartido) alert(t2("Imagen mensual generada. Si no se abrio el menu de compartir, revisa Descargas."));
     } catch (error) {
       console.error("Error generando imagen mensual:", error);
       compartirDisponibilidadMensualTexto();
@@ -1771,12 +1925,12 @@ function AdminApp() {
   };
   const handleCrearReservaManual = async () => {
     if (!puedeGestionarReservas) {
-      alert(t("Tu nivel de acceso solo permite ver reservas."));
+      alert(t2("Tu nivel de acceso solo permite ver reservas."));
       return;
     }
     if (creandoReservaManualRef.current) return;
     if (!nuevaReservaData.cliente_nombre || !nuevaReservaData.cliente_whatsapp || !nuevaReservaData.servicio || !nuevaReservaData.profesional_id || !nuevaReservaData.fecha || !nuevaReservaData.hora_inicio) {
-      alert(t("Completa todos los campos"));
+      alert(t2("Completa todos los campos"));
       return;
     }
     creandoReservaManualRef.current = true;
@@ -1784,19 +1938,19 @@ function AdminApp() {
     try {
       const serviciosSeleccionados = getServiciosManualSeleccionados();
       if (serviciosSeleccionados.length === 0) {
-        alert(t("Servicio no encontrado"));
+        alert(t2("Servicio no encontrado"));
         return;
       }
       const profesional2 = profesionalesList.find((p) => p.id === parseInt(nuevaReservaData.profesional_id));
       if (!profesional2) {
-        alert(t("Profesional no encontrado"));
+        alert(t2("Profesional no encontrado"));
         return;
       }
       const duracionTotal = getDuracionManualTotal(serviciosSeleccionados);
       const totalServiciosManual = getTotalManualServicios(serviciosSeleccionados);
       const usaDuracionPersonalizada = tieneDuracionManualPersonalizada();
       if (duracionTotal <= 0) {
-        alert(t("La duracion de la cita debe ser mayor que 0 minutos."));
+        alert(t2("La duracion de la cita debe ser mayor que 0 minutos."));
         return;
       }
       const endTime = getHoraFinManual(serviciosSeleccionados);
@@ -1824,7 +1978,7 @@ function AdminApp() {
           servicios: serviciosSeleccionados
         });
         if (!montoAnticipoManual || montoAnticipoManual <= 0) {
-          alert(t("Este servicio no tiene anticipo configurado. Ponle un monto en Servicios o un anticipo global en Editar negocio, o desmarca requerir anticipo."));
+          alert(t2("Este servicio no tiene anticipo configurado. Ponle un monto en Servicios o un anticipo global en Editar negocio, o desmarca requerir anticipo."));
           return;
         }
       }
@@ -1927,7 +2081,7 @@ function AdminApp() {
             console.error("Error registrando cliente manual:", clienteError);
           }
         }
-        alert(result.parcial ? t("Se crearon algunos servicios, pero uno falló. Revisa la agenda.") : t('Reserva creada exitosamente como "{estado}"', { estado: t(result.data.estado) }));
+        alert(result.parcial ? t2("Se crearon algunos servicios, pero uno falló. Revisa la agenda.") : t2('Reserva creada exitosamente como "{estado}"', { estado: t2(result.data.estado) }));
         try {
           if (reservaEditando) {
             const fechaConDia = window.formatFechaCompleta ? window.formatFechaCompleta(result.data.fecha) : result.data.fecha;
@@ -1967,7 +2121,7 @@ Te esperamos.`;
           }
         } catch (whatsappError) {
           console.error("Error enviando WhatsApp:", whatsappError);
-          alert(t("Reserva creada, pero hubo un error al enviar el mensaje al cliente."));
+          alert(t2("Reserva creada, pero hubo un error al enviar el mensaje al cliente."));
         }
         setShowNuevaReservaModal(false);
         setReservaEditando(null);
@@ -1987,11 +2141,11 @@ Te esperamos.`;
         setBusquedaClienteManual("");
         fetchBookings();
       } else {
-        alert(t("Error al crear la reserva: {error}", { error: result.error || t("Error desconocido") }));
+        alert(t2("Error al crear la reserva: {error}", { error: result.error || t2("Error desconocido") }));
       }
     } catch (error) {
       console.error("Error creando reserva:", error);
-      alert(t("Error al crear la reserva: {error}", { error: error.message }));
+      alert(t2("Error al crear la reserva: {error}", { error: error.message }));
     } finally {
       creandoReservaManualRef.current = false;
       setCreandoReservaManual(false);
@@ -2041,7 +2195,7 @@ Te esperamos.`;
     event.target.value = "";
     if (!file) return;
     if (!puedeGestionarReservas && userRole !== "admin" && userNivel < 3) {
-      alert(t("No tienes permiso para importar clientes."));
+      alert(t2("No tienes permiso para importar clientes."));
       return;
     }
     setImportandoClientesCsv(true);
@@ -2049,7 +2203,7 @@ Te esperamos.`;
       const texto = await file.text();
       const clientes = parseClientesCsv(texto);
       if (clientes.length === 0) {
-        alert(t("No se encontraron clientes validos. Usa columnas nombre,whatsapp."));
+        alert(t2("No se encontraron clientes validos. Usa columnas nombre,whatsapp."));
         return;
       }
       let creados = 0;
@@ -2061,10 +2215,10 @@ Te esperamos.`;
         else fallidos++;
       }
       await loadClientesRegistrados();
-      alert(t("CSV procesado. Clientes creados/actualizados: {creados}. Fallidos: {fallidos}.", { creados, fallidos }));
+      alert(t2("CSV procesado. Clientes creados/actualizados: {creados}. Fallidos: {fallidos}.", { creados, fallidos }));
     } catch (error) {
       console.error("Error importando CSV de clientes:", error);
-      alert(t("No se pudo importar el CSV. Revisa el formato."));
+      alert(t2("No se pudo importar el CSV. Revisa el formato."));
     } finally {
       setImportandoClientesCsv(false);
     }
@@ -2113,7 +2267,7 @@ Te esperamos.`;
   );
   const handleAceptarCliente = async (cliente) => {
     if (!puedeGestionarAvanzado) {
-      alert(t("No tienes permiso para aceptar clientes."));
+      alert(t2("No tienes permiso para aceptar clientes."));
       return;
     }
     try {
@@ -2132,88 +2286,88 @@ Te esperamos.`;
       );
       if (!respuesta.ok) throw new Error(await respuesta.text());
       await loadClientesRegistrados();
-      alert(t("{nombre} ya puede reservar.", { nombre: cliente.nombre || t("La clienta") }));
+      alert(t2("{nombre} ya puede reservar.", { nombre: cliente.nombre || t2("La clienta") }));
     } catch (error) {
       console.error("Error aceptando cliente:", error);
-      alert(t("No se pudo aceptar a la clienta. Intenta de nuevo."));
+      alert(t2("No se pudo aceptar a la clienta. Intenta de nuevo."));
     }
   };
   const handleRechazarCliente = async (cliente) => {
     if (!puedeGestionarAvanzado) {
-      alert(t("No tienes permiso para rechazar clientes."));
+      alert(t2("No tienes permiso para rechazar clientes."));
       return;
     }
-    if (!confirm(t("¿Rechazar a {nombre}? No podrá reservar ni volver a registrarse con ese número.", { nombre: cliente.nombre || t("esta clienta") }))) return;
+    if (!confirm(t2("¿Rechazar a {nombre}? No podrá reservar ni volver a registrarse con ese número.", { nombre: cliente.nombre || t2("esta clienta") }))) return;
     const bloqueado = await window.bloquearCliente?.({
       nombre: cliente.nombre,
       whatsapp: cliente.whatsapp,
       motivo: "Solicitud rechazada"
     });
     if (!bloqueado) {
-      alert(t("No se pudo rechazar. Revisa que la tabla clientes_bloqueados exista en Supabase."));
+      alert(t2("No se pudo rechazar. Revisa que la tabla clientes_bloqueados exista en Supabase."));
       return;
     }
     await window.eliminarCliente?.(cliente.whatsapp);
     await loadClientesRegistrados();
     await loadClientesBloqueados();
-    alert(t("Clienta rechazada. La puedes readmitir quitándola de la lista negra."));
+    alert(t2("Clienta rechazada. La puedes readmitir quitándola de la lista negra."));
   };
   const handleBloquearCliente = async (cliente = null) => {
     if (!puedeGestionarAvanzado) {
-      alert(t("No tienes permiso para bloquear clientes."));
+      alert(t2("No tienes permiso para bloquear clientes."));
       return;
     }
     const nombre = cliente?.nombre || nuevoBloqueo.nombre;
     const whatsapp = cliente?.whatsapp || normalizarTelefonoCompletoSeguro(nuevoBloqueo.whatsapp, nuevoBloqueo.codigo_pais || codigoPaisNegocio);
     const motivo = cliente ? prompt("Motivo del bloqueo (opcional):", "") : nuevoBloqueo.motivo;
     if (!whatsapp) {
-      alert(t("Escribe el WhatsApp del cliente."));
+      alert(t2("Escribe el WhatsApp del cliente."));
       return;
     }
-    if (!confirm(t("Bloquear al cliente +{telefono}?", { telefono: String(whatsapp).replace(/\D/g, "") }))) return;
+    if (!confirm(t2("Bloquear al cliente +{telefono}?", { telefono: String(whatsapp).replace(/\D/g, "") }))) return;
     const ok = await window.bloquearCliente?.({ nombre, whatsapp, motivo });
     if (ok) {
       setNuevoBloqueo({ nombre: "", whatsapp: "", codigo_pais: codigoPaisNegocio, motivo: "" });
       await loadClientesRegistrados();
       await loadClientesBloqueados();
-      alert(t("Cliente bloqueado. Ya no podrá registrarse ni reservar."));
+      alert(t2("Cliente bloqueado. Ya no podrá registrarse ni reservar."));
     } else {
-      alert(t("No se pudo bloquear el cliente. Revisa que la tabla clientes_bloqueados exista en Supabase."));
+      alert(t2("No se pudo bloquear el cliente. Revisa que la tabla clientes_bloqueados exista en Supabase."));
     }
   };
   const handleDesbloquearCliente = async (whatsapp) => {
     if (!puedeGestionarAvanzado) {
-      alert(t("No tienes permiso para desbloquear clientes."));
+      alert(t2("No tienes permiso para desbloquear clientes."));
       return;
     }
-    if (!confirm(t("Desbloquear al cliente +{telefono}?", { telefono: String(whatsapp).replace(/\D/g, "") }))) return;
+    if (!confirm(t2("Desbloquear al cliente +{telefono}?", { telefono: String(whatsapp).replace(/\D/g, "") }))) return;
     const ok = await window.desbloquearCliente?.(whatsapp);
     if (ok) {
       await loadClientesBloqueados();
-      alert(t("Cliente desbloqueado."));
+      alert(t2("Cliente desbloqueado."));
     } else {
-      alert(t("No se pudo desbloquear el cliente."));
+      alert(t2("No se pudo desbloquear el cliente."));
     }
   };
   const handleEliminarCliente = async (whatsapp) => {
     if (!puedeGestionarAvanzado) {
-      alert(t("No tienes permiso para eliminar clientes."));
+      alert(t2("No tienes permiso para eliminar clientes."));
       return;
     }
-    if (!confirm(t("¿Seguro que quieres eliminar este cliente? Perderá el acceso a la app."))) return;
+    if (!confirm(t2("¿Seguro que quieres eliminar este cliente? Perderá el acceso a la app."))) return;
     try {
       if (typeof window.eliminarCliente !== "function") {
-        alert(t("Error: Función no disponible"));
+        alert(t2("Error: Función no disponible"));
         return;
       }
       const resultado = await window.eliminarCliente(whatsapp);
       if (resultado) {
         await loadClientesRegistrados();
-        alert(t("Cliente eliminado"));
+        alert(t2("Cliente eliminado"));
       }
     } catch (error) {
       console.error("Error eliminando cliente:", error);
-      alert(t("Error al eliminar cliente"));
+      alert(t2("Error al eliminar cliente"));
     }
   };
   const fetchBookings = async () => {
@@ -2245,7 +2399,7 @@ Te esperamos.`;
       }
     } catch (error) {
       console.error("Error fetching bookings:", error);
-      alert(t("Error al cargar las reservas"));
+      alert(t2("Error al cargar las reservas"));
     } finally {
       setLoading(false);
     }
@@ -2277,12 +2431,12 @@ Te esperamos.`;
   }, [userRole, userNivel, profesional]);
   const confirmarPago = async (id, bookingData) => {
     if (!puedeGestionarReservas) {
-      alert(t("Tu nivel de acceso solo permite ver reservas."));
+      alert(t2("Tu nivel de acceso solo permite ver reservas."));
       return;
     }
     const reservasGrupo = bookingData?._reservasGrupo || [];
     if (bookingData?._grupoVisual && reservasGrupo.length > 1) {
-      if (!confirm(t('Confirmar que se recibió el pago de {nombre}? Los {n} servicios pasarán a "Reservado".', { nombre: bookingData.cliente_nombre, n: reservasGrupo.length }))) return;
+      if (!confirm(t2('Confirmar que se recibió el pago de {nombre}? Los {n} servicios pasarán a "Reservado".', { nombre: bookingData.cliente_nombre, n: reservasGrupo.length }))) return;
       try {
         for (const reserva of reservasGrupo) {
           const response = await fetch(
@@ -2332,11 +2486,11 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
         return;
       } catch (error) {
         console.error("Error confirmando pago del grupo:", error);
-        alert(t("Error al confirmar pago del grupo"));
+        alert(t2("Error al confirmar pago del grupo"));
         return;
       }
     }
-    if (!confirm(t('Confirmar que se recibió el pago de {nombre}? El turno pasará a "Reservado".', { nombre: bookingData.cliente_nombre }))) return;
+    if (!confirm(t2('Confirmar que se recibió el pago de {nombre}? El turno pasará a "Reservado".', { nombre: bookingData.cliente_nombre }))) return;
     try {
       const response = await fetch(
         `${window.SUPABASE_URL}/rest/v1/reservas?negocio_id=eq.${getNegocioId()}&id=eq.${id}`,
@@ -2383,15 +2537,15 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
       fetchBookings();
     } catch (error) {
       console.error("Error confirmando pago:", error);
-      alert(t("Error al confirmar el pago"));
+      alert(t2("Error al confirmar el pago"));
     }
   };
   const borrarCanceladas = async () => {
     if (!puedeGestionarAvanzado) {
-      alert(t("No tienes permiso para borrar reservas canceladas."));
+      alert(t2("No tienes permiso para borrar reservas canceladas."));
       return;
     }
-    if (!confirm(t("Estas segura de querer borrar TODAS las reservas canceladas? Esta accion no se puede deshacer."))) return;
+    if (!confirm(t2("Estas segura de querer borrar TODAS las reservas canceladas? Esta accion no se puede deshacer."))) return;
     try {
       const negocioId = getNegocioId();
       const response = await fetch(
@@ -2408,30 +2562,30 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
       if (!response.ok) {
         const error = await response.text();
         console.error("Error al borrar:", error);
-        alert(t("Error al borrar las reservas canceladas"));
+        alert(t2("Error al borrar las reservas canceladas"));
         return;
       }
-      alert(t("Se borraron todas las reservas canceladas correctamente"));
+      alert(t2("Se borraron todas las reservas canceladas correctamente"));
       fetchBookings();
     } catch (error) {
       console.error("Error:", error);
-      alert(t("Error al conectar con el servidor"));
+      alert(t2("Error al conectar con el servidor"));
     }
   };
   const eliminarReservaHistorial = async (bookingData) => {
     if (!puedeGestionarAvanzado) {
-      alert(t("No tenes permiso para eliminar citas del historial."));
+      alert(t2("No tenes permiso para eliminar citas del historial."));
       return;
     }
     const estado = bookingData?.estado;
     if (estado !== "Cancelado" && estado !== "Completado" && estado !== "Ausente") {
-      alert(t("Solo se pueden eliminar citas canceladas, completadas o ausentes."));
+      alert(t2("Solo se pueden eliminar citas canceladas, completadas o ausentes."));
       return;
     }
     const reservasGrupo = bookingData?._reservasGrupo || [];
     const ids = reservasGrupo.length > 0 ? reservasGrupo.map((reserva) => reserva.id) : [bookingData.id];
     const detalle = reservasGrupo.length > 1 ? `la cita completa (${reservasGrupo.length} servicios)` : "esta cita";
-    if (!confirm(t("Eliminar {detalle} del historial? Esta accion no se puede deshacer.", { detalle }))) return;
+    if (!confirm(t2("Eliminar {detalle} del historial? Esta accion no se puede deshacer.", { detalle }))) return;
     try {
       const negocioId = getNegocioId();
       const response = await fetch(
@@ -2447,23 +2601,23 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
       );
       if (!response.ok) {
         console.error("Error eliminando cita:", await response.text());
-        alert(t("Error al eliminar la cita"));
+        alert(t2("Error al eliminar la cita"));
         return;
       }
-      alert(t("Cita eliminada del historial"));
+      alert(t2("Cita eliminada del historial"));
       fetchBookings();
     } catch (error) {
       console.error("Error eliminando cita:", error);
-      alert(t("Error al conectar con el servidor"));
+      alert(t2("Error al conectar con el servidor"));
     }
   };
   const abrirModalCobro = (bookingData) => {
     if (!puedeGestionarReservas) {
-      alert(t("No tenes permiso para registrar cobros."));
+      alert(t2("No tenes permiso para registrar cobros."));
       return;
     }
     if (bookingData?.estado !== "Completado") {
-      alert(t("Solo se puede registrar cobro real en citas completadas."));
+      alert(t2("Solo se puede registrar cobro real en citas completadas."));
       return;
     }
     const montoActual = Number(bookingData.monto_cobrado || 0);
@@ -2495,7 +2649,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
     if (!cobroEditando || guardandoCobro) return;
     const monto = Number(String(cobroForm.monto_cobrado || "").replace(",", "."));
     if (Number.isNaN(monto) || monto < 0) {
-      alert(t("Ingresa un monto cobrado valido."));
+      alert(t2("Ingresa un monto cobrado valido."));
       return;
     }
     setGuardandoCobro(true);
@@ -2540,13 +2694,13 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
           }
         }
       }
-      alert(t("Cobro real guardado"));
+      alert(t2("Cobro real guardado"));
       setCobroEditando(null);
       setCobroForm({ monto_cobrado: "", notas_cobro: "", moneda_cobrada: "" });
       fetchBookings();
     } catch (error) {
       console.error("Error guardando cobro real:", error);
-      alert(t("Error al guardar el cobro real. Verifica que ejecutaste el SQL de cobro real."));
+      alert(t2("Error al guardar el cobro real. Verifica que ejecutaste el SQL de cobro real."));
     } finally {
       setGuardandoCobro(false);
     }
@@ -2561,16 +2715,16 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
   };
   const marcarAusencia = async (bookingData) => {
     if (!puedeGestionarReservas) {
-      alert(t("No tenes permiso para marcar ausencias."));
+      alert(t2("No tenes permiso para marcar ausencias."));
       return;
     }
     if (!turnoYaPaso(bookingData)) {
-      alert(t("Solo se puede marcar ausencia en turnos que ya pasaron."));
+      alert(t2("Solo se puede marcar ausencia en turnos que ya pasaron."));
       return;
     }
     const estado = bookingData?.estado;
     if (estado === "Cancelado" || estado === "Ausente") {
-      alert(t("Esta cita no se puede marcar como ausencia."));
+      alert(t2("Esta cita no se puede marcar como ausencia."));
       return;
     }
     const reservasGrupo = bookingData?._reservasGrupo || [];
@@ -2578,8 +2732,8 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
     const ids = reservas.map((reserva) => reserva.id).filter(Boolean);
     const detalle = reservas.length > 1 ? `la cita completa (${reservas.length} servicios)` : "esta cita";
     if (!ids.length) return;
-    if (!confirm(t("Marcar {detalle} como AUSENTE?", { detalle }))) return;
-    const enviarMensaje = confirm(t("Quieres enviarle ahora el mensaje de inasistencia por WhatsApp?"));
+    if (!confirm(t2("Marcar {detalle} como AUSENTE?", { detalle }))) return;
+    const enviarMensaje = confirm(t2("Quieres enviarle ahora el mensaje de inasistencia por WhatsApp?"));
     try {
       const negocioId = getNegocioId();
       const response = await fetch(
@@ -2604,17 +2758,17 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
       fetchBookings();
     } catch (error) {
       console.error("Error marcando ausencia:", error);
-      alert(t("Error al marcar la ausencia."));
+      alert(t2("Error al marcar la ausencia."));
     }
   };
   const handleCancel = async (id, bookingData) => {
     if (!puedeGestionarReservas) {
-      alert(t("Tu nivel de acceso solo permite ver reservas."));
+      alert(t2("Tu nivel de acceso solo permite ver reservas."));
       return;
     }
     const reservasGrupo = bookingData?._reservasGrupo || [];
     if (bookingData?._grupoVisual && reservasGrupo.length > 1) {
-      if (!confirm(t("¿Cancelar la cita completa de {nombre}? Se cancelarán {n} servicios.", { nombre: bookingData.cliente_nombre, n: reservasGrupo.length }))) return;
+      if (!confirm(t2("¿Cancelar la cita completa de {nombre}? Se cancelarán {n} servicios.", { nombre: bookingData.cliente_nombre, n: reservasGrupo.length }))) return;
       let todoOk = true;
       for (const reserva of reservasGrupo) {
         const ok2 = await cancelBooking(reserva.id, reserva);
@@ -2625,29 +2779,29 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
         if (window.notificarCancelacion) {
           await window.notificarCancelacion(bookingData);
         }
-        alert(t("Cita completa cancelada"));
+        alert(t2("Cita completa cancelada"));
         fetchBookings();
       } else {
-        alert(t("Error al cancelar uno o más servicios del grupo"));
+        alert(t2("Error al cancelar uno o más servicios del grupo"));
         fetchBookings();
       }
       return;
     }
-    if (!confirm(t("¿Cancelar reserva de {nombre}?", { nombre: bookingData.cliente_nombre }))) return;
+    if (!confirm(t2("¿Cancelar reserva de {nombre}?", { nombre: bookingData.cliente_nombre }))) return;
     const ok = await cancelBooking(id, bookingData);
     if (ok) {
       bookingData.cancelado_por = "admin";
       if (window.notificarCancelacion) {
         await window.notificarCancelacion(bookingData);
       }
-      alert(t("Reserva cancelada"));
+      alert(t2("Reserva cancelada"));
       fetchBookings();
     } else {
-      alert(t("Error al cancelar"));
+      alert(t2("Error al cancelar"));
     }
   };
   const handleLogout = () => {
-    if (confirm(t("¿Cerrar sesión?"))) {
+    if (confirm(t2("¿Cerrar sesión?"))) {
       localStorage.removeItem("adminAuth");
       localStorage.removeItem("adminUser");
       localStorage.removeItem("adminLoginTime");
@@ -2920,19 +3074,19 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
     const score = Math.max(0, Math.min(100, 50 + completadas * 12 + activas * 4 - canceladas * 18 - pendientes * 3));
     const sorted = [...reservasCliente].sort((a, b) => `${b.fecha} ${b.hora_inicio}`.localeCompare(`${a.fecha} ${a.hora_inicio}`));
     const ultima = sorted[0] || null;
-    let label = t("Nuevo");
+    let label = t2("Nuevo");
     let tone = "bg-gray-100 text-gray-700 border-gray-200";
     if (total >= 3 && cancelRate >= 50) {
-      label = t("Riesgo alto");
+      label = t2("Riesgo alto");
       tone = "bg-red-50 text-red-700 border-red-200";
     } else if (score >= 80) {
-      label = t("Excelente");
+      label = t2("Excelente");
       tone = "bg-emerald-50 text-emerald-700 border-emerald-200";
     } else if (total >= 3) {
-      label = t("Frecuente");
+      label = t2("Frecuente");
       tone = "bg-blue-50 text-blue-700 border-blue-200";
     } else if (pendientes > 0) {
-      label = t("Pendiente");
+      label = t2("Pendiente");
       tone = "bg-amber-50 text-amber-700 border-amber-200";
     }
     return {
@@ -2970,7 +3124,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
     setGuardandoAjusteFid(false);
     if (!resultado.success) {
       setAjustesFidelizacion((prev) => ({ ...prev, [phone]: anterior }));
-      alert(t("No se pudo guardar. Revisa tu conexión e intenta otra vez."));
+      alert(t2("No se pudo guardar. Revisa tu conexión e intenta otra vez."));
     }
   };
   const claveTelefono = (valor) => window.normalizarTelefonoLocal ? window.normalizarTelefonoLocal(valor) : String(valor || "").replace(/\D/g, "");
@@ -3136,10 +3290,10 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
       const estado = estados[reserva.estado] !== void 0 ? reserva.estado : "Reservado";
       const cobro = parseMontoEstadistica(reserva.monto_cobrado);
       const estimado = getServicioPrecioEstadistica(reserva.servicio);
-      const profesionalNombre = reserva.profesional_nombre || reserva.trabajador_nombre || t("Sin profesional");
-      const servicioNombre = reserva.servicio || t("Sin servicio");
+      const profesionalNombre = reserva.profesional_nombre || reserva.trabajador_nombre || t2("Sin profesional");
+      const servicioNombre = reserva.servicio || t2("Sin servicio");
       const diaKey = reserva.fecha || "Sin fecha";
-      const diaLabel = reserva.fecha ? getDateFromInput(reserva.fecha).toLocaleDateString(idioma === "en" ? "en-US" : "es-CU", { weekday: "short", day: "numeric", month: "short" }) : t("Sin fecha");
+      const diaLabel = reserva.fecha ? getDateFromInput(reserva.fecha).toLocaleDateString(idioma === "en" ? "en-US" : "es-CU", { weekday: "short", day: "numeric", month: "short" }) : t2("Sin fecha");
       if (!porProfesional[profesionalNombre]) {
         porProfesional[profesionalNombre] = { nombre: profesionalNombre, total: 0, completadas: 0, canceladas: 0, ausentes: 0, cobro: 0 };
       }
@@ -3204,31 +3358,31 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
   };
   const crearResumenEstadisticasTexto = (stats) => {
     const lineas = [
-      t("Resumen de {nombre}", { nombre: nombreNegocio }),
-      t("Periodo: {periodo}", { periodo: stats.rango.titulo }),
+      t2("Resumen de {nombre}", { nombre: nombreNegocio }),
+      t2("Periodo: {periodo}", { periodo: stats.rango.titulo }),
       "",
-      t("Cobro real: {monto}", { monto: formatMoneyEstadistica(stats.cobroReal) }),
-      t("Ingreso estimado: {monto}", { monto: formatMoneyEstadistica(stats.ingresoEstimado) }),
-      t("Ticket promedio: {monto}", { monto: formatMoneyEstadistica(stats.ticketPromedio) }),
-      stats.valoracionesCount ? t("Valoracion de reserva: {promedio}/5 ({n} valoraciones)", { promedio: stats.valoracionPromedio.toFixed(1), n: stats.valoracionesCount }) : t("Valoracion de reserva: sin datos"),
-      stats.valoracionServicioCount ? t("Valoracion del servicio: {promedio}/5 ({n} valoraciones)", { promedio: stats.valoracionServicioPromedio.toFixed(1), n: stats.valoracionServicioCount }) : t("Valoracion del servicio: sin datos"),
+      t2("Cobro real: {monto}", { monto: formatMoneyEstadistica(stats.cobroReal) }),
+      t2("Ingreso estimado: {monto}", { monto: formatMoneyEstadistica(stats.ingresoEstimado) }),
+      t2("Ticket promedio: {monto}", { monto: formatMoneyEstadistica(stats.ticketPromedio) }),
+      stats.valoracionesCount ? t2("Valoracion de reserva: {promedio}/5 ({n} valoraciones)", { promedio: stats.valoracionPromedio.toFixed(1), n: stats.valoracionesCount }) : t2("Valoracion de reserva: sin datos"),
+      stats.valoracionServicioCount ? t2("Valoracion del servicio: {promedio}/5 ({n} valoraciones)", { promedio: stats.valoracionServicioPromedio.toFixed(1), n: stats.valoracionServicioCount }) : t2("Valoracion del servicio: sin datos"),
       "",
-      t("Citas: {n}", { n: stats.totalCitas }),
-      t("Completadas: {n}", { n: stats.estados.Completado }),
-      t("Reservadas: {n}", { n: stats.estados.Reservado }),
-      t("Pendientes: {n}", { n: stats.estados.Pendiente }),
-      t("Canceladas: {n}", { n: stats.estados.Cancelado }),
-      t("Ausentes: {n}", { n: stats.estados.Ausente }),
-      t("Sin cobro registrado: {n}", { n: stats.citasSinCobro })
+      t2("Citas: {n}", { n: stats.totalCitas }),
+      t2("Completadas: {n}", { n: stats.estados.Completado }),
+      t2("Reservadas: {n}", { n: stats.estados.Reservado }),
+      t2("Pendientes: {n}", { n: stats.estados.Pendiente }),
+      t2("Canceladas: {n}", { n: stats.estados.Cancelado }),
+      t2("Ausentes: {n}", { n: stats.estados.Ausente }),
+      t2("Sin cobro registrado: {n}", { n: stats.citasSinCobro })
     ];
     if (stats.topProfesionales.length) {
-      lineas.push("", t("Profesionales destacados:"));
+      lineas.push("", t2("Profesionales destacados:"));
       stats.topProfesionales.slice(0, 3).forEach((item) => {
-        lineas.push(t("- {nombre}: {monto} / {n} completadas", { nombre: item.nombre, monto: formatMoneyEstadistica(item.cobro), n: item.completadas }));
+        lineas.push(t2("- {nombre}: {monto} / {n} completadas", { nombre: item.nombre, monto: formatMoneyEstadistica(item.cobro), n: item.completadas }));
       });
     }
     if (stats.topServicios.length) {
-      lineas.push("", t("Servicios mas pedidos:"));
+      lineas.push("", t2("Servicios mas pedidos:"));
       stats.topServicios.slice(0, 3).forEach((item) => {
         lineas.push(`- ${item.nombre}: ${item.total}`);
       });
@@ -3240,20 +3394,20 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
     try {
       if (navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(texto);
-        alert(t("Resumen copiado"));
+        alert(t2("Resumen copiado"));
       } else {
-        window.prompt(t("Copia el resumen:"), texto);
+        window.prompt(t2("Copia el resumen:"), texto);
       }
     } catch (error) {
       console.error("Error copiando resumen:", error);
-      window.prompt(t("Copia el resumen:"), texto);
+      window.prompt(t2("Copia el resumen:"), texto);
     }
   };
   const descargarEstadisticasCSV = () => {
     const stats = calcularEstadisticas();
     const escapeCsv = (value) => `"${String(value ?? "").replace(/"/g, '""')}"`;
     const filas = [
-      [t("Fecha"), t("Total servicios"), t("Completadas"), t("Canceladas"), t("Pendientes"), t("Ausentes"), t("Cobro real")],
+      [t2("Fecha"), t2("Total servicios"), t2("Completadas"), t2("Canceladas"), t2("Pendientes"), t2("Ausentes"), t2("Cobro real")],
       ...stats.dias.map((dia) => [dia.fecha, dia.total, dia.completadas, dia.canceladas, dia.pendientes, dia.ausentes, dia.cobro])
     ];
     const csv = filas.map((fila) => fila.map(escapeCsv).join(",")).join("\n");
@@ -3270,57 +3424,57 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
   const renderEstadisticas = () => {
     const stats = calcularEstadisticas();
     const cards = [
-      { label: t("Cobro real"), value: formatMoneyEstadistica(stats.cobroReal), tone: "text-emerald-700 bg-emerald-50 border-emerald-100" },
-      { label: t("Ingreso estimado"), value: formatMoneyEstadistica(stats.ingresoEstimado), tone: "text-pink-700 bg-pink-50 border-pink-100" },
-      { label: t("Completadas"), value: stats.estados.Completado, tone: "text-blue-700 bg-blue-50 border-blue-100" },
-      { label: t("Canceladas"), value: stats.estados.Cancelado, tone: "text-red-700 bg-red-50 border-red-100" },
-      { label: t("Ausentes"), value: stats.estados.Ausente, tone: "text-slate-700 bg-slate-50 border-slate-100" },
-      { label: t("Sin cobro"), value: stats.citasSinCobro, tone: "text-amber-700 bg-amber-50 border-amber-100" },
-      { label: t("Valoracion"), value: stats.valoracionesCount ? `⭐ ${stats.valoracionPromedio.toFixed(1)} (${stats.valoracionesCount})` : t("Sin datos"), tone: "text-yellow-700 bg-yellow-50 border-yellow-100" },
-      { label: t("Servicio"), value: stats.valoracionServicioCount ? `✨ ${stats.valoracionServicioPromedio.toFixed(1)} (${stats.valoracionServicioCount})` : t("Sin datos"), tone: "text-pink-700 bg-pink-50 border-pink-100" }
+      { label: t2("Cobro real"), value: formatMoneyEstadistica(stats.cobroReal), tone: "text-emerald-700 bg-emerald-50 border-emerald-100" },
+      { label: t2("Ingreso estimado"), value: formatMoneyEstadistica(stats.ingresoEstimado), tone: "text-pink-700 bg-pink-50 border-pink-100" },
+      { label: t2("Completadas"), value: stats.estados.Completado, tone: "text-blue-700 bg-blue-50 border-blue-100" },
+      { label: t2("Canceladas"), value: stats.estados.Cancelado, tone: "text-red-700 bg-red-50 border-red-100" },
+      { label: t2("Ausentes"), value: stats.estados.Ausente, tone: "text-slate-700 bg-slate-50 border-slate-100" },
+      { label: t2("Sin cobro"), value: stats.citasSinCobro, tone: "text-amber-700 bg-amber-50 border-amber-100" },
+      { label: t2("Valoracion"), value: stats.valoracionesCount ? `⭐ ${stats.valoracionPromedio.toFixed(1)} (${stats.valoracionesCount})` : t2("Sin datos"), tone: "text-yellow-700 bg-yellow-50 border-yellow-100" },
+      { label: t2("Servicio"), value: stats.valoracionServicioCount ? `✨ ${stats.valoracionServicioPromedio.toFixed(1)} (${stats.valoracionServicioCount})` : t2("Sin datos"), tone: "text-pink-700 bg-pink-50 border-pink-100" }
     ];
-    return /* @__PURE__ */ React.createElement("div", { className: "space-y-4" }, /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-xl shadow-sm p-5 border border-gray-100" }, /* @__PURE__ */ React.createElement("div", { className: "flex flex-col lg:flex-row lg:items-center justify-between gap-4" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("p", { className: "text-xs uppercase tracking-wide text-pink-500 font-bold" }, t("Estadisticas")), /* @__PURE__ */ React.createElement("h2", { className: "text-2xl font-bold text-gray-900" }, stats.rango.titulo), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500" }, t("Desde {inicio} hasta {fin}", { inicio: stats.rango.inicio, fin: stats.rango.fin }))), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap items-center gap-2" }, /* @__PURE__ */ React.createElement("div", { className: "inline-flex bg-gray-100 rounded-lg p-1" }, [
-      ["semana", t("Semana")],
-      ["mes", t("Mes")],
-      ["ano", t("Ano")]
-    ].map(([id, label]) => /* @__PURE__ */ React.createElement("button", { key: id, onClick: () => setEstadisticasPeriodo(id), className: `px-3 py-1.5 rounded-md text-sm font-medium ${estadisticasPeriodo === id ? "bg-white text-pink-600 shadow-sm" : "text-gray-600"}` }, label))), /* @__PURE__ */ React.createElement("input", { type: "date", value: estadisticasFecha, onChange: (e) => setEstadisticasFecha(e.target.value), className: "border rounded-lg px-3 py-2 text-sm bg-white" }), /* @__PURE__ */ React.createElement("button", { onClick: copiarResumenEstadisticas, className: "px-3 py-2 rounded-lg bg-pink-500 text-white text-sm font-bold hover:bg-pink-600" }, t("Copiar resumen")), /* @__PURE__ */ React.createElement("button", { onClick: descargarEstadisticasCSV, className: "px-3 py-2 rounded-lg bg-gray-900 text-white text-sm font-bold hover:bg-black" }, "CSV")))), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 lg:grid-cols-4 gap-3" }, cards.map((card) => /* @__PURE__ */ React.createElement("div", { key: card.label, className: `rounded-xl border p-4 ${card.tone}` }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-semibold uppercase" }, card.label), /* @__PURE__ */ React.createElement("p", { className: "text-2xl font-black mt-1" }, card.value)))), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-1 lg:grid-cols-3 gap-4" }, /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-xl shadow-sm p-5 border border-gray-100" }, /* @__PURE__ */ React.createElement("h3", { className: "font-bold text-gray-900 mb-4" }, t("Resumen de citas")), /* @__PURE__ */ React.createElement("div", { className: "space-y-3" }, [
-      [t("Total citas"), stats.totalCitas],
-      [t("Servicios vendidos/reservados"), stats.totalServicios],
-      [t("Reservadas"), stats.estados.Reservado],
-      [t("Pendientes"), stats.estados.Pendiente],
-      [t("Completadas"), `${stats.estados.Completado} (${stats.tasaCompletadas}%)`],
-      [t("Canceladas"), `${stats.estados.Cancelado} (${stats.tasaCanceladas}%)`],
-      [t("Ausentes"), `${stats.estados.Ausente} (${stats.tasaAusentes}%)`],
-      [t("Ticket promedio real"), formatMoneyEstadistica(stats.ticketPromedio)],
-      [t("Valoracion de reserva"), stats.valoracionesCount ? `⭐ ${stats.valoracionPromedio.toFixed(1)} / 5 (${stats.valoracionesCount})` : t("Sin datos")],
-      [t("Valoracion del servicio"), stats.valoracionServicioCount ? `✨ ${stats.valoracionServicioPromedio.toFixed(1)} / 5 (${stats.valoracionServicioCount})` : t("Sin datos")]
-    ].map(([label, value]) => /* @__PURE__ */ React.createElement("div", { key: label, className: "flex justify-between gap-3 text-sm border-b border-gray-100 pb-2 last:border-b-0" }, /* @__PURE__ */ React.createElement("span", { className: "text-gray-500" }, label), /* @__PURE__ */ React.createElement("span", { className: "font-bold text-gray-900" }, value))))), /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-xl shadow-sm p-5 border border-gray-100" }, /* @__PURE__ */ React.createElement("h3", { className: "font-bold text-gray-900 mb-4" }, t("Profesionales")), /* @__PURE__ */ React.createElement("div", { className: "space-y-3" }, stats.topProfesionales.length === 0 ? /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500" }, t("No hay datos en este periodo.")) : stats.topProfesionales.map((item) => /* @__PURE__ */ React.createElement("div", { key: item.nombre, className: "rounded-lg bg-gray-50 border border-gray-100 p-3" }, /* @__PURE__ */ React.createElement("div", { className: "flex justify-between gap-3" }, /* @__PURE__ */ React.createElement("p", { className: "font-bold text-gray-900 truncate" }, item.nombre), /* @__PURE__ */ React.createElement("p", { className: "font-bold text-emerald-700" }, formatMoneyEstadistica(item.cobro))), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-1" }, t("{completadas} completadas - {canceladas} canceladas - {ausentes} ausentes", { completadas: item.completadas, canceladas: item.canceladas, ausentes: item.ausentes })))))), /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-xl shadow-sm p-5 border border-gray-100" }, /* @__PURE__ */ React.createElement("h3", { className: "font-bold text-gray-900 mb-4" }, t("Servicios mas pedidos")), /* @__PURE__ */ React.createElement("div", { className: "space-y-3" }, stats.topServicios.length === 0 ? /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500" }, t("No hay datos en este periodo.")) : stats.topServicios.map((item) => /* @__PURE__ */ React.createElement("div", { key: item.nombre, className: "rounded-lg bg-gray-50 border border-gray-100 p-3" }, /* @__PURE__ */ React.createElement("div", { className: "flex justify-between gap-3" }, /* @__PURE__ */ React.createElement("p", { className: "font-bold text-gray-900 truncate" }, item.nombre), /* @__PURE__ */ React.createElement("p", { className: "font-bold text-gray-900" }, item.total)), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-1" }, t("{completadas} completadas - {cobro} real", { completadas: item.completadas, cobro: formatMoneyEstadistica(item.cobro) }))))))), /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-xl shadow-sm p-5 border border-gray-100" }, /* @__PURE__ */ React.createElement("div", { className: "flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4" }, /* @__PURE__ */ React.createElement("h3", { className: "font-bold text-gray-900" }, t("Detalle por dia")), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500" }, t("{n} dias con movimiento", { n: stats.dias.length }))), stats.dias.length === 0 ? /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500" }, t("No hay reservas en este periodo.")) : /* @__PURE__ */ React.createElement("div", { className: "overflow-x-auto" }, /* @__PURE__ */ React.createElement("table", { className: "min-w-full text-sm" }, /* @__PURE__ */ React.createElement("thead", null, /* @__PURE__ */ React.createElement("tr", { className: "text-left text-gray-500 border-b" }, /* @__PURE__ */ React.createElement("th", { className: "py-2 pr-3" }, t("Dia")), /* @__PURE__ */ React.createElement("th", { className: "py-2 pr-3" }, t("Total")), /* @__PURE__ */ React.createElement("th", { className: "py-2 pr-3" }, t("Completadas")), /* @__PURE__ */ React.createElement("th", { className: "py-2 pr-3" }, t("Pendientes")), /* @__PURE__ */ React.createElement("th", { className: "py-2 pr-3" }, t("Canceladas")), /* @__PURE__ */ React.createElement("th", { className: "py-2 pr-3" }, t("Ausentes")), /* @__PURE__ */ React.createElement("th", { className: "py-2 pr-3" }, t("Cobro real")))), /* @__PURE__ */ React.createElement("tbody", null, stats.dias.map((dia) => /* @__PURE__ */ React.createElement("tr", { key: dia.fecha, className: "border-b last:border-b-0" }, /* @__PURE__ */ React.createElement("td", { className: "py-2 pr-3 font-medium text-gray-900" }, dia.label), /* @__PURE__ */ React.createElement("td", { className: "py-2 pr-3" }, dia.total), /* @__PURE__ */ React.createElement("td", { className: "py-2 pr-3 text-emerald-700 font-semibold" }, dia.completadas), /* @__PURE__ */ React.createElement("td", { className: "py-2 pr-3 text-amber-700 font-semibold" }, dia.pendientes), /* @__PURE__ */ React.createElement("td", { className: "py-2 pr-3 text-red-700 font-semibold" }, dia.canceladas), /* @__PURE__ */ React.createElement("td", { className: "py-2 pr-3 text-slate-700 font-semibold" }, dia.ausentes), /* @__PURE__ */ React.createElement("td", { className: "py-2 pr-3 font-bold" }, formatMoneyEstadistica(dia.cobro)))))))));
+    return /* @__PURE__ */ React.createElement("div", { className: "space-y-4" }, /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-xl shadow-sm p-5 border border-gray-100" }, /* @__PURE__ */ React.createElement("div", { className: "flex flex-col lg:flex-row lg:items-center justify-between gap-4" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("p", { className: "text-xs uppercase tracking-wide text-pink-500 font-bold" }, t2("Estadisticas")), /* @__PURE__ */ React.createElement("h2", { className: "text-2xl font-bold text-gray-900" }, stats.rango.titulo), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500" }, t2("Desde {inicio} hasta {fin}", { inicio: stats.rango.inicio, fin: stats.rango.fin }))), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap items-center gap-2" }, /* @__PURE__ */ React.createElement("div", { className: "inline-flex bg-gray-100 rounded-lg p-1" }, [
+      ["semana", t2("Semana")],
+      ["mes", t2("Mes")],
+      ["ano", t2("Ano")]
+    ].map(([id, label]) => /* @__PURE__ */ React.createElement("button", { key: id, onClick: () => setEstadisticasPeriodo(id), className: `px-3 py-1.5 rounded-md text-sm font-medium ${estadisticasPeriodo === id ? "bg-white text-pink-600 shadow-sm" : "text-gray-600"}` }, label))), /* @__PURE__ */ React.createElement("input", { type: "date", value: estadisticasFecha, onChange: (e) => setEstadisticasFecha(e.target.value), className: "border rounded-lg px-3 py-2 text-sm bg-white" }), /* @__PURE__ */ React.createElement("button", { onClick: copiarResumenEstadisticas, className: "px-3 py-2 rounded-lg bg-pink-500 text-white text-sm font-bold hover:bg-pink-600" }, t2("Copiar resumen")), /* @__PURE__ */ React.createElement("button", { onClick: descargarEstadisticasCSV, className: "px-3 py-2 rounded-lg bg-gray-900 text-white text-sm font-bold hover:bg-black" }, "CSV")))), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 lg:grid-cols-4 gap-3" }, cards.map((card) => /* @__PURE__ */ React.createElement("div", { key: card.label, className: `rounded-xl border p-4 ${card.tone}` }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-semibold uppercase" }, card.label), /* @__PURE__ */ React.createElement("p", { className: "text-2xl font-black mt-1" }, card.value)))), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-1 lg:grid-cols-3 gap-4" }, /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-xl shadow-sm p-5 border border-gray-100" }, /* @__PURE__ */ React.createElement("h3", { className: "font-bold text-gray-900 mb-4" }, t2("Resumen de citas")), /* @__PURE__ */ React.createElement("div", { className: "space-y-3" }, [
+      [t2("Total citas"), stats.totalCitas],
+      [t2("Servicios vendidos/reservados"), stats.totalServicios],
+      [t2("Reservadas"), stats.estados.Reservado],
+      [t2("Pendientes"), stats.estados.Pendiente],
+      [t2("Completadas"), `${stats.estados.Completado} (${stats.tasaCompletadas}%)`],
+      [t2("Canceladas"), `${stats.estados.Cancelado} (${stats.tasaCanceladas}%)`],
+      [t2("Ausentes"), `${stats.estados.Ausente} (${stats.tasaAusentes}%)`],
+      [t2("Ticket promedio real"), formatMoneyEstadistica(stats.ticketPromedio)],
+      [t2("Valoracion de reserva"), stats.valoracionesCount ? `⭐ ${stats.valoracionPromedio.toFixed(1)} / 5 (${stats.valoracionesCount})` : t2("Sin datos")],
+      [t2("Valoracion del servicio"), stats.valoracionServicioCount ? `✨ ${stats.valoracionServicioPromedio.toFixed(1)} / 5 (${stats.valoracionServicioCount})` : t2("Sin datos")]
+    ].map(([label, value]) => /* @__PURE__ */ React.createElement("div", { key: label, className: "flex justify-between gap-3 text-sm border-b border-gray-100 pb-2 last:border-b-0" }, /* @__PURE__ */ React.createElement("span", { className: "text-gray-500" }, label), /* @__PURE__ */ React.createElement("span", { className: "font-bold text-gray-900" }, value))))), /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-xl shadow-sm p-5 border border-gray-100" }, /* @__PURE__ */ React.createElement("h3", { className: "font-bold text-gray-900 mb-4" }, t2("Profesionales")), /* @__PURE__ */ React.createElement("div", { className: "space-y-3" }, stats.topProfesionales.length === 0 ? /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500" }, t2("No hay datos en este periodo.")) : stats.topProfesionales.map((item) => /* @__PURE__ */ React.createElement("div", { key: item.nombre, className: "rounded-lg bg-gray-50 border border-gray-100 p-3" }, /* @__PURE__ */ React.createElement("div", { className: "flex justify-between gap-3" }, /* @__PURE__ */ React.createElement("p", { className: "font-bold text-gray-900 truncate" }, item.nombre), /* @__PURE__ */ React.createElement("p", { className: "font-bold text-emerald-700" }, formatMoneyEstadistica(item.cobro))), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-1" }, t2("{completadas} completadas - {canceladas} canceladas - {ausentes} ausentes", { completadas: item.completadas, canceladas: item.canceladas, ausentes: item.ausentes })))))), /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-xl shadow-sm p-5 border border-gray-100" }, /* @__PURE__ */ React.createElement("h3", { className: "font-bold text-gray-900 mb-4" }, t2("Servicios mas pedidos")), /* @__PURE__ */ React.createElement("div", { className: "space-y-3" }, stats.topServicios.length === 0 ? /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500" }, t2("No hay datos en este periodo.")) : stats.topServicios.map((item) => /* @__PURE__ */ React.createElement("div", { key: item.nombre, className: "rounded-lg bg-gray-50 border border-gray-100 p-3" }, /* @__PURE__ */ React.createElement("div", { className: "flex justify-between gap-3" }, /* @__PURE__ */ React.createElement("p", { className: "font-bold text-gray-900 truncate" }, item.nombre), /* @__PURE__ */ React.createElement("p", { className: "font-bold text-gray-900" }, item.total)), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-1" }, t2("{completadas} completadas - {cobro} real", { completadas: item.completadas, cobro: formatMoneyEstadistica(item.cobro) }))))))), /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-xl shadow-sm p-5 border border-gray-100" }, /* @__PURE__ */ React.createElement("div", { className: "flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4" }, /* @__PURE__ */ React.createElement("h3", { className: "font-bold text-gray-900" }, t2("Detalle por dia")), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500" }, t2("{n} dias con movimiento", { n: stats.dias.length }))), stats.dias.length === 0 ? /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500" }, t2("No hay reservas en este periodo.")) : /* @__PURE__ */ React.createElement("div", { className: "overflow-x-auto" }, /* @__PURE__ */ React.createElement("table", { className: "min-w-full text-sm" }, /* @__PURE__ */ React.createElement("thead", null, /* @__PURE__ */ React.createElement("tr", { className: "text-left text-gray-500 border-b" }, /* @__PURE__ */ React.createElement("th", { className: "py-2 pr-3" }, t2("Dia")), /* @__PURE__ */ React.createElement("th", { className: "py-2 pr-3" }, t2("Total")), /* @__PURE__ */ React.createElement("th", { className: "py-2 pr-3" }, t2("Completadas")), /* @__PURE__ */ React.createElement("th", { className: "py-2 pr-3" }, t2("Pendientes")), /* @__PURE__ */ React.createElement("th", { className: "py-2 pr-3" }, t2("Canceladas")), /* @__PURE__ */ React.createElement("th", { className: "py-2 pr-3" }, t2("Ausentes")), /* @__PURE__ */ React.createElement("th", { className: "py-2 pr-3" }, t2("Cobro real")))), /* @__PURE__ */ React.createElement("tbody", null, stats.dias.map((dia) => /* @__PURE__ */ React.createElement("tr", { key: dia.fecha, className: "border-b last:border-b-0" }, /* @__PURE__ */ React.createElement("td", { className: "py-2 pr-3 font-medium text-gray-900" }, dia.label), /* @__PURE__ */ React.createElement("td", { className: "py-2 pr-3" }, dia.total), /* @__PURE__ */ React.createElement("td", { className: "py-2 pr-3 text-emerald-700 font-semibold" }, dia.completadas), /* @__PURE__ */ React.createElement("td", { className: "py-2 pr-3 text-amber-700 font-semibold" }, dia.pendientes), /* @__PURE__ */ React.createElement("td", { className: "py-2 pr-3 text-red-700 font-semibold" }, dia.canceladas), /* @__PURE__ */ React.createElement("td", { className: "py-2 pr-3 text-slate-700 font-semibold" }, dia.ausentes), /* @__PURE__ */ React.createElement("td", { className: "py-2 pr-3 font-bold" }, formatMoneyEstadistica(dia.cobro)))))))));
   };
   const getTabsDisponibles = () => {
     const tabs = [];
     const puedeVerEstadisticas = userRole === "admin" || userRole === "profesional" && userNivel >= 2;
-    tabs.push({ id: "reservas", icono: "📅", label: userRole === "profesional" ? t("Mis Reservas") : t("Reservas") });
-    tabs.push({ id: "agenda", icono: "📋", label: t("Agenda") });
+    tabs.push({ id: "reservas", icono: "📅", label: userRole === "profesional" ? t2("Mis Reservas") : t2("Reservas") });
+    tabs.push({ id: "agenda", icono: "📋", label: t2("Agenda") });
     if (puedeVerEstadisticas) {
-      tabs.push({ id: "estadisticas", icono: "Stats", label: t("Estadisticas") });
+      tabs.push({ id: "estadisticas", icono: "Stats", label: t2("Estadisticas") });
     }
     if (userRole === "admin" || userRole === "profesional" && userNivel >= 2) {
-      tabs.push({ id: "configuracion", icono: "⚙️", label: t("Configuración") });
-      tabs.push({ id: "clientes", icono: "👥", label: t("Clientes") });
+      tabs.push({ id: "configuracion", icono: "⚙️", label: t2("Configuración") });
+      tabs.push({ id: "clientes", icono: "👥", label: t2("Clientes") });
     }
     if (userRole === "admin" || userRole === "profesional" && userNivel >= 3) {
-      tabs.push({ id: "servicios", icono: "✨", label: t("Servicios") });
-      tabs.push({ id: "catalogo", icono: "🖼️", label: t("Catálogo") });
-      tabs.push({ id: "profesionales", icono: "👩‍💼", label: t("Profesionales") });
+      tabs.push({ id: "servicios", icono: "✨", label: t2("Servicios") });
+      tabs.push({ id: "catalogo", icono: "🖼️", label: t2("Catálogo") });
+      tabs.push({ id: "profesionales", icono: "👩‍💼", label: t2("Profesionales") });
     }
     if (userRole === "admin" && config?.acceso_finanzas) {
-      tabs.push({ id: "finanzas", icono: "💰", label: t("Finanzas"), url: "finanzas/index.html?desde=panel" });
+      tabs.push({ id: "finanzas", icono: "💰", label: t2("Finanzas"), url: "finanzas/index.html?desde=panel" });
     }
     return tabs;
   };
   const abrirModalNuevaReserva = () => {
     if (!puedeGestionarReservas) {
-      alert(t("Tu nivel de acceso solo permite ver reservas."));
+      alert(t2("Tu nivel de acceso solo permite ver reservas."));
       return;
     }
     setReservaEditando(null);
@@ -3346,11 +3500,11 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
   };
   const abrirModalReprogramar = (booking) => {
     if (!puedeGestionarReservas) {
-      alert(t("Tu nivel de acceso solo permite ver reservas."));
+      alert(t2("Tu nivel de acceso solo permite ver reservas."));
       return;
     }
     if (userRole === "profesional" && profesional && Number(booking.profesional_id) !== Number(profesional.id)) {
-      alert(t("Solo puedes editar tus propias reservas."));
+      alert(t2("Solo puedes editar tus propias reservas."));
       return;
     }
     const servicio = serviciosList.find((s) => s.nombre === booking.servicio);
@@ -3412,23 +3566,23 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
         }
       }
     }
-  ) : /* @__PURE__ */ React.createElement("div", { className: "w-12 h-12 bg-gradient-to-br from-pink-500 to-pink-600 rounded-xl shadow-lg flex items-center justify-center" }, /* @__PURE__ */ React.createElement("span", { className: "text-2xl text-white" }, "✨")), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h1", { className: "text-xl font-bold text-pink-800" }, nombreNegocio), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-pink-500" }, t("Panel de Administración")))), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap items-center gap-2 w-full sm:w-auto" }, /* @__PURE__ */ React.createElement(
+  ) : /* @__PURE__ */ React.createElement("div", { className: "w-12 h-12 bg-gradient-to-br from-pink-500 to-pink-600 rounded-xl shadow-lg flex items-center justify-center" }, /* @__PURE__ */ React.createElement("span", { className: "text-2xl text-white" }, "✨")), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h1", { className: "text-xl font-bold text-pink-800" }, nombreNegocio), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-pink-500" }, t2("Panel de Administración")))), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap items-center gap-2 w-full sm:w-auto" }, /* @__PURE__ */ React.createElement(
     "button",
     {
       onClick: abrirModalNuevaReserva,
       className: `${puedeGestionarReservas ? "flex" : "hidden"} items-center gap-2 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-4 py-2 rounded-lg transition-all transform hover:scale-105 shadow-md border border-green-400 flex-1 sm:flex-none justify-center`
     },
     /* @__PURE__ */ React.createElement("span", { className: "text-lg" }, "➕"),
-    /* @__PURE__ */ React.createElement("span", { className: "font-medium" }, t("Nueva Reserva"))
+    /* @__PURE__ */ React.createElement("span", { className: "font-medium" }, t2("Nueva Reserva"))
   ), /* @__PURE__ */ React.createElement(
     "button",
     {
       onClick: abrirModalDisponibilidad,
       className: "flex items-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-4 py-2 rounded-lg transition-all transform hover:scale-105 shadow-md border border-blue-400 flex-1 sm:flex-none justify-center",
-      title: t("Ver disponibilidad mensual")
+      title: t2("Ver disponibilidad mensual")
     },
     /* @__PURE__ */ React.createElement("span", { className: "text-lg" }, "📆"),
-    /* @__PURE__ */ React.createElement("span", { className: "font-medium" }, t("Ver Disponibilidad"))
+    /* @__PURE__ */ React.createElement("span", { className: "font-medium" }, t2("Ver Disponibilidad"))
   ), /* @__PURE__ */ React.createElement(
     "button",
     {
@@ -3436,7 +3590,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
       className: `${puedeGestionarAvanzado ? "flex" : "hidden"} items-center gap-2 bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white px-4 py-2 rounded-lg transition-all transform hover:scale-105 shadow-md border border-pink-400 flex-1 sm:flex-none justify-center`
     },
     /* @__PURE__ */ React.createElement("span", { className: "text-lg" }, "🏢"),
-    /* @__PURE__ */ React.createElement("span", { className: "font-medium" }, t("Editar Negocio"))
+    /* @__PURE__ */ React.createElement("span", { className: "font-medium" }, t2("Editar Negocio"))
   ), /* @__PURE__ */ React.createElement(
     "button",
     {
@@ -3445,7 +3599,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
         setConfigVersion((prev) => prev + 1);
       },
       className: "p-2 bg-pink-50 rounded-full hover:bg-pink-100 transition-all hover:scale-105 border border-pink-200",
-      title: t("Recargar datos del negocio")
+      title: t2("Recargar datos del negocio")
     },
     /* @__PURE__ */ React.createElement("i", { className: "icon-refresh-cw text-pink-600" })
   ), /* @__PURE__ */ React.createElement(
@@ -3453,7 +3607,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
     {
       onClick: fetchBookings,
       className: "p-2 bg-pink-50 rounded-full hover:bg-pink-100 transition-all hover:scale-105 border border-pink-200",
-      title: t("Actualizar reservas")
+      title: t2("Actualizar reservas")
     },
     /* @__PURE__ */ React.createElement("i", { className: "icon-refresh-cw text-pink-600" })
   ), /* @__PURE__ */ React.createElement(
@@ -3461,7 +3615,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
     {
       onClick: handleLogout,
       className: "p-2 bg-pink-50 rounded-full hover:bg-pink-100 transition-all hover:scale-105 border border-pink-200",
-      title: t("Cerrar sesión")
+      title: t2("Cerrar sesión")
     },
     /* @__PURE__ */ React.createElement("i", { className: "icon-log-out text-pink-600" })
   ), /* @__PURE__ */ React.createElement(window.LanguageToggle, null)), (() => {
@@ -3502,7 +3656,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
           cursor: "pointer",
           flexShrink: 0
         },
-        title: t("Copiar enlace")
+        title: t2("Copiar enlace")
       },
       "📋"
     )) : null;
@@ -3511,7 +3665,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
     {
       onClick: cerrarFraseDelDia,
       className: "text-white/80 hover:text-white text-xl leading-none flex-shrink-0",
-      title: t("Cerrar")
+      title: t2("Cerrar")
     },
     "×"
   )), puedeGestionarAvanzado && pendientesConfiguracion.length > 0 ? /* @__PURE__ */ React.createElement(
@@ -3520,25 +3674,34 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
       role: "alert",
       className: "rounded-2xl border-2 border-amber-300 bg-gradient-to-r from-amber-50 to-orange-50 p-4 sm:p-5 shadow-sm"
     },
-    /* @__PURE__ */ React.createElement("div", { className: "flex items-start gap-3 mb-3" }, /* @__PURE__ */ React.createElement("div", { className: "w-11 h-11 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-sm" }, /* @__PURE__ */ React.createElement("i", { className: "icon-triangle-alert text-xl" })), /* @__PURE__ */ React.createElement("div", { className: "min-w-0" }, /* @__PURE__ */ React.createElement("p", { className: "text-[11px] font-extrabold uppercase tracking-wide text-amber-700" }, t("Acción necesaria")), /* @__PURE__ */ React.createElement("h2", { className: "mt-1 text-lg font-bold text-amber-950" }, pendientesConfiguracion.length === 1 ? t("Falta un detalle por configurar") : t("Faltan {n} detalles por configurar", { n: pendientesConfiguracion.length })), /* @__PURE__ */ React.createElement("p", { className: "mt-1 text-sm text-amber-900 leading-relaxed" }, t("Toca cada uno y te llevamos directo a resolverlo. El aviso desaparece solo al completarlo.")))),
-    /* @__PURE__ */ React.createElement("div", { className: "space-y-2" }, pendientesConfiguracion.map((pendiente) => /* @__PURE__ */ React.createElement(
-      "div",
-      {
-        key: pendiente.id,
-        className: "rounded-xl border border-amber-200 bg-white p-3 flex flex-col sm:flex-row sm:items-center gap-3"
-      },
-      /* @__PURE__ */ React.createElement("div", { className: "flex items-start gap-3 flex-1 min-w-0" }, /* @__PURE__ */ React.createElement("i", { className: `${pendiente.icono} text-lg text-amber-600 shrink-0 mt-0.5` }), /* @__PURE__ */ React.createElement("div", { className: "min-w-0" }, /* @__PURE__ */ React.createElement("p", { className: "text-sm font-bold text-amber-950" }, pendiente.titulo), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-amber-800 leading-relaxed mt-0.5" }, pendiente.detalle))),
-      /* @__PURE__ */ React.createElement(
+    /* @__PURE__ */ React.createElement("div", { className: "flex items-start gap-3 mb-3" }, /* @__PURE__ */ React.createElement("div", { className: "w-11 h-11 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-sm" }, /* @__PURE__ */ React.createElement("i", { className: "icon-triangle-alert text-xl" })), /* @__PURE__ */ React.createElement("div", { className: "min-w-0" }, /* @__PURE__ */ React.createElement("p", { className: "text-[11px] font-extrabold uppercase tracking-wide text-amber-700" }, t2("Acción necesaria")), /* @__PURE__ */ React.createElement("h2", { className: "mt-1 text-lg font-bold text-amber-950" }, pendientesConfiguracion.length === 1 ? t2("Falta un detalle por configurar") : t2("Faltan {n} detalles por configurar", { n: pendientesConfiguracion.length })), /* @__PURE__ */ React.createElement("p", { className: "mt-1 text-sm text-amber-900 leading-relaxed" }, t2("Cada aviso trae su arreglo: tócalo y listo. Desaparece solo en cuanto queda resuelto.")))),
+    /* @__PURE__ */ React.createElement("ul", { className: "space-y-3" }, pendientesConfiguracion.map((pendiente) => {
+      const acciones = pendiente.acciones || [{ texto: pendiente.accion, onClick: pendiente.onClick }];
+      const guardando = arreglandoAviso === pendiente.id;
+      return /* @__PURE__ */ React.createElement("li", { key: pendiente.id, className: "flex items-start gap-2.5" }, /* @__PURE__ */ React.createElement("div", { className: "w-10 h-10 rounded-full bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-sm mt-1" }, /* @__PURE__ */ React.createElement("i", { className: `${pendiente.icono} text-lg` })), /* @__PURE__ */ React.createElement("div", { className: "relative flex-1 min-w-0 rounded-2xl rounded-tl-md border border-amber-200 bg-white p-3 shadow-sm" }, /* @__PURE__ */ React.createElement("span", { "aria-hidden": "true", className: "absolute -left-[7px] top-4 w-3 h-3 rotate-45 bg-white border-l border-b border-amber-200" }), /* @__PURE__ */ React.createElement("p", { className: "text-sm font-bold text-amber-950 break-words" }, pendiente.titulo), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-amber-900 leading-relaxed mt-0.5 break-words" }, pendiente.detalle), /* @__PURE__ */ React.createElement("div", { className: "mt-2.5 flex flex-wrap gap-2" }, acciones.map((accion) => /* @__PURE__ */ React.createElement(
         "button",
         {
+          key: accion.texto,
           type: "button",
-          onClick: pendiente.onClick,
-          className: "shrink-0 rounded-lg bg-amber-600 px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-amber-700 focus:outline-none focus:ring-4 focus:ring-amber-200"
+          onClick: accion.onClick,
+          disabled: guardando,
+          className: accion.secundaria ? "min-h-[44px] rounded-lg border border-amber-300 bg-white px-4 text-sm font-semibold text-amber-900 hover:bg-amber-50 focus:outline-none focus:ring-4 focus:ring-amber-200 disabled:opacity-50" : "min-h-[44px] rounded-lg bg-amber-600 px-4 text-sm font-bold text-white shadow-sm hover:bg-amber-700 focus:outline-none focus:ring-4 focus:ring-amber-200 disabled:opacity-50 disabled:cursor-wait"
         },
-        pendiente.accion
-      )
-    )))
-  ) : null, showNuevaReservaModal && /* @__PURE__ */ React.createElement("div", { className: "fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" }, /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto" }, /* @__PURE__ */ React.createElement("div", { className: "flex justify-between items-center mb-4" }, /* @__PURE__ */ React.createElement("h3", { className: "text-xl font-bold" }, t("Nueva Reserva Manual")), /* @__PURE__ */ React.createElement(
+        guardando && !accion.secundaria ? t2("Guardando…") : accion.texto
+      )))));
+    }))
+  ) : null, asignacionAbierta && /* @__PURE__ */ React.createElement(
+    AsignarServiciosModal,
+    {
+      asignacion: asignacionAbierta,
+      onCerrar: () => setAsignacionAbierta(null),
+      onGuardar: async (pares) => {
+        const id = asignacionAbierta.modo === "servicios" ? "servicios-sin-profesional" : `profesional-sin-servicios-${asignacionAbierta.profesional.id}`;
+        setAsignacionAbierta(null);
+        await arreglarAviso(id, () => asignarParesServicioProfesional(pares));
+      }
+    }
+  ), showNuevaReservaModal && /* @__PURE__ */ React.createElement("div", { className: "fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" }, /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto" }, /* @__PURE__ */ React.createElement("div", { className: "flex justify-between items-center mb-4" }, /* @__PURE__ */ React.createElement("h3", { className: "text-xl font-bold" }, t2("Nueva Reserva Manual")), /* @__PURE__ */ React.createElement(
     "button",
     {
       onClick: () => setShowNuevaReservaModal(false),
@@ -3546,7 +3709,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
       className: "text-gray-500 hover:text-gray-700 text-2xl disabled:opacity-50 disabled:cursor-not-allowed"
     },
     "×"
-  )), /* @__PURE__ */ React.createElement("div", { className: "space-y-4" }, !reservaEditando && /* @__PURE__ */ React.createElement("div", { className: "bg-pink-50/70 border border-pink-100 rounded-xl p-3" }, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-semibold text-pink-800 mb-2" }, t("Elegir cliente registrado")), /* @__PURE__ */ React.createElement("div", { className: "relative" }, /* @__PURE__ */ React.createElement(
+  )), /* @__PURE__ */ React.createElement("div", { className: "space-y-4" }, !reservaEditando && /* @__PURE__ */ React.createElement("div", { className: "bg-pink-50/70 border border-pink-100 rounded-xl p-3" }, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-semibold text-pink-800 mb-2" }, t2("Elegir cliente registrado")), /* @__PURE__ */ React.createElement("div", { className: "relative" }, /* @__PURE__ */ React.createElement(
     "input",
     {
       type: "search",
@@ -3558,9 +3721,9 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
         }
       },
       className: "w-full border border-pink-200 rounded-lg px-3 py-2 pr-10 focus:ring-2 focus:ring-pink-500 focus:border-pink-500 outline-none",
-      placeholder: t("Buscar por nombre o WhatsApp")
+      placeholder: t2("Buscar por nombre o WhatsApp")
     }
-  ), /* @__PURE__ */ React.createElement("span", { className: "absolute right-3 top-2.5 text-pink-400" }, "🔎")), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-pink-600/70 mt-1" }, t("Puedes elegir de la lista o buscar por nombre/WhatsApp. Si no existe, escribe los datos manualmente.")), cargandoClientes && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-pink-500 mt-2" }, t("Cargando clientes...")), busquedaClienteManual && !cargandoClientes && clientesManualFiltrados.length === 0 && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-2" }, t("No encontramos ese cliente. Puedes escribir los datos manualmente y se guardará al crear la reserva.")), !cargandoClientes && clientesRegistrados.length === 0 && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-2" }, t("Aún no hay clientes registrados.")), clientesManualFiltrados.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "mt-2 max-h-52 overflow-y-auto rounded-lg border border-pink-100 bg-white divide-y divide-pink-50" }, clientesManualFiltrados.map((cliente) => /* @__PURE__ */ React.createElement(
+  ), /* @__PURE__ */ React.createElement("span", { className: "absolute right-3 top-2.5 text-pink-400" }, "🔎")), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-pink-600/70 mt-1" }, t2("Puedes elegir de la lista o buscar por nombre/WhatsApp. Si no existe, escribe los datos manualmente.")), cargandoClientes && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-pink-500 mt-2" }, t2("Cargando clientes...")), busquedaClienteManual && !cargandoClientes && clientesManualFiltrados.length === 0 && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-2" }, t2("No encontramos ese cliente. Puedes escribir los datos manualmente y se guardará al crear la reserva.")), !cargandoClientes && clientesRegistrados.length === 0 && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-2" }, t2("Aún no hay clientes registrados.")), clientesManualFiltrados.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "mt-2 max-h-52 overflow-y-auto rounded-lg border border-pink-100 bg-white divide-y divide-pink-50" }, clientesManualFiltrados.map((cliente) => /* @__PURE__ */ React.createElement(
     "button",
     {
       key: `${cliente.whatsapp}-${cliente.id || cliente.fecha_registro || cliente.nombre}`,
@@ -3568,9 +3731,9 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
       onClick: () => seleccionarClienteManual(cliente),
       className: "w-full px-3 py-2 text-left hover:bg-pink-50 flex items-center justify-between gap-3"
     },
-    /* @__PURE__ */ React.createElement("span", { className: "min-w-0" }, /* @__PURE__ */ React.createElement("span", { className: "block font-medium text-gray-800 truncate" }, cliente.nombre || t("Cliente sin nombre")), /* @__PURE__ */ React.createElement("span", { className: "block text-xs text-gray-500" }, "+", String(cliente.whatsapp || "").replace(/\D/g, ""))),
-    /* @__PURE__ */ React.createElement("span", { className: "text-xs text-pink-600 font-semibold shrink-0" }, t("Usar"))
-  )))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, t("Nombre del Cliente *")), /* @__PURE__ */ React.createElement("input", { type: "text", value: nuevaReservaData.cliente_nombre, onChange: (e) => setNuevaReservaData({ ...nuevaReservaData, cliente_nombre: e.target.value }), className: "w-full border rounded-lg px-3 py-2", placeholder: t("Ej: Juan Pérez") })), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, t("WhatsApp del Cliente *")), /* @__PURE__ */ React.createElement("div", { className: "flex" }, /* @__PURE__ */ React.createElement(
+    /* @__PURE__ */ React.createElement("span", { className: "min-w-0" }, /* @__PURE__ */ React.createElement("span", { className: "block font-medium text-gray-800 truncate" }, cliente.nombre || t2("Cliente sin nombre")), /* @__PURE__ */ React.createElement("span", { className: "block text-xs text-gray-500" }, "+", String(cliente.whatsapp || "").replace(/\D/g, ""))),
+    /* @__PURE__ */ React.createElement("span", { className: "text-xs text-pink-600 font-semibold shrink-0" }, t2("Usar"))
+  )))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, t2("Nombre del Cliente *")), /* @__PURE__ */ React.createElement("input", { type: "text", value: nuevaReservaData.cliente_nombre, onChange: (e) => setNuevaReservaData({ ...nuevaReservaData, cliente_nombre: e.target.value }), className: "w-full border rounded-lg px-3 py-2", placeholder: t2("Ej: Juan Pérez") })), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, t2("WhatsApp del Cliente *")), /* @__PURE__ */ React.createElement("div", { className: "flex" }, /* @__PURE__ */ React.createElement(
     "select",
     {
       value: codigoPaisClienteManual,
@@ -3585,11 +3748,11 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
       className: "w-32 px-2 rounded-l-lg border border-r-0 border-gray-300 bg-gray-50 text-sm"
     },
     paisesTelefono.map((pais) => /* @__PURE__ */ React.createElement("option", { key: pais.id, value: pais.codigo }, pais.bandera, " +", pais.codigo))
-  ), /* @__PURE__ */ React.createElement("input", { type: "tel", value: nuevaReservaData.cliente_whatsapp, onChange: (e) => escribirTelefonoManual(e.target.value), className: "w-full px-4 py-2 rounded-r-lg border border-gray-300", placeholder: paisTelefono.ejemplo || "55002272" })), clienteReconocido && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-lg px-2.5 py-1.5 mt-1.5" }, t("Ya vino antes: {nombre} · {n} turno{s}", {
+  ), /* @__PURE__ */ React.createElement("input", { type: "tel", value: nuevaReservaData.cliente_whatsapp, onChange: (e) => escribirTelefonoManual(e.target.value), className: "w-full px-4 py-2 rounded-r-lg border border-gray-300", placeholder: paisTelefono.ejemplo || "55002272" })), clienteReconocido && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-lg px-2.5 py-1.5 mt-1.5" }, t2("Ya vino antes: {nombre} · {n} turno{s}", {
     nombre: clienteReconocido.nombre,
     n: clienteReconocido.turnos,
     s: clienteReconocido.turnos === 1 ? "" : "s"
-  }))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, !reservaEditando ? t("Servicios *") : t("Servicio *")), reservaEditando ? /* @__PURE__ */ React.createElement(
+  }))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, !reservaEditando ? t2("Servicios *") : t2("Servicio *")), reservaEditando ? /* @__PURE__ */ React.createElement(
     "select",
     {
       value: nuevaReservaData.servicio,
@@ -3599,7 +3762,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
       },
       className: "w-full border rounded-lg px-3 py-2"
     },
-    /* @__PURE__ */ React.createElement("option", { value: "" }, t("Seleccionar servicio")),
+    /* @__PURE__ */ React.createElement("option", { value: "" }, t2("Seleccionar servicio")),
     serviciosList.map((s) => /* @__PURE__ */ React.createElement("option", { key: s.id, value: s.nombre }, s.nombre, " (", s.duracion, " min - ", window.formatearPrecioServicio ? window.formatearPrecioServicio(s) : `$${s.precio}`, ")"))
   ) : /* @__PURE__ */ React.createElement("div", { className: "border rounded-xl p-2 max-h-60 overflow-y-auto bg-white space-y-2" }, serviciosList.map((s) => {
     const seleccionado = serviciosManualSeleccionados.includes(s.nombre);
@@ -3614,7 +3777,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
       /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between gap-3" }, /* @__PURE__ */ React.createElement("span", { className: "font-medium" }, s.nombre), /* @__PURE__ */ React.createElement("span", { className: `w-5 h-5 rounded border flex items-center justify-center text-xs ${seleccionado ? "bg-pink-500 border-pink-500 text-white" : "border-gray-300"}` }, seleccionado ? "✓" : "")),
       /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-1" }, s.duracion, " min - ", window.formatearPrecioServicio ? window.formatearPrecioServicio(s) : `$${s.precio}`)
     );
-  })), !reservaEditando && serviciosManualSeleccionados.length > 0 && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-pink-600 mt-2" }, t("{n} servicio{s} - {min} min", { n: serviciosManualSeleccionados.length, s: serviciosManualSeleccionados.length === 1 ? "" : "s", min: getServiciosManualSeleccionados().reduce((total, s) => total + Number(s.duracion || 60), 0) }))), userRole === "admin" && nuevaReservaData.servicio && /* @__PURE__ */ React.createElement("div", { className: "rounded-xl border border-pink-100 bg-pink-50 p-3" }, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-pink-800 mb-1" }, t("Duracion para esta cita (min)")), /* @__PURE__ */ React.createElement(
+  })), !reservaEditando && serviciosManualSeleccionados.length > 0 && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-pink-600 mt-2" }, t2("{n} servicio{s} - {min} min", { n: serviciosManualSeleccionados.length, s: serviciosManualSeleccionados.length === 1 ? "" : "s", min: getServiciosManualSeleccionados().reduce((total, s) => total + Number(s.duracion || 60), 0) }))), userRole === "admin" && nuevaReservaData.servicio && /* @__PURE__ */ React.createElement("div", { className: "rounded-xl border border-pink-100 bg-pink-50 p-3" }, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-pink-800 mb-1" }, t2("Duracion para esta cita (min)")), /* @__PURE__ */ React.createElement(
     "input",
     {
       type: "number",
@@ -3629,9 +3792,9 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
         hora_fin: ""
       }),
       className: "w-full border border-pink-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-pink-300 focus:border-pink-400",
-      placeholder: t("Usar {min} min", { min: getDuracionManualConfigurada(getServiciosManualSeleccionados()) })
+      placeholder: t2("Usar {min} min", { min: getDuracionManualConfigurada(getServiciosManualSeleccionados()) })
     }
-  ), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-pink-700 mt-1" }, t("Dejalo vacio para usar la duracion configurada. Si escribes un tiempo, solo aplica a esta cita.")), tieneDuracionManualPersonalizada() && /* @__PURE__ */ React.createElement("p", { className: "text-xs font-semibold text-pink-800 mt-1" }, t("Esta reserva se calculara con {min} min.", { min: getDuracionManualTotal(getServiciosManualSeleccionados()) }))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, t("Profesional *")), /* @__PURE__ */ React.createElement("select", { value: nuevaReservaData.profesional_id, onChange: (e) => setNuevaReservaData({ ...nuevaReservaData, profesional_id: e.target.value }), className: "w-full border rounded-lg px-3 py-2" }, /* @__PURE__ */ React.createElement("option", { value: "" }, t("Seleccionar profesional")), profesionalesManualFiltrados.map((p) => /* @__PURE__ */ React.createElement("option", { key: p.id, value: p.id }, p.nombre, " - ", p.especialidad))), nuevaReservaData.servicio && profesionalesManualFiltrados.length === 0 && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-red-500 mt-1" }, t("No hay profesionales asignados a este servicio."))), userRole === "admin" && /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3 bg-yellow-50 p-3 rounded-lg" }, /* @__PURE__ */ React.createElement("input", { type: "checkbox", id: "requiereAnticipo", checked: nuevaReservaData.requiereAnticipo, onChange: (e) => setNuevaReservaData({ ...nuevaReservaData, requiereAnticipo: e.target.checked }) }), /* @__PURE__ */ React.createElement("label", { htmlFor: "requiereAnticipo", className: "text-sm font-medium text-yellow-800" }, t("Requerir anticipo al cliente"))), nuevaReservaData.servicio && nuevaReservaData.profesional_id && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-2" }, t("Fecha *")), /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-xl border" }, /* @__PURE__ */ React.createElement("div", { className: "flex justify-between p-3 bg-gray-50 border-b" }, /* @__PURE__ */ React.createElement("button", { onClick: () => cambiarMes(-1) }, "›"), /* @__PURE__ */ React.createElement("span", { className: "font-bold" }, monthNames[currentDate.getMonth()], " ", currentDate.getFullYear()), /* @__PURE__ */ React.createElement("button", { onClick: () => cambiarMes(1) }, "›")), /* @__PURE__ */ React.createElement("div", { className: "p-3" }, /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-7 mb-2 text-center text-xs text-gray-400" }, (idioma === "en" ? ["S", "M", "T", "W", "T", "F", "S"] : ["D", "L", "M", "M", "J", "V", "S"]).map((d, i) => /* @__PURE__ */ React.createElement("div", { key: i }, d))), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-7 gap-1" }, days.map((date, idx) => {
+  ), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-pink-700 mt-1" }, t2("Dejalo vacio para usar la duracion configurada. Si escribes un tiempo, solo aplica a esta cita.")), tieneDuracionManualPersonalizada() && /* @__PURE__ */ React.createElement("p", { className: "text-xs font-semibold text-pink-800 mt-1" }, t2("Esta reserva se calculara con {min} min.", { min: getDuracionManualTotal(getServiciosManualSeleccionados()) }))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, t2("Profesional *")), /* @__PURE__ */ React.createElement("select", { value: nuevaReservaData.profesional_id, onChange: (e) => setNuevaReservaData({ ...nuevaReservaData, profesional_id: e.target.value }), className: "w-full border rounded-lg px-3 py-2" }, /* @__PURE__ */ React.createElement("option", { value: "" }, t2("Seleccionar profesional")), profesionalesManualFiltrados.map((p) => /* @__PURE__ */ React.createElement("option", { key: p.id, value: p.id }, p.nombre, " - ", p.especialidad))), nuevaReservaData.servicio && profesionalesManualFiltrados.length === 0 && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-red-500 mt-1" }, t2("No hay profesionales asignados a este servicio."))), userRole === "admin" && /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3 bg-yellow-50 p-3 rounded-lg" }, /* @__PURE__ */ React.createElement("input", { type: "checkbox", id: "requiereAnticipo", checked: nuevaReservaData.requiereAnticipo, onChange: (e) => setNuevaReservaData({ ...nuevaReservaData, requiereAnticipo: e.target.checked }) }), /* @__PURE__ */ React.createElement("label", { htmlFor: "requiereAnticipo", className: "text-sm font-medium text-yellow-800" }, t2("Requerir anticipo al cliente"))), nuevaReservaData.servicio && nuevaReservaData.profesional_id && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-2" }, t2("Fecha *")), /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-xl border" }, /* @__PURE__ */ React.createElement("div", { className: "flex justify-between p-3 bg-gray-50 border-b" }, /* @__PURE__ */ React.createElement("button", { onClick: () => cambiarMes(-1) }, "›"), /* @__PURE__ */ React.createElement("span", { className: "font-bold" }, monthNames[currentDate.getMonth()], " ", currentDate.getFullYear()), /* @__PURE__ */ React.createElement("button", { onClick: () => cambiarMes(1) }, "›")), /* @__PURE__ */ React.createElement("div", { className: "p-3" }, /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-7 mb-2 text-center text-xs text-gray-400" }, (idioma === "en" ? ["S", "M", "T", "W", "T", "F", "S"] : ["D", "L", "M", "M", "J", "V", "S"]).map((d, i) => /* @__PURE__ */ React.createElement("div", { key: i }, d))), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-7 gap-1" }, days.map((date, idx) => {
     if (!date) return /* @__PURE__ */ React.createElement("div", { key: idx, className: "h-10" });
     const fechaStr = formatDate(date);
     const available = isDateAvailable(date);
@@ -3645,8 +3808,8 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
     else if (fechaDeshabilitada) className += " text-gray-300 cursor-not-allowed bg-gray-50 line-through";
     else if (adminPuedeForzarFecha && esCerrado) className += " text-amber-700 hover:bg-amber-50 cursor-pointer border border-amber-200";
     else className += " text-gray-700 hover:bg-pink-50 cursor-pointer";
-    return /* @__PURE__ */ React.createElement("button", { key: idx, onClick: () => handleDateSelect(date), disabled: fechaDeshabilitada, className, title: esCerrado ? t("Dia cerrado, disponible para admin") : esPasado ? t("Fecha pasada") : "" }, date.getDate());
-  }))))), nuevaReservaData.fecha && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-2" }, t("Horario de la cita *")), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 gap-3 mb-3" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-xs font-semibold text-gray-500 mb-1" }, t("Inicio")), /* @__PURE__ */ React.createElement(
+    return /* @__PURE__ */ React.createElement("button", { key: idx, onClick: () => handleDateSelect(date), disabled: fechaDeshabilitada, className, title: esCerrado ? t2("Dia cerrado, disponible para admin") : esPasado ? t2("Fecha pasada") : "" }, date.getDate());
+  }))))), nuevaReservaData.fecha && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-2" }, t2("Horario de la cita *")), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 gap-3 mb-3" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-xs font-semibold text-gray-500 mb-1" }, t2("Inicio")), /* @__PURE__ */ React.createElement(
     "input",
     {
       type: "time",
@@ -3657,7 +3820,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
       }),
       className: "w-full border rounded-lg px-3 py-2"
     }
-  )), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-xs font-semibold text-gray-500 mb-1" }, t("Fin")), /* @__PURE__ */ React.createElement(
+  )), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-xs font-semibold text-gray-500 mb-1" }, t2("Fin")), /* @__PURE__ */ React.createElement(
     "input",
     {
       type: "time",
@@ -3669,7 +3832,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
       }),
       className: "w-full border rounded-lg px-3 py-2"
     }
-  ))), nuevaReservaData.hora_inicio && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mb-3" }, nuevaReservaData.hora_fin ? t("Duracion calculada: {min} min segun inicio y fin.", { min: getDuracionManualTotal(getServiciosManualSeleccionados()) }) : t("Duracion calculada: {min} min segun el servicio o la duracion personalizada.", { min: getDuracionManualTotal(getServiciosManualSeleccionados()) })), modoHorarioManualCompleto && horariosDisponibles.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "mb-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800" }, t("Modo admin: este dia no tiene horario normal para el profesional. Puedes elegir cualquier hora libre del dia, siempre que no choque con otra cita.")), horariosDisponibles.length > 0 ? /* @__PURE__ */ React.createElement("div", { className: `${modoHorarioManualCompleto ? "max-h-64 overflow-y-auto pr-1" : ""} grid grid-cols-3 gap-2` }, horariosDisponibles.map((hora) => /* @__PURE__ */ React.createElement("button", { key: hora, type: "button", onClick: () => setNuevaReservaData({ ...nuevaReservaData, hora_inicio: hora }), className: `py-2 px-3 rounded-lg text-sm font-medium ${nuevaReservaData.hora_inicio === hora ? "bg-pink-500 text-white" : "bg-gray-100 hover:bg-gray-200"}` }, formatTo12Hour(hora)))) : /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500" }, t("No hay horarios disponibles"))), /* @__PURE__ */ React.createElement("div", { className: "flex gap-3 pt-4" }, /* @__PURE__ */ React.createElement(
+  ))), nuevaReservaData.hora_inicio && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mb-3" }, nuevaReservaData.hora_fin ? t2("Duracion calculada: {min} min segun inicio y fin.", { min: getDuracionManualTotal(getServiciosManualSeleccionados()) }) : t2("Duracion calculada: {min} min segun el servicio o la duracion personalizada.", { min: getDuracionManualTotal(getServiciosManualSeleccionados()) })), modoHorarioManualCompleto && horariosDisponibles.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "mb-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800" }, t2("Modo admin: este dia no tiene horario normal para el profesional. Puedes elegir cualquier hora libre del dia, siempre que no choque con otra cita.")), horariosDisponibles.length > 0 ? /* @__PURE__ */ React.createElement("div", { className: `${modoHorarioManualCompleto ? "max-h-64 overflow-y-auto pr-1" : ""} grid grid-cols-3 gap-2` }, horariosDisponibles.map((hora) => /* @__PURE__ */ React.createElement("button", { key: hora, type: "button", onClick: () => setNuevaReservaData({ ...nuevaReservaData, hora_inicio: hora }), className: `py-2 px-3 rounded-lg text-sm font-medium ${nuevaReservaData.hora_inicio === hora ? "bg-pink-500 text-white" : "bg-gray-100 hover:bg-gray-200"}` }, formatTo12Hour(hora)))) : /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500" }, t2("No hay horarios disponibles"))), /* @__PURE__ */ React.createElement("div", { className: "flex gap-3 pt-4" }, /* @__PURE__ */ React.createElement(
     "button",
     {
       onClick: () => {
@@ -3680,7 +3843,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
       disabled: creandoReservaManual,
       className: "flex-1 px-4 py-2 border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
     },
-    t("Cancelar")
+    t2("Cancelar")
   ), puedeGestionarReservas && reservaEditando?.estado === "Pendiente" && /* @__PURE__ */ React.createElement(
     "button",
     {
@@ -3691,7 +3854,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
       },
       className: "flex-1 px-4 py-2 bg-yellow-500 text-white rounded-lg"
     },
-    t("Confirmar pago")
+    t2("Confirmar pago")
   ), /* @__PURE__ */ React.createElement(
     "button",
     {
@@ -3699,15 +3862,15 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
       disabled: creandoReservaManual,
       className: "flex-1 px-4 py-2 bg-green-600 text-white rounded-lg disabled:opacity-60 disabled:cursor-not-allowed"
     },
-    creandoReservaManual ? t("Guardando...") : reservaEditando ? t("Guardar cambios") : t("Crear Reserva")
+    creandoReservaManual ? t2("Guardando...") : reservaEditando ? t2("Guardar cambios") : t2("Crear Reserva")
   ))))), agendaDetalleBooking && (() => {
     const resumen = getAgendaResumenCobro(agendaDetalleBooking);
     const serviciosDetalle = getAgendaServicios(agendaDetalleBooking);
     const horaFinDetalle = agendaDetalleBooking.hora_fin || calculateEndTime(agendaDetalleBooking.hora_inicio, agendaDetalleBooking.duracion || 60);
     const duracionDetalle = Math.max(0, timeToMinutes(horaFinDetalle) - timeToMinutes(agendaDetalleBooking.hora_inicio));
     const estadoClase = agendaDetalleBooking.estado === "Pendiente" ? "bg-amber-50 text-amber-700 border-amber-200" : agendaDetalleBooking.estado === "Completado" ? "bg-emerald-50 text-emerald-700 border-emerald-200" : agendaDetalleBooking.estado === "Ausente" ? "bg-slate-100 text-slate-700 border-slate-200" : agendaDetalleBooking.estado === "Cancelado" ? "bg-red-50 text-red-700 border-red-200" : "bg-cyan-50 text-cyan-700 border-cyan-200";
-    return /* @__PURE__ */ React.createElement("div", { className: "fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 sm:p-4" }, /* @__PURE__ */ React.createElement("div", { className: "bg-white w-full sm:max-w-xl max-h-[96vh] overflow-y-auto rounded-t-3xl sm:rounded-2xl shadow-2xl" }, /* @__PURE__ */ React.createElement("div", { className: "sticky top-0 z-10 bg-white/95 backdrop-blur border-b px-5 py-4 flex items-center justify-between" }, /* @__PURE__ */ React.createElement("button", { onClick: () => setAgendaDetalleBooking(null), className: "w-10 h-10 rounded-full hover:bg-gray-100 text-2xl leading-none" }, "x"), /* @__PURE__ */ React.createElement("h3", { className: "text-xl font-bold text-gray-900" }, t("Cita")), puedeEditarReserva(agendaDetalleBooking) ? /* @__PURE__ */ React.createElement("button", { onClick: () => abrirModalReprogramar(agendaDetalleBooking), className: "w-16 h-10 rounded-full hover:bg-gray-100 text-sm font-bold" }, t("Editar")) : /* @__PURE__ */ React.createElement("span", { className: "w-10" })), /* @__PURE__ */ React.createElement("div", { className: "px-5 py-5" }, /* @__PURE__ */ React.createElement("div", { className: "mb-5" }, /* @__PURE__ */ React.createElement("h2", { className: "text-2xl font-extrabold leading-tight text-gray-950" }, agendaDetalleBooking.servicio || t("Servicio")), /* @__PURE__ */ React.createElement("p", { className: "mt-2 text-xl font-bold text-gray-900" }, t("Total:"), " ", formatMoneyEstadistica(resumen.totalMostrar)), /* @__PURE__ */ React.createElement("div", { className: "mt-3 flex flex-wrap gap-2" }, /* @__PURE__ */ React.createElement("span", { className: `inline-flex rounded-full border px-3 py-1 text-xs font-bold ${estadoClase}` }, agendaDetalleBooking.estado ? t(agendaDetalleBooking.estado) : t("Sin estado")), /* @__PURE__ */ React.createElement("span", { className: "inline-flex rounded-full border border-green-200 bg-green-50 px-3 py-1 text-xs font-bold text-green-700" }, getAgendaEstadoPago(agendaDetalleBooking)))), /* @__PURE__ */ React.createElement("div", { className: "mb-5 space-y-1 text-gray-700" }, /* @__PURE__ */ React.createElement("p", { className: "font-semibold" }, window.formatFechaCompleta ? window.formatFechaCompleta(agendaDetalleBooking.fecha) : agendaDetalleBooking.fecha), /* @__PURE__ */ React.createElement("p", null, t("de {inicio} a {fin} ({min} min)", { inicio: formatTo12Hour(agendaDetalleBooking.hora_inicio), fin: formatTo12Hour(horaFinDetalle), min: duracionDetalle })), /* @__PURE__ */ React.createElement("p", { className: "font-semibold" }, agendaDetalleBooking.profesional_nombre || agendaDetalleBooking.trabajador_nombre || t("Sin profesional")), config?.direccion && /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500" }, config.direccion)), /* @__PURE__ */ React.createElement("div", { className: "divide-y rounded-xl border bg-white" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between p-4" }, /* @__PURE__ */ React.createElement("span", { className: "font-semibold text-gray-800" }, t("Cliente")), /* @__PURE__ */ React.createElement("span", { className: "text-right text-gray-600" }, agendaDetalleBooking.cliente_nombre || t("Sin nombre"), " >")), /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between p-4" }, /* @__PURE__ */ React.createElement("span", { className: "font-semibold text-gray-800" }, "WhatsApp"), /* @__PURE__ */ React.createElement("button", { onClick: () => window.enviarWhatsApp?.(agendaDetalleBooking.cliente_whatsapp, `Hola ${agendaDetalleBooking.cliente_nombre || ""}`), className: "text-right text-pink-600 font-semibold" }, "+", agendaDetalleBooking.cliente_whatsapp || t("Sin numero"), " >")), /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between p-4" }, /* @__PURE__ */ React.createElement("span", { className: "font-semibold text-gray-800" }, t("Precio del servicio")), /* @__PURE__ */ React.createElement("span", { className: "font-bold text-gray-900" }, formatMoneyEstadistica(resumen.costoServicios))), /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between p-4" }, /* @__PURE__ */ React.createElement("span", { className: "font-semibold text-gray-800" }, t("Anticipo requerido")), /* @__PURE__ */ React.createElement("span", { className: `font-bold ${resumen.requiereAnticipo ? "text-amber-700" : "text-gray-500"}` }, resumen.requiereAnticipo ? t("Si") : t("No"))), resumen.requiereAnticipo && /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between p-4" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("p", { className: "font-semibold text-gray-800" }, t("Monto del anticipo")), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500" }, resumen.tipoAnticipo === "porcentaje" ? t("{n}% del servicio", { n: resumen.valorAnticipo }) : t("Monto fijo"))), /* @__PURE__ */ React.createElement("span", { className: "font-bold text-amber-700" }, formatMoneyEstadistica(resumen.anticipo))), /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between p-4" }, /* @__PURE__ */ React.createElement("span", { className: "font-semibold text-gray-800" }, t("Coste de servicios")), /* @__PURE__ */ React.createElement("span", { className: "text-gray-600" }, formatMoneyEstadistica(resumen.costoServicios))), /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between p-4" }, /* @__PURE__ */ React.createElement("span", { className: "font-semibold text-gray-800" }, t("Descuento")), /* @__PURE__ */ React.createElement("span", { className: "text-gray-600" }, t("No"))), /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between p-4" }, /* @__PURE__ */ React.createElement("span", { className: "font-semibold text-gray-800" }, t("Coste total")), /* @__PURE__ */ React.createElement("span", { className: "text-gray-600" }, formatMoneyEstadistica(resumen.totalMostrar))), /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between p-4" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("p", { className: "font-semibold text-gray-800" }, t("Deposito")), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500" }, resumen.requiereAnticipo ? agendaDetalleBooking.estado === "Pendiente" ? t("Pendiente de recibir") : t("Aplica para esta cita") : t("No aplica"))), /* @__PURE__ */ React.createElement("span", { className: "text-gray-600" }, formatMoneyEstadistica(resumen.anticipo))), /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between p-4" }, /* @__PURE__ */ React.createElement("span", { className: "font-semibold text-gray-800" }, t("Total pendiente")), /* @__PURE__ */ React.createElement("span", { className: "font-bold text-gray-900" }, formatMoneyEstadistica(resumen.pendiente))), /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between p-4" }, /* @__PURE__ */ React.createElement("span", { className: "font-semibold text-gray-800" }, t("Cobro real")), /* @__PURE__ */ React.createElement("span", { className: "font-bold text-emerald-700" }, resumen.cobroReal > 0 ? formatMoneyEstadistica(resumen.cobroReal) : t("Sin registrar")))), Number(agendaDetalleBooking.valoracion_servicio) > 0 && /* @__PURE__ */ React.createElement("div", { className: "mt-5 rounded-xl border border-pink-200 bg-pink-50 p-4" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold uppercase text-pink-600 mb-1" }, t("Valoracion del servicio")), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2" }, /* @__PURE__ */ React.createElement("span", { className: "text-2xl leading-none" }, "⭐".repeat(Number(agendaDetalleBooking.valoracion_servicio))), /* @__PURE__ */ React.createElement("span", { className: "font-bold text-gray-900" }, Number(agendaDetalleBooking.valoracion_servicio), "/5")), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-1" }, t("La clienta valoró su visita al salón"))), Number(agendaDetalleBooking.valoracion) > 0 && /* @__PURE__ */ React.createElement("div", { className: "mt-5 rounded-xl border border-yellow-200 bg-yellow-50 p-4" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold uppercase text-yellow-600 mb-1" }, t("Valoracion de la clienta")), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2" }, /* @__PURE__ */ React.createElement("span", { className: "text-2xl leading-none" }, "⭐".repeat(Number(agendaDetalleBooking.valoracion))), /* @__PURE__ */ React.createElement("span", { className: "font-bold text-gray-900" }, Number(agendaDetalleBooking.valoracion), "/5")), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-1" }, t("Sobre la experiencia de reservar en la app"))), serviciosDetalle.length > 1 && /* @__PURE__ */ React.createElement("div", { className: "mt-5 rounded-xl border border-pink-100 bg-pink-50 p-4" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold uppercase text-pink-500 mb-3" }, t("Servicios del turno")), /* @__PURE__ */ React.createElement("div", { className: "space-y-2" }, serviciosDetalle.map((item) => /* @__PURE__ */ React.createElement("div", { key: item.id, className: "flex justify-between gap-3 text-sm" }, /* @__PURE__ */ React.createElement("span", { className: "font-semibold text-gray-800" }, item.servicio), /* @__PURE__ */ React.createElement("span", { className: "text-gray-500" }, formatTo12Hour(item.hora_inicio), " - ", formatTo12Hour(item.hora_fin || calculateEndTime(item.hora_inicio, item.duracion || 60))))))), /* @__PURE__ */ React.createElement("div", { className: "mt-5 rounded-xl border bg-gray-50 p-4" }, /* @__PURE__ */ React.createElement("p", { className: "font-bold text-gray-900 mb-3" }, t("Acciones")), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 gap-2" }, agendaDetalleBooking.estado === "Pendiente" && puedeGestionarReservas && /* @__PURE__ */ React.createElement("button", { onClick: () => confirmarPago(agendaDetalleBooking.id, agendaDetalleBooking), className: "px-3 py-2 rounded-lg bg-green-600 text-white font-bold text-sm" }, t("Confirmar pago")), puedeEditarReserva(agendaDetalleBooking) && /* @__PURE__ */ React.createElement("button", { onClick: () => abrirModalReprogramar(agendaDetalleBooking), className: "px-3 py-2 rounded-lg bg-pink-500 text-white font-bold text-sm" }, t("Editar")), turnoYaPaso(agendaDetalleBooking) && agendaDetalleBooking.estado !== "Ausente" && puedeGestionarReservas && /* @__PURE__ */ React.createElement("button", { onClick: () => marcarAusencia(agendaDetalleBooking), className: "px-3 py-2 rounded-lg bg-slate-700 text-white font-bold text-sm" }, t("Ausencia")), agendaDetalleBooking.estado === "Completado" && puedeGestionarReservas && /* @__PURE__ */ React.createElement("button", { onClick: () => abrirModalCobro(agendaDetalleBooking), className: "px-3 py-2 rounded-lg bg-emerald-600 text-white font-bold text-sm" }, t("Cobro real")), puedeEditarReserva(agendaDetalleBooking) && /* @__PURE__ */ React.createElement("button", { onClick: () => handleCancel(agendaDetalleBooking.id, agendaDetalleBooking), className: "px-3 py-2 rounded-lg bg-red-500 text-white font-bold text-sm" }, t("Cancelar")), puedeGestionarAvanzado && ["Cancelado", "Completado", "Ausente"].includes(agendaDetalleBooking.estado) && /* @__PURE__ */ React.createElement("button", { onClick: () => eliminarReservaHistorial(agendaDetalleBooking), className: "px-3 py-2 rounded-lg bg-gray-900 text-white font-bold text-sm" }, t("Eliminar")))))));
-  })(), showDisponibilidadModal && /* @__PURE__ */ React.createElement("div", { className: "fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 sm:p-4" }, /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-xl max-w-5xl w-full p-3 sm:p-6 max-h-[96vh] overflow-y-auto" }, /* @__PURE__ */ React.createElement("div", { className: "flex justify-between items-center mb-3" }, /* @__PURE__ */ React.createElement("h3", { className: "text-lg sm:text-xl font-bold" }, "📆 ", t("Disponibilidad")), /* @__PURE__ */ React.createElement("button", { onClick: () => setShowDisponibilidadModal(false), className: "text-gray-500 hover:text-gray-700 text-2xl" }, "×")), userRole === "admin" && profesionalesList.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "mb-3" }, /* @__PURE__ */ React.createElement("label", { className: "block text-xs sm:text-sm font-medium text-gray-700 mb-1" }, t("Profesional:")), /* @__PURE__ */ React.createElement(
+    return /* @__PURE__ */ React.createElement("div", { className: "fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 sm:p-4" }, /* @__PURE__ */ React.createElement("div", { className: "bg-white w-full sm:max-w-xl max-h-[96vh] overflow-y-auto rounded-t-3xl sm:rounded-2xl shadow-2xl" }, /* @__PURE__ */ React.createElement("div", { className: "sticky top-0 z-10 bg-white/95 backdrop-blur border-b px-5 py-4 flex items-center justify-between" }, /* @__PURE__ */ React.createElement("button", { onClick: () => setAgendaDetalleBooking(null), className: "w-10 h-10 rounded-full hover:bg-gray-100 text-2xl leading-none" }, "x"), /* @__PURE__ */ React.createElement("h3", { className: "text-xl font-bold text-gray-900" }, t2("Cita")), puedeEditarReserva(agendaDetalleBooking) ? /* @__PURE__ */ React.createElement("button", { onClick: () => abrirModalReprogramar(agendaDetalleBooking), className: "w-16 h-10 rounded-full hover:bg-gray-100 text-sm font-bold" }, t2("Editar")) : /* @__PURE__ */ React.createElement("span", { className: "w-10" })), /* @__PURE__ */ React.createElement("div", { className: "px-5 py-5" }, /* @__PURE__ */ React.createElement("div", { className: "mb-5" }, /* @__PURE__ */ React.createElement("h2", { className: "text-2xl font-extrabold leading-tight text-gray-950" }, agendaDetalleBooking.servicio || t2("Servicio")), /* @__PURE__ */ React.createElement("p", { className: "mt-2 text-xl font-bold text-gray-900" }, t2("Total:"), " ", formatMoneyEstadistica(resumen.totalMostrar)), /* @__PURE__ */ React.createElement("div", { className: "mt-3 flex flex-wrap gap-2" }, /* @__PURE__ */ React.createElement("span", { className: `inline-flex rounded-full border px-3 py-1 text-xs font-bold ${estadoClase}` }, agendaDetalleBooking.estado ? t2(agendaDetalleBooking.estado) : t2("Sin estado")), /* @__PURE__ */ React.createElement("span", { className: "inline-flex rounded-full border border-green-200 bg-green-50 px-3 py-1 text-xs font-bold text-green-700" }, getAgendaEstadoPago(agendaDetalleBooking)))), /* @__PURE__ */ React.createElement("div", { className: "mb-5 space-y-1 text-gray-700" }, /* @__PURE__ */ React.createElement("p", { className: "font-semibold" }, window.formatFechaCompleta ? window.formatFechaCompleta(agendaDetalleBooking.fecha) : agendaDetalleBooking.fecha), /* @__PURE__ */ React.createElement("p", null, t2("de {inicio} a {fin} ({min} min)", { inicio: formatTo12Hour(agendaDetalleBooking.hora_inicio), fin: formatTo12Hour(horaFinDetalle), min: duracionDetalle })), /* @__PURE__ */ React.createElement("p", { className: "font-semibold" }, agendaDetalleBooking.profesional_nombre || agendaDetalleBooking.trabajador_nombre || t2("Sin profesional")), config?.direccion && /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500" }, config.direccion)), /* @__PURE__ */ React.createElement("div", { className: "divide-y rounded-xl border bg-white" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between p-4" }, /* @__PURE__ */ React.createElement("span", { className: "font-semibold text-gray-800" }, t2("Cliente")), /* @__PURE__ */ React.createElement("span", { className: "text-right text-gray-600" }, agendaDetalleBooking.cliente_nombre || t2("Sin nombre"), " >")), /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between p-4" }, /* @__PURE__ */ React.createElement("span", { className: "font-semibold text-gray-800" }, "WhatsApp"), /* @__PURE__ */ React.createElement("button", { onClick: () => window.enviarWhatsApp?.(agendaDetalleBooking.cliente_whatsapp, `Hola ${agendaDetalleBooking.cliente_nombre || ""}`), className: "text-right text-pink-600 font-semibold" }, "+", agendaDetalleBooking.cliente_whatsapp || t2("Sin numero"), " >")), /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between p-4" }, /* @__PURE__ */ React.createElement("span", { className: "font-semibold text-gray-800" }, t2("Precio del servicio")), /* @__PURE__ */ React.createElement("span", { className: "font-bold text-gray-900" }, formatMoneyEstadistica(resumen.costoServicios))), /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between p-4" }, /* @__PURE__ */ React.createElement("span", { className: "font-semibold text-gray-800" }, t2("Anticipo requerido")), /* @__PURE__ */ React.createElement("span", { className: `font-bold ${resumen.requiereAnticipo ? "text-amber-700" : "text-gray-500"}` }, resumen.requiereAnticipo ? t2("Si") : t2("No"))), resumen.requiereAnticipo && /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between p-4" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("p", { className: "font-semibold text-gray-800" }, t2("Monto del anticipo")), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500" }, resumen.tipoAnticipo === "porcentaje" ? t2("{n}% del servicio", { n: resumen.valorAnticipo }) : t2("Monto fijo"))), /* @__PURE__ */ React.createElement("span", { className: "font-bold text-amber-700" }, formatMoneyEstadistica(resumen.anticipo))), /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between p-4" }, /* @__PURE__ */ React.createElement("span", { className: "font-semibold text-gray-800" }, t2("Coste de servicios")), /* @__PURE__ */ React.createElement("span", { className: "text-gray-600" }, formatMoneyEstadistica(resumen.costoServicios))), /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between p-4" }, /* @__PURE__ */ React.createElement("span", { className: "font-semibold text-gray-800" }, t2("Descuento")), /* @__PURE__ */ React.createElement("span", { className: "text-gray-600" }, t2("No"))), /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between p-4" }, /* @__PURE__ */ React.createElement("span", { className: "font-semibold text-gray-800" }, t2("Coste total")), /* @__PURE__ */ React.createElement("span", { className: "text-gray-600" }, formatMoneyEstadistica(resumen.totalMostrar))), /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between p-4" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("p", { className: "font-semibold text-gray-800" }, t2("Deposito")), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500" }, resumen.requiereAnticipo ? agendaDetalleBooking.estado === "Pendiente" ? t2("Pendiente de recibir") : t2("Aplica para esta cita") : t2("No aplica"))), /* @__PURE__ */ React.createElement("span", { className: "text-gray-600" }, formatMoneyEstadistica(resumen.anticipo))), /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between p-4" }, /* @__PURE__ */ React.createElement("span", { className: "font-semibold text-gray-800" }, t2("Total pendiente")), /* @__PURE__ */ React.createElement("span", { className: "font-bold text-gray-900" }, formatMoneyEstadistica(resumen.pendiente))), /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between p-4" }, /* @__PURE__ */ React.createElement("span", { className: "font-semibold text-gray-800" }, t2("Cobro real")), /* @__PURE__ */ React.createElement("span", { className: "font-bold text-emerald-700" }, resumen.cobroReal > 0 ? formatMoneyEstadistica(resumen.cobroReal) : t2("Sin registrar")))), Number(agendaDetalleBooking.valoracion_servicio) > 0 && /* @__PURE__ */ React.createElement("div", { className: "mt-5 rounded-xl border border-pink-200 bg-pink-50 p-4" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold uppercase text-pink-600 mb-1" }, t2("Valoracion del servicio")), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2" }, /* @__PURE__ */ React.createElement("span", { className: "text-2xl leading-none" }, "⭐".repeat(Number(agendaDetalleBooking.valoracion_servicio))), /* @__PURE__ */ React.createElement("span", { className: "font-bold text-gray-900" }, Number(agendaDetalleBooking.valoracion_servicio), "/5")), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-1" }, t2("La clienta valoró su visita al salón"))), Number(agendaDetalleBooking.valoracion) > 0 && /* @__PURE__ */ React.createElement("div", { className: "mt-5 rounded-xl border border-yellow-200 bg-yellow-50 p-4" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold uppercase text-yellow-600 mb-1" }, t2("Valoracion de la clienta")), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2" }, /* @__PURE__ */ React.createElement("span", { className: "text-2xl leading-none" }, "⭐".repeat(Number(agendaDetalleBooking.valoracion))), /* @__PURE__ */ React.createElement("span", { className: "font-bold text-gray-900" }, Number(agendaDetalleBooking.valoracion), "/5")), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-1" }, t2("Sobre la experiencia de reservar en la app"))), serviciosDetalle.length > 1 && /* @__PURE__ */ React.createElement("div", { className: "mt-5 rounded-xl border border-pink-100 bg-pink-50 p-4" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold uppercase text-pink-500 mb-3" }, t2("Servicios del turno")), /* @__PURE__ */ React.createElement("div", { className: "space-y-2" }, serviciosDetalle.map((item) => /* @__PURE__ */ React.createElement("div", { key: item.id, className: "flex justify-between gap-3 text-sm" }, /* @__PURE__ */ React.createElement("span", { className: "font-semibold text-gray-800" }, item.servicio), /* @__PURE__ */ React.createElement("span", { className: "text-gray-500" }, formatTo12Hour(item.hora_inicio), " - ", formatTo12Hour(item.hora_fin || calculateEndTime(item.hora_inicio, item.duracion || 60))))))), /* @__PURE__ */ React.createElement("div", { className: "mt-5 rounded-xl border bg-gray-50 p-4" }, /* @__PURE__ */ React.createElement("p", { className: "font-bold text-gray-900 mb-3" }, t2("Acciones")), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 gap-2" }, agendaDetalleBooking.estado === "Pendiente" && puedeGestionarReservas && /* @__PURE__ */ React.createElement("button", { onClick: () => confirmarPago(agendaDetalleBooking.id, agendaDetalleBooking), className: "px-3 py-2 rounded-lg bg-green-600 text-white font-bold text-sm" }, t2("Confirmar pago")), puedeEditarReserva(agendaDetalleBooking) && /* @__PURE__ */ React.createElement("button", { onClick: () => abrirModalReprogramar(agendaDetalleBooking), className: "px-3 py-2 rounded-lg bg-pink-500 text-white font-bold text-sm" }, t2("Editar")), turnoYaPaso(agendaDetalleBooking) && agendaDetalleBooking.estado !== "Ausente" && puedeGestionarReservas && /* @__PURE__ */ React.createElement("button", { onClick: () => marcarAusencia(agendaDetalleBooking), className: "px-3 py-2 rounded-lg bg-slate-700 text-white font-bold text-sm" }, t2("Ausencia")), agendaDetalleBooking.estado === "Completado" && puedeGestionarReservas && /* @__PURE__ */ React.createElement("button", { onClick: () => abrirModalCobro(agendaDetalleBooking), className: "px-3 py-2 rounded-lg bg-emerald-600 text-white font-bold text-sm" }, t2("Cobro real")), puedeEditarReserva(agendaDetalleBooking) && /* @__PURE__ */ React.createElement("button", { onClick: () => handleCancel(agendaDetalleBooking.id, agendaDetalleBooking), className: "px-3 py-2 rounded-lg bg-red-500 text-white font-bold text-sm" }, t2("Cancelar")), puedeGestionarAvanzado && ["Cancelado", "Completado", "Ausente"].includes(agendaDetalleBooking.estado) && /* @__PURE__ */ React.createElement("button", { onClick: () => eliminarReservaHistorial(agendaDetalleBooking), className: "px-3 py-2 rounded-lg bg-gray-900 text-white font-bold text-sm" }, t2("Eliminar")))))));
+  })(), showDisponibilidadModal && /* @__PURE__ */ React.createElement("div", { className: "fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 sm:p-4" }, /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-xl max-w-5xl w-full p-3 sm:p-6 max-h-[96vh] overflow-y-auto" }, /* @__PURE__ */ React.createElement("div", { className: "flex justify-between items-center mb-3" }, /* @__PURE__ */ React.createElement("h3", { className: "text-lg sm:text-xl font-bold" }, "📆 ", t2("Disponibilidad")), /* @__PURE__ */ React.createElement("button", { onClick: () => setShowDisponibilidadModal(false), className: "text-gray-500 hover:text-gray-700 text-2xl" }, "×")), userRole === "admin" && profesionalesList.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "mb-3" }, /* @__PURE__ */ React.createElement("label", { className: "block text-xs sm:text-sm font-medium text-gray-700 mb-1" }, t2("Profesional:")), /* @__PURE__ */ React.createElement(
     "select",
     {
       value: profesionalSeleccionadoDispo || "",
@@ -3719,35 +3882,35 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
       },
       className: "w-full border rounded-lg px-3 py-2 text-sm"
     },
-    /* @__PURE__ */ React.createElement("option", { value: "" }, t("Seleccionar profesional")),
+    /* @__PURE__ */ React.createElement("option", { value: "" }, t2("Seleccionar profesional")),
     profesionalesList.map((p) => /* @__PURE__ */ React.createElement("option", { key: p.id, value: p.id }, p.nombre))
   )), /* @__PURE__ */ React.createElement("div", { className: "flex gap-2 mb-3" }, /* @__PURE__ */ React.createElement("button", { onClick: () => {
     setModoDisponibilidad("mes");
     cargarDisponibilidadDelMes(disponibilidadFecha, profesionalSeleccionadoDispo);
-  }, className: `flex-1 px-3 py-2 rounded-lg text-sm font-semibold ${modoDisponibilidad === "mes" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}` }, t("Mensual")), /* @__PURE__ */ React.createElement("button", { onClick: () => {
+  }, className: `flex-1 px-3 py-2 rounded-lg text-sm font-semibold ${modoDisponibilidad === "mes" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}` }, t2("Mensual")), /* @__PURE__ */ React.createElement("button", { onClick: () => {
     setModoDisponibilidad("semana");
     cargarDisponibilidadSemanal(disponibilidadFecha, profesionalSeleccionadoDispo);
-  }, className: `flex-1 px-3 py-2 rounded-lg text-sm font-semibold ${modoDisponibilidad === "semana" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}` }, t("Semanal"))), /* @__PURE__ */ React.createElement("div", { className: "flex justify-between items-center mb-3" }, /* @__PURE__ */ React.createElement("button", { onClick: () => modoDisponibilidad === "semana" ? cambiarSemanaDisponibilidad(-1) : cambiarMesDisponibilidad(-1), className: "px-3 py-2 bg-gray-100 rounded-lg hover:bg-gray-200" }, "‹"), /* @__PURE__ */ React.createElement("span", { className: "text-sm sm:text-lg font-bold text-center px-2" }, modoDisponibilidad === "semana" ? `${formatDate(getDiasSemanaDisponibilidad(disponibilidadFecha)[0])} - ${formatDate(getDiasSemanaDisponibilidad(disponibilidadFecha)[6])}` : `${monthNames[disponibilidadFecha.getMonth()]} ${disponibilidadFecha.getFullYear()}`), /* @__PURE__ */ React.createElement("button", { onClick: () => modoDisponibilidad === "semana" ? cambiarSemanaDisponibilidad(1) : cambiarMesDisponibilidad(1), className: "px-3 py-2 bg-gray-100 rounded-lg hover:bg-gray-200" }, "›")), disponibilidadCargando ? /* @__PURE__ */ React.createElement("div", { className: "text-center py-12" }, /* @__PURE__ */ React.createElement("div", { className: "animate-spin h-8 w-8 border-b-2 border-pink-500 mx-auto" }), /* @__PURE__ */ React.createElement("p", { className: "mt-2" }, t("Cargando disponibilidad..."))) : modoDisponibilidad === "semana" ? /* @__PURE__ */ React.createElement("div", { className: "space-y-4" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between gap-2" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("p", { className: "text-sm font-bold text-gray-900" }, t("Disponibilidad semanal")), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500" }, t("Turnos libres en verde para compartir."))), /* @__PURE__ */ React.createElement(
+  }, className: `flex-1 px-3 py-2 rounded-lg text-sm font-semibold ${modoDisponibilidad === "semana" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}` }, t2("Semanal"))), /* @__PURE__ */ React.createElement("div", { className: "flex justify-between items-center mb-3" }, /* @__PURE__ */ React.createElement("button", { onClick: () => modoDisponibilidad === "semana" ? cambiarSemanaDisponibilidad(-1) : cambiarMesDisponibilidad(-1), className: "px-3 py-2 bg-gray-100 rounded-lg hover:bg-gray-200" }, "‹"), /* @__PURE__ */ React.createElement("span", { className: "text-sm sm:text-lg font-bold text-center px-2" }, modoDisponibilidad === "semana" ? `${formatDate(getDiasSemanaDisponibilidad(disponibilidadFecha)[0])} - ${formatDate(getDiasSemanaDisponibilidad(disponibilidadFecha)[6])}` : `${monthNames[disponibilidadFecha.getMonth()]} ${disponibilidadFecha.getFullYear()}`), /* @__PURE__ */ React.createElement("button", { onClick: () => modoDisponibilidad === "semana" ? cambiarSemanaDisponibilidad(1) : cambiarMesDisponibilidad(1), className: "px-3 py-2 bg-gray-100 rounded-lg hover:bg-gray-200" }, "›")), disponibilidadCargando ? /* @__PURE__ */ React.createElement("div", { className: "text-center py-12" }, /* @__PURE__ */ React.createElement("div", { className: "animate-spin h-8 w-8 border-b-2 border-pink-500 mx-auto" }), /* @__PURE__ */ React.createElement("p", { className: "mt-2" }, t2("Cargando disponibilidad..."))) : modoDisponibilidad === "semana" ? /* @__PURE__ */ React.createElement("div", { className: "space-y-4" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between gap-2" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("p", { className: "text-sm font-bold text-gray-900" }, t2("Disponibilidad semanal")), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500" }, t2("Turnos libres en verde para compartir."))), /* @__PURE__ */ React.createElement(
     "button",
     {
       onClick: compartirDisponibilidadSemanal,
       disabled: disponibilidadSemanal.length === 0,
       className: "px-4 py-2 bg-green-600 text-white rounded-xl text-xs sm:text-sm font-bold hover:bg-green-700 disabled:opacity-50 shadow-sm"
     },
-    t("Compartir")
+    t2("Compartir")
   )), /* @__PURE__ */ React.createElement("div", { className: "rounded-2xl border border-pink-100 bg-white overflow-hidden shadow-sm" }, /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-7 divide-x divide-gray-200" }, disponibilidadSemanal.map((dia) => {
     const disponibles = dia.turnos.filter((turno) => turno.estado === "Disponible");
     const diaCorto = dia.diaNombre.slice(0, 3);
     const fechaCorta = dia.fecha.slice(5);
-    return /* @__PURE__ */ React.createElement("div", { key: dia.fecha, className: "bg-gradient-to-b from-white to-pink-50/50 min-w-0 min-h-[190px] sm:min-h-[260px]" }, /* @__PURE__ */ React.createElement("div", { className: `px-1 py-3 sm:p-4 border-b text-center ${dia.libres > 0 ? "bg-green-50 border-green-100" : "bg-gray-100 border-gray-200"}` }, /* @__PURE__ */ React.createElement("p", { className: "font-extrabold text-gray-900 leading-tight text-[11px] sm:text-base uppercase truncate" }, diaCorto), /* @__PURE__ */ React.createElement("p", { className: "text-[9px] sm:text-xs text-gray-500 leading-tight mt-1" }, fechaCorta)), /* @__PURE__ */ React.createElement("div", { className: "px-1.5 py-3 sm:p-4 space-y-2 sm:space-y-3" }, disponibles.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "h-24 sm:h-32 rounded-xl border border-dashed border-gray-200 bg-white/70 text-gray-400 text-[9px] sm:text-xs flex items-center justify-center text-center px-1 leading-tight" }, t("Sin turnos")) : disponibles.map((turno) => /* @__PURE__ */ React.createElement("div", { key: `${dia.fecha}-${turno.hora}`, className: "rounded-xl border border-green-600 bg-gradient-to-b from-emerald-400 to-green-600 text-white px-1 py-3 sm:py-4 text-center shadow-md", title: turno.detalle }, /* @__PURE__ */ React.createElement("div", { className: "text-[12px] sm:text-lg font-extrabold leading-none whitespace-nowrap" }, formatTo12Hour(turno.hora).replace(" ", ""))))));
-  }))), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-3 text-[11px] sm:text-xs text-gray-600" }, /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-1" }, /* @__PURE__ */ React.createElement("span", { className: "w-3 h-3 rounded bg-green-500" }), t("Disponible")), /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-1" }, /* @__PURE__ */ React.createElement("span", { className: "w-3 h-3 rounded bg-gray-100 border border-gray-200" }), t("Sin turnos")))) : /* @__PURE__ */ React.createElement("div", { className: "space-y-3" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between gap-2" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("p", { className: "text-sm font-bold text-gray-900" }, t("Disponibilidad mensual")), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500" }, t("Calendario listo para compartir."))), /* @__PURE__ */ React.createElement(
+    return /* @__PURE__ */ React.createElement("div", { key: dia.fecha, className: "bg-gradient-to-b from-white to-pink-50/50 min-w-0 min-h-[190px] sm:min-h-[260px]" }, /* @__PURE__ */ React.createElement("div", { className: `px-1 py-3 sm:p-4 border-b text-center ${dia.libres > 0 ? "bg-green-50 border-green-100" : "bg-gray-100 border-gray-200"}` }, /* @__PURE__ */ React.createElement("p", { className: "font-extrabold text-gray-900 leading-tight text-[11px] sm:text-base uppercase truncate" }, diaCorto), /* @__PURE__ */ React.createElement("p", { className: "text-[9px] sm:text-xs text-gray-500 leading-tight mt-1" }, fechaCorta)), /* @__PURE__ */ React.createElement("div", { className: "px-1.5 py-3 sm:p-4 space-y-2 sm:space-y-3" }, disponibles.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "h-24 sm:h-32 rounded-xl border border-dashed border-gray-200 bg-white/70 text-gray-400 text-[9px] sm:text-xs flex items-center justify-center text-center px-1 leading-tight" }, t2("Sin turnos")) : disponibles.map((turno) => /* @__PURE__ */ React.createElement("div", { key: `${dia.fecha}-${turno.hora}`, className: "rounded-xl border border-green-600 bg-gradient-to-b from-emerald-400 to-green-600 text-white px-1 py-3 sm:py-4 text-center shadow-md", title: turno.detalle }, /* @__PURE__ */ React.createElement("div", { className: "text-[12px] sm:text-lg font-extrabold leading-none whitespace-nowrap" }, formatTo12Hour(turno.hora).replace(" ", ""))))));
+  }))), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-3 text-[11px] sm:text-xs text-gray-600" }, /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-1" }, /* @__PURE__ */ React.createElement("span", { className: "w-3 h-3 rounded bg-green-500" }), t2("Disponible")), /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-1" }, /* @__PURE__ */ React.createElement("span", { className: "w-3 h-3 rounded bg-gray-100 border border-gray-200" }), t2("Sin turnos")))) : /* @__PURE__ */ React.createElement("div", { className: "space-y-3" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between gap-2" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("p", { className: "text-sm font-bold text-gray-900" }, t2("Disponibilidad mensual")), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500" }, t2("Calendario listo para compartir."))), /* @__PURE__ */ React.createElement(
     "button",
     {
       onClick: compartirDisponibilidadMensual,
       disabled: diasMesConDatos === 0,
       className: "px-4 py-2 bg-green-600 text-white rounded-xl text-xs sm:text-sm font-bold hover:bg-green-700 disabled:opacity-50 shadow-sm"
     },
-    t("Compartir")
+    t2("Compartir")
   )), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-7 mb-2 text-center" }, (idioma === "en" ? ["S", "M", "T", "W", "T", "F", "S"] : ["D", "L", "M", "M", "J", "V", "S"]).map((d, i) => /* @__PURE__ */ React.createElement("div", { key: i, className: "text-xs font-medium text-gray-500" }, d))), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-7 gap-1" }, disponibilidadDays.map((date, idx) => {
     if (!date) return /* @__PURE__ */ React.createElement("div", { key: idx, className: "h-12" });
     const fechaStr = formatDate(date);
@@ -3761,23 +3924,31 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
     else if (esPasado) className += " bg-gray-100 text-gray-400 border-gray-200";
     else if (disponible) className += " bg-white text-gray-800 border-gray-200 hover:bg-gray-50";
     else className += " bg-gray-100 text-gray-400 border-gray-200";
-    return /* @__PURE__ */ React.createElement("div", { key: idx, className, title: esCerrado ? t("Día cerrado") : esPasado ? t("Fecha pasada") : disponible ? t("{n} turno(s) disponible(s)", { n: disponiblesDia }) : t("Sin horarios disponibles") }, /* @__PURE__ */ React.createElement("span", { className: "text-base leading-tight" }, date.getDate()), !esCerrado && !esPasado && /* @__PURE__ */ React.createElement("span", { className: `mt-0.5 min-w-5 px-1.5 py-0.5 rounded-full border text-[11px] font-bold leading-none ${tonoConteo}` }, disponiblesDia), esCerrado && /* @__PURE__ */ React.createElement("span", { className: "text-xs" }, "x"));
-  }))), modoDisponibilidad === "mes" && /* @__PURE__ */ React.createElement("div", { className: "mt-4 p-3 bg-gray-50 rounded-lg text-xs" }, /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-4" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2" }, /* @__PURE__ */ React.createElement("div", { className: "w-5 h-5 bg-green-100 border border-green-300 rounded-full flex items-center justify-center text-[10px] font-bold text-green-700" }, "6"), /* @__PURE__ */ React.createElement("span", null, t("4+ tranquilo"))), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2" }, /* @__PURE__ */ React.createElement("div", { className: "w-5 h-5 bg-yellow-100 border border-yellow-300 rounded-full flex items-center justify-center text-[10px] font-bold text-yellow-700" }, "3"), /* @__PURE__ */ React.createElement("span", null, t("3 medio"))), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2" }, /* @__PURE__ */ React.createElement("div", { className: "w-5 h-5 bg-red-100 border border-red-300 rounded-full flex items-center justify-center text-[10px] font-bold text-red-700" }, "2"), /* @__PURE__ */ React.createElement("span", null, t("1-2 urgente"))), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2" }, /* @__PURE__ */ React.createElement("div", { className: "w-5 h-5 bg-gray-100 border border-gray-200 rounded-full flex items-center justify-center text-[10px] font-bold text-gray-400" }, "0"), /* @__PURE__ */ React.createElement("span", null, t("Sin horarios"))))))), /* @__PURE__ */ React.createElement("div", { className: "bg-white p-2 rounded-xl shadow-sm flex flex-wrap gap-2" }, tabsDisponibles.map((tab) => /* @__PURE__ */ React.createElement("button", { key: tab.id, onClick: () => tab.url ? window.location.href = tab.url : setTabActivo(tab.id), className: `px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 ${tabActivo === tab.id ? "bg-pink-500 text-white shadow-md" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}` }, /* @__PURE__ */ React.createElement("span", null, tab.icono), /* @__PURE__ */ React.createElement("span", null, tab.label)))), tabActivo === "estadisticas" && renderEstadisticas(), tabActivo === "configuracion" && /* @__PURE__ */ React.createElement("div", { className: "space-y-4" }, userRole === "admin" && /* @__PURE__ */ React.createElement(RomaHubActivacion, null), /* @__PURE__ */ React.createElement(ConfigPanel, { profesionalId: userRole === "profesional" ? profesional?.id : null, modoRestringido: userRole === "profesional" && userNivel === 2 })), tabActivo === "servicios" && (userRole === "admin" || userNivel >= 3) && /* @__PURE__ */ React.createElement(ServiciosPanel, null), tabActivo === "catalogo" && (userRole === "admin" || userNivel >= 3) && /* @__PURE__ */ React.createElement(CatalogoPanel, null), tabActivo === "profesionales" && (userRole === "admin" || userNivel >= 3) && /* @__PURE__ */ React.createElement(ProfesionalesPanel, null), tabActivo === "clientes" && (userRole === "admin" || userNivel >= 2) && /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-xl shadow-sm p-6" }, /* @__PURE__ */ React.createElement("div", { className: "flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-5" }, /* @__PURE__ */ React.createElement("h2", { className: "text-xl font-bold" }, t("Clientes Registrados ({n})", { n: clientesRegistrados.length }), clientesPendientes.length > 0 && /* @__PURE__ */ React.createElement("span", { className: "ml-2 px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 border border-amber-200 text-xs font-bold align-middle" }, t("{n} esperando tu respuesta", { n: clientesPendientes.length }))), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500" }, t("Score calculado con el historial de reservas, completadas y canceladas.")), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-2" }, (userRole === "admin" || userNivel >= 3) && /* @__PURE__ */ React.createElement("label", { className: `px-4 py-2 rounded-lg bg-gray-900 text-white text-sm font-bold hover:bg-black cursor-pointer ${importandoClientesCsv ? "opacity-60 pointer-events-none" : ""}` }, importandoClientesCsv ? t("Importando...") : t("Cargar CSV"), /* @__PURE__ */ React.createElement("input", { type: "file", accept: ".csv,text/csv", onChange: handleImportarClientesCsv, className: "hidden", disabled: importandoClientesCsv })), /* @__PURE__ */ React.createElement("button", { onClick: () => {
+    return /* @__PURE__ */ React.createElement("div", { key: idx, className, title: esCerrado ? t2("Día cerrado") : esPasado ? t2("Fecha pasada") : disponible ? t2("{n} turno(s) disponible(s)", { n: disponiblesDia }) : t2("Sin horarios disponibles") }, /* @__PURE__ */ React.createElement("span", { className: "text-base leading-tight" }, date.getDate()), !esCerrado && !esPasado && /* @__PURE__ */ React.createElement("span", { className: `mt-0.5 min-w-5 px-1.5 py-0.5 rounded-full border text-[11px] font-bold leading-none ${tonoConteo}` }, disponiblesDia), esCerrado && /* @__PURE__ */ React.createElement("span", { className: "text-xs" }, "x"));
+  }))), modoDisponibilidad === "mes" && /* @__PURE__ */ React.createElement("div", { className: "mt-4 p-3 bg-gray-50 rounded-lg text-xs" }, /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-4" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2" }, /* @__PURE__ */ React.createElement("div", { className: "w-5 h-5 bg-green-100 border border-green-300 rounded-full flex items-center justify-center text-[10px] font-bold text-green-700" }, "6"), /* @__PURE__ */ React.createElement("span", null, t2("4+ tranquilo"))), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2" }, /* @__PURE__ */ React.createElement("div", { className: "w-5 h-5 bg-yellow-100 border border-yellow-300 rounded-full flex items-center justify-center text-[10px] font-bold text-yellow-700" }, "3"), /* @__PURE__ */ React.createElement("span", null, t2("3 medio"))), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2" }, /* @__PURE__ */ React.createElement("div", { className: "w-5 h-5 bg-red-100 border border-red-300 rounded-full flex items-center justify-center text-[10px] font-bold text-red-700" }, "2"), /* @__PURE__ */ React.createElement("span", null, t2("1-2 urgente"))), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2" }, /* @__PURE__ */ React.createElement("div", { className: "w-5 h-5 bg-gray-100 border border-gray-200 rounded-full flex items-center justify-center text-[10px] font-bold text-gray-400" }, "0"), /* @__PURE__ */ React.createElement("span", null, t2("Sin horarios"))))))), /* @__PURE__ */ React.createElement("div", { className: "bg-white p-2 rounded-xl shadow-sm flex flex-wrap gap-2" }, tabsDisponibles.map((tab) => /* @__PURE__ */ React.createElement("button", { key: tab.id, onClick: () => tab.url ? window.location.href = tab.url : setTabActivo(tab.id), className: `px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 ${tabActivo === tab.id ? "bg-pink-500 text-white shadow-md" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}` }, /* @__PURE__ */ React.createElement("span", null, tab.icono), /* @__PURE__ */ React.createElement("span", null, tab.label)))), tabActivo === "estadisticas" && renderEstadisticas(), tabActivo === "configuracion" && /* @__PURE__ */ React.createElement("div", { className: "space-y-4" }, userRole === "admin" && /* @__PURE__ */ React.createElement(RomaHubActivacion, null), /* @__PURE__ */ React.createElement(
+    ConfigPanel,
+    {
+      profesionalId: userRole === "profesional" ? profesional?.id : null,
+      modoRestringido: userRole === "profesional" && userNivel === 2,
+      profesionalInicial: profesionalHorarioInicial,
+      onProfesionalInicialUsado: () => setProfesionalHorarioInicial(null)
+    }
+  )), tabActivo === "servicios" && (userRole === "admin" || userNivel >= 3) && /* @__PURE__ */ React.createElement(ServiciosPanel, null), tabActivo === "catalogo" && (userRole === "admin" || userNivel >= 3) && /* @__PURE__ */ React.createElement(CatalogoPanel, null), tabActivo === "profesionales" && (userRole === "admin" || userNivel >= 3) && /* @__PURE__ */ React.createElement(ProfesionalesPanel, null), tabActivo === "clientes" && (userRole === "admin" || userNivel >= 2) && /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-xl shadow-sm p-6" }, /* @__PURE__ */ React.createElement("div", { className: "flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-5" }, /* @__PURE__ */ React.createElement("h2", { className: "text-xl font-bold" }, t2("Clientes Registrados ({n})", { n: clientesRegistrados.length }), clientesPendientes.length > 0 && /* @__PURE__ */ React.createElement("span", { className: "ml-2 px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 border border-amber-200 text-xs font-bold align-middle" }, t2("{n} esperando tu respuesta", { n: clientesPendientes.length }))), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500" }, t2("Score calculado con el historial de reservas, completadas y canceladas.")), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-2" }, (userRole === "admin" || userNivel >= 3) && /* @__PURE__ */ React.createElement("label", { className: `px-4 py-2 rounded-lg bg-gray-900 text-white text-sm font-bold hover:bg-black cursor-pointer ${importandoClientesCsv ? "opacity-60 pointer-events-none" : ""}` }, importandoClientesCsv ? t2("Importando...") : t2("Cargar CSV"), /* @__PURE__ */ React.createElement("input", { type: "file", accept: ".csv,text/csv", onChange: handleImportarClientesCsv, className: "hidden", disabled: importandoClientesCsv })), /* @__PURE__ */ React.createElement("button", { onClick: () => {
     setShowClientesRegistrados(!showClientesRegistrados);
     if (!showClientesRegistrados) {
       loadClientesRegistrados();
       loadClientesBloqueados();
     }
-  }, className: "px-4 py-2 rounded-lg bg-pink-50 text-pink-600 text-sm font-medium hover:bg-pink-100" }, showClientesRegistrados ? t("Ocultar") : t("Mostrar")))), showClientesRegistrados && /* @__PURE__ */ React.createElement("div", { className: "space-y-5 max-h-[42rem] overflow-y-auto pr-1" }, clientesPendientes.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "border border-amber-200 bg-amber-50/60 rounded-xl p-4" }, /* @__PURE__ */ React.createElement("h3", { className: "font-bold text-amber-900 mb-1" }, "⏳ ", t("Esperando tu respuesta ({n})", { n: clientesPendientes.length })), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-amber-700 mb-3" }, t("Estas clientas se registraron pero todavía no pueden reservar.")), /* @__PURE__ */ React.createElement("div", { className: "space-y-2" }, clientesPendientes.map((cliente) => /* @__PURE__ */ React.createElement("div", { key: cliente.id, className: "flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white border border-amber-100 rounded-lg p-3" }, /* @__PURE__ */ React.createElement("div", { className: "min-w-0" }, /* @__PURE__ */ React.createElement("p", { className: "font-bold text-gray-900 truncate" }, cliente.nombre || t("Sin nombre")), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500" }, "+", cliente.whatsapp), cliente.fecha_registro && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 mt-0.5" }, window.formatFechaCompleta ? window.formatFechaCompleta(cliente.fecha_registro.slice(0, 10)) : cliente.fecha_registro.slice(0, 10))), /* @__PURE__ */ React.createElement("div", { className: "flex gap-2 flex-shrink-0" }, /* @__PURE__ */ React.createElement("button", { onClick: () => handleAceptarCliente(cliente), className: "px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm font-bold hover:bg-emerald-700" }, t("Aceptar")), /* @__PURE__ */ React.createElement("button", { onClick: () => handleRechazarCliente(cliente), className: "px-4 py-2 rounded-lg border border-gray-200 text-gray-600 text-sm hover:bg-red-50 hover:text-red-600 hover:border-red-200" }, t("Rechazar"))))))), clientesRegistrados.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2 border border-pink-200 rounded-xl bg-pink-50/50 px-3 py-2" }, /* @__PURE__ */ React.createElement("span", { className: "text-pink-400 text-sm" }, "🔍"), /* @__PURE__ */ React.createElement(
+  }, className: "px-4 py-2 rounded-lg bg-pink-50 text-pink-600 text-sm font-medium hover:bg-pink-100" }, showClientesRegistrados ? t2("Ocultar") : t2("Mostrar")))), showClientesRegistrados && /* @__PURE__ */ React.createElement("div", { className: "space-y-5 max-h-[42rem] overflow-y-auto pr-1" }, clientesPendientes.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "border border-amber-200 bg-amber-50/60 rounded-xl p-4" }, /* @__PURE__ */ React.createElement("h3", { className: "font-bold text-amber-900 mb-1" }, "⏳ ", t2("Esperando tu respuesta ({n})", { n: clientesPendientes.length })), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-amber-700 mb-3" }, t2("Estas clientas se registraron pero todavía no pueden reservar.")), /* @__PURE__ */ React.createElement("div", { className: "space-y-2" }, clientesPendientes.map((cliente) => /* @__PURE__ */ React.createElement("div", { key: cliente.id, className: "flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white border border-amber-100 rounded-lg p-3" }, /* @__PURE__ */ React.createElement("div", { className: "min-w-0" }, /* @__PURE__ */ React.createElement("p", { className: "font-bold text-gray-900 truncate" }, cliente.nombre || t2("Sin nombre")), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500" }, "+", cliente.whatsapp), cliente.fecha_registro && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 mt-0.5" }, window.formatFechaCompleta ? window.formatFechaCompleta(cliente.fecha_registro.slice(0, 10)) : cliente.fecha_registro.slice(0, 10))), /* @__PURE__ */ React.createElement("div", { className: "flex gap-2 flex-shrink-0" }, /* @__PURE__ */ React.createElement("button", { onClick: () => handleAceptarCliente(cliente), className: "px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm font-bold hover:bg-emerald-700" }, t2("Aceptar")), /* @__PURE__ */ React.createElement("button", { onClick: () => handleRechazarCliente(cliente), className: "px-4 py-2 rounded-lg border border-gray-200 text-gray-600 text-sm hover:bg-red-50 hover:text-red-600 hover:border-red-200" }, t2("Rechazar"))))))), clientesRegistrados.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2 border border-pink-200 rounded-xl bg-pink-50/50 px-3 py-2" }, /* @__PURE__ */ React.createElement("span", { className: "text-pink-400 text-sm" }, "🔍"), /* @__PURE__ */ React.createElement(
     "input",
     {
       type: "text",
       value: busquedaClientes,
       onChange: (e) => setBusquedaClientes(e.target.value),
-      placeholder: t("Buscar por nombre o número..."),
+      placeholder: t2("Buscar por nombre o número..."),
       className: "flex-1 bg-transparent text-sm outline-none text-gray-700 placeholder-pink-300"
     }
-  ), busquedaClientes && /* @__PURE__ */ React.createElement("button", { onClick: () => setBusquedaClientes(""), className: "text-pink-400 hover:text-pink-600 text-xs" }, "✕")), (userRole === "admin" || userNivel >= 3) && /* @__PURE__ */ React.createElement("div", { className: "rounded-xl border border-red-100 bg-red-50 p-4" }, /* @__PURE__ */ React.createElement("h3", { className: "font-bold text-red-700 mb-3" }, t("Lista negra")), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-1 md:grid-cols-4 gap-2" }, /* @__PURE__ */ React.createElement("input", { type: "text", value: nuevoBloqueo.nombre, onChange: (e) => setNuevoBloqueo({ ...nuevoBloqueo, nombre: e.target.value }), className: "border rounded-lg px-3 py-2 text-sm", placeholder: t("Nombre opcional") }), /* @__PURE__ */ React.createElement("div", { className: "flex" }, /* @__PURE__ */ React.createElement(
+  ), busquedaClientes && /* @__PURE__ */ React.createElement("button", { onClick: () => setBusquedaClientes(""), className: "text-pink-400 hover:text-pink-600 text-xs" }, "✕")), (userRole === "admin" || userNivel >= 3) && /* @__PURE__ */ React.createElement("div", { className: "rounded-xl border border-red-100 bg-red-50 p-4" }, /* @__PURE__ */ React.createElement("h3", { className: "font-bold text-red-700 mb-3" }, t2("Lista negra")), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-1 md:grid-cols-4 gap-2" }, /* @__PURE__ */ React.createElement("input", { type: "text", value: nuevoBloqueo.nombre, onChange: (e) => setNuevoBloqueo({ ...nuevoBloqueo, nombre: e.target.value }), className: "border rounded-lg px-3 py-2 text-sm", placeholder: t2("Nombre opcional") }), /* @__PURE__ */ React.createElement("div", { className: "flex" }, /* @__PURE__ */ React.createElement(
     "select",
     {
       value: nuevoBloqueo.codigo_pais || codigoPaisNegocio,
@@ -3789,17 +3960,17 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
       className: "w-28 rounded-l-lg border border-r-0 px-2 py-2 text-sm bg-white"
     },
     paisesTelefono.map((pais) => /* @__PURE__ */ React.createElement("option", { key: pais.id, value: pais.codigo }, pais.bandera, " +", pais.codigo))
-  ), /* @__PURE__ */ React.createElement("input", { type: "tel", value: nuevoBloqueo.whatsapp, onChange: (e) => setNuevoBloqueo({ ...nuevoBloqueo, whatsapp: String(e.target.value || "").replace(/\D/g, "") }), className: "border rounded-r-lg px-3 py-2 text-sm", placeholder: "WhatsApp" })), /* @__PURE__ */ React.createElement("input", { type: "text", value: nuevoBloqueo.motivo, onChange: (e) => setNuevoBloqueo({ ...nuevoBloqueo, motivo: e.target.value }), className: "border rounded-lg px-3 py-2 text-sm", placeholder: t("Motivo opcional") }), /* @__PURE__ */ React.createElement("button", { onClick: () => handleBloquearCliente(), className: "px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-bold hover:bg-red-700" }, t("Bloquear"))), /* @__PURE__ */ React.createElement("div", { className: "mt-4 space-y-2" }, cargandoBloqueados ? /* @__PURE__ */ React.createElement("p", { className: "text-sm text-red-600" }, t("Cargando lista negra...")) : clientesBloqueados.length === 0 ? /* @__PURE__ */ React.createElement("p", { className: "text-sm text-red-500" }, t("No hay clientes bloqueados.")) : clientesBloqueados.map((cliente) => /* @__PURE__ */ React.createElement("div", { key: cliente.id || cliente.whatsapp, className: "flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded-lg bg-white border border-red-100 p-3" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("p", { className: "font-semibold text-gray-900" }, cliente.nombre || t("Sin nombre"), " ", /* @__PURE__ */ React.createElement("span", { className: "text-sm text-gray-500" }, "+", cliente.whatsapp)), cliente.motivo && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500" }, t("Motivo:"), " ", cliente.motivo)), /* @__PURE__ */ React.createElement("button", { onClick: () => handleDesbloquearCliente(cliente.whatsapp), className: "px-3 py-2 rounded-lg bg-white border border-red-200 text-red-600 text-sm font-medium hover:bg-red-50" }, t("Desbloquear")))))), cargandoClientes ? /* @__PURE__ */ React.createElement("p", { className: "text-center text-pink-500" }, t("Cargando clientes...")) : clientesRegistrados.length === 0 ? /* @__PURE__ */ React.createElement("p", { className: "text-center text-gray-500" }, t("No hay clientes registrados")) : (() => {
+  ), /* @__PURE__ */ React.createElement("input", { type: "tel", value: nuevoBloqueo.whatsapp, onChange: (e) => setNuevoBloqueo({ ...nuevoBloqueo, whatsapp: String(e.target.value || "").replace(/\D/g, "") }), className: "border rounded-r-lg px-3 py-2 text-sm", placeholder: "WhatsApp" })), /* @__PURE__ */ React.createElement("input", { type: "text", value: nuevoBloqueo.motivo, onChange: (e) => setNuevoBloqueo({ ...nuevoBloqueo, motivo: e.target.value }), className: "border rounded-lg px-3 py-2 text-sm", placeholder: t2("Motivo opcional") }), /* @__PURE__ */ React.createElement("button", { onClick: () => handleBloquearCliente(), className: "px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-bold hover:bg-red-700" }, t2("Bloquear"))), /* @__PURE__ */ React.createElement("div", { className: "mt-4 space-y-2" }, cargandoBloqueados ? /* @__PURE__ */ React.createElement("p", { className: "text-sm text-red-600" }, t2("Cargando lista negra...")) : clientesBloqueados.length === 0 ? /* @__PURE__ */ React.createElement("p", { className: "text-sm text-red-500" }, t2("No hay clientes bloqueados.")) : clientesBloqueados.map((cliente) => /* @__PURE__ */ React.createElement("div", { key: cliente.id || cliente.whatsapp, className: "flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded-lg bg-white border border-red-100 p-3" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("p", { className: "font-semibold text-gray-900" }, cliente.nombre || t2("Sin nombre"), " ", /* @__PURE__ */ React.createElement("span", { className: "text-sm text-gray-500" }, "+", cliente.whatsapp)), cliente.motivo && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500" }, t2("Motivo:"), " ", cliente.motivo)), /* @__PURE__ */ React.createElement("button", { onClick: () => handleDesbloquearCliente(cliente.whatsapp), className: "px-3 py-2 rounded-lg bg-white border border-red-200 text-red-600 text-sm font-medium hover:bg-red-50" }, t2("Desbloquear")))))), cargandoClientes ? /* @__PURE__ */ React.createElement("p", { className: "text-center text-pink-500" }, t2("Cargando clientes...")) : clientesRegistrados.length === 0 ? /* @__PURE__ */ React.createElement("p", { className: "text-center text-gray-500" }, t2("No hay clientes registrados")) : (() => {
     const q = busquedaClientes.toLowerCase().trim();
     const qNum = busquedaClientes.replace(/\D/g, "");
     const filtrados = q ? clientesAprobados.filter(
       (c) => (c.nombre || "").toLowerCase().includes(q) || qNum && (c.whatsapp || "").includes(qNum)
     ) : clientesAprobados;
-    if (filtrados.length === 0) return /* @__PURE__ */ React.createElement("p", { className: "text-center text-gray-400 text-sm py-4" }, t('No hay clientes que coincidan con "{busqueda}"', { busqueda: busquedaClientes }));
+    if (filtrados.length === 0) return /* @__PURE__ */ React.createElement("p", { className: "text-center text-gray-400 text-sm py-4" }, t2('No hay clientes que coincidan con "{busqueda}"', { busqueda: busquedaClientes }));
     return filtrados.map((cliente, idx) => {
       const score = getClienteScore(cliente);
       const reservasCliente = getReservasCliente(cliente);
-      const ultimaCita = score.ultima ? `${window.formatFechaCompleta ? window.formatFechaCompleta(score.ultima.fecha) : score.ultima.fecha} ${formatTo12Hour(score.ultima.hora_inicio)}` : t("Sin citas");
+      const ultimaCita = score.ultima ? `${window.formatFechaCompleta ? window.formatFechaCompleta(score.ultima.fecha) : score.ultima.fecha} ${formatTo12Hour(score.ultima.hora_inicio)}` : t2("Sin citas");
       return /* @__PURE__ */ React.createElement(
         "div",
         {
@@ -3815,31 +3986,31 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
           },
           className: "p-4 bg-gray-50 border border-gray-100 rounded-xl cursor-pointer hover:border-pink-200 hover:bg-pink-50/30 transition"
         },
-        /* @__PURE__ */ React.createElement("div", { className: "flex flex-col lg:flex-row lg:items-start justify-between gap-4" }, /* @__PURE__ */ React.createElement("div", { className: "min-w-0" }, /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap items-center gap-2" }, /* @__PURE__ */ React.createElement("p", { className: "font-bold text-gray-900 truncate" }, cliente.nombre), /* @__PURE__ */ React.createElement("span", { className: `px-2.5 py-1 rounded-full border text-xs font-semibold ${score.tone}` }, score.label), /* @__PURE__ */ React.createElement("span", { className: "px-2.5 py-1 rounded-full bg-white border text-xs font-semibold text-gray-700" }, t("Score {n}/100", { n: score.score }))), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500 mt-1" }, "+", cliente.whatsapp), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-1" }, t("Ultima cita:"), " ", ultimaCita), /* @__PURE__ */ React.createElement("p", { className: "text-xs font-semibold text-pink-600 mt-2" }, t("Tocar para ver todos sus turnos"))), (userRole === "admin" || userNivel >= 3) && /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-2" }, /* @__PURE__ */ React.createElement("button", { onClick: (event) => {
+        /* @__PURE__ */ React.createElement("div", { className: "flex flex-col lg:flex-row lg:items-start justify-between gap-4" }, /* @__PURE__ */ React.createElement("div", { className: "min-w-0" }, /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap items-center gap-2" }, /* @__PURE__ */ React.createElement("p", { className: "font-bold text-gray-900 truncate" }, cliente.nombre), /* @__PURE__ */ React.createElement("span", { className: `px-2.5 py-1 rounded-full border text-xs font-semibold ${score.tone}` }, score.label), /* @__PURE__ */ React.createElement("span", { className: "px-2.5 py-1 rounded-full bg-white border text-xs font-semibold text-gray-700" }, t2("Score {n}/100", { n: score.score }))), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500 mt-1" }, "+", cliente.whatsapp), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-1" }, t2("Ultima cita:"), " ", ultimaCita), /* @__PURE__ */ React.createElement("p", { className: "text-xs font-semibold text-pink-600 mt-2" }, t2("Tocar para ver todos sus turnos"))), (userRole === "admin" || userNivel >= 3) && /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-2" }, /* @__PURE__ */ React.createElement("button", { onClick: (event) => {
           event.stopPropagation();
           handleBloquearCliente(cliente);
-        }, className: "px-3 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-black" }, t("Bloquear")), /* @__PURE__ */ React.createElement("button", { onClick: (event) => {
+        }, className: "px-3 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-black" }, t2("Bloquear")), /* @__PURE__ */ React.createElement("button", { onClick: (event) => {
           event.stopPropagation();
           handleEliminarCliente(cliente.whatsapp);
-        }, className: "px-3 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600" }, t("Quitar")))),
-        /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 sm:grid-cols-5 gap-2 mt-4" }, /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-lg p-3 border" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500" }, t("Total")), /* @__PURE__ */ React.createElement("p", { className: "text-lg font-bold text-gray-900" }, score.total)), /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-lg p-3 border" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500" }, t("Activas")), /* @__PURE__ */ React.createElement("p", { className: "text-lg font-bold text-pink-600" }, score.activas)), /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-lg p-3 border" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500" }, t("Pendientes")), /* @__PURE__ */ React.createElement("p", { className: "text-lg font-bold text-amber-600" }, score.pendientes)), /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-lg p-3 border" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500" }, t("Completadas")), /* @__PURE__ */ React.createElement("p", { className: "text-lg font-bold text-emerald-600" }, score.completadas)), /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-lg p-3 border" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500" }, t("Canceladas")), /* @__PURE__ */ React.createElement("p", { className: "text-lg font-bold text-red-600" }, score.canceladas))),
-        /* @__PURE__ */ React.createElement("div", { className: "mt-3" }, /* @__PURE__ */ React.createElement("div", { className: "flex justify-between text-xs text-gray-500 mb-1" }, /* @__PURE__ */ React.createElement("span", null, t("Completadas {n}%", { n: score.completionRate })), /* @__PURE__ */ React.createElement("span", null, t("Cancelación {n}%", { n: score.cancelRate }))), /* @__PURE__ */ React.createElement("div", { className: "h-2 bg-white rounded-full overflow-hidden border" }, /* @__PURE__ */ React.createElement("div", { className: "h-full bg-emerald-400", style: { width: `${score.completionRate}%` } })))
+        }, className: "px-3 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600" }, t2("Quitar")))),
+        /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 sm:grid-cols-5 gap-2 mt-4" }, /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-lg p-3 border" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500" }, t2("Total")), /* @__PURE__ */ React.createElement("p", { className: "text-lg font-bold text-gray-900" }, score.total)), /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-lg p-3 border" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500" }, t2("Activas")), /* @__PURE__ */ React.createElement("p", { className: "text-lg font-bold text-pink-600" }, score.activas)), /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-lg p-3 border" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500" }, t2("Pendientes")), /* @__PURE__ */ React.createElement("p", { className: "text-lg font-bold text-amber-600" }, score.pendientes)), /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-lg p-3 border" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500" }, t2("Completadas")), /* @__PURE__ */ React.createElement("p", { className: "text-lg font-bold text-emerald-600" }, score.completadas)), /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-lg p-3 border" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500" }, t2("Canceladas")), /* @__PURE__ */ React.createElement("p", { className: "text-lg font-bold text-red-600" }, score.canceladas))),
+        /* @__PURE__ */ React.createElement("div", { className: "mt-3" }, /* @__PURE__ */ React.createElement("div", { className: "flex justify-between text-xs text-gray-500 mb-1" }, /* @__PURE__ */ React.createElement("span", null, t2("Completadas {n}%", { n: score.completionRate })), /* @__PURE__ */ React.createElement("span", null, t2("Cancelación {n}%", { n: score.cancelRate }))), /* @__PURE__ */ React.createElement("div", { className: "h-2 bg-white rounded-full overflow-hidden border" }, /* @__PURE__ */ React.createElement("div", { className: "h-full bg-emerald-400", style: { width: `${score.completionRate}%` } })))
       );
     });
-  })())), clienteDetalle && /* @__PURE__ */ React.createElement("div", { className: "fixed inset-0 bg-black/50 z-[80] flex items-end sm:items-center justify-center p-0 sm:p-4", onClick: () => setClienteDetalle(null) }, /* @__PURE__ */ React.createElement("div", { className: "bg-white w-full sm:max-w-2xl max-h-[88vh] rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden", onClick: (event) => event.stopPropagation() }, /* @__PURE__ */ React.createElement("div", { className: "p-5 border-b bg-gradient-to-r from-white to-pink-50 flex items-start justify-between gap-4" }, /* @__PURE__ */ React.createElement("div", { className: "min-w-0" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold uppercase text-pink-500 tracking-wide" }, t("Historial del cliente")), /* @__PURE__ */ React.createElement("h3", { className: "text-2xl font-bold text-gray-900 truncate" }, clienteDetalle.cliente.nombre || t("Cliente")), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500" }, "+", clienteDetalle.cliente.whatsapp), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-2 mt-3" }, /* @__PURE__ */ React.createElement("span", { className: `px-2.5 py-1 rounded-full border text-xs font-semibold ${clienteDetalle.score.tone}` }, clienteDetalle.score.label), /* @__PURE__ */ React.createElement("span", { className: "px-2.5 py-1 rounded-full bg-white border text-xs font-semibold text-gray-700" }, t("Score {n}/100", { n: clienteDetalle.score.score })), /* @__PURE__ */ React.createElement("span", { className: "px-2.5 py-1 rounded-full bg-pink-50 text-pink-700 border border-pink-100 text-xs font-semibold" }, t("{n} turnos", { n: clienteDetalle.reservas.length })))), /* @__PURE__ */ React.createElement("button", { onClick: () => setClienteDetalle(null), className: "w-10 h-10 rounded-full bg-white border text-gray-500 hover:text-gray-900 hover:bg-gray-50 text-xl leading-none" }, "×")), (() => {
+  })())), clienteDetalle && /* @__PURE__ */ React.createElement("div", { className: "fixed inset-0 bg-black/50 z-[80] flex items-end sm:items-center justify-center p-0 sm:p-4", onClick: () => setClienteDetalle(null) }, /* @__PURE__ */ React.createElement("div", { className: "bg-white w-full sm:max-w-2xl max-h-[88vh] rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden", onClick: (event) => event.stopPropagation() }, /* @__PURE__ */ React.createElement("div", { className: "p-5 border-b bg-gradient-to-r from-white to-pink-50 flex items-start justify-between gap-4" }, /* @__PURE__ */ React.createElement("div", { className: "min-w-0" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold uppercase text-pink-500 tracking-wide" }, t2("Historial del cliente")), /* @__PURE__ */ React.createElement("h3", { className: "text-2xl font-bold text-gray-900 truncate" }, clienteDetalle.cliente.nombre || t2("Cliente")), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500" }, "+", clienteDetalle.cliente.whatsapp), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-2 mt-3" }, /* @__PURE__ */ React.createElement("span", { className: `px-2.5 py-1 rounded-full border text-xs font-semibold ${clienteDetalle.score.tone}` }, clienteDetalle.score.label), /* @__PURE__ */ React.createElement("span", { className: "px-2.5 py-1 rounded-full bg-white border text-xs font-semibold text-gray-700" }, t2("Score {n}/100", { n: clienteDetalle.score.score })), /* @__PURE__ */ React.createElement("span", { className: "px-2.5 py-1 rounded-full bg-pink-50 text-pink-700 border border-pink-100 text-xs font-semibold" }, t2("{n} turnos", { n: clienteDetalle.reservas.length })))), /* @__PURE__ */ React.createElement("button", { onClick: () => setClienteDetalle(null), className: "w-10 h-10 rounded-full bg-white border text-gray-500 hover:text-gray-900 hover:bg-gray-50 text-xl leading-none" }, "×")), (() => {
     const fid = window.getFidelizacionConfig(config);
     if (!fid.activa) return null;
     const phone = normalizePhone(clienteDetalle.cliente.whatsapp);
     const ajuste = ajustesFidelizacion[phone] || 0;
     const completadas = clienteDetalle.score.completadas;
     const p = window.progresoFidelizacion(completadas, ajuste, fid.ciclo);
-    return /* @__PURE__ */ React.createElement("div", { className: `mx-5 mt-4 p-4 rounded-xl border ${p.premiada ? "bg-amber-50 border-amber-200" : "bg-pink-50 border-pink-100"}` }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between gap-3" }, /* @__PURE__ */ React.createElement("span", { className: `text-sm font-semibold ${p.premiada ? "text-amber-800" : "text-pink-700"}` }, t("Fidelidad")), /* @__PURE__ */ React.createElement("span", { className: `text-2xl font-bold tabular-nums ${p.premiada ? "text-amber-700" : "text-pink-600"}` }, p.enCiclo, "/", p.ciclo)), /* @__PURE__ */ React.createElement("div", { className: "flex gap-1.5 mt-2.5" }, Array.from({ length: p.ciclo }, (_, i) => /* @__PURE__ */ React.createElement(
+    return /* @__PURE__ */ React.createElement("div", { className: `mx-5 mt-4 p-4 rounded-xl border ${p.premiada ? "bg-amber-50 border-amber-200" : "bg-pink-50 border-pink-100"}` }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between gap-3" }, /* @__PURE__ */ React.createElement("span", { className: `text-sm font-semibold ${p.premiada ? "text-amber-800" : "text-pink-700"}` }, t2("Fidelidad")), /* @__PURE__ */ React.createElement("span", { className: `text-2xl font-bold tabular-nums ${p.premiada ? "text-amber-700" : "text-pink-600"}` }, p.enCiclo, "/", p.ciclo)), /* @__PURE__ */ React.createElement("div", { className: "flex gap-1.5 mt-2.5" }, Array.from({ length: p.ciclo }, (_, i) => /* @__PURE__ */ React.createElement(
       "span",
       {
         key: i,
         className: `h-2 flex-1 rounded-full ${i < p.enCiclo ? p.premiada ? "bg-amber-500" : "bg-pink-500" : "bg-white border border-gray-200"}`
       }
-    ))), /* @__PURE__ */ React.createElement("p", { className: `text-xs mt-2.5 ${p.premiada ? "text-amber-800" : "text-pink-700"}` }, p.premiada ? t("🎁 Su próxima cita tiene {pct}% de descuento de fidelidad.", { pct: fid.pct }) : t("Le faltan {n} citas completadas para su próximo descuento ({pct}%).", { n: p.faltan, pct: fid.pct })), ajuste > 0 && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-1" }, t("No se están contando {n} citas completadas.", { n: ajuste })), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-2 mt-3" }, /* @__PURE__ */ React.createElement(
+    ))), /* @__PURE__ */ React.createElement("p", { className: `text-xs mt-2.5 ${p.premiada ? "text-amber-800" : "text-pink-700"}` }, p.premiada ? t2("🎁 Su próxima cita tiene {pct}% de descuento de fidelidad.", { pct: fid.pct }) : t2("Le faltan {n} citas completadas para su próximo descuento ({pct}%).", { n: p.faltan, pct: fid.pct })), ajuste > 0 && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-1" }, t2("No se están contando {n} citas completadas.", { n: ajuste })), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-2 mt-3" }, /* @__PURE__ */ React.createElement(
       "button",
       {
         onClick: () => cambiarAjusteFidelizacion(
@@ -3848,15 +4019,15 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
         ),
         disabled: guardandoAjusteFid || p.efectivas === 0,
         className: "px-3 py-2 rounded-lg bg-white border border-gray-200 text-gray-700 text-sm font-bold disabled:opacity-40 disabled:cursor-not-allowed",
-        title: t("Descontar una cita que no debía contar")
+        title: t2("Descontar una cita que no debía contar")
       },
       "−1 ",
-      t("cita")
+      t2("cita")
     ), /* @__PURE__ */ React.createElement(
       "button",
       {
         onClick: () => {
-          if (!confirm(t("¿Poner el contador de fidelidad de esta clienta en 0/{n}?", { n: p.ciclo }))) return;
+          if (!confirm(t2("¿Poner el contador de fidelidad de esta clienta en 0/{n}?", { n: p.ciclo }))) return;
           cambiarAjusteFidelizacion(
             clienteDetalle.cliente.whatsapp,
             window.ajusteParaReiniciar(completadas)
@@ -3865,26 +4036,26 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
         disabled: guardandoAjusteFid || p.efectivas === 0,
         className: "px-3 py-2 rounded-lg bg-white border border-gray-200 text-gray-700 text-sm font-bold disabled:opacity-40 disabled:cursor-not-allowed"
       },
-      t("Reiniciar")
+      t2("Reiniciar")
     ), ajuste > 0 && /* @__PURE__ */ React.createElement(
       "button",
       {
         onClick: () => cambiarAjusteFidelizacion(clienteDetalle.cliente.whatsapp, 0),
         disabled: guardandoAjusteFid,
         className: "px-3 py-2 rounded-lg bg-white border border-gray-200 text-gray-500 text-sm font-medium disabled:opacity-40",
-        title: t("Volver a contar todas sus citas completadas")
+        title: t2("Volver a contar todas sus citas completadas")
       },
-      t("Deshacer ajustes")
+      t2("Deshacer ajustes")
     )));
-  })(), /* @__PURE__ */ React.createElement("div", { className: "p-5 overflow-y-auto max-h-[68vh] space-y-3" }, clienteDetalle.reservas.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "text-center py-10 bg-gray-50 rounded-xl border border-gray-100" }, /* @__PURE__ */ React.createElement("p", { className: "text-gray-500" }, t("Este cliente aún no tiene turnos registrados."))) : clienteDetalle.reservas.map((reserva, index) => {
+  })(), /* @__PURE__ */ React.createElement("div", { className: "p-5 overflow-y-auto max-h-[68vh] space-y-3" }, clienteDetalle.reservas.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "text-center py-10 bg-gray-50 rounded-xl border border-gray-100" }, /* @__PURE__ */ React.createElement("p", { className: "text-gray-500" }, t2("Este cliente aún no tiene turnos registrados."))) : clienteDetalle.reservas.map((reserva, index) => {
     const estado = reserva.estado || "Reservado";
     const estadoClass = agendaStatusStyle[estado] || "bg-gray-50 border-l-gray-400 border-gray-100 text-gray-900";
     const fecha = window.formatFechaCompleta ? window.formatFechaCompleta(reserva.fecha) : reserva.fecha;
     const horaInicio = formatTo12Hour(reserva.hora_inicio);
     const horaFin = reserva.hora_fin ? formatTo12Hour(reserva.hora_fin) : "";
     const cobro = Number(reserva.monto_cobrado || 0);
-    return /* @__PURE__ */ React.createElement("div", { key: reserva.id || index, className: `rounded-xl border border-l-4 p-4 ${estadoClass}` }, /* @__PURE__ */ React.createElement("div", { className: "flex flex-col sm:flex-row sm:items-start justify-between gap-2" }, /* @__PURE__ */ React.createElement("div", { className: "min-w-0" }, /* @__PURE__ */ React.createElement("p", { className: "text-sm font-bold" }, fecha), /* @__PURE__ */ React.createElement("p", { className: "text-lg font-extrabold" }, horaInicio, horaFin ? ` - ${horaFin}` : ""), /* @__PURE__ */ React.createElement("p", { className: "font-semibold mt-2" }, reserva.servicio || t("Servicio sin nombre")), /* @__PURE__ */ React.createElement("p", { className: "text-sm opacity-80" }, t("Profesional:"), " ", reserva.profesional_nombre || t("No asignado"))), /* @__PURE__ */ React.createElement("span", { className: "self-start px-3 py-1 rounded-full bg-white/80 border text-xs font-bold" }, t(estado))), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-1 sm:grid-cols-3 gap-2 mt-3 text-sm" }, /* @__PURE__ */ React.createElement("div", { className: "bg-white/70 rounded-lg p-2 border" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs opacity-70" }, "WhatsApp"), /* @__PURE__ */ React.createElement("p", { className: "font-semibold" }, "+", reserva.cliente_whatsapp || clienteDetalle.cliente.whatsapp)), /* @__PURE__ */ React.createElement("div", { className: "bg-white/70 rounded-lg p-2 border" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs opacity-70" }, t("Cobro real")), /* @__PURE__ */ React.createElement("p", { className: "font-semibold" }, cobro > 0 ? `$${cobro}` : t("Sin registrar"))), /* @__PURE__ */ React.createElement("div", { className: "bg-white/70 rounded-lg p-2 border" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs opacity-70" }, t("ID cita")), /* @__PURE__ */ React.createElement("p", { className: "font-semibold truncate" }, reserva.id || "-"))));
-  })))), tabActivo === "agenda" && /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100" }, /* @__PURE__ */ React.createElement("div", { className: "p-4 sm:p-5 border-b bg-gradient-to-r from-white to-pink-50" }, /* @__PURE__ */ React.createElement("div", { className: "flex flex-col lg:flex-row lg:items-center justify-between gap-4" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("p", { className: "text-xs uppercase tracking-wide text-pink-500 font-bold" }, agendaMode === "dia" ? t("Agenda diaria") : t("Agenda semanal")), /* @__PURE__ */ React.createElement("h2", { className: "text-2xl font-bold text-gray-900" }, getAgendaTitle())), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap items-center gap-2" }, /* @__PURE__ */ React.createElement("div", { className: "inline-flex bg-gray-100 rounded-lg p-1" }, /* @__PURE__ */ React.createElement("button", { onClick: () => setAgendaMode("dia"), className: `px-3 py-1.5 rounded-md text-sm font-medium ${agendaMode === "dia" ? "bg-white text-pink-600 shadow-sm" : "text-gray-600"}` }, t("Dia")), /* @__PURE__ */ React.createElement("button", { onClick: () => setAgendaMode("semana"), className: `px-3 py-1.5 rounded-md text-sm font-medium ${agendaMode === "semana" ? "bg-white text-pink-600 shadow-sm" : "text-gray-600"}` }, t("Semana"))), /* @__PURE__ */ React.createElement("button", { onClick: () => setAgendaDate(addDays(agendaDate, agendaMode === "dia" ? -1 : -7)), className: "px-3 py-2 rounded-lg border bg-white hover:bg-gray-50 text-sm font-medium" }, agendaMode === "dia" ? t("Día anterior") : t("Semana anterior")), /* @__PURE__ */ React.createElement("button", { onClick: () => setAgendaDate(/* @__PURE__ */ new Date()), className: "px-3 py-2 rounded-lg bg-pink-500 text-white hover:bg-pink-600 text-sm font-medium" }, t("Hoy")), /* @__PURE__ */ React.createElement("button", { onClick: () => setAgendaDate(addDays(agendaDate, agendaMode === "dia" ? 1 : 7)), className: "px-3 py-2 rounded-lg border bg-white hover:bg-gray-50 text-sm font-medium" }, agendaMode === "dia" ? t("Día siguiente") : t("Semana siguiente")))), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-7 gap-1 mt-5 rounded-xl bg-white border border-gray-100 p-2" }, agendaDays.map((day) => {
+    return /* @__PURE__ */ React.createElement("div", { key: reserva.id || index, className: `rounded-xl border border-l-4 p-4 ${estadoClass}` }, /* @__PURE__ */ React.createElement("div", { className: "flex flex-col sm:flex-row sm:items-start justify-between gap-2" }, /* @__PURE__ */ React.createElement("div", { className: "min-w-0" }, /* @__PURE__ */ React.createElement("p", { className: "text-sm font-bold" }, fecha), /* @__PURE__ */ React.createElement("p", { className: "text-lg font-extrabold" }, horaInicio, horaFin ? ` - ${horaFin}` : ""), /* @__PURE__ */ React.createElement("p", { className: "font-semibold mt-2" }, reserva.servicio || t2("Servicio sin nombre")), /* @__PURE__ */ React.createElement("p", { className: "text-sm opacity-80" }, t2("Profesional:"), " ", reserva.profesional_nombre || t2("No asignado"))), /* @__PURE__ */ React.createElement("span", { className: "self-start px-3 py-1 rounded-full bg-white/80 border text-xs font-bold" }, t2(estado))), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-1 sm:grid-cols-3 gap-2 mt-3 text-sm" }, /* @__PURE__ */ React.createElement("div", { className: "bg-white/70 rounded-lg p-2 border" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs opacity-70" }, "WhatsApp"), /* @__PURE__ */ React.createElement("p", { className: "font-semibold" }, "+", reserva.cliente_whatsapp || clienteDetalle.cliente.whatsapp)), /* @__PURE__ */ React.createElement("div", { className: "bg-white/70 rounded-lg p-2 border" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs opacity-70" }, t2("Cobro real")), /* @__PURE__ */ React.createElement("p", { className: "font-semibold" }, cobro > 0 ? `$${cobro}` : t2("Sin registrar"))), /* @__PURE__ */ React.createElement("div", { className: "bg-white/70 rounded-lg p-2 border" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs opacity-70" }, t2("ID cita")), /* @__PURE__ */ React.createElement("p", { className: "font-semibold truncate" }, reserva.id || "-"))));
+  })))), tabActivo === "agenda" && /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100" }, /* @__PURE__ */ React.createElement("div", { className: "p-4 sm:p-5 border-b bg-gradient-to-r from-white to-pink-50" }, /* @__PURE__ */ React.createElement("div", { className: "flex flex-col lg:flex-row lg:items-center justify-between gap-4" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("p", { className: "text-xs uppercase tracking-wide text-pink-500 font-bold" }, agendaMode === "dia" ? t2("Agenda diaria") : t2("Agenda semanal")), /* @__PURE__ */ React.createElement("h2", { className: "text-2xl font-bold text-gray-900" }, getAgendaTitle())), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap items-center gap-2" }, /* @__PURE__ */ React.createElement("div", { className: "inline-flex bg-gray-100 rounded-lg p-1" }, /* @__PURE__ */ React.createElement("button", { onClick: () => setAgendaMode("dia"), className: `px-3 py-1.5 rounded-md text-sm font-medium ${agendaMode === "dia" ? "bg-white text-pink-600 shadow-sm" : "text-gray-600"}` }, t2("Dia")), /* @__PURE__ */ React.createElement("button", { onClick: () => setAgendaMode("semana"), className: `px-3 py-1.5 rounded-md text-sm font-medium ${agendaMode === "semana" ? "bg-white text-pink-600 shadow-sm" : "text-gray-600"}` }, t2("Semana"))), /* @__PURE__ */ React.createElement("button", { onClick: () => setAgendaDate(addDays(agendaDate, agendaMode === "dia" ? -1 : -7)), className: "px-3 py-2 rounded-lg border bg-white hover:bg-gray-50 text-sm font-medium" }, agendaMode === "dia" ? t2("Día anterior") : t2("Semana anterior")), /* @__PURE__ */ React.createElement("button", { onClick: () => setAgendaDate(/* @__PURE__ */ new Date()), className: "px-3 py-2 rounded-lg bg-pink-500 text-white hover:bg-pink-600 text-sm font-medium" }, t2("Hoy")), /* @__PURE__ */ React.createElement("button", { onClick: () => setAgendaDate(addDays(agendaDate, agendaMode === "dia" ? 1 : 7)), className: "px-3 py-2 rounded-lg border bg-white hover:bg-gray-50 text-sm font-medium" }, agendaMode === "dia" ? t2("Día siguiente") : t2("Semana siguiente")))), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-7 gap-1 mt-5 rounded-xl bg-white border border-gray-100 p-2" }, agendaDays.map((day) => {
     const dateStr = formatDate(day);
     const selected = dateStr === agendaDateStr;
     const isToday = dateStr === agendaToday;
@@ -3902,7 +4073,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
       /* @__PURE__ */ React.createElement("span", { className: "block text-lg font-bold leading-tight" }, day.getDate()),
       /* @__PURE__ */ React.createElement("span", { className: `mx-auto mt-1 block h-1.5 w-1.5 rounded-full ${getAgendaDayBookings(day).length ? selected ? "bg-white" : "bg-pink-500" : "bg-transparent"}` })
     );
-  })), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5" }, /* @__PURE__ */ React.createElement("div", { className: "rounded-lg border border-pink-100 bg-white p-3" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500" }, t("Turnos")), /* @__PURE__ */ React.createElement("p", { className: "text-2xl font-bold text-gray-900" }, agendaVisibleBookings.length)), /* @__PURE__ */ React.createElement("div", { className: "rounded-lg border border-amber-100 bg-white p-3" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500" }, t("Pendientes")), /* @__PURE__ */ React.createElement("p", { className: "text-2xl font-bold text-amber-600" }, agendaVisibleBookings.filter((b) => b.estado === "Pendiente").length)), /* @__PURE__ */ React.createElement("div", { className: "rounded-lg border border-emerald-100 bg-white p-3" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500" }, t("Completados")), /* @__PURE__ */ React.createElement("p", { className: "text-2xl font-bold text-emerald-600" }, agendaVisibleBookings.filter((b) => b.estado === "Completado").length)), /* @__PURE__ */ React.createElement("div", { className: "rounded-lg border border-blue-100 bg-white p-3" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500" }, t("Profesionales")), /* @__PURE__ */ React.createElement("p", { className: "text-2xl font-bold text-blue-600" }, new Set(agendaVisibleBookings.map((b) => b.profesional_id || b.profesional_nombre)).size)))), agendaMode === "dia" && /* @__PURE__ */ React.createElement("div", { className: "p-3 sm:p-5 overflow-x-auto" }, /* @__PURE__ */ React.createElement("div", { className: "relative border rounded-xl overflow-hidden bg-white", style: { height: `${agendaGridHeight}px`, minWidth: `${agendaDayMinWidth}px` } }, /* @__PURE__ */ React.createElement("div", { className: "absolute left-0 top-0 bottom-0 w-16 bg-gray-50 border-r z-0" }, agendaHours.map((hour) => /* @__PURE__ */ React.createElement("div", { key: hour, className: "relative border-b border-gray-100 text-right pr-2 text-xs text-gray-400", style: { height: `${60 * agendaPxPerMinute}px` } }, /* @__PURE__ */ React.createElement("span", { className: "relative -top-2" }, formatTo12Hour(`${String(hour).padStart(2, "0")}:00`).replace(":00", ""))))), /* @__PURE__ */ React.createElement("div", { className: "absolute left-16 right-0 top-0 bottom-0" }, agendaHours.map((hour) => /* @__PURE__ */ React.createElement("div", { key: hour, className: "border-b border-gray-100", style: { height: `${60 * agendaPxPerMinute}px` } })), agendaDayBookings.length === 0 && /* @__PURE__ */ React.createElement("div", { className: "absolute inset-x-4 top-8 rounded-xl border border-dashed border-gray-200 bg-gray-50 p-5 text-center text-gray-500" }, t("No hay citas para este día")), agendaDayLayoutBookings.map((booking) => {
+  })), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5" }, /* @__PURE__ */ React.createElement("div", { className: "rounded-lg border border-pink-100 bg-white p-3" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500" }, t2("Turnos")), /* @__PURE__ */ React.createElement("p", { className: "text-2xl font-bold text-gray-900" }, agendaVisibleBookings.length)), /* @__PURE__ */ React.createElement("div", { className: "rounded-lg border border-amber-100 bg-white p-3" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500" }, t2("Pendientes")), /* @__PURE__ */ React.createElement("p", { className: "text-2xl font-bold text-amber-600" }, agendaVisibleBookings.filter((b) => b.estado === "Pendiente").length)), /* @__PURE__ */ React.createElement("div", { className: "rounded-lg border border-emerald-100 bg-white p-3" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500" }, t2("Completados")), /* @__PURE__ */ React.createElement("p", { className: "text-2xl font-bold text-emerald-600" }, agendaVisibleBookings.filter((b) => b.estado === "Completado").length)), /* @__PURE__ */ React.createElement("div", { className: "rounded-lg border border-blue-100 bg-white p-3" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500" }, t2("Profesionales")), /* @__PURE__ */ React.createElement("p", { className: "text-2xl font-bold text-blue-600" }, new Set(agendaVisibleBookings.map((b) => b.profesional_id || b.profesional_nombre)).size)))), agendaMode === "dia" && /* @__PURE__ */ React.createElement("div", { className: "p-3 sm:p-5 overflow-x-auto" }, /* @__PURE__ */ React.createElement("div", { className: "relative border rounded-xl overflow-hidden bg-white", style: { height: `${agendaGridHeight}px`, minWidth: `${agendaDayMinWidth}px` } }, /* @__PURE__ */ React.createElement("div", { className: "absolute left-0 top-0 bottom-0 w-16 bg-gray-50 border-r z-0" }, agendaHours.map((hour) => /* @__PURE__ */ React.createElement("div", { key: hour, className: "relative border-b border-gray-100 text-right pr-2 text-xs text-gray-400", style: { height: `${60 * agendaPxPerMinute}px` } }, /* @__PURE__ */ React.createElement("span", { className: "relative -top-2" }, formatTo12Hour(`${String(hour).padStart(2, "0")}:00`).replace(":00", ""))))), /* @__PURE__ */ React.createElement("div", { className: "absolute left-16 right-0 top-0 bottom-0" }, agendaHours.map((hour) => /* @__PURE__ */ React.createElement("div", { key: hour, className: "border-b border-gray-100", style: { height: `${60 * agendaPxPerMinute}px` } })), agendaDayBookings.length === 0 && /* @__PURE__ */ React.createElement("div", { className: "absolute inset-x-4 top-8 rounded-xl border border-dashed border-gray-200 bg-gray-50 p-5 text-center text-gray-500" }, t2("No hay citas para este día")), agendaDayLayoutBookings.map((booking) => {
     const statusClass = agendaStatusStyle[booking.estado] || "bg-gray-50 border-l-gray-500 border-gray-100 text-gray-900";
     const isShort = getBookingHeight(booking) < 76;
     return /* @__PURE__ */ React.createElement(
@@ -3913,12 +4084,12 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
         style: getAgendaBookingStyle(booking),
         onClick: () => abrirDetalleAgenda(booking)
       },
-      /* @__PURE__ */ React.createElement("div", { className: "flex h-full flex-col gap-1" }, /* @__PURE__ */ React.createElement("div", { className: "min-w-0" }, /* @__PURE__ */ React.createElement("p", { className: "text-[11px] font-bold leading-tight opacity-90" }, formatTo12Hour(booking.hora_inicio), " - ", formatTo12Hour(booking.hora_fin || calculateEndTime(booking.hora_inicio, booking.duracion || 60)), Number(booking.valoracion) > 0 && /* @__PURE__ */ React.createElement("span", { className: "ml-1", title: t("Valoracion de la clienta") }, "⭐", Number(booking.valoracion))), !isShort && /* @__PURE__ */ React.createElement("p", { className: "text-sm font-bold truncate" }, booking.cliente_nombre), !isShort && /* @__PURE__ */ React.createElement("p", { className: "text-xs truncate opacity-90" }, booking._grupoVisual ? `${booking._reservasGrupo.length} servicios - ${booking.servicio}` : booking.servicio), !isShort && /* @__PURE__ */ React.createElement("p", { className: "text-[11px] truncate opacity-80" }, booking.profesional_nombre || booking.trabajador_nombre || t("Sin profesional"))), /* @__PURE__ */ React.createElement("button", { onClick: (event) => {
+      /* @__PURE__ */ React.createElement("div", { className: "flex h-full flex-col gap-1" }, /* @__PURE__ */ React.createElement("div", { className: "min-w-0" }, /* @__PURE__ */ React.createElement("p", { className: "text-[11px] font-bold leading-tight opacity-90" }, formatTo12Hour(booking.hora_inicio), " - ", formatTo12Hour(booking.hora_fin || calculateEndTime(booking.hora_inicio, booking.duracion || 60)), Number(booking.valoracion) > 0 && /* @__PURE__ */ React.createElement("span", { className: "ml-1", title: t2("Valoracion de la clienta") }, "⭐", Number(booking.valoracion))), !isShort && /* @__PURE__ */ React.createElement("p", { className: "text-sm font-bold truncate" }, booking.cliente_nombre), !isShort && /* @__PURE__ */ React.createElement("p", { className: "text-xs truncate opacity-90" }, booking._grupoVisual ? `${booking._reservasGrupo.length} servicios - ${booking.servicio}` : booking.servicio), !isShort && /* @__PURE__ */ React.createElement("p", { className: "text-[11px] truncate opacity-80" }, booking.profesional_nombre || booking.trabajador_nombre || t2("Sin profesional"))), /* @__PURE__ */ React.createElement("button", { onClick: (event) => {
         event.stopPropagation();
         abrirDetalleAgenda(booking);
-      }, className: "mt-auto w-full rounded-md py-1 text-[11px] bg-white/80 hover:bg-white text-gray-700 font-bold" }, t("Detalles")))
+      }, className: "mt-auto w-full rounded-md py-1 text-[11px] bg-white/80 hover:bg-white text-gray-700 font-bold" }, t2("Detalles")))
     );
-  })))), agendaMode === "semana" && /* @__PURE__ */ React.createElement("div", { className: "overflow-x-auto" }, /* @__PURE__ */ React.createElement("div", { className: "min-w-[1440px]" }, /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-[72px_repeat(7,minmax(190px,1fr))] border-b bg-white sticky top-0 z-10" }, /* @__PURE__ */ React.createElement("div", { className: "p-3 text-xs font-semibold text-gray-400 border-r" }, t("Hora")), agendaDays.map((day) => {
+  })))), agendaMode === "semana" && /* @__PURE__ */ React.createElement("div", { className: "overflow-x-auto" }, /* @__PURE__ */ React.createElement("div", { className: "min-w-[1440px]" }, /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-[72px_repeat(7,minmax(190px,1fr))] border-b bg-white sticky top-0 z-10" }, /* @__PURE__ */ React.createElement("div", { className: "p-3 text-xs font-semibold text-gray-400 border-r" }, t2("Hora")), agendaDays.map((day) => {
     const dateStr = formatDate(day);
     const dayBookings = getAgendaDayBookings(day);
     const isToday = dateStr === agendaToday;
@@ -3940,13 +4111,13 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
           title: `${booking.cliente_nombre} - ${booking._grupoVisual ? `${booking._reservasGrupo.length} servicios: ` : ""}${booking.servicio}`,
           onClick: () => abrirDetalleAgenda(booking)
         },
-        /* @__PURE__ */ React.createElement("div", { className: "flex h-full flex-col gap-1" }, /* @__PURE__ */ React.createElement("div", { className: "min-w-0" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold leading-tight" }, formatTo12Hour(booking.hora_inicio), " - ", formatTo12Hour(booking.hora_fin || calculateEndTime(booking.hora_inicio, booking.duracion || 60)), Number(booking.valoracion) > 0 && /* @__PURE__ */ React.createElement("span", { className: "ml-1", title: t("Valoracion de la clienta") }, "⭐", Number(booking.valoracion))), !isShort && /* @__PURE__ */ React.createElement("p", { className: "font-bold text-sm truncate" }, booking.cliente_nombre), !isShort && /* @__PURE__ */ React.createElement("p", { className: "text-xs truncate opacity-90" }, booking._grupoVisual ? `${booking._reservasGrupo.length} servicios - ${booking.servicio}` : booking.servicio), !isShort && /* @__PURE__ */ React.createElement("p", { className: "text-xs truncate opacity-80" }, booking.profesional_nombre || booking.trabajador_nombre || "Sin profesional")), /* @__PURE__ */ React.createElement("button", { onClick: (event) => {
+        /* @__PURE__ */ React.createElement("div", { className: "flex h-full flex-col gap-1" }, /* @__PURE__ */ React.createElement("div", { className: "min-w-0" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold leading-tight" }, formatTo12Hour(booking.hora_inicio), " - ", formatTo12Hour(booking.hora_fin || calculateEndTime(booking.hora_inicio, booking.duracion || 60)), Number(booking.valoracion) > 0 && /* @__PURE__ */ React.createElement("span", { className: "ml-1", title: t2("Valoracion de la clienta") }, "⭐", Number(booking.valoracion))), !isShort && /* @__PURE__ */ React.createElement("p", { className: "font-bold text-sm truncate" }, booking.cliente_nombre), !isShort && /* @__PURE__ */ React.createElement("p", { className: "text-xs truncate opacity-90" }, booking._grupoVisual ? `${booking._reservasGrupo.length} servicios - ${booking.servicio}` : booking.servicio), !isShort && /* @__PURE__ */ React.createElement("p", { className: "text-xs truncate opacity-80" }, booking.profesional_nombre || booking.trabajador_nombre || "Sin profesional")), /* @__PURE__ */ React.createElement("button", { onClick: (event) => {
           event.stopPropagation();
           abrirDetalleAgenda(booking);
         }, className: "mt-auto w-full bg-white/80 hover:bg-white text-gray-700 rounded px-2 py-1 text-[11px] font-bold" }, "Detalles"))
       );
     }));
-  })))), /* @__PURE__ */ React.createElement("div", { className: "p-4 border-t bg-gray-50 flex flex-wrap gap-3 text-xs" }, /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-2" }, /* @__PURE__ */ React.createElement("span", { className: "w-3 h-3 rounded bg-pink-500" }), t("Reservado")), /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-2" }, /* @__PURE__ */ React.createElement("span", { className: "w-3 h-3 rounded bg-amber-400" }), t("Pendiente")), /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-2" }, /* @__PURE__ */ React.createElement("span", { className: "w-3 h-3 rounded bg-emerald-500" }), t("Completado")))), cobroEditando && /* @__PURE__ */ React.createElement("div", { className: "fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" }, /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-xl max-w-md w-full p-5 shadow-xl" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-start justify-between gap-4 border-b pb-3 mb-4" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("p", { className: "text-xs uppercase tracking-wide text-emerald-600 font-bold" }, t("Cobro real")), /* @__PURE__ */ React.createElement("h3", { className: "text-xl font-bold text-gray-900" }, cobroEditando.cliente_nombre || t("Cliente sin nombre")), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500" }, cobroEditando.servicio)), /* @__PURE__ */ React.createElement("button", { onClick: () => setCobroEditando(null), disabled: guardandoCobro, className: "text-gray-500 hover:text-gray-700 text-2xl leading-none" }, "×")), /* @__PURE__ */ React.createElement("div", { className: "space-y-4" }, cobroEditando._fidelizacionPremiada && /* @__PURE__ */ React.createElement("div", { className: "p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-sm font-semibold" }, t("🎁 Esta es la cita premiada de fidelidad: {pct}% de descuento ya sugerido en el monto.", { pct: cobroEditando._fidelizacionPct })), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, t("Monto cobrado real")), /* @__PURE__ */ React.createElement("div", { className: "flex gap-2" }, /* @__PURE__ */ React.createElement(
+  })))), /* @__PURE__ */ React.createElement("div", { className: "p-4 border-t bg-gray-50 flex flex-wrap gap-3 text-xs" }, /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-2" }, /* @__PURE__ */ React.createElement("span", { className: "w-3 h-3 rounded bg-pink-500" }), t2("Reservado")), /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-2" }, /* @__PURE__ */ React.createElement("span", { className: "w-3 h-3 rounded bg-amber-400" }), t2("Pendiente")), /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-2" }, /* @__PURE__ */ React.createElement("span", { className: "w-3 h-3 rounded bg-emerald-500" }), t2("Completado")))), cobroEditando && /* @__PURE__ */ React.createElement("div", { className: "fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" }, /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-xl max-w-md w-full p-5 shadow-xl" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-start justify-between gap-4 border-b pb-3 mb-4" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("p", { className: "text-xs uppercase tracking-wide text-emerald-600 font-bold" }, t2("Cobro real")), /* @__PURE__ */ React.createElement("h3", { className: "text-xl font-bold text-gray-900" }, cobroEditando.cliente_nombre || t2("Cliente sin nombre")), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500" }, cobroEditando.servicio)), /* @__PURE__ */ React.createElement("button", { onClick: () => setCobroEditando(null), disabled: guardandoCobro, className: "text-gray-500 hover:text-gray-700 text-2xl leading-none" }, "×")), /* @__PURE__ */ React.createElement("div", { className: "space-y-4" }, cobroEditando._fidelizacionPremiada && /* @__PURE__ */ React.createElement("div", { className: "p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-sm font-semibold" }, t2("🎁 Esta es la cita premiada de fidelidad: {pct}% de descuento ya sugerido en el monto.", { pct: cobroEditando._fidelizacionPct })), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, t2("Monto cobrado real")), /* @__PURE__ */ React.createElement("div", { className: "flex gap-2" }, /* @__PURE__ */ React.createElement(
     "input",
     {
       type: "number",
@@ -3955,7 +4126,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
       value: cobroForm.monto_cobrado,
       onChange: (e) => setCobroForm({ ...cobroForm, monto_cobrado: e.target.value }),
       className: "flex-1 min-w-0 border rounded-lg px-3 py-2",
-      placeholder: t("Ej: 2500")
+      placeholder: t2("Ej: 2500")
     }
   ), /* @__PURE__ */ React.createElement(
     "select",
@@ -3964,18 +4135,18 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
       onChange: (e) => setCobroForm({ ...cobroForm, moneda_cobrada: e.target.value }),
       className: "border rounded-lg px-3 py-2 font-bold bg-white",
       style: { width: "6.5rem", flex: "0 0 auto" },
-      "aria-label": t("Moneda del cobro")
+      "aria-label": t2("Moneda del cobro")
     },
     [.../* @__PURE__ */ new Set([monedaServicioDeReserva(cobroEditando), "CUP", "USD"])].map((m) => /* @__PURE__ */ React.createElement("option", { key: m, value: m }, m))
-  ))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, t("Nota opcional")), /* @__PURE__ */ React.createElement(
+  ))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, t2("Nota opcional")), /* @__PURE__ */ React.createElement(
     "textarea",
     {
       value: cobroForm.notas_cobro,
       onChange: (e) => setCobroForm({ ...cobroForm, notas_cobro: e.target.value }),
       className: "w-full border rounded-lg px-3 py-2 min-h-24",
-      placeholder: t("Ej: ajuste por diseño extra, descuento, propina...")
+      placeholder: t2("Ej: ajuste por diseño extra, descuento, propina...")
     }
-  )), cobroEditando._grupoVisual && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500" }, t("Esta cita tiene varios servicios. El monto se distribuirá entre ellos para que las estadísticas sumen correctamente."))), /* @__PURE__ */ React.createElement("div", { className: "flex gap-3 mt-5" }, /* @__PURE__ */ React.createElement("button", { onClick: () => setCobroEditando(null), disabled: guardandoCobro, className: "flex-1 px-4 py-2 border rounded-lg disabled:opacity-50" }, t("Cancelar")), /* @__PURE__ */ React.createElement("button", { onClick: guardarCobroReal, disabled: guardandoCobro, className: "flex-1 px-4 py-2 bg-emerald-600 text-white rounded-lg font-bold disabled:opacity-60" }, guardandoCobro ? t("Guardando...") : t("Guardar cobro"))))), tabActivo === "reservas" && /* @__PURE__ */ React.createElement(React.Fragment, null, userRole === "profesional" && profesional && /* @__PURE__ */ React.createElement("div", { className: "bg-pink-50 border border-pink-200 rounded-lg p-4" }, /* @__PURE__ */ React.createElement("p", { className: "text-pink-800 font-medium" }, t("Hola {nombre} - Mostrando tus reservas ({n})", { nombre: profesional.nombre, n: filteredVisualBookings.length }))), !loading && /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-xl shadow-sm border-l-4 border-l-amber-400 overflow-hidden" }, /* @__PURE__ */ React.createElement("div", { className: "p-4 bg-gradient-to-r from-amber-50 to-white border-b border-amber-100" }, /* @__PURE__ */ React.createElement("h3", { className: "font-bold text-gray-900 flex items-center gap-2" }, /* @__PURE__ */ React.createElement("span", { className: "text-xl" }, "🔔"), t("Turnos de mañana ({n})", { n: turnosManana.length })), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-1" }, turnosManana.length > 0 ? t("Envía el recordatorio por WhatsApp con un toque. Quedará marcado como recordado en este dispositivo.") : esProfesionalPanel ? t("Mañana no tienes turnos. Cuando tengas, aquí podrás recordárselos por WhatsApp con un toque.") : t("Mañana no hay turnos. Cuando los haya, aquí podrás recordárselos por WhatsApp con un toque."))), /* @__PURE__ */ React.createElement("div", { className: "divide-y divide-gray-100" }, turnosManana.map((b) => {
+  )), cobroEditando._grupoVisual && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500" }, t2("Esta cita tiene varios servicios. El monto se distribuirá entre ellos para que las estadísticas sumen correctamente."))), /* @__PURE__ */ React.createElement("div", { className: "flex gap-3 mt-5" }, /* @__PURE__ */ React.createElement("button", { onClick: () => setCobroEditando(null), disabled: guardandoCobro, className: "flex-1 px-4 py-2 border rounded-lg disabled:opacity-50" }, t2("Cancelar")), /* @__PURE__ */ React.createElement("button", { onClick: guardarCobroReal, disabled: guardandoCobro, className: "flex-1 px-4 py-2 bg-emerald-600 text-white rounded-lg font-bold disabled:opacity-60" }, guardandoCobro ? t2("Guardando...") : t2("Guardar cobro"))))), tabActivo === "reservas" && /* @__PURE__ */ React.createElement(React.Fragment, null, userRole === "profesional" && profesional && /* @__PURE__ */ React.createElement("div", { className: "bg-pink-50 border border-pink-200 rounded-lg p-4" }, /* @__PURE__ */ React.createElement("p", { className: "text-pink-800 font-medium" }, t2("Hola {nombre} - Mostrando tus reservas ({n})", { nombre: profesional.nombre, n: filteredVisualBookings.length }))), !loading && /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-xl shadow-sm border-l-4 border-l-amber-400 overflow-hidden" }, /* @__PURE__ */ React.createElement("div", { className: "p-4 bg-gradient-to-r from-amber-50 to-white border-b border-amber-100" }, /* @__PURE__ */ React.createElement("h3", { className: "font-bold text-gray-900 flex items-center gap-2" }, /* @__PURE__ */ React.createElement("span", { className: "text-xl" }, "🔔"), t2("Turnos de mañana ({n})", { n: turnosManana.length })), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-1" }, turnosManana.length > 0 ? t2("Envía el recordatorio por WhatsApp con un toque. Quedará marcado como recordado en este dispositivo.") : esProfesionalPanel ? t2("Mañana no tienes turnos. Cuando tengas, aquí podrás recordárselos por WhatsApp con un toque.") : t2("Mañana no hay turnos. Cuando los haya, aquí podrás recordárselos por WhatsApp con un toque."))), /* @__PURE__ */ React.createElement("div", { className: "divide-y divide-gray-100" }, turnosManana.map((b) => {
     const claveId = String(b._grupoVisualId || b.id);
     const yaRecordado = recordatoriosEnviados.has(claveId);
     return /* @__PURE__ */ React.createElement("div", { key: claveId, className: "p-3 sm:p-4 flex flex-wrap sm:flex-nowrap items-center gap-3" }, /* @__PURE__ */ React.createElement("span", { className: "shrink-0 text-sm font-bold bg-pink-100 text-pink-700 px-2.5 py-1 rounded-full" }, formatTo12Hour(b.hora_inicio)), /* @__PURE__ */ React.createElement("div", { className: "min-w-0 flex-1" }, /* @__PURE__ */ React.createElement("p", { className: "font-semibold text-gray-900 truncate" }, b.cliente_nombre), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 truncate" }, b.servicio, b.profesional_nombre || b.trabajador_nombre ? ` · ${b.profesional_nombre || b.trabajador_nombre}` : "")), /* @__PURE__ */ React.createElement(
@@ -3983,11 +4154,11 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
       {
         onClick: () => enviarRecordatorioManana(b),
         className: `shrink-0 px-3 py-2 rounded-lg text-sm font-bold transition ${yaRecordado ? "bg-green-100 text-green-700 border border-green-200 hover:bg-green-200" : "bg-green-600 text-white hover:bg-green-700 shadow-sm"}`,
-        title: yaRecordado ? t("Ya se envió; puedes reenviarlo") : t("Enviar recordatorio por WhatsApp")
+        title: yaRecordado ? t2("Ya se envió; puedes reenviarlo") : t2("Enviar recordatorio por WhatsApp")
       },
-      yaRecordado ? "✅ " + t("Recordado") : "💬 " + t("Recordar")
+      yaRecordado ? "✅ " + t2("Recordado") : "💬 " + t2("Recordar")
     ));
-  }))), /* @__PURE__ */ React.createElement("div", { className: "bg-white p-4 rounded-xl shadow-sm space-y-3" }, esAdminPanel && profesionalesList.length > 1 && /* @__PURE__ */ React.createElement("div", { className: "space-y-2" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs uppercase tracking-wide text-gray-500 font-bold" }, t("Ver turnos de")), /* @__PURE__ */ React.createElement(
+  }))), /* @__PURE__ */ React.createElement("div", { className: "bg-white p-4 rounded-xl shadow-sm space-y-3" }, esAdminPanel && profesionalesList.length > 1 && /* @__PURE__ */ React.createElement("div", { className: "space-y-2" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs uppercase tracking-wide text-gray-500 font-bold" }, t2("Ver turnos de")), /* @__PURE__ */ React.createElement(
     "select",
     {
       value: filtroProfesionalAdmin,
@@ -3995,9 +4166,9 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
       className: "w-full sm:w-auto border border-gray-300 bg-white text-gray-900 rounded-lg px-3 py-2 text-sm font-semibold shadow-sm min-h-[42px]",
       style: { colorScheme: "light" }
     },
-    /* @__PURE__ */ React.createElement("option", { value: "" }, t("Todo el salón")),
+    /* @__PURE__ */ React.createElement("option", { value: "" }, t2("Todo el salón")),
     profesionalesList.map((p) => /* @__PURE__ */ React.createElement("option", { key: p.id, value: p.id }, p.nombre))
-  ), filtroProfesionalAdmin && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500" }, t("La agenda y los contadores también muestran solo estos turnos."))), /* @__PURE__ */ React.createElement("div", { className: "space-y-2" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs uppercase tracking-wide text-gray-500 font-bold" }, t("Filtrar por día")), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 sm:flex sm:flex-wrap gap-2 items-center" }, /* @__PURE__ */ React.createElement(
+  ), filtroProfesionalAdmin && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500" }, t2("La agenda y los contadores también muestran solo estos turnos."))), /* @__PURE__ */ React.createElement("div", { className: "space-y-2" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs uppercase tracking-wide text-gray-500 font-bold" }, t2("Filtrar por día")), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 sm:flex sm:flex-wrap gap-2 items-center" }, /* @__PURE__ */ React.createElement(
     "input",
     {
       type: "date",
@@ -4006,7 +4177,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
       className: "col-span-2 sm:col-span-1 border border-gray-300 bg-white text-gray-900 rounded-lg px-3 py-2 text-sm font-semibold shadow-sm min-h-[42px]",
       style: { colorScheme: "light" }
     }
-  ), /* @__PURE__ */ React.createElement("button", { onClick: () => setFilterDate(getCurrentLocalDate()), className: `px-3 py-2 rounded-lg text-sm font-bold border ${filterDate === getCurrentLocalDate() ? "bg-pink-500 text-white border-pink-500" : "bg-gray-100 text-gray-800 border-gray-200"}` }, t("Hoy")), /* @__PURE__ */ React.createElement("button", { onClick: () => setFilterDate(formatDate(addDays(/* @__PURE__ */ new Date(), 1))), className: `px-3 py-2 rounded-lg text-sm font-bold border ${filterDate === formatDate(addDays(/* @__PURE__ */ new Date(), 1)) ? "bg-pink-500 text-white border-pink-500" : "bg-gray-100 text-gray-800 border-gray-200"}` }, t("Mañana")), /* @__PURE__ */ React.createElement("button", { onClick: () => setFilterDate(""), className: `px-3 py-2 rounded-lg text-sm font-bold border ${!filterDate ? "bg-gray-900 text-white border-gray-900" : "bg-gray-100 text-gray-800 border-gray-200"}` }, t("Todas")))), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-2 items-center" }, /* @__PURE__ */ React.createElement("button", { onClick: () => setStatusFilter("activas"), className: `px-4 py-2 rounded-lg text-sm font-medium ${statusFilter === "activas" ? "bg-pink-500 text-white" : "bg-gray-100 text-gray-700"}` }, t("Activas ({n})", { n: activasCount })), /* @__PURE__ */ React.createElement("button", { onClick: () => setStatusFilter("pendientes"), className: `px-4 py-2 rounded-lg text-sm font-medium ${statusFilter === "pendientes" ? "bg-yellow-500 text-white" : "bg-gray-100 text-gray-700"}` }, t("Pendientes ({n})", { n: pendientesCount })), /* @__PURE__ */ React.createElement("button", { onClick: () => setStatusFilter("completadas"), className: `px-4 py-2 rounded-lg text-sm font-medium ${statusFilter === "completadas" ? "bg-pink-500 text-white" : "bg-gray-100 text-gray-700"}` }, t("Completadas ({n})", { n: completadasCount })), /* @__PURE__ */ React.createElement("button", { onClick: () => setStatusFilter("ausentes"), className: `px-4 py-2 rounded-lg text-sm font-medium ${statusFilter === "ausentes" ? "bg-slate-600 text-white" : "bg-gray-100 text-gray-700"}` }, t("Ausentes ({n})", { n: ausentesCount })), /* @__PURE__ */ React.createElement("button", { onClick: () => setStatusFilter("canceladas"), className: `px-4 py-2 rounded-lg text-sm font-medium ${statusFilter === "canceladas" ? "bg-pink-500 text-white" : "bg-gray-100 text-gray-700"}` }, t("Canceladas ({n})", { n: canceladasCount })), /* @__PURE__ */ React.createElement("button", { onClick: () => setStatusFilter("todas"), className: `px-4 py-2 rounded-lg text-sm font-medium ${statusFilter === "todas" ? "bg-pink-500 text-white" : "bg-gray-100 text-gray-700"}` }, t("Todas ({n})", { n: bookingsVisiblesPorRol.length })), puedeGestionarAvanzado && statusFilter === "canceladas" && /* @__PURE__ */ React.createElement("button", { onClick: borrarCanceladas, className: "px-4 py-2 bg-red-700 text-white rounded-lg text-sm" }, "🗑️ ", t("Borrar todas")))), loading ? /* @__PURE__ */ React.createElement("div", { className: "text-center py-12" }, /* @__PURE__ */ React.createElement("div", { className: "animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500 mx-auto" }), /* @__PURE__ */ React.createElement("p", { className: "text-pink-500 mt-4" }, t("Cargando reservas..."))) : /* @__PURE__ */ React.createElement("div", { className: "space-y-3" }, filteredVisualBookings.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "text-center py-12 bg-white rounded-xl" }, /* @__PURE__ */ React.createElement("p", { className: "text-gray-500" }, t("No hay reservas para mostrar"))) : filteredVisualBookings.map((b) => /* @__PURE__ */ React.createElement("div", { key: b._grupoVisualId || b.id, className: `bg-white p-4 rounded-xl shadow-sm border-l-4 ${b.estado === "Reservado" ? "border-l-pink-500" : b.estado === "Pendiente" ? "border-l-yellow-500" : b.estado === "Completado" ? "border-l-green-500" : b.estado === "Ausente" ? "border-l-slate-500" : "border-l-red-500"}` }, /* @__PURE__ */ React.createElement("div", { className: "flex justify-between mb-2" }, /* @__PURE__ */ React.createElement("span", { className: "font-semibold" }, window.formatFechaCompleta ? window.formatFechaCompleta(b.fecha) : b.fecha), /* @__PURE__ */ React.createElement("span", { className: "text-sm bg-pink-100 text-pink-700 px-2 py-1 rounded-full" }, formatTo12Hour(b.hora_inicio), b._grupoVisual ? ` - ${formatTo12Hour(b.hora_fin)}` : "")), /* @__PURE__ */ React.createElement("div", { className: "text-sm space-y-1" }, /* @__PURE__ */ React.createElement("p", null, /* @__PURE__ */ React.createElement("span", { className: "font-medium" }, t("Cliente:")), " ", b.cliente_nombre), /* @__PURE__ */ React.createElement("p", null, /* @__PURE__ */ React.createElement("span", { className: "font-medium" }, "WhatsApp:"), " ", b.cliente_whatsapp), /* @__PURE__ */ React.createElement("p", null, /* @__PURE__ */ React.createElement("span", { className: "font-medium" }, t("Servicio:")), " ", b.servicio), /* @__PURE__ */ React.createElement("p", null, /* @__PURE__ */ React.createElement("span", { className: "font-medium" }, "👩‍🎨 ", t("Profesional:")), " ", b.profesional_nombre || b.trabajador_nombre), b.diseno_titulo && /* @__PURE__ */ React.createElement("div", { className: "mt-2 flex items-center gap-2 rounded-lg bg-pink-50 border border-pink-100 p-2" }, b.diseno_imagen_url && /* @__PURE__ */ React.createElement(
+  ), /* @__PURE__ */ React.createElement("button", { onClick: () => setFilterDate(getCurrentLocalDate()), className: `px-3 py-2 rounded-lg text-sm font-bold border ${filterDate === getCurrentLocalDate() ? "bg-pink-500 text-white border-pink-500" : "bg-gray-100 text-gray-800 border-gray-200"}` }, t2("Hoy")), /* @__PURE__ */ React.createElement("button", { onClick: () => setFilterDate(formatDate(addDays(/* @__PURE__ */ new Date(), 1))), className: `px-3 py-2 rounded-lg text-sm font-bold border ${filterDate === formatDate(addDays(/* @__PURE__ */ new Date(), 1)) ? "bg-pink-500 text-white border-pink-500" : "bg-gray-100 text-gray-800 border-gray-200"}` }, t2("Mañana")), /* @__PURE__ */ React.createElement("button", { onClick: () => setFilterDate(""), className: `px-3 py-2 rounded-lg text-sm font-bold border ${!filterDate ? "bg-gray-900 text-white border-gray-900" : "bg-gray-100 text-gray-800 border-gray-200"}` }, t2("Todas")))), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-2 items-center" }, /* @__PURE__ */ React.createElement("button", { onClick: () => setStatusFilter("activas"), className: `px-4 py-2 rounded-lg text-sm font-medium ${statusFilter === "activas" ? "bg-pink-500 text-white" : "bg-gray-100 text-gray-700"}` }, t2("Activas ({n})", { n: activasCount })), /* @__PURE__ */ React.createElement("button", { onClick: () => setStatusFilter("pendientes"), className: `px-4 py-2 rounded-lg text-sm font-medium ${statusFilter === "pendientes" ? "bg-yellow-500 text-white" : "bg-gray-100 text-gray-700"}` }, t2("Pendientes ({n})", { n: pendientesCount })), /* @__PURE__ */ React.createElement("button", { onClick: () => setStatusFilter("completadas"), className: `px-4 py-2 rounded-lg text-sm font-medium ${statusFilter === "completadas" ? "bg-pink-500 text-white" : "bg-gray-100 text-gray-700"}` }, t2("Completadas ({n})", { n: completadasCount })), /* @__PURE__ */ React.createElement("button", { onClick: () => setStatusFilter("ausentes"), className: `px-4 py-2 rounded-lg text-sm font-medium ${statusFilter === "ausentes" ? "bg-slate-600 text-white" : "bg-gray-100 text-gray-700"}` }, t2("Ausentes ({n})", { n: ausentesCount })), /* @__PURE__ */ React.createElement("button", { onClick: () => setStatusFilter("canceladas"), className: `px-4 py-2 rounded-lg text-sm font-medium ${statusFilter === "canceladas" ? "bg-pink-500 text-white" : "bg-gray-100 text-gray-700"}` }, t2("Canceladas ({n})", { n: canceladasCount })), /* @__PURE__ */ React.createElement("button", { onClick: () => setStatusFilter("todas"), className: `px-4 py-2 rounded-lg text-sm font-medium ${statusFilter === "todas" ? "bg-pink-500 text-white" : "bg-gray-100 text-gray-700"}` }, t2("Todas ({n})", { n: bookingsVisiblesPorRol.length })), puedeGestionarAvanzado && statusFilter === "canceladas" && /* @__PURE__ */ React.createElement("button", { onClick: borrarCanceladas, className: "px-4 py-2 bg-red-700 text-white rounded-lg text-sm" }, "🗑️ ", t2("Borrar todas")))), loading ? /* @__PURE__ */ React.createElement("div", { className: "text-center py-12" }, /* @__PURE__ */ React.createElement("div", { className: "animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500 mx-auto" }), /* @__PURE__ */ React.createElement("p", { className: "text-pink-500 mt-4" }, t2("Cargando reservas..."))) : /* @__PURE__ */ React.createElement("div", { className: "space-y-3" }, filteredVisualBookings.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "text-center py-12 bg-white rounded-xl" }, /* @__PURE__ */ React.createElement("p", { className: "text-gray-500" }, t2("No hay reservas para mostrar"))) : filteredVisualBookings.map((b) => /* @__PURE__ */ React.createElement("div", { key: b._grupoVisualId || b.id, className: `bg-white p-4 rounded-xl shadow-sm border-l-4 ${b.estado === "Reservado" ? "border-l-pink-500" : b.estado === "Pendiente" ? "border-l-yellow-500" : b.estado === "Completado" ? "border-l-green-500" : b.estado === "Ausente" ? "border-l-slate-500" : "border-l-red-500"}` }, /* @__PURE__ */ React.createElement("div", { className: "flex justify-between mb-2" }, /* @__PURE__ */ React.createElement("span", { className: "font-semibold" }, window.formatFechaCompleta ? window.formatFechaCompleta(b.fecha) : b.fecha), /* @__PURE__ */ React.createElement("span", { className: "text-sm bg-pink-100 text-pink-700 px-2 py-1 rounded-full" }, formatTo12Hour(b.hora_inicio), b._grupoVisual ? ` - ${formatTo12Hour(b.hora_fin)}` : "")), /* @__PURE__ */ React.createElement("div", { className: "text-sm space-y-1" }, /* @__PURE__ */ React.createElement("p", null, /* @__PURE__ */ React.createElement("span", { className: "font-medium" }, t2("Cliente:")), " ", b.cliente_nombre), /* @__PURE__ */ React.createElement("p", null, /* @__PURE__ */ React.createElement("span", { className: "font-medium" }, "WhatsApp:"), " ", b.cliente_whatsapp), /* @__PURE__ */ React.createElement("p", null, /* @__PURE__ */ React.createElement("span", { className: "font-medium" }, t2("Servicio:")), " ", b.servicio), /* @__PURE__ */ React.createElement("p", null, /* @__PURE__ */ React.createElement("span", { className: "font-medium" }, "👩‍🎨 ", t2("Profesional:")), " ", b.profesional_nombre || b.trabajador_nombre), b.diseno_titulo && /* @__PURE__ */ React.createElement("div", { className: "mt-2 flex items-center gap-2 rounded-lg bg-pink-50 border border-pink-100 p-2" }, b.diseno_imagen_url && /* @__PURE__ */ React.createElement(
     "img",
     {
       src: window.urlImagenCloudinary ? window.urlImagenCloudinary(b.diseno_imagen_url, 120) : b.diseno_imagen_url,
@@ -4014,7 +4185,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
       loading: "lazy",
       className: "w-12 h-12 rounded-lg object-cover shrink-0"
     }
-  ), /* @__PURE__ */ React.createElement("div", { className: "min-w-0" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold text-pink-700" }, t("Elegido del catálogo")), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-700 truncate" }, b.diseno_titulo))), b._grupoVisual && /* @__PURE__ */ React.createElement("div", { className: "mt-2 rounded-lg bg-pink-50 border border-pink-100 p-2 space-y-1" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold text-pink-700" }, t("Cita agrupada: {n} servicios consecutivos", { n: b._reservasGrupo.length })), b._reservasGrupo.map((item) => /* @__PURE__ */ React.createElement("p", { key: item.id, className: "text-xs text-gray-700" }, formatTo12Hour(item.hora_inicio), " - ", formatTo12Hour(item.hora_fin || calculateEndTime(item.hora_inicio, item.duracion || 60)), " - ", item.servicio, " - ", item.profesional_nombre || item.trabajador_nombre || t("Sin profesional")))), Number(b.monto_cobrado || 0) > 0 && /* @__PURE__ */ React.createElement("div", { className: "mt-2 rounded-lg bg-green-50 border border-green-100 p-2" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold text-green-700" }, t("Cobro real: {monto}", { monto: Number(b.monto_cobrado).toLocaleString(idioma === "en" ? "en-US" : "es-CU") + " " + monedaDelCobro(b) })), b.notas_cobro && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-green-700 mt-1" }, b.notas_cobro))), /* @__PURE__ */ React.createElement("div", { className: "flex justify-between items-center mt-3 pt-2 border-t" }, /* @__PURE__ */ React.createElement("span", { className: "flex items-center gap-2" }, /* @__PURE__ */ React.createElement("span", { className: `px-2 py-1 rounded-full text-xs font-semibold ${b.estado === "Reservado" ? "bg-pink-100 text-pink-700" : b.estado === "Pendiente" ? "bg-yellow-100 text-yellow-700" : b.estado === "Completado" ? "bg-green-100 text-green-700" : b.estado === "Ausente" ? "bg-slate-100 text-slate-700" : "bg-red-100 text-red-700"}` }, t(b.estado)), Number(b.valoracion) > 0 && /* @__PURE__ */ React.createElement("span", { className: "px-2 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700 whitespace-nowrap", title: t("Valoracion de la clienta") }, "⭐ ", Number(b.valoracion)), Number(b.valoracion_servicio) > 0 && /* @__PURE__ */ React.createElement("span", { className: "px-2 py-1 rounded-full text-xs font-semibold bg-pink-100 text-pink-700 whitespace-nowrap", title: t("Valoracion del servicio") }, "✨ ", Number(b.valoracion_servicio))), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap justify-end gap-2" }, puedeEditarReserva(b) && (b.estado === "Pendiente" || b.estado === "Reservado") && /* @__PURE__ */ React.createElement("button", { onClick: () => abrirModalReprogramar(b), className: "px-3 py-1 bg-blue-500 text-white rounded-lg text-sm hover:bg-blue-600" }, t("Reprogramar")), puedeGestionarReservas && b.estado === "Pendiente" && /* @__PURE__ */ React.createElement("button", { onClick: () => confirmarPago(b.id, b), className: "px-3 py-1 bg-green-500 text-white rounded-lg text-sm hover:bg-green-600" }, t("Confirmar pago")), puedeGestionarReservas && b.estado === "Reservado" && /* @__PURE__ */ React.createElement("button", { onClick: () => handleCancel(b.id, b), className: "px-3 py-1 bg-red-500 text-white rounded-lg text-sm hover:bg-red-600" }, "❌ ", t("Cancelar")), puedeGestionarReservas && b.estado === "Completado" && /* @__PURE__ */ React.createElement("button", { onClick: () => abrirModalCobro(b), className: "px-3 py-1 bg-emerald-500 text-white rounded-lg text-sm hover:bg-emerald-600" }, Number(b.monto_cobrado || 0) > 0 ? t("Editar cobro") : t("Cobro real")), puedeGestionarReservas && turnoYaPaso(b) && b.estado !== "Cancelado" && b.estado !== "Ausente" && /* @__PURE__ */ React.createElement("button", { onClick: () => marcarAusencia(b), className: "px-3 py-1 bg-slate-600 text-white rounded-lg text-sm hover:bg-slate-700" }, t("Marcar ausencia")), puedeGestionarAvanzado && (b.estado === "Cancelado" || b.estado === "Completado" || b.estado === "Ausente") && /* @__PURE__ */ React.createElement("button", { onClick: () => eliminarReservaHistorial(b), className: "px-3 py-1 bg-gray-700 text-white rounded-lg text-sm hover:bg-gray-800" }, t("Eliminar"))))))))));
+  ), /* @__PURE__ */ React.createElement("div", { className: "min-w-0" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold text-pink-700" }, t2("Elegido del catálogo")), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-700 truncate" }, b.diseno_titulo))), b._grupoVisual && /* @__PURE__ */ React.createElement("div", { className: "mt-2 rounded-lg bg-pink-50 border border-pink-100 p-2 space-y-1" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold text-pink-700" }, t2("Cita agrupada: {n} servicios consecutivos", { n: b._reservasGrupo.length })), b._reservasGrupo.map((item) => /* @__PURE__ */ React.createElement("p", { key: item.id, className: "text-xs text-gray-700" }, formatTo12Hour(item.hora_inicio), " - ", formatTo12Hour(item.hora_fin || calculateEndTime(item.hora_inicio, item.duracion || 60)), " - ", item.servicio, " - ", item.profesional_nombre || item.trabajador_nombre || t2("Sin profesional")))), Number(b.monto_cobrado || 0) > 0 && /* @__PURE__ */ React.createElement("div", { className: "mt-2 rounded-lg bg-green-50 border border-green-100 p-2" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold text-green-700" }, t2("Cobro real: {monto}", { monto: Number(b.monto_cobrado).toLocaleString(idioma === "en" ? "en-US" : "es-CU") + " " + monedaDelCobro(b) })), b.notas_cobro && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-green-700 mt-1" }, b.notas_cobro))), /* @__PURE__ */ React.createElement("div", { className: "flex justify-between items-center mt-3 pt-2 border-t" }, /* @__PURE__ */ React.createElement("span", { className: "flex items-center gap-2" }, /* @__PURE__ */ React.createElement("span", { className: `px-2 py-1 rounded-full text-xs font-semibold ${b.estado === "Reservado" ? "bg-pink-100 text-pink-700" : b.estado === "Pendiente" ? "bg-yellow-100 text-yellow-700" : b.estado === "Completado" ? "bg-green-100 text-green-700" : b.estado === "Ausente" ? "bg-slate-100 text-slate-700" : "bg-red-100 text-red-700"}` }, t2(b.estado)), Number(b.valoracion) > 0 && /* @__PURE__ */ React.createElement("span", { className: "px-2 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700 whitespace-nowrap", title: t2("Valoracion de la clienta") }, "⭐ ", Number(b.valoracion)), Number(b.valoracion_servicio) > 0 && /* @__PURE__ */ React.createElement("span", { className: "px-2 py-1 rounded-full text-xs font-semibold bg-pink-100 text-pink-700 whitespace-nowrap", title: t2("Valoracion del servicio") }, "✨ ", Number(b.valoracion_servicio))), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap justify-end gap-2" }, puedeEditarReserva(b) && (b.estado === "Pendiente" || b.estado === "Reservado") && /* @__PURE__ */ React.createElement("button", { onClick: () => abrirModalReprogramar(b), className: "px-3 py-1 bg-blue-500 text-white rounded-lg text-sm hover:bg-blue-600" }, t2("Reprogramar")), puedeGestionarReservas && b.estado === "Pendiente" && /* @__PURE__ */ React.createElement("button", { onClick: () => confirmarPago(b.id, b), className: "px-3 py-1 bg-green-500 text-white rounded-lg text-sm hover:bg-green-600" }, t2("Confirmar pago")), puedeGestionarReservas && b.estado === "Reservado" && /* @__PURE__ */ React.createElement("button", { onClick: () => handleCancel(b.id, b), className: "px-3 py-1 bg-red-500 text-white rounded-lg text-sm hover:bg-red-600" }, "❌ ", t2("Cancelar")), puedeGestionarReservas && b.estado === "Completado" && /* @__PURE__ */ React.createElement("button", { onClick: () => abrirModalCobro(b), className: "px-3 py-1 bg-emerald-500 text-white rounded-lg text-sm hover:bg-emerald-600" }, Number(b.monto_cobrado || 0) > 0 ? t2("Editar cobro") : t2("Cobro real")), puedeGestionarReservas && turnoYaPaso(b) && b.estado !== "Cancelado" && b.estado !== "Ausente" && /* @__PURE__ */ React.createElement("button", { onClick: () => marcarAusencia(b), className: "px-3 py-1 bg-slate-600 text-white rounded-lg text-sm hover:bg-slate-700" }, t2("Marcar ausencia")), puedeGestionarAvanzado && (b.estado === "Cancelado" || b.estado === "Completado" || b.estado === "Ausente") && /* @__PURE__ */ React.createElement("button", { onClick: () => eliminarReservaHistorial(b), className: "px-3 py-1 bg-gray-700 text-white rounded-lg text-sm hover:bg-gray-800" }, t2("Eliminar"))))))))));
 }
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(/* @__PURE__ */ React.createElement(AdminApp, null));

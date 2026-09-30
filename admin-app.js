@@ -395,6 +395,87 @@ const minutesToHoraLegible = (minutosTotales) => {
     const minutos = minutosTotales % 60;
     return `${horas.toString().padStart(2, '0')}:${minutos.toString().padStart(2, '0')}`;
 };
+// "Elegir quién" de los globos de configuracion. Dos formas:
+//   modo 'servicios':   por cada servicio que no hace nadie, se marca quien lo hace.
+//   modo 'profesional': para una profesional sin servicios, se marcan los suyos.
+// Solo devuelve parejas nuevas, asi que guardar nunca duplica filas.
+function AsignarServiciosModal({ asignacion, onCerrar, onGuardar }) {
+    const [marcadas, setMarcadas] = React.useState(() => new Set());
+    const clave = (servicioId, profesionalId) => `${servicioId}|${profesionalId}`;
+    const alternar = (servicioId, profesionalId) => setMarcadas(prev => {
+        const siguiente = new Set(prev);
+        const k = clave(servicioId, profesionalId);
+        if (siguiente.has(k)) siguiente.delete(k); else siguiente.add(k);
+        return siguiente;
+    });
+    const guardar = () => onGuardar([...marcadas].map(k => k.split('|').map(v => (/^\d+$/.test(v) ? Number(v) : v))));
+
+    React.useEffect(() => {
+        const alPulsar = (e) => { if (e.key === 'Escape') onCerrar(); };
+        document.addEventListener('keydown', alPulsar);
+        return () => document.removeEventListener('keydown', alPulsar);
+    }, [onCerrar]);
+
+    const chip = (activo) => `min-h-[44px] rounded-full border px-3 text-sm font-medium transition ${activo
+        ? 'bg-amber-600 border-amber-600 text-white'
+        : 'bg-white border-gray-300 text-gray-800 hover:bg-gray-50'}`;
+    const esServicios = asignacion.modo === 'servicios';
+
+    return (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={(e) => { if (e.target === e.currentTarget) onCerrar(); }}>
+            <div role="dialog" aria-modal="true" aria-labelledby="asignar-titulo" className="bg-white w-full sm:max-w-lg rounded-t-2xl sm:rounded-2xl p-5 max-h-[90vh] overflow-y-auto">
+                <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                        <h3 id="asignar-titulo" className="text-lg font-bold text-gray-900">
+                            {esServicios ? t('¿Quién hace cada servicio?') : t('Servicios de {p}', { p: asignacion.profesional.nombre })}
+                        </h3>
+                        <p className="text-sm text-gray-600 mt-0.5">
+                            {esServicios ? t('Toca a las profesionales que pueden hacer cada uno.') : t('Toca los servicios que hace.')}
+                        </p>
+                    </div>
+                    <button type="button" onClick={onCerrar} aria-label={t('Cerrar')} className="w-11 h-11 -mr-2 -mt-1 rounded-lg text-2xl leading-none text-gray-500 hover:bg-gray-100">×</button>
+                </div>
+
+                <div className="mt-4 space-y-4">
+                    {esServicios ? asignacion.servicios.map(s => (
+                        <div key={s.id}>
+                            <p className="text-sm font-semibold text-gray-900 break-words">{s.nombre}</p>
+                            <div className="mt-1.5 flex flex-wrap gap-2">
+                                {asignacion.profesionales.map(p => {
+                                    const activo = marcadas.has(clave(s.id, p.id));
+                                    return (
+                                        <button key={p.id} type="button" aria-pressed={activo} onClick={() => alternar(s.id, p.id)} className={chip(activo)}>
+                                            {activo ? '✓ ' : ''}{p.nombre}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )) : (
+                        <div className="flex flex-wrap gap-2">
+                            {asignacion.servicios.map(s => {
+                                const activo = marcadas.has(clave(s.id, asignacion.profesional.id));
+                                return (
+                                    <button key={s.id} type="button" aria-pressed={activo} onClick={() => alternar(s.id, asignacion.profesional.id)} className={chip(activo)}>
+                                        {activo ? '✓ ' : ''}{s.nombre}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
+
+                <div className="mt-5 flex gap-2">
+                    <button type="button" onClick={onCerrar} className="flex-1 min-h-[44px] rounded-lg border border-gray-300 bg-white font-semibold text-gray-800 hover:bg-gray-50">{t('Cancelar')}</button>
+                    <button type="button" onClick={guardar} disabled={marcadas.size === 0} className="flex-1 min-h-[44px] rounded-lg bg-amber-600 font-bold text-white hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                        {t('Guardar')}{marcadas.size ? ` (${marcadas.size})` : ''}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 function AdminApp() {
     const idioma = window.useIdioma();
     const t = window.t;
@@ -518,6 +599,14 @@ function AdminApp() {
     // null = todavia no se sabe (no se avisa). Numero = dato confirmado.
     const [conteoServiciosActivos, setConteoServiciosActivos] = React.useState(null);
     const [conteoProfesionalesActivos, setConteoProfesionalesActivos] = React.useState(null);
+    // Lo que hace falta para los globos de configuracion: que servicio no lo
+    // puede hacer nadie, que profesional no tiene servicios ni horario.
+    // null = todavia no se sabe (no se avisa).
+    const [detalleConfig, setDetalleConfig] = React.useState(null);
+    const [versionDetalleConfig, setVersionDetalleConfig] = React.useState(0);
+    const [arreglandoAviso, setArreglandoAviso] = React.useState('');
+    const [asignacionAbierta, setAsignacionAbierta] = React.useState(null);
+    const [profesionalHorarioInicial, setProfesionalHorarioInicial] = React.useState(null);
     const [profesionalesManualFiltrados, setProfesionalesManualFiltrados] = React.useState([]);
     const [horariosDisponibles, setHorariosDisponibles] = React.useState([]);
     const [modoHorarioManualCompleto, setModoHorarioManualCompleto] = React.useState(false);
@@ -594,6 +683,129 @@ function AdminApp() {
             accion: t('Agregar profesional'),
             onClick: () => setTabActivo('profesionales')
         });
+    }
+
+    // Guarda de una vez las parejas servicio-profesional que faltan. Solo se
+    // mandan parejas nuevas (el que llama ya las filtro), asi no se duplican.
+    const asignarParesServicioProfesional = async (pares) => {
+        const negocioId = config?.id || window.NEGOCIO_ID_POR_DEFECTO;
+        if (!negocioId || !pares.length) return true;
+        const response = await fetch(`${window.SUPABASE_URL}/rest/v1/servicios_profesionales`, {
+            method: 'POST',
+            headers: {
+                apikey: window.SUPABASE_ANON_KEY,
+                Authorization: `Bearer ${window.SUPABASE_ANON_KEY}`,
+                'Content-Type': 'application/json',
+                Prefer: 'return=minimal'
+            },
+            body: JSON.stringify(pares.map(([servicioId, profesionalId]) => ({
+                negocio_id: negocioId,
+                servicio_id: servicioId,
+                profesional_id: profesionalId
+            })))
+        });
+        return response.ok;
+    };
+
+    const arreglarAviso = async (avisoId, arreglo) => {
+        setArreglandoAviso(avisoId);
+        try {
+            const ok = await arreglo();
+            if (!ok) throw new Error('respuesta no valida');
+            setVersionDetalleConfig(v => v + 1);
+        } catch (error) {
+            console.error('No se pudo arreglar el aviso', avisoId, error);
+            alert(t('No se pudo guardar. Revisa tu conexión e inténtalo de nuevo.'));
+        } finally {
+            setArreglandoAviso('');
+        }
+    };
+
+    // Globos de detalle: lo que impide reservar aunque el salon tenga servicios
+    // y profesionales. Medido el 30-09-2026 en produccion: 215 servicios que no
+    // podia hacer nadie (27 salones), 39 profesionales sin servicios (24) y 55
+    // sin horario (43). Con una sola profesional no hay aviso de asignacion: la
+    // app ya se la asigna sola a todos los servicios (profesionalUnicoDelSalon).
+    if (detalleConfig) {
+        const { servicios, profesionales, asignaciones, conHoras } = detalleConfig;
+        const idsProfesionales = new Set(profesionales.map(p => String(p.id)));
+        const asignadasPorServicio = {};
+        const serviciosPorProfesional = {};
+        asignaciones.forEach(a => {
+            if (!idsProfesionales.has(String(a.profesional_id))) return;
+            (asignadasPorServicio[a.servicio_id] = asignadasPorServicio[a.servicio_id] || []).push(a.profesional_id);
+            (serviciosPorProfesional[a.profesional_id] = serviciosPorProfesional[a.profesional_id] || []).push(a.servicio_id);
+        });
+        const listaCorta = (items) => {
+            const nombres = items.slice(0, 3).map(item => item.nombre);
+            return items.length > 3 ? `${nombres.join(', ')}… (+${items.length - 3})` : nombres.join(', ');
+        };
+
+        if (profesionales.length >= 2 && servicios.length > 0) {
+            const sinProfesional = servicios.filter(s => !(asignadasPorServicio[s.id] || []).length);
+            if (sinProfesional.length > 0) {
+                pendientesConfiguracion.push({
+                    id: 'servicios-sin-profesional',
+                    icono: 'icon-scissors',
+                    titulo: sinProfesional.length === 1
+                        ? t('Nadie puede hacer «{s}»', { s: sinProfesional[0].nombre })
+                        : t('{n} servicios que nadie puede hacer', { n: sinProfesional.length }),
+                    detalle: `${t('Tus clientas los ven pero no pueden reservarlos hasta que una profesional los tenga asignados.')} ${sinProfesional.length > 1 ? listaCorta(sinProfesional) : ''}`.trim(),
+                    acciones: [
+                        {
+                            texto: t('Todas pueden hacerlo'),
+                            onClick: () => arreglarAviso('servicios-sin-profesional', () =>
+                                asignarParesServicioProfesional(sinProfesional.flatMap(s => profesionales.map(p => [s.id, p.id]))))
+                        },
+                        {
+                            texto: t('Elegir quién'),
+                            secundaria: true,
+                            onClick: () => setAsignacionAbierta({ modo: 'servicios', servicios: sinProfesional, profesionales })
+                        }
+                    ]
+                });
+            }
+
+            profesionales
+                .filter(p => !(serviciosPorProfesional[p.id] || []).length)
+                .forEach(p => pendientesConfiguracion.push({
+                    id: `profesional-sin-servicios-${p.id}`,
+                    icono: 'icon-user',
+                    titulo: t('{p} no tiene servicios', { p: p.nombre }),
+                    detalle: t('Tus clientas no pueden reservar con {p} en ningún servicio.', { p: p.nombre }),
+                    acciones: [
+                        {
+                            texto: t('Darle todos los servicios'),
+                            onClick: () => arreglarAviso(`profesional-sin-servicios-${p.id}`, () =>
+                                asignarParesServicioProfesional(servicios.map(s => [s.id, p.id])))
+                        },
+                        {
+                            texto: t('Elegir servicios'),
+                            secundaria: true,
+                            onClick: () => setAsignacionAbierta({ modo: 'profesional', servicios, profesional: p })
+                        }
+                    ]
+                }));
+        }
+
+        if (servicios.length > 0) {
+            profesionales
+                .filter(p => !conHoras.has(String(p.id)))
+                .forEach(p => pendientesConfiguracion.push({
+                    id: `profesional-sin-horario-${p.id}`,
+                    icono: 'icon-clock',
+                    titulo: t('{p} no tiene horario', { p: p.nombre }),
+                    detalle: t('Sin días y horas de trabajo nadie puede reservar con {p}.', { p: p.nombre }),
+                    acciones: [{
+                        texto: t('Poner horario'),
+                        onClick: () => {
+                            setProfesionalHorarioInicial(p.id);
+                            setTabActivo('configuracion');
+                            setTimeout(() => document.getElementById('configuracion-profesional')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 300);
+                        }
+                    }]
+                }));
+        }
     }
     const normalizarTextoProfesional = (value) => String(value || '')
         .normalize('NFD')
@@ -880,10 +1092,13 @@ function AdminApp() {
                 apikey: window.SUPABASE_ANON_KEY,
                 Authorization: `Bearer ${window.SUPABASE_ANON_KEY}`
             };
+            const id = encodeURIComponent(negocioId);
             try {
-                const [resServicios, resProfesionales] = await Promise.all([
-                    fetch(`${window.SUPABASE_URL}/rest/v1/servicios?negocio_id=eq.${encodeURIComponent(negocioId)}&activo=eq.true&select=id`, { headers }),
-                    fetch(`${window.SUPABASE_URL}/rest/v1/profesionales?negocio_id=eq.${encodeURIComponent(negocioId)}&activo=eq.true&select=id`, { headers })
+                const [resServicios, resProfesionales, resAsignaciones, resHorarios] = await Promise.all([
+                    fetch(`${window.SUPABASE_URL}/rest/v1/servicios?negocio_id=eq.${id}&activo=eq.true&select=id,nombre&order=nombre`, { headers }),
+                    fetch(`${window.SUPABASE_URL}/rest/v1/profesionales?negocio_id=eq.${id}&activo=eq.true&select=id,nombre&order=nombre`, { headers }),
+                    fetch(`${window.SUPABASE_URL}/rest/v1/servicios_profesionales?negocio_id=eq.${id}&select=servicio_id,profesional_id`, { headers }),
+                    fetch(`${window.SUPABASE_URL}/rest/v1/horarios_profesionales?negocio_id=eq.${id}&select=profesional_id,horarios_por_dia`, { headers })
                 ]);
                 if (!resServicios.ok || !resProfesionales.ok) return; // sin dato fiable, no se avisa
                 const servicios = await resServicios.json();
@@ -891,6 +1106,18 @@ function AdminApp() {
                 if (cancelado) return;
                 setConteoServiciosActivos(Array.isArray(servicios) ? servicios.length : null);
                 setConteoProfesionalesActivos(Array.isArray(profesionales) ? profesionales.length : null);
+
+                // Los globos de detalle solo salen con los cuatro datos seguros.
+                if (!resAsignaciones.ok || !resHorarios.ok) { setDetalleConfig(null); return; }
+                const asignaciones = await resAsignaciones.json();
+                const horarios = await resHorarios.json();
+                if (cancelado) return;
+                // Con horario = algun dia con horas. Sin eso la app no ofrece
+                // ninguna hora con esa profesional (no hay horario de respaldo).
+                const conHoras = new Set((horarios || [])
+                    .filter(h => Object.values(h.horarios_por_dia || {}).some(horas => Array.isArray(horas) && horas.length > 0))
+                    .map(h => String(h.profesional_id)));
+                setDetalleConfig({ servicios, profesionales, asignaciones: asignaciones || [], conHoras });
             } catch (error) {
                 // Ante un fallo de red se deja en null y el aviso no aparece:
                 // es preferible no avisar a dar un aviso falso.
@@ -899,7 +1126,15 @@ function AdminApp() {
         };
         contar();
         return () => { cancelado = true; };
-    }, [config]);
+        // Se vuelve a mirar al cambiar de pestaña (vuelve de arreglar algo) y
+        // cuando un arreglo o un horario guardado lo pide.
+    }, [config, versionDetalleConfig, tabActivo]);
+
+    React.useEffect(() => {
+        const recontar = () => setVersionDetalleConfig(v => v + 1);
+        window.addEventListener('rservas:configuracion-cambiada', recontar);
+        return () => window.removeEventListener('rservas:configuracion-cambiada', recontar);
+    }, []);
 
     React.useEffect(() => {
         const filtrarProfesionalesManual = async () => {
@@ -4427,36 +4662,62 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                                         : t('Faltan {n} detalles por configurar', { n: pendientesConfiguracion.length })}
                                 </h2>
                                 <p className="mt-1 text-sm text-amber-900 leading-relaxed">
-                                    {t('Toca cada uno y te llevamos directo a resolverlo. El aviso desaparece solo al completarlo.')}
+                                    {t('Cada aviso trae su arreglo: tócalo y listo. Desaparece solo en cuanto queda resuelto.')}
                                 </p>
                             </div>
                         </div>
 
-                        <div className="space-y-2">
-                            {pendientesConfiguracion.map(pendiente => (
-                                <div
-                                    key={pendiente.id}
-                                    className="rounded-xl border border-amber-200 bg-white p-3 flex flex-col sm:flex-row sm:items-center gap-3"
-                                >
-                                    <div className="flex items-start gap-3 flex-1 min-w-0">
-                                        <i className={`${pendiente.icono} text-lg text-amber-600 shrink-0 mt-0.5`}></i>
-                                        <div className="min-w-0">
-                                            <p className="text-sm font-bold text-amber-950">{pendiente.titulo}</p>
-                                            <p className="text-xs text-amber-800 leading-relaxed mt-0.5">{pendiente.detalle}</p>
+                        {/* Un globo por detalle: el icono "habla" y el globo dice que
+                            pasa y trae el arreglo a mano, sin tener que buscarlo. */}
+                        <ul className="space-y-3">
+                            {pendientesConfiguracion.map(pendiente => {
+                                const acciones = pendiente.acciones || [{ texto: pendiente.accion, onClick: pendiente.onClick }];
+                                const guardando = arreglandoAviso === pendiente.id;
+                                return (
+                                    <li key={pendiente.id} className="flex items-start gap-2.5">
+                                        <div className="w-10 h-10 rounded-full bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-sm mt-1">
+                                            <i className={`${pendiente.icono} text-lg`}></i>
                                         </div>
-                                    </div>
-                                    <button
-                                        type="button"
-                                        onClick={pendiente.onClick}
-                                        className="shrink-0 rounded-lg bg-amber-600 px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-amber-700 focus:outline-none focus:ring-4 focus:ring-amber-200"
-                                    >
-                                        {pendiente.accion}
-                                    </button>
-                                </div>
-                            ))}
-                        </div>
+                                        <div className="relative flex-1 min-w-0 rounded-2xl rounded-tl-md border border-amber-200 bg-white p-3 shadow-sm">
+                                            <span aria-hidden="true" className="absolute -left-[7px] top-4 w-3 h-3 rotate-45 bg-white border-l border-b border-amber-200"></span>
+                                            <p className="text-sm font-bold text-amber-950 break-words">{pendiente.titulo}</p>
+                                            <p className="text-sm text-amber-900 leading-relaxed mt-0.5 break-words">{pendiente.detalle}</p>
+                                            <div className="mt-2.5 flex flex-wrap gap-2">
+                                                {acciones.map(accion => (
+                                                    <button
+                                                        key={accion.texto}
+                                                        type="button"
+                                                        onClick={accion.onClick}
+                                                        disabled={guardando}
+                                                        className={accion.secundaria
+                                                            ? 'min-h-[44px] rounded-lg border border-amber-300 bg-white px-4 text-sm font-semibold text-amber-900 hover:bg-amber-50 focus:outline-none focus:ring-4 focus:ring-amber-200 disabled:opacity-50'
+                                                            : 'min-h-[44px] rounded-lg bg-amber-600 px-4 text-sm font-bold text-white shadow-sm hover:bg-amber-700 focus:outline-none focus:ring-4 focus:ring-amber-200 disabled:opacity-50 disabled:cursor-wait'}
+                                                    >
+                                                        {guardando && !accion.secundaria ? t('Guardando…') : accion.texto}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </li>
+                                );
+                            })}
+                        </ul>
                     </section>
                 ) : null}
+
+                {asignacionAbierta && (
+                    <AsignarServiciosModal
+                        asignacion={asignacionAbierta}
+                        onCerrar={() => setAsignacionAbierta(null)}
+                        onGuardar={async (pares) => {
+                            const id = asignacionAbierta.modo === 'servicios'
+                                ? 'servicios-sin-profesional'
+                                : `profesional-sin-servicios-${asignacionAbierta.profesional.id}`;
+                            setAsignacionAbierta(null);
+                            await arreglarAviso(id, () => asignarParesServicioProfesional(pares));
+                        }}
+                    />
+                )}
 
                 {/* MODAL NUEVA RESERVA */}
                 {showNuevaReservaModal && (
@@ -5072,7 +5333,12 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                 {tabActivo === 'configuracion' && (
                     <div className="space-y-4">
                         {userRole === 'admin' && <RomaHubActivacion />}
-                        <ConfigPanel profesionalId={userRole === 'profesional' ? profesional?.id : null} modoRestringido={userRole === 'profesional' && userNivel === 2} />
+                        <ConfigPanel
+                            profesionalId={userRole === 'profesional' ? profesional?.id : null}
+                            modoRestringido={userRole === 'profesional' && userNivel === 2}
+                            profesionalInicial={profesionalHorarioInicial}
+                            onProfesionalInicialUsado={() => setProfesionalHorarioInicial(null)}
+                        />
                     </div>
                 )}
 

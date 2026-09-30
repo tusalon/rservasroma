@@ -1,12 +1,23 @@
 // components/admin/ConfigPanel.js - Versión con Fechas Libres y Días Cerrados Globales
 // SIN DEPENDENCIA DE dias-cerrados.js
 
-function ConfigPanel({ profesionalId, modoRestringido }) {
+function ConfigPanel({ profesionalId, modoRestringido, profesionalInicial = null, onProfesionalInicialUsado }) {
     const idioma = window.useIdioma();
     const t = window.t;
     const [profesionales, setProfesionales] = React.useState([]);
     const [profesionalSeleccionado, setProfesionalSeleccionado] = React.useState(null);
     const [mostrarEditorPorDia, setMostrarEditorPorDia] = React.useState(false);
+
+    // Llega desde el globo "X no tiene horario": se elige a esa profesional y
+    // se abre su horario directamente, sin buscarla en el selector.
+    React.useEffect(() => {
+        if (!profesionalInicial || modoRestringido || profesionales.length === 0) return;
+        if (profesionales.some(p => String(p.id) === String(profesionalInicial))) {
+            setProfesionalSeleccionado(profesionalInicial);
+            setMostrarEditorPorDia(true);
+        }
+        onProfesionalInicialUsado?.();
+    }, [profesionalInicial, profesionales, modoRestringido]);
     const [configGlobal, setConfigGlobal] = React.useState({
         duracion_turnos: 60,
         intervalo_entre_turnos: 0,
@@ -274,7 +285,7 @@ function ConfigPanel({ profesionalId, modoRestringido }) {
             )}
             
             {/* SECCIÓN DEL PROFESIONAL */}
-            <div className="mb-6 p-4 border rounded-xl bg-white shadow-sm mt-6">
+            <div id="configuracion-profesional" className="mb-6 p-4 border rounded-xl bg-white shadow-sm mt-6 scroll-mt-4">
                 <h3 className="font-semibold text-lg mb-4">👥 {t('Configuración del Profesional')}</h3>
 
                 {!modoRestringido && (
@@ -340,6 +351,9 @@ function ConfigPanel({ profesionalId, modoRestringido }) {
                             profesionalNombre={profesionales.find(p => p.id === profesionalSeleccionado)?.nombre || 'Profesional'}
                             onGuardar={(horarios) => {
                                 setMostrarEditorPorDia(false);
+                                // Los globos de configuracion se vuelven a mirar: si
+                                // era "no tiene horario", desaparece ya.
+                                window.dispatchEvent(new Event('rservas:configuracion-cambiada'));
                             }}
                             onCancelar={() => setMostrarEditorPorDia(false)}
                         />
