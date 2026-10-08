@@ -471,6 +471,8 @@ function AdminApp() {
   const [arreglandoAviso, setArreglandoAviso] = React.useState("");
   const [asignacionAbierta, setAsignacionAbierta] = React.useState(null);
   const [profesionalHorarioInicial, setProfesionalHorarioInicial] = React.useState(null);
+  const [cumplesClientas, setCumplesClientas] = React.useState({});
+  const [versionCumples, setVersionCumples] = React.useState(0);
   const [profesionalesManualFiltrados, setProfesionalesManualFiltrados] = React.useState([]);
   const [horariosDisponibles, setHorariosDisponibles] = React.useState([]);
   const [modoHorarioManualCompleto, setModoHorarioManualCompleto] = React.useState(false);
@@ -884,6 +886,29 @@ function AdminApp() {
       cancelado = true;
     };
   }, [config, versionDetalleConfig, tabActivo]);
+  React.useEffect(() => {
+    const negocioId = config?.id || window.NEGOCIO_ID_POR_DEFECTO;
+    if (!negocioId || !window.SUPABASE_URL || !window.cumpleanos || !window.cumpleanos.bonificacionConfig(config).activa) {
+      setCumplesClientas({});
+      return;
+    }
+    let cancelado = false;
+    fetch(
+      `${window.SUPABASE_URL}/rest/v1/clientes_autorizados?negocio_id=eq.${encodeURIComponent(negocioId)}&cumple_mes=not.is.null&select=whatsapp,nombre,cumple_dia,cumple_mes,cumple_bonificacion_anio&limit=1000`,
+      { headers: { apikey: window.SUPABASE_ANON_KEY, Authorization: `Bearer ${window.SUPABASE_ANON_KEY}` } }
+    ).then((r) => r.ok ? r.json() : []).then((filas) => {
+      if (cancelado) return;
+      const mapa = {};
+      (Array.isArray(filas) ? filas : []).forEach((fila) => {
+        mapa[normalizePhone(fila.whatsapp)] = fila;
+      });
+      setCumplesClientas(mapa);
+    }).catch(() => {
+    });
+    return () => {
+      cancelado = true;
+    };
+  }, [config, versionCumples]);
   React.useEffect(() => {
     const recontar = () => setVersionDetalleConfig((v) => v + 1);
     window.addEventListener("rservas:configuracion-cambiada", recontar);
@@ -2611,6 +2636,12 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
       alert(t2("Error al conectar con el servidor"));
     }
   };
+  const bonificacionCumpleDe = (whatsapp, fecha) => {
+    if (!window.cumpleanos || !whatsapp || !fecha) return null;
+    const fila = cumplesClientas[normalizePhone(whatsapp)];
+    return fila ? window.cumpleanos.bonificacionParaCita(fila, config, fecha) : null;
+  };
+  const marcaCumple = (reserva) => bonificacionCumpleDe(reserva?.cliente_whatsapp, reserva?.fecha) ? " 🎂" : "";
   const abrirModalCobro = (bookingData) => {
     if (!puedeGestionarReservas) {
       alert(t2("No tenes permiso para registrar cobros."));
@@ -2624,18 +2655,30 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
     const fid = window.getFidelizacionConfig(config);
     const posicion = fid.activa ? getPosicionCitaFidelizacion(bookingData.cliente_whatsapp, bookingData.id) : 0;
     const esCitaPremiada = fid.activa && window.esPosicionPremiada(posicion, fid.ciclo);
+    const bonoCumple = bonificacionCumpleDe(bookingData.cliente_whatsapp, bookingData.fecha);
+    const pctCumple = bonoCumple?.tipo === "porcentaje" ? bonoCumple.pct : 0;
+    const pctFidelidad = esCitaPremiada ? fid.pct : 0;
+    const cualDescuento = window.cumpleanos.cualDescuentoAplicar(pctCumple, pctFidelidad);
+    const pctAplicado = cualDescuento === "cumpleanos" ? pctCumple : cualDescuento === "fidelidad" ? pctFidelidad : 0;
     let montoSugerido = montoActual > 0 ? String(montoActual) : "";
-    if (esCitaPremiada && montoActual === 0) {
+    if (pctAplicado > 0 && montoActual === 0) {
       const precioServicio = getPrecioServicioAgenda(bookingData.servicio);
       if (precioServicio > 0) {
-        montoSugerido = String(Number((precioServicio * (1 - fid.pct / 100)).toFixed(2)));
+        montoSugerido = String(Number((precioServicio * (1 - pctAplicado / 100)).toFixed(2)));
       }
     }
-    setCobroEditando({ ...bookingData, _fidelizacionPremiada: esCitaPremiada, _fidelizacionPct: fid.pct });
+    setCobroEditando({
+      ...bookingData,
+      _fidelizacionPremiada: esCitaPremiada,
+      _fidelizacionPct: fid.pct,
+      _cumple: bonoCumple,
+      _cualDescuento: cualDescuento
+    });
     setCobroForm({
       monto_cobrado: montoSugerido,
       notas_cobro: bookingData.notas_cobro || "",
-      moneda_cobrada: bookingData.moneda_cobrada || monedaServicioDeReserva(bookingData)
+      moneda_cobrada: bookingData.moneda_cobrada || monedaServicioDeReserva(bookingData),
+      cumple_usada: Boolean(bonoCumple)
     });
   };
   const monedaServicioDeReserva = (reserva) => {
@@ -2692,6 +2735,29 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
           } else {
             throw new Error(detalle);
           }
+        }
+      }
+      if (cobroEditando._cumple && cobroForm.cumple_usada) {
+        try {
+          const fila = cumplesClientas[normalizePhone(cobroEditando.cliente_whatsapp)];
+          if (fila) {
+            await fetch(
+              `${window.SUPABASE_URL}/rest/v1/clientes_autorizados?negocio_id=eq.${negocioId}&whatsapp=eq.${encodeURIComponent(fila.whatsapp)}`,
+              {
+                method: "PATCH",
+                headers: {
+                  "apikey": window.SUPABASE_ANON_KEY,
+                  "Authorization": `Bearer ${window.SUPABASE_ANON_KEY}`,
+                  "Content-Type": "application/json",
+                  "Prefer": "return=minimal"
+                },
+                body: JSON.stringify({ cumple_bonificacion_anio: cobroEditando._cumple.anio })
+              }
+            );
+            setVersionCumples((v) => v + 1);
+          }
+        } catch (errorCumple) {
+          console.warn("No se pudo anotar la bonificacion de cumpleaños:", errorCumple);
         }
       }
       alert(t2("Cobro real guardado"));
@@ -3690,7 +3756,19 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
         guardando && !accion.secundaria ? t2("Guardando…") : accion.texto
       )))));
     }))
-  ) : null, asignacionAbierta && /* @__PURE__ */ React.createElement(
+  ) : null, puedeGestionarReservas && (() => {
+    const bono = window.cumpleanos?.bonificacionConfig(config);
+    if (!bono?.activa) return null;
+    const proximas = Object.values(cumplesClientas).map((fila) => ({ fila, prox: window.cumpleanos.proximoCumple(window.cumpleanos.cumpleDe(fila, "cumple_dia", "cumple_mes")) })).filter(({ fila, prox }) => prox && prox.dias <= 7 && Number(fila.cumple_bonificacion_anio) !== prox.fecha.getFullYear()).sort((a, b) => a.prox.dias - b.prox.dias).slice(0, 5);
+    if (!proximas.length) return null;
+    const cuando = (dias) => dias === 0 ? t2("hoy") : dias === 1 ? t2("mañana") : t2("en {n} días", { n: dias });
+    const felicitar = (fila) => {
+      const premio = bono.tipo === "regalo" ? `te tenemos un regalo: ${bono.regalo}.` : `tienes ${bono.pct}% de descuento en tu próxima cita.`;
+      const texto = `¡Feliz cumpleaños, ${fila.nombre || ""}! 🎂 En ${config?.nombre || "tu salón"} queremos celebrarlo contigo: ${premio}${bono.mensaje ? " " + bono.mensaje : ""}`;
+      window.open(`https://wa.me/${String(fila.whatsapp).replace(/\D/g, "")}?text=${encodeURIComponent(texto)}`, "_blank");
+    };
+    return /* @__PURE__ */ React.createElement("section", { "aria-labelledby": "cumples-semana", className: "rounded-2xl border border-pink-200 bg-pink-50 p-4" }, /* @__PURE__ */ React.createElement("h2", { id: "cumples-semana", className: "font-bold text-pink-900" }, "🎂 ", t2("Cumplen años esta semana")), /* @__PURE__ */ React.createElement("ul", { className: "mt-2 divide-y divide-pink-100" }, proximas.map(({ fila, prox }) => /* @__PURE__ */ React.createElement("li", { key: fila.whatsapp, className: "flex items-center justify-between gap-3 py-2" }, /* @__PURE__ */ React.createElement("span", { className: "min-w-0 text-sm text-gray-900" }, /* @__PURE__ */ React.createElement("span", { className: "font-semibold" }, fila.nombre || fila.whatsapp), /* @__PURE__ */ React.createElement("span", { className: "text-gray-600" }, " · ", cuando(prox.dias))), /* @__PURE__ */ React.createElement("button", { type: "button", onClick: () => felicitar(fila), className: "shrink-0 min-h-[44px] rounded-lg bg-pink-500 px-4 text-sm font-bold text-white hover:bg-pink-600" }, t2("Felicitar"))))));
+  })(), asignacionAbierta && /* @__PURE__ */ React.createElement(
     AsignarServiciosModal,
     {
       asignacion: asignacionAbierta,
@@ -3997,7 +4075,10 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
         /* @__PURE__ */ React.createElement("div", { className: "mt-3" }, /* @__PURE__ */ React.createElement("div", { className: "flex justify-between text-xs text-gray-500 mb-1" }, /* @__PURE__ */ React.createElement("span", null, t2("Completadas {n}%", { n: score.completionRate })), /* @__PURE__ */ React.createElement("span", null, t2("Cancelación {n}%", { n: score.cancelRate }))), /* @__PURE__ */ React.createElement("div", { className: "h-2 bg-white rounded-full overflow-hidden border" }, /* @__PURE__ */ React.createElement("div", { className: "h-full bg-emerald-400", style: { width: `${score.completionRate}%` } })))
       );
     });
-  })())), clienteDetalle && /* @__PURE__ */ React.createElement("div", { className: "fixed inset-0 bg-black/50 z-[80] flex items-end sm:items-center justify-center p-0 sm:p-4", onClick: () => setClienteDetalle(null) }, /* @__PURE__ */ React.createElement("div", { className: "bg-white w-full sm:max-w-2xl max-h-[88vh] rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden", onClick: (event) => event.stopPropagation() }, /* @__PURE__ */ React.createElement("div", { className: "p-5 border-b bg-gradient-to-r from-white to-pink-50 flex items-start justify-between gap-4" }, /* @__PURE__ */ React.createElement("div", { className: "min-w-0" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold uppercase text-pink-500 tracking-wide" }, t2("Historial del cliente")), /* @__PURE__ */ React.createElement("h3", { className: "text-2xl font-bold text-gray-900 truncate" }, clienteDetalle.cliente.nombre || t2("Cliente")), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500" }, "+", clienteDetalle.cliente.whatsapp), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-2 mt-3" }, /* @__PURE__ */ React.createElement("span", { className: `px-2.5 py-1 rounded-full border text-xs font-semibold ${clienteDetalle.score.tone}` }, clienteDetalle.score.label), /* @__PURE__ */ React.createElement("span", { className: "px-2.5 py-1 rounded-full bg-white border text-xs font-semibold text-gray-700" }, t2("Score {n}/100", { n: clienteDetalle.score.score })), /* @__PURE__ */ React.createElement("span", { className: "px-2.5 py-1 rounded-full bg-pink-50 text-pink-700 border border-pink-100 text-xs font-semibold" }, t2("{n} turnos", { n: clienteDetalle.reservas.length })))), /* @__PURE__ */ React.createElement("button", { onClick: () => setClienteDetalle(null), className: "w-10 h-10 rounded-full bg-white border text-gray-500 hover:text-gray-900 hover:bg-gray-50 text-xl leading-none" }, "×")), (() => {
+  })())), clienteDetalle && /* @__PURE__ */ React.createElement("div", { className: "fixed inset-0 bg-black/50 z-[80] flex items-end sm:items-center justify-center p-0 sm:p-4", onClick: () => setClienteDetalle(null) }, /* @__PURE__ */ React.createElement("div", { className: "bg-white w-full sm:max-w-2xl max-h-[88vh] rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden", onClick: (event) => event.stopPropagation() }, /* @__PURE__ */ React.createElement("div", { className: "p-5 border-b bg-gradient-to-r from-white to-pink-50 flex items-start justify-between gap-4" }, /* @__PURE__ */ React.createElement("div", { className: "min-w-0" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold uppercase text-pink-500 tracking-wide" }, t2("Historial del cliente")), /* @__PURE__ */ React.createElement("h3", { className: "text-2xl font-bold text-gray-900 truncate" }, clienteDetalle.cliente.nombre || t2("Cliente")), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500" }, "+", clienteDetalle.cliente.whatsapp), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-2 mt-3" }, /* @__PURE__ */ React.createElement("span", { className: `px-2.5 py-1 rounded-full border text-xs font-semibold ${clienteDetalle.score.tone}` }, clienteDetalle.score.label), /* @__PURE__ */ React.createElement("span", { className: "px-2.5 py-1 rounded-full bg-white border text-xs font-semibold text-gray-700" }, t2("Score {n}/100", { n: clienteDetalle.score.score })), /* @__PURE__ */ React.createElement("span", { className: "px-2.5 py-1 rounded-full bg-pink-50 text-pink-700 border border-pink-100 text-xs font-semibold" }, t2("{n} turnos", { n: clienteDetalle.reservas.length })), (() => {
+    const cumpleFicha = window.cumpleanos?.cumpleDe(clienteDetalle.cliente, "cumple_dia", "cumple_mes");
+    return cumpleFicha ? /* @__PURE__ */ React.createElement("span", { className: "px-2.5 py-1 rounded-full bg-amber-50 text-amber-800 border border-amber-100 text-xs font-semibold" }, "🎂 ", window.cumpleanos.textoCumple(cumpleFicha, idioma)) : null;
+  })())), /* @__PURE__ */ React.createElement("button", { onClick: () => setClienteDetalle(null), className: "w-10 h-10 rounded-full bg-white border text-gray-500 hover:text-gray-900 hover:bg-gray-50 text-xl leading-none" }, "×")), (() => {
     const fid = window.getFidelizacionConfig(config);
     if (!fid.activa) return null;
     const phone = normalizePhone(clienteDetalle.cliente.whatsapp);
@@ -4084,7 +4165,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
         style: getAgendaBookingStyle(booking),
         onClick: () => abrirDetalleAgenda(booking)
       },
-      /* @__PURE__ */ React.createElement("div", { className: "flex h-full flex-col gap-1" }, /* @__PURE__ */ React.createElement("div", { className: "min-w-0" }, /* @__PURE__ */ React.createElement("p", { className: "text-[11px] font-bold leading-tight opacity-90" }, formatTo12Hour(booking.hora_inicio), " - ", formatTo12Hour(booking.hora_fin || calculateEndTime(booking.hora_inicio, booking.duracion || 60)), Number(booking.valoracion) > 0 && /* @__PURE__ */ React.createElement("span", { className: "ml-1", title: t2("Valoracion de la clienta") }, "⭐", Number(booking.valoracion))), !isShort && /* @__PURE__ */ React.createElement("p", { className: "text-sm font-bold truncate" }, booking.cliente_nombre), !isShort && /* @__PURE__ */ React.createElement("p", { className: "text-xs truncate opacity-90" }, booking._grupoVisual ? `${booking._reservasGrupo.length} servicios - ${booking.servicio}` : booking.servicio), !isShort && /* @__PURE__ */ React.createElement("p", { className: "text-[11px] truncate opacity-80" }, booking.profesional_nombre || booking.trabajador_nombre || t2("Sin profesional"))), /* @__PURE__ */ React.createElement("button", { onClick: (event) => {
+      /* @__PURE__ */ React.createElement("div", { className: "flex h-full flex-col gap-1" }, /* @__PURE__ */ React.createElement("div", { className: "min-w-0" }, /* @__PURE__ */ React.createElement("p", { className: "text-[11px] font-bold leading-tight opacity-90" }, formatTo12Hour(booking.hora_inicio), " - ", formatTo12Hour(booking.hora_fin || calculateEndTime(booking.hora_inicio, booking.duracion || 60)), Number(booking.valoracion) > 0 && /* @__PURE__ */ React.createElement("span", { className: "ml-1", title: t2("Valoracion de la clienta") }, "⭐", Number(booking.valoracion))), !isShort && /* @__PURE__ */ React.createElement("p", { className: "text-sm font-bold truncate" }, booking.cliente_nombre, marcaCumple(booking)), !isShort && /* @__PURE__ */ React.createElement("p", { className: "text-xs truncate opacity-90" }, booking._grupoVisual ? `${booking._reservasGrupo.length} servicios - ${booking.servicio}` : booking.servicio), !isShort && /* @__PURE__ */ React.createElement("p", { className: "text-[11px] truncate opacity-80" }, booking.profesional_nombre || booking.trabajador_nombre || t2("Sin profesional"))), /* @__PURE__ */ React.createElement("button", { onClick: (event) => {
         event.stopPropagation();
         abrirDetalleAgenda(booking);
       }, className: "mt-auto w-full rounded-md py-1 text-[11px] bg-white/80 hover:bg-white text-gray-700 font-bold" }, t2("Detalles")))
@@ -4111,13 +4192,21 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
           title: `${booking.cliente_nombre} - ${booking._grupoVisual ? `${booking._reservasGrupo.length} servicios: ` : ""}${booking.servicio}`,
           onClick: () => abrirDetalleAgenda(booking)
         },
-        /* @__PURE__ */ React.createElement("div", { className: "flex h-full flex-col gap-1" }, /* @__PURE__ */ React.createElement("div", { className: "min-w-0" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold leading-tight" }, formatTo12Hour(booking.hora_inicio), " - ", formatTo12Hour(booking.hora_fin || calculateEndTime(booking.hora_inicio, booking.duracion || 60)), Number(booking.valoracion) > 0 && /* @__PURE__ */ React.createElement("span", { className: "ml-1", title: t2("Valoracion de la clienta") }, "⭐", Number(booking.valoracion))), !isShort && /* @__PURE__ */ React.createElement("p", { className: "font-bold text-sm truncate" }, booking.cliente_nombre), !isShort && /* @__PURE__ */ React.createElement("p", { className: "text-xs truncate opacity-90" }, booking._grupoVisual ? `${booking._reservasGrupo.length} servicios - ${booking.servicio}` : booking.servicio), !isShort && /* @__PURE__ */ React.createElement("p", { className: "text-xs truncate opacity-80" }, booking.profesional_nombre || booking.trabajador_nombre || "Sin profesional")), /* @__PURE__ */ React.createElement("button", { onClick: (event) => {
+        /* @__PURE__ */ React.createElement("div", { className: "flex h-full flex-col gap-1" }, /* @__PURE__ */ React.createElement("div", { className: "min-w-0" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold leading-tight" }, formatTo12Hour(booking.hora_inicio), " - ", formatTo12Hour(booking.hora_fin || calculateEndTime(booking.hora_inicio, booking.duracion || 60)), Number(booking.valoracion) > 0 && /* @__PURE__ */ React.createElement("span", { className: "ml-1", title: t2("Valoracion de la clienta") }, "⭐", Number(booking.valoracion))), !isShort && /* @__PURE__ */ React.createElement("p", { className: "font-bold text-sm truncate" }, booking.cliente_nombre, marcaCumple(booking)), !isShort && /* @__PURE__ */ React.createElement("p", { className: "text-xs truncate opacity-90" }, booking._grupoVisual ? `${booking._reservasGrupo.length} servicios - ${booking.servicio}` : booking.servicio), !isShort && /* @__PURE__ */ React.createElement("p", { className: "text-xs truncate opacity-80" }, booking.profesional_nombre || booking.trabajador_nombre || "Sin profesional")), /* @__PURE__ */ React.createElement("button", { onClick: (event) => {
           event.stopPropagation();
           abrirDetalleAgenda(booking);
         }, className: "mt-auto w-full bg-white/80 hover:bg-white text-gray-700 rounded px-2 py-1 text-[11px] font-bold" }, "Detalles"))
       );
     }));
-  })))), /* @__PURE__ */ React.createElement("div", { className: "p-4 border-t bg-gray-50 flex flex-wrap gap-3 text-xs" }, /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-2" }, /* @__PURE__ */ React.createElement("span", { className: "w-3 h-3 rounded bg-pink-500" }), t2("Reservado")), /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-2" }, /* @__PURE__ */ React.createElement("span", { className: "w-3 h-3 rounded bg-amber-400" }), t2("Pendiente")), /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-2" }, /* @__PURE__ */ React.createElement("span", { className: "w-3 h-3 rounded bg-emerald-500" }), t2("Completado")))), cobroEditando && /* @__PURE__ */ React.createElement("div", { className: "fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" }, /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-xl max-w-md w-full p-5 shadow-xl" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-start justify-between gap-4 border-b pb-3 mb-4" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("p", { className: "text-xs uppercase tracking-wide text-emerald-600 font-bold" }, t2("Cobro real")), /* @__PURE__ */ React.createElement("h3", { className: "text-xl font-bold text-gray-900" }, cobroEditando.cliente_nombre || t2("Cliente sin nombre")), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500" }, cobroEditando.servicio)), /* @__PURE__ */ React.createElement("button", { onClick: () => setCobroEditando(null), disabled: guardandoCobro, className: "text-gray-500 hover:text-gray-700 text-2xl leading-none" }, "×")), /* @__PURE__ */ React.createElement("div", { className: "space-y-4" }, cobroEditando._fidelizacionPremiada && /* @__PURE__ */ React.createElement("div", { className: "p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-sm font-semibold" }, t2("🎁 Esta es la cita premiada de fidelidad: {pct}% de descuento ya sugerido en el monto.", { pct: cobroEditando._fidelizacionPct })), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, t2("Monto cobrado real")), /* @__PURE__ */ React.createElement("div", { className: "flex gap-2" }, /* @__PURE__ */ React.createElement(
+  })))), /* @__PURE__ */ React.createElement("div", { className: "p-4 border-t bg-gray-50 flex flex-wrap gap-3 text-xs" }, /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-2" }, /* @__PURE__ */ React.createElement("span", { className: "w-3 h-3 rounded bg-pink-500" }), t2("Reservado")), /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-2" }, /* @__PURE__ */ React.createElement("span", { className: "w-3 h-3 rounded bg-amber-400" }), t2("Pendiente")), /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-2" }, /* @__PURE__ */ React.createElement("span", { className: "w-3 h-3 rounded bg-emerald-500" }), t2("Completado")))), cobroEditando && /* @__PURE__ */ React.createElement("div", { className: "fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" }, /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-xl max-w-md w-full p-5 shadow-xl" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-start justify-between gap-4 border-b pb-3 mb-4" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("p", { className: "text-xs uppercase tracking-wide text-emerald-600 font-bold" }, t2("Cobro real")), /* @__PURE__ */ React.createElement("h3", { className: "text-xl font-bold text-gray-900" }, cobroEditando.cliente_nombre || t2("Cliente sin nombre")), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500" }, cobroEditando.servicio)), /* @__PURE__ */ React.createElement("button", { onClick: () => setCobroEditando(null), disabled: guardandoCobro, className: "text-gray-500 hover:text-gray-700 text-2xl leading-none" }, "×")), /* @__PURE__ */ React.createElement("div", { className: "space-y-4" }, cobroEditando._fidelizacionPremiada && /* @__PURE__ */ React.createElement("div", { className: "p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-sm font-semibold" }, cobroEditando._cualDescuento === "cumpleanos" ? t2("🎁 También es su cita premiada de fidelidad ({pct}%), pero se sugirió el descuento de cumpleaños porque es mayor.", { pct: cobroEditando._fidelizacionPct }) : t2("🎁 Esta es la cita premiada de fidelidad: {pct}% de descuento ya sugerido en el monto.", { pct: cobroEditando._fidelizacionPct })), cobroEditando._cumple && /* @__PURE__ */ React.createElement("div", { className: "p-3 rounded-lg bg-pink-50 border border-pink-200 text-pink-900 text-sm" }, /* @__PURE__ */ React.createElement("p", { className: "font-semibold" }, cobroEditando._cumple.tipo === "regalo" ? t2("🎂 Cumpleaños de {nombre}: regalo «{regalo}»", { nombre: cobroEditando.cliente_nombre || "", regalo: cobroEditando._cumple.regalo }) : cobroEditando._cualDescuento === "cumpleanos" ? t2("🎂 Cumpleaños de {nombre}: {pct}% de descuento ya sugerido en el monto.", { nombre: cobroEditando.cliente_nombre || "", pct: cobroEditando._cumple.pct }) : t2("🎂 Cumpleaños de {nombre}: {pct}% de descuento, pero se sugirió el de fidelidad porque es mayor.", { nombre: cobroEditando.cliente_nombre || "", pct: cobroEditando._cumple.pct })), /* @__PURE__ */ React.createElement("label", { className: "mt-2 flex items-start gap-2 min-h-[44px] items-center cursor-pointer" }, /* @__PURE__ */ React.createElement(
+    "input",
+    {
+      type: "checkbox",
+      checked: cobroForm.cumple_usada !== false,
+      onChange: (e) => setCobroForm({ ...cobroForm, cumple_usada: e.target.checked }),
+      className: "h-5 w-5 shrink-0"
+    }
+  ), /* @__PURE__ */ React.createElement("span", null, t2("Dar la bonificación de cumpleaños (se anota que ya la recibió este año)")))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, t2("Monto cobrado real")), /* @__PURE__ */ React.createElement("div", { className: "flex gap-2" }, /* @__PURE__ */ React.createElement(
     "input",
     {
       type: "number",
@@ -4149,7 +4238,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
   )), cobroEditando._grupoVisual && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500" }, t2("Esta cita tiene varios servicios. El monto se distribuirá entre ellos para que las estadísticas sumen correctamente."))), /* @__PURE__ */ React.createElement("div", { className: "flex gap-3 mt-5" }, /* @__PURE__ */ React.createElement("button", { onClick: () => setCobroEditando(null), disabled: guardandoCobro, className: "flex-1 px-4 py-2 border rounded-lg disabled:opacity-50" }, t2("Cancelar")), /* @__PURE__ */ React.createElement("button", { onClick: guardarCobroReal, disabled: guardandoCobro, className: "flex-1 px-4 py-2 bg-emerald-600 text-white rounded-lg font-bold disabled:opacity-60" }, guardandoCobro ? t2("Guardando...") : t2("Guardar cobro"))))), tabActivo === "reservas" && /* @__PURE__ */ React.createElement(React.Fragment, null, userRole === "profesional" && profesional && /* @__PURE__ */ React.createElement("div", { className: "bg-pink-50 border border-pink-200 rounded-lg p-4" }, /* @__PURE__ */ React.createElement("p", { className: "text-pink-800 font-medium" }, t2("Hola {nombre} - Mostrando tus reservas ({n})", { nombre: profesional.nombre, n: filteredVisualBookings.length }))), !loading && /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-xl shadow-sm border-l-4 border-l-amber-400 overflow-hidden" }, /* @__PURE__ */ React.createElement("div", { className: "p-4 bg-gradient-to-r from-amber-50 to-white border-b border-amber-100" }, /* @__PURE__ */ React.createElement("h3", { className: "font-bold text-gray-900 flex items-center gap-2" }, /* @__PURE__ */ React.createElement("span", { className: "text-xl" }, "🔔"), t2("Turnos de mañana ({n})", { n: turnosManana.length })), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-1" }, turnosManana.length > 0 ? t2("Envía el recordatorio por WhatsApp con un toque. Quedará marcado como recordado en este dispositivo.") : esProfesionalPanel ? t2("Mañana no tienes turnos. Cuando tengas, aquí podrás recordárselos por WhatsApp con un toque.") : t2("Mañana no hay turnos. Cuando los haya, aquí podrás recordárselos por WhatsApp con un toque."))), /* @__PURE__ */ React.createElement("div", { className: "divide-y divide-gray-100" }, turnosManana.map((b) => {
     const claveId = String(b._grupoVisualId || b.id);
     const yaRecordado = recordatoriosEnviados.has(claveId);
-    return /* @__PURE__ */ React.createElement("div", { key: claveId, className: "p-3 sm:p-4 flex flex-wrap sm:flex-nowrap items-center gap-3" }, /* @__PURE__ */ React.createElement("span", { className: "shrink-0 text-sm font-bold bg-pink-100 text-pink-700 px-2.5 py-1 rounded-full" }, formatTo12Hour(b.hora_inicio)), /* @__PURE__ */ React.createElement("div", { className: "min-w-0 flex-1" }, /* @__PURE__ */ React.createElement("p", { className: "font-semibold text-gray-900 truncate" }, b.cliente_nombre), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 truncate" }, b.servicio, b.profesional_nombre || b.trabajador_nombre ? ` · ${b.profesional_nombre || b.trabajador_nombre}` : "")), /* @__PURE__ */ React.createElement(
+    return /* @__PURE__ */ React.createElement("div", { key: claveId, className: "p-3 sm:p-4 flex flex-wrap sm:flex-nowrap items-center gap-3" }, /* @__PURE__ */ React.createElement("span", { className: "shrink-0 text-sm font-bold bg-pink-100 text-pink-700 px-2.5 py-1 rounded-full" }, formatTo12Hour(b.hora_inicio)), /* @__PURE__ */ React.createElement("div", { className: "min-w-0 flex-1" }, /* @__PURE__ */ React.createElement("p", { className: "font-semibold text-gray-900 truncate" }, b.cliente_nombre, marcaCumple(b)), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 truncate" }, b.servicio, b.profesional_nombre || b.trabajador_nombre ? ` · ${b.profesional_nombre || b.trabajador_nombre}` : "")), /* @__PURE__ */ React.createElement(
       "button",
       {
         onClick: () => enviarRecordatorioManana(b),

@@ -90,6 +90,112 @@ window.borrarClienteAuthActual = function() {
     }
 };
 
+// Tarjeta para las clientas que ya estaban registradas y aun no dijeron su
+// cumpleaños. Solo sale si ese salon tiene la bonificacion activa (si no, no
+// hay nada que ofrecerles a cambio) y se puede aplazar 30 dias. Si las columnas
+// aun no existen (falta sql-cumpleanos.sql) las consultas fallan y no sale nada.
+function CumpleClienteCard({ cliente }) {
+    const t = window.t;
+    const [estado, setEstado] = React.useState('oculta'); // oculta | pregunta | listo
+    const [bono, setBono] = React.useState(null);
+    const [salon, setSalon] = React.useState('');
+    const [dia, setDia] = React.useState('');
+    const [mes, setMes] = React.useState('');
+    const [error, setError] = React.useState('');
+    const [guardando, setGuardando] = React.useState(false);
+    const whatsapp = cliente?.whatsapp;
+    const negocioId = window.getNegocioId?.();
+    const claveAplazo = `cumpleClienteAplazadoHasta:${negocioId}:${whatsapp}`;
+
+    React.useEffect(() => {
+        if (!whatsapp || !negocioId || !window.cumpleanos) return;
+        try {
+            if (Date.now() < (Number(localStorage.getItem(claveAplazo)) || 0)) return;
+        } catch (e) {}
+        let cancelado = false;
+        const headers = { apikey: window.SUPABASE_ANON_KEY, Authorization: `Bearer ${window.SUPABASE_ANON_KEY}` };
+        (async () => {
+            try {
+                const [rn, rc] = await Promise.all([
+                    fetch(`${window.SUPABASE_URL}/rest/v1/negocios?id=eq.${encodeURIComponent(negocioId)}&select=nombre,cumple_bonificacion_activa,cumple_bonificacion_tipo,cumple_bonificacion_valor,cumple_bonificacion_regalo,cumple_bonificacion_ventana`, { headers }),
+                    fetch(`${window.SUPABASE_URL}/rest/v1/clientes_autorizados?negocio_id=eq.${encodeURIComponent(negocioId)}&whatsapp=eq.${encodeURIComponent(whatsapp)}&select=cumple_dia,cumple_mes`, { headers })
+                ]);
+                if (!rn.ok || !rc.ok) return;
+                const negocio = (await rn.json())[0];
+                const fila = (await rc.json())[0];
+                if (cancelado || !negocio || !fila) return;
+                const config = window.cumpleanos.bonificacionConfig(negocio);
+                if (!config.activa || window.cumpleanos.cumpleDe(fila, 'cumple_dia', 'cumple_mes')) return;
+                setBono(config);
+                setSalon(negocio.nombre || '');
+                setEstado('pregunta');
+            } catch (e) {
+                console.warn('No se pudo preparar la tarjeta de cumpleaños:', e);
+            }
+        })();
+        return () => { cancelado = true; };
+    }, [whatsapp, negocioId]);
+
+    if (estado === 'oculta' || !bono) return null;
+
+    const aplazar = () => {
+        try { localStorage.setItem(claveAplazo, String(Date.now() + 30 * 86400000)); } catch (e) {}
+        setEstado('oculta');
+    };
+    const guardar = async () => {
+        const cumple = window.cumpleanos.normalizarCumple(dia, mes);
+        if (!dia || !mes) return setError(t('Elige el día y el mes.'));
+        if (!cumple) return setError(t('Esa fecha no existe.'));
+        setGuardando(true);
+        setError('');
+        let ok = false;
+        try {
+            ok = await window.guardarCumpleCliente(whatsapp, cumple);
+        } catch (e) {
+            console.warn('No se pudo guardar el cumpleaños:', e);
+        }
+        setGuardando(false);
+        if (!ok) return setError(t('No se pudo guardar. Inténtalo de nuevo.'));
+        setEstado('listo');
+    };
+
+    if (estado === 'listo') {
+        return (
+            <div role="status" className="bg-white rounded-2xl shadow-sm p-4 text-sm text-gray-800">
+                🎂 {t('¡Anotado! Tu salón te lo tendrá en cuenta.')}
+            </div>
+        );
+    }
+
+    return (
+        <section className="bg-white rounded-2xl shadow-sm p-4 border border-pink-100" aria-labelledby="cumple-titulo">
+            <h2 id="cumple-titulo" className="font-bold text-gray-900">🎂 {t('¿Cuándo es tu cumpleaños?')}</h2>
+            <p className="text-sm text-gray-700 mt-1">
+                {bono.tipo === 'regalo'
+                    ? t('{salon} tiene un regalo para ti en tu cumpleaños: {regalo}.', { salon: salon || t('Tu salón'), regalo: bono.regalo })
+                    : t('{salon} tiene {pct}% de descuento para ti en tu cumpleaños.', { salon: salon || t('Tu salón'), pct: bono.pct })}
+            </p>
+            <div className="flex gap-2 mt-3">
+                <select value={dia} onChange={(e) => setDia(e.target.value)} aria-label={t('Día')}
+                    className="flex-1 min-h-[44px] rounded-lg border border-gray-300 px-3 bg-white text-gray-900">
+                    <option value="">{t('Día')}</option>
+                    {Array.from({ length: 31 }, (_, i) => <option key={i + 1} value={i + 1}>{i + 1}</option>)}
+                </select>
+                <select value={mes} onChange={(e) => setMes(e.target.value)} aria-label={t('Mes')}
+                    className="flex-[2] min-h-[44px] rounded-lg border border-gray-300 px-3 bg-white text-gray-900">
+                    <option value="">{t('Mes')}</option>
+                    {Array.from({ length: 12 }, (_, i) => <option key={i + 1} value={i + 1}>{window.cumpleanos.nombreMes(i + 1, window.getIdioma?.())}</option>)}
+                </select>
+            </div>
+            {error && <p role="alert" className="text-sm text-red-700 mt-2">{error}</p>}
+            <div className="flex gap-2 mt-3">
+                <button type="button" onClick={aplazar} className="flex-1 min-h-[44px] rounded-lg border border-gray-300 bg-white font-semibold text-gray-800">{t('Ahora no')}</button>
+                <button type="button" onClick={guardar} disabled={guardando} className="flex-1 min-h-[44px] rounded-lg bg-pink-500 font-bold text-white disabled:opacity-50">{guardando ? t('Guardando…') : t('Guardar')}</button>
+            </div>
+        </section>
+    );
+}
+
 function ClientApp() {
     const [step, setStep] = React.useState('auth');
     const [cliente, setCliente] = React.useState(null);
@@ -422,6 +528,7 @@ function ClientApp() {
                         />
                         
                         <div className="max-w-3xl mx-auto px-4 py-4 space-y-4 pb-20">
+                            <CumpleClienteCard cliente={cliente} />
                             {/* Diseño traído del catálogo: se muestra durante todo
                                 el flujo para que la clienta no dude de que reserva
                                 el trabajo que eligió. */}

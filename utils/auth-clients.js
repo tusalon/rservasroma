@@ -253,9 +253,10 @@ window.verificarAccesoCliente = async function(whatsapp) {
  * Crea un nuevo cliente en la base de datos
  * @param {string} nombre - Nombre completo del cliente
  * @param {string} whatsapp - Número completo con 53 al inicio
+ * @param {{dia:number, mes:number}} [cumple] - Cumpleaños opcional (utils/cumpleanos.js)
  * @returns {Promise<object|null>} - Datos del cliente creado
  */
-window.crearCliente = async function(nombre, whatsapp) {
+window.crearCliente = async function(nombre, whatsapp, cumple) {
     try {
         const negocioId = getNegocioId();
         const bloqueo = await window.getClienteBloqueado?.(whatsapp);
@@ -302,8 +303,13 @@ window.crearCliente = async function(nombre, whatsapp) {
         // default; si el salon no pide aprobacion no se manda nada y el default
         // hace lo de siempre.
         if (apruebaAMano) datosCliente.fecha_aprobacion = null;
+        const cumpleValido = window.cumpleanos?.normalizarCumple(cumple?.dia, cumple?.mes);
+        if (cumpleValido) {
+            datosCliente.cumple_dia = cumpleValido.dia;
+            datosCliente.cumple_mes = cumpleValido.mes;
+        }
 
-        const createResponse = await fetch(
+        const enviarCliente = () => fetch(
             `${window.SUPABASE_URL}/rest/v1/clientes_autorizados`,
             {
                 method: 'POST',
@@ -316,6 +322,15 @@ window.crearCliente = async function(nombre, whatsapp) {
                 body: JSON.stringify(datosCliente)
             }
         );
+        let createResponse = await enviarCliente();
+        // Si las columnas del cumpleaños aun no existen (falta sql-cumpleanos.sql)
+        // la base rechaza el POST entero. Registrar a la clienta es lo que
+        // importa: se reintenta sin el cumpleaños en vez de dejarla fuera.
+        if (!createResponse.ok && cumpleValido && /cumple_/.test(await createResponse.clone().text().catch(() => ''))) {
+            delete datosCliente.cumple_dia;
+            delete datosCliente.cumple_mes;
+            createResponse = await enviarCliente();
+        }
         
         if (!createResponse.ok) {
             const errorText = await createResponse.text();
@@ -356,6 +371,35 @@ window.crearCliente = async function(nombre, whatsapp) {
     } catch (error) {
         console.error('❌ Error en crearCliente:', error);
         return null;
+    }
+};
+
+/**
+ * Guarda el cumpleaños (dia y mes) de una clienta ya registrada.
+ * @returns {Promise<boolean>}
+ */
+window.guardarCumpleCliente = async function(whatsapp, cumple) {
+    try {
+        const valido = window.cumpleanos?.normalizarCumple(cumple?.dia, cumple?.mes);
+        const negocioId = getNegocioId();
+        if (!valido || !negocioId || !whatsapp) return false;
+        const response = await fetch(
+            `${window.SUPABASE_URL}/rest/v1/clientes_autorizados?negocio_id=eq.${negocioId}&whatsapp=eq.${whatsapp}`,
+            {
+                method: 'PATCH',
+                headers: {
+                    'apikey': window.SUPABASE_ANON_KEY,
+                    'Authorization': `Bearer ${window.SUPABASE_ANON_KEY}`,
+                    'Content-Type': 'application/json',
+                    'Prefer': 'return=minimal'
+                },
+                body: JSON.stringify({ cumple_dia: valido.dia, cumple_mes: valido.mes })
+            }
+        );
+        return response.ok;
+    } catch (error) {
+        console.warn('No se pudo guardar el cumpleaños de la clienta:', error);
+        return false;
     }
 };
 

@@ -16,6 +16,8 @@ function ClientAuthScreen({ onAccessGranted, onGoBack, disenoPendiente }) {
   const [profesionalPassword, setProfesionalPassword] = React.useState("");
   const [esAdmin, setEsAdmin] = React.useState(false);
   const [codigoPaisCliente, setCodigoPaisCliente] = React.useState("53");
+  const [cumpleDia, setCumpleDia] = React.useState("");
+  const [cumpleMes, setCumpleMes] = React.useState("");
   React.useEffect(() => {
     const cargarDatos = async () => {
       const configData = await window.cargarConfiguracionNegocio();
@@ -198,7 +200,8 @@ function ClientAuthScreen({ onAccessGranted, onGoBack, disenoPendiente }) {
         onAccessGranted(clienteExistente.nombre, numeroCompleto);
         return;
       }
-      const nuevoCliente = await window.crearCliente(nombre.trim(), numeroCompleto);
+      const cumpleElegido = window.cumpleanos?.normalizarCumple(cumpleDia, cumpleMes);
+      const nuevoCliente = await window.crearCliente(nombre.trim(), numeroCompleto, cumpleElegido);
       if (nuevoCliente?.pendiente) {
         setClientePendiente(nuevoCliente);
       } else if (nuevoCliente) {
@@ -296,7 +299,27 @@ function ClientAuthScreen({ onAccessGranted, onGoBack, disenoPendiente }) {
       placeholder: t("Ej: María Pérez"),
       autoFocus: true
     }
-  )), verificando && /* @__PURE__ */ React.createElement("div", { className: "text-pink-300 text-sm bg-pink-500/20 p-2 rounded-lg flex items-center gap-2 border border-pink-300/30" }, /* @__PURE__ */ React.createElement("div", { className: "animate-spin h-4 w-4 border-2 border-pink-300 border-t-transparent rounded-full" }), t("Verificando...")), esProfesional && profesionalInfo && !verificando && /* @__PURE__ */ React.createElement("div", { className: "bg-pink-500/30 border border-pink-300/50 rounded-lg p-4" }, /* @__PURE__ */ React.createElement("p", { className: "text-white font-bold text-xl" }, t("¡Hola, {nombre}!", { nombre: profesionalInfo.nombre })), /* @__PURE__ */ React.createElement("p", { className: "text-pink-200 text-sm" }, t("Ingresa tu contraseña para acceder al panel."))), esProfesional && profesionalInfo && !verificando && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-white mb-1" }, t("Contraseña profesional")), /* @__PURE__ */ React.createElement(
+  ), window.cumpleanos?.bonificacionConfig(config).activa && /* @__PURE__ */ React.createElement("div", { className: "mt-3" }, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-white mb-1" }, "🎂 ", t("Tu cumpleaños (opcional)")), /* @__PURE__ */ React.createElement("div", { className: "flex gap-2" }, /* @__PURE__ */ React.createElement(
+    "select",
+    {
+      value: cumpleDia,
+      onChange: (e) => setCumpleDia(e.target.value),
+      "aria-label": t("Día"),
+      className: "flex-1 min-h-[44px] px-3 rounded-lg border border-pink-300/30 bg-black/20 text-white outline-none focus:ring-2 focus:ring-pink-500"
+    },
+    /* @__PURE__ */ React.createElement("option", { value: "", className: "text-gray-900" }, t("Día")),
+    Array.from({ length: 31 }, (_, i) => /* @__PURE__ */ React.createElement("option", { key: i + 1, value: i + 1, className: "text-gray-900" }, i + 1))
+  ), /* @__PURE__ */ React.createElement(
+    "select",
+    {
+      value: cumpleMes,
+      onChange: (e) => setCumpleMes(e.target.value),
+      "aria-label": t("Mes"),
+      className: "flex-[2] min-h-[44px] px-3 rounded-lg border border-pink-300/30 bg-black/20 text-white outline-none focus:ring-2 focus:ring-pink-500"
+    },
+    /* @__PURE__ */ React.createElement("option", { value: "", className: "text-gray-900" }, t("Mes")),
+    Array.from({ length: 12 }, (_, i) => /* @__PURE__ */ React.createElement("option", { key: i + 1, value: i + 1, className: "text-gray-900" }, window.cumpleanos.nombreMes(i + 1, window.getIdioma?.())))
+  )), /* @__PURE__ */ React.createElement("p", { className: "mt-1 text-xs text-pink-100/80" }, t("Tu salón puede tener un detalle para ti ese día.")))), verificando && /* @__PURE__ */ React.createElement("div", { className: "text-pink-300 text-sm bg-pink-500/20 p-2 rounded-lg flex items-center gap-2 border border-pink-300/30" }, /* @__PURE__ */ React.createElement("div", { className: "animate-spin h-4 w-4 border-2 border-pink-300 border-t-transparent rounded-full" }), t("Verificando...")), esProfesional && profesionalInfo && !verificando && /* @__PURE__ */ React.createElement("div", { className: "bg-pink-500/30 border border-pink-300/50 rounded-lg p-4" }, /* @__PURE__ */ React.createElement("p", { className: "text-white font-bold text-xl" }, t("¡Hola, {nombre}!", { nombre: profesionalInfo.nombre })), /* @__PURE__ */ React.createElement("p", { className: "text-pink-200 text-sm" }, t("Ingresa tu contraseña para acceder al panel."))), esProfesional && profesionalInfo && !verificando && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-white mb-1" }, t("Contraseña profesional")), /* @__PURE__ */ React.createElement(
     "input",
     {
       type: "password",

@@ -20,6 +20,9 @@ function ClientAuthScreen({ onAccessGranted, onGoBack, disenoPendiente }) {
     const [profesionalPassword, setProfesionalPassword] = React.useState('');
     const [esAdmin, setEsAdmin] = React.useState(false);
     const [codigoPaisCliente, setCodigoPaisCliente] = React.useState('53');
+    // Cumpleaños opcional: solo se pregunta si el salon tiene bonificacion.
+    const [cumpleDia, setCumpleDia] = React.useState('');
+    const [cumpleMes, setCumpleMes] = React.useState('');
 
     React.useEffect(() => {
         const cargarDatos = async () => {
@@ -257,7 +260,9 @@ function ClientAuthScreen({ onAccessGranted, onGoBack, disenoPendiente }) {
                 return;
             }
 
-            const nuevoCliente = await window.crearCliente(nombre.trim(), numeroCompleto);
+            // Con solo uno de los dos (dia o mes) no se guarda nada.
+            const cumpleElegido = window.cumpleanos?.normalizarCumple(cumpleDia, cumpleMes);
+            const nuevoCliente = await window.crearCliente(nombre.trim(), numeroCompleto, cumpleElegido);
             if (nuevoCliente?.pendiente) {
                 setClientePendiente(nuevoCliente);
             } else if (nuevoCliente) {
@@ -446,6 +451,41 @@ function ClientAuthScreen({ onAccessGranted, onGoBack, disenoPendiente }) {
                                     placeholder={t('Ej: María Pérez')}
                                     autoFocus
                                 />
+
+                                {window.cumpleanos?.bonificacionConfig(config).activa && (
+                                    <div className="mt-3">
+                                        <label className="block text-sm font-medium text-white mb-1">
+                                            🎂 {t('Tu cumpleaños (opcional)')}
+                                        </label>
+                                        <div className="flex gap-2">
+                                            <select
+                                                value={cumpleDia}
+                                                onChange={(e) => setCumpleDia(e.target.value)}
+                                                aria-label={t('Día')}
+                                                className="flex-1 min-h-[44px] px-3 rounded-lg border border-pink-300/30 bg-black/20 text-white outline-none focus:ring-2 focus:ring-pink-500"
+                                            >
+                                                <option value="" className="text-gray-900">{t('Día')}</option>
+                                                {Array.from({ length: 31 }, (_, i) => (
+                                                    <option key={i + 1} value={i + 1} className="text-gray-900">{i + 1}</option>
+                                                ))}
+                                            </select>
+                                            <select
+                                                value={cumpleMes}
+                                                onChange={(e) => setCumpleMes(e.target.value)}
+                                                aria-label={t('Mes')}
+                                                className="flex-[2] min-h-[44px] px-3 rounded-lg border border-pink-300/30 bg-black/20 text-white outline-none focus:ring-2 focus:ring-pink-500"
+                                            >
+                                                <option value="" className="text-gray-900">{t('Mes')}</option>
+                                                {Array.from({ length: 12 }, (_, i) => (
+                                                    <option key={i + 1} value={i + 1} className="text-gray-900">
+                                                        {window.cumpleanos.nombreMes(i + 1, window.getIdioma?.())}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <p className="mt-1 text-xs text-pink-100/80">{t('Tu salón puede tener un detalle para ti ese día.')}</p>
+                                    </div>
+                                )}
                             </div>
                         )}
 

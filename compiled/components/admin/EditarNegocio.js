@@ -46,6 +46,13 @@ function EditarNegocio() {
     fidelizacion_activa: false,
     fidelizacion_cada_citas: 5,
     fidelizacion_descuento_porcentaje: 50,
+    // 🆕 BONIFICACION POR CUMPLEAÑOS (utils/cumpleanos.js, sql-cumpleanos.sql)
+    cumple_bonificacion_activa: false,
+    cumple_bonificacion_tipo: "porcentaje",
+    cumple_bonificacion_valor: 20,
+    cumple_bonificacion_regalo: "",
+    cumple_bonificacion_ventana: "semana",
+    cumple_bonificacion_mensaje: "",
     // 🆕 APROBAR CLIENTAS NUEVAS antes de que puedan reservar
     aprobar_clientes_nuevos: false
   });
@@ -122,6 +129,13 @@ function EditarNegocio() {
           fidelizacion_activa: configData.fidelizacion_activa === true,
           fidelizacion_cada_citas: configData.fidelizacion_cada_citas || 5,
           fidelizacion_descuento_porcentaje: configData.fidelizacion_descuento_porcentaje ?? 50,
+          // 🆕 CARGAR BONIFICACION POR CUMPLEAÑOS
+          cumple_bonificacion_activa: configData.cumple_bonificacion_activa === true,
+          cumple_bonificacion_tipo: configData.cumple_bonificacion_tipo === "regalo" ? "regalo" : "porcentaje",
+          cumple_bonificacion_valor: configData.cumple_bonificacion_valor ?? 20,
+          cumple_bonificacion_regalo: configData.cumple_bonificacion_regalo || "",
+          cumple_bonificacion_ventana: ["dia", "semana", "mes"].includes(configData.cumple_bonificacion_ventana) ? configData.cumple_bonificacion_ventana : "semana",
+          cumple_bonificacion_mensaje: configData.cumple_bonificacion_mensaje || "",
           // 🆕 CARGAR APROBACIÓN DE CLIENTAS
           aprobar_clientes_nuevos: configData.aprobar_clientes_nuevos === true
         });
@@ -258,6 +272,13 @@ function EditarNegocio() {
         fidelizacion_activa: config.fidelizacion_activa === true,
         fidelizacion_cada_citas: Math.max(1, parseInt(config.fidelizacion_cada_citas, 10) || 5),
         fidelizacion_descuento_porcentaje: Math.max(0, Math.min(100, Number(config.fidelizacion_descuento_porcentaje) || 0)),
+        // 🆕 INCLUIR BONIFICACION POR CUMPLEAÑOS
+        cumple_bonificacion_activa: config.cumple_bonificacion_activa === true,
+        cumple_bonificacion_tipo: config.cumple_bonificacion_tipo === "regalo" ? "regalo" : "porcentaje",
+        cumple_bonificacion_valor: Math.max(0, Math.min(100, Number(config.cumple_bonificacion_valor) || 0)),
+        cumple_bonificacion_regalo: String(config.cumple_bonificacion_regalo || "").trim().slice(0, 80) || null,
+        cumple_bonificacion_ventana: ["dia", "semana", "mes"].includes(config.cumple_bonificacion_ventana) ? config.cumple_bonificacion_ventana : "semana",
+        cumple_bonificacion_mensaje: String(config.cumple_bonificacion_mensaje || "").trim().slice(0, 200) || null,
         // 🆕 INCLUIR APROBACIÓN DE CLIENTAS
         aprobar_clientes_nuevos: config.aprobar_clientes_nuevos === true,
         updated_at: (/* @__PURE__ */ new Date()).toISOString()
@@ -281,7 +302,7 @@ function EditarNegocio() {
       if (!response.ok) {
         const errorText = await response.text();
         console.error("❌ Error response:", errorText);
-        if (errorText.includes("codigo_pais") || errorText.includes("whatsapp_moneda") || errorText.includes("whatsapp_mostrar_costos") || errorText.includes("anticipos_por_servicio") || errorText.includes("municipio") || errorText.includes("provincia") || errorText.includes("imagen_fondo_url") || errorText.includes("fidelizacion") || errorText.includes("aprobar_clientes_nuevos")) {
+        if (errorText.includes("codigo_pais") || errorText.includes("whatsapp_moneda") || errorText.includes("whatsapp_mostrar_costos") || errorText.includes("anticipos_por_servicio") || errorText.includes("municipio") || errorText.includes("provincia") || errorText.includes("imagen_fondo_url") || errorText.includes("fidelizacion") || errorText.includes("cumple_") || errorText.includes("aprobar_clientes_nuevos")) {
           const datosCompatibles = { ...datosActualizar };
           if (errorText.includes("codigo_pais")) delete datosCompatibles.codigo_pais;
           if (errorText.includes("anticipos_por_servicio")) delete datosCompatibles.anticipos_por_servicio;
@@ -292,6 +313,9 @@ function EditarNegocio() {
             delete datosCompatibles.fidelizacion_activa;
             delete datosCompatibles.fidelizacion_cada_citas;
             delete datosCompatibles.fidelizacion_descuento_porcentaje;
+          }
+          if (errorText.includes("cumple_")) {
+            Object.keys(datosCompatibles).filter((clave) => clave.startsWith("cumple_")).forEach((clave) => delete datosCompatibles[clave]);
           }
           if (errorText.includes("aprobar_clientes_nuevos")) delete datosCompatibles.aprobar_clientes_nuevos;
           if (errorText.includes("whatsapp_moneda") || errorText.includes("whatsapp_mostrar_costos")) {
@@ -698,7 +722,56 @@ function EditarNegocio() {
     cada: config.fidelizacion_cada_citas || 5,
     pct: config.fidelizacion_descuento_porcentaje || 0,
     siguiente: (parseInt(config.fidelizacion_cada_citas, 10) || 5) + 1
-  }))))), /* @__PURE__ */ React.createElement("div", { className: "pt-4 border-t" }, /* @__PURE__ */ React.createElement("h2", { className: "text-lg font-semibold mb-4 flex items-center gap-2" }, "👥 ", t("Clientas nuevas")), /* @__PURE__ */ React.createElement("div", { className: "space-y-4" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between bg-gray-50 p-4 rounded-lg" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "font-medium text-gray-700" }, t("Aprobar a mano las clientas nuevas")), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-1" }, t('Si activas, una clienta nueva no puede reservar hasta que tú la aceptes desde "Clientes Registrados". Tus clientas de siempre siguen entrando normal.'))), /* @__PURE__ */ React.createElement("label", { className: "relative inline-flex items-center cursor-pointer" }, /* @__PURE__ */ React.createElement(
+  }))))), /* @__PURE__ */ React.createElement("div", { className: "pt-4 border-t" }, /* @__PURE__ */ React.createElement("h2", { className: "text-lg font-semibold mb-4 flex items-center gap-2" }, t("🎂 Cumpleaños de tus clientas")), /* @__PURE__ */ React.createElement("div", { className: "space-y-4" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between bg-gray-50 p-4 rounded-lg" }, /* @__PURE__ */ React.createElement("div", { className: "pr-3" }, /* @__PURE__ */ React.createElement("label", { className: "font-medium text-gray-700" }, t("Premiar los cumpleaños")), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-1" }, t("Si activas, las clientas que te digan su cumpleaños reciben un detalle: se te sugiere al cobrar y se te avisa cuando se acerca."))), /* @__PURE__ */ React.createElement("label", { className: "relative inline-flex items-center cursor-pointer shrink-0" }, /* @__PURE__ */ React.createElement(
+    "input",
+    {
+      type: "checkbox",
+      checked: config.cumple_bonificacion_activa,
+      onChange: (e) => setConfig({ ...config, cumple_bonificacion_activa: e.target.checked }),
+      className: "sr-only peer"
+    }
+  ), /* @__PURE__ */ React.createElement("div", { className: "w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-amber-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600" }))), config.cumple_bonificacion_activa && /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-1 sm:grid-cols-2 gap-3" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, t("Qué regalas")), /* @__PURE__ */ React.createElement(
+    "select",
+    {
+      value: config.cumple_bonificacion_tipo,
+      onChange: (e) => setConfig({ ...config, cumple_bonificacion_tipo: e.target.value }),
+      className: "w-full border rounded-lg px-3 py-2 min-h-[44px] bg-white"
+    },
+    /* @__PURE__ */ React.createElement("option", { value: "porcentaje" }, t("Descuento en la cita")),
+    /* @__PURE__ */ React.createElement("option", { value: "regalo" }, t("Un regalo"))
+  )), /* @__PURE__ */ React.createElement("div", null, config.cumple_bonificacion_tipo === "regalo" ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, t("Un regalo")), /* @__PURE__ */ React.createElement(
+    "input",
+    {
+      type: "text",
+      maxLength: 80,
+      value: config.cumple_bonificacion_regalo,
+      onChange: (e) => setConfig({ ...config, cumple_bonificacion_regalo: e.target.value }),
+      className: "w-full border rounded-lg px-3 py-2 min-h-[44px]",
+      placeholder: t("Ej: un diseño gratis")
+    }
+  )) : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, t("Descuento (%)")), /* @__PURE__ */ React.createElement(
+    "input",
+    {
+      type: "number",
+      min: "1",
+      max: "100",
+      step: "1",
+      value: config.cumple_bonificacion_valor,
+      onChange: (e) => setConfig({ ...config, cumple_bonificacion_valor: e.target.value }),
+      className: "w-full border rounded-lg px-3 py-2 min-h-[44px]",
+      placeholder: t("Ej: 20")
+    }
+  ))), /* @__PURE__ */ React.createElement("div", { className: "sm:col-span-2" }, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, t("Cuándo vale")), /* @__PURE__ */ React.createElement(
+    "select",
+    {
+      value: config.cumple_bonificacion_ventana,
+      onChange: (e) => setConfig({ ...config, cumple_bonificacion_ventana: e.target.value }),
+      className: "w-full border rounded-lg px-3 py-2 min-h-[44px] bg-white"
+    },
+    /* @__PURE__ */ React.createElement("option", { value: "dia" }, t("Solo el día de su cumpleaños")),
+    /* @__PURE__ */ React.createElement("option", { value: "semana" }, t("La semana de su cumpleaños (±3 días)")),
+    /* @__PURE__ */ React.createElement("option", { value: "mes" }, t("Todo el mes de su cumpleaños"))
+  )), /* @__PURE__ */ React.createElement("p", { className: "sm:col-span-2 text-xs text-gray-500" }, t("Una vez al año por clienta. No se acumula con el descuento de fidelidad: vale el mayor."))))), /* @__PURE__ */ React.createElement("div", { className: "pt-4 border-t" }, /* @__PURE__ */ React.createElement("h2", { className: "text-lg font-semibold mb-4 flex items-center gap-2" }, "👥 ", t("Clientas nuevas")), /* @__PURE__ */ React.createElement("div", { className: "space-y-4" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between bg-gray-50 p-4 rounded-lg" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "font-medium text-gray-700" }, t("Aprobar a mano las clientas nuevas")), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-1" }, t('Si activas, una clienta nueva no puede reservar hasta que tú la aceptes desde "Clientes Registrados". Tus clientas de siempre siguen entrando normal.'))), /* @__PURE__ */ React.createElement("label", { className: "relative inline-flex items-center cursor-pointer" }, /* @__PURE__ */ React.createElement(
     "input",
     {
       type: "checkbox",

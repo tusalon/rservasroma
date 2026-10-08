@@ -607,6 +607,10 @@ function AdminApp() {
     const [arreglandoAviso, setArreglandoAviso] = React.useState('');
     const [asignacionAbierta, setAsignacionAbierta] = React.useState(null);
     const [profesionalHorarioInicial, setProfesionalHorarioInicial] = React.useState(null);
+    // Cumpleaños de las clientas (solo si el salon tiene la bonificacion activa):
+    // { telefonoNormalizado: fila de clientes_autorizados }. Ver utils/cumpleanos.js.
+    const [cumplesClientas, setCumplesClientas] = React.useState({});
+    const [versionCumples, setVersionCumples] = React.useState(0);
     const [profesionalesManualFiltrados, setProfesionalesManualFiltrados] = React.useState([]);
     const [horariosDisponibles, setHorariosDisponibles] = React.useState([]);
     const [modoHorarioManualCompleto, setModoHorarioManualCompleto] = React.useState(false);
@@ -1129,6 +1133,31 @@ function AdminApp() {
         // Se vuelve a mirar al cambiar de pestaña (vuelve de arreglar algo) y
         // cuando un arreglo o un horario guardado lo pide.
     }, [config, versionDetalleConfig, tabActivo]);
+
+    // Solo las clientas que ya dijeron su cumpleaños. Si las columnas aun no
+    // existen (falta sql-cumpleanos.sql) la consulta falla y el mapa queda vacio.
+    // ponytail: tope de 1000 clientas con cumpleaños por salon (limite de PostgREST).
+    React.useEffect(() => {
+        const negocioId = config?.id || window.NEGOCIO_ID_POR_DEFECTO;
+        if (!negocioId || !window.SUPABASE_URL || !window.cumpleanos || !window.cumpleanos.bonificacionConfig(config).activa) {
+            setCumplesClientas({});
+            return;
+        }
+        let cancelado = false;
+        fetch(
+            `${window.SUPABASE_URL}/rest/v1/clientes_autorizados?negocio_id=eq.${encodeURIComponent(negocioId)}&cumple_mes=not.is.null&select=whatsapp,nombre,cumple_dia,cumple_mes,cumple_bonificacion_anio&limit=1000`,
+            { headers: { apikey: window.SUPABASE_ANON_KEY, Authorization: `Bearer ${window.SUPABASE_ANON_KEY}` } }
+        )
+            .then(r => (r.ok ? r.json() : []))
+            .then(filas => {
+                if (cancelado) return;
+                const mapa = {};
+                (Array.isArray(filas) ? filas : []).forEach(fila => { mapa[normalizePhone(fila.whatsapp)] = fila; });
+                setCumplesClientas(mapa);
+            })
+            .catch(() => {});
+        return () => { cancelado = true; };
+    }, [config, versionCumples]);
 
     React.useEffect(() => {
         const recontar = () => setVersionDetalleConfig(v => v + 1);
@@ -3182,6 +3211,14 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
         }
     };
 
+    // Bonificacion de cumpleaños que le toca a esta clienta en esa cita (o null).
+    const bonificacionCumpleDe = (whatsapp, fecha) => {
+        if (!window.cumpleanos || !whatsapp || !fecha) return null;
+        const fila = cumplesClientas[normalizePhone(whatsapp)];
+        return fila ? window.cumpleanos.bonificacionParaCita(fila, config, fecha) : null;
+    };
+    const marcaCumple = (reserva) => (bonificacionCumpleDe(reserva?.cliente_whatsapp, reserva?.fecha) ? ' 🎂' : '');
+
     const abrirModalCobro = (bookingData) => {
         if (!puedeGestionarReservas) {
             alert(t('No tenes permiso para registrar cobros.'));
@@ -3197,22 +3234,38 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
         const posicion = fid.activa ? getPosicionCitaFidelizacion(bookingData.cliente_whatsapp, bookingData.id) : 0;
         const esCitaPremiada = fid.activa && window.esPosicionPremiada(posicion, fid.ciclo);
 
+        // Cumpleaños de la clienta: una vez al año. El descuento de cumpleaños y
+        // el de fidelidad NO se acumulan: se sugiere el mayor. Un regalo no es un
+        // descuento, asi que ese se muestra aparte y no toca el monto.
+        const bonoCumple = bonificacionCumpleDe(bookingData.cliente_whatsapp, bookingData.fecha);
+        const pctCumple = bonoCumple?.tipo === 'porcentaje' ? bonoCumple.pct : 0;
+        const pctFidelidad = esCitaPremiada ? fid.pct : 0;
+        const cualDescuento = window.cumpleanos.cualDescuentoAplicar(pctCumple, pctFidelidad);
+        const pctAplicado = cualDescuento === 'cumpleanos' ? pctCumple : (cualDescuento === 'fidelidad' ? pctFidelidad : 0);
+
         // Si ya no tiene un cobro guardado, sugerir el monto con el descuento
         // ya aplicado sobre el precio del servicio. La duena sigue pudiendo
         // editarlo antes de guardar.
         let montoSugerido = montoActual > 0 ? String(montoActual) : '';
-        if (esCitaPremiada && montoActual === 0) {
+        if (pctAplicado > 0 && montoActual === 0) {
             const precioServicio = getPrecioServicioAgenda(bookingData.servicio);
             if (precioServicio > 0) {
-                montoSugerido = String(Number((precioServicio * (1 - fid.pct / 100)).toFixed(2)));
+                montoSugerido = String(Number((precioServicio * (1 - pctAplicado / 100)).toFixed(2)));
             }
         }
 
-        setCobroEditando({ ...bookingData, _fidelizacionPremiada: esCitaPremiada, _fidelizacionPct: fid.pct });
+        setCobroEditando({
+            ...bookingData,
+            _fidelizacionPremiada: esCitaPremiada,
+            _fidelizacionPct: fid.pct,
+            _cumple: bonoCumple,
+            _cualDescuento: cualDescuento
+        });
         setCobroForm({
             monto_cobrado: montoSugerido,
             notas_cobro: bookingData.notas_cobro || '',
-            moneda_cobrada: bookingData.moneda_cobrada || monedaServicioDeReserva(bookingData)
+            moneda_cobrada: bookingData.moneda_cobrada || monedaServicioDeReserva(bookingData),
+            cumple_usada: Boolean(bonoCumple)
         });
     };
 
@@ -3287,6 +3340,33 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                     } else {
                         throw new Error(detalle);
                     }
+                }
+            }
+
+            // Se anota el año en que recibio su bonificacion de cumpleaños. El cobro
+            // ya esta guardado: si esto falla no se pierde nada, solo se avisa en
+            // consola y se podra dar de nuevo.
+            if (cobroEditando._cumple && cobroForm.cumple_usada) {
+                try {
+                    const fila = cumplesClientas[normalizePhone(cobroEditando.cliente_whatsapp)];
+                    if (fila) {
+                        await fetch(
+                            `${window.SUPABASE_URL}/rest/v1/clientes_autorizados?negocio_id=eq.${negocioId}&whatsapp=eq.${encodeURIComponent(fila.whatsapp)}`,
+                            {
+                                method: 'PATCH',
+                                headers: {
+                                    'apikey': window.SUPABASE_ANON_KEY,
+                                    'Authorization': `Bearer ${window.SUPABASE_ANON_KEY}`,
+                                    'Content-Type': 'application/json',
+                                    'Prefer': 'return=minimal'
+                                },
+                                body: JSON.stringify({ cumple_bonificacion_anio: cobroEditando._cumple.anio })
+                            }
+                        );
+                        setVersionCumples(v => v + 1);
+                    }
+                } catch (errorCumple) {
+                    console.warn('No se pudo anotar la bonificacion de cumpleaños:', errorCumple);
                 }
             }
 
@@ -4705,6 +4785,43 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                     </section>
                 ) : null}
 
+                {puedeGestionarReservas && (() => {
+                    const bono = window.cumpleanos?.bonificacionConfig(config);
+                    if (!bono?.activa) return null;
+                    const proximas = Object.values(cumplesClientas)
+                        .map(fila => ({ fila, prox: window.cumpleanos.proximoCumple(window.cumpleanos.cumpleDe(fila, 'cumple_dia', 'cumple_mes')) }))
+                        .filter(({ fila, prox }) => prox && prox.dias <= 7 && Number(fila.cumple_bonificacion_anio) !== prox.fecha.getFullYear())
+                        .sort((a, b) => a.prox.dias - b.prox.dias)
+                        .slice(0, 5);
+                    if (!proximas.length) return null;
+                    const cuando = (dias) => (dias === 0 ? t('hoy') : dias === 1 ? t('mañana') : t('en {n} días', { n: dias }));
+                    const felicitar = (fila) => {
+                        const premio = bono.tipo === 'regalo'
+                            ? `te tenemos un regalo: ${bono.regalo}.`
+                            : `tienes ${bono.pct}% de descuento en tu próxima cita.`;
+                        const texto = `¡Feliz cumpleaños, ${fila.nombre || ''}! 🎂 En ${config?.nombre || 'tu salón'} queremos celebrarlo contigo: ${premio}${bono.mensaje ? ' ' + bono.mensaje : ''}`;
+                        window.open(`https://wa.me/${String(fila.whatsapp).replace(/\D/g, '')}?text=${encodeURIComponent(texto)}`, '_blank');
+                    };
+                    return (
+                        <section aria-labelledby="cumples-semana" className="rounded-2xl border border-pink-200 bg-pink-50 p-4">
+                            <h2 id="cumples-semana" className="font-bold text-pink-900">🎂 {t('Cumplen años esta semana')}</h2>
+                            <ul className="mt-2 divide-y divide-pink-100">
+                                {proximas.map(({ fila, prox }) => (
+                                    <li key={fila.whatsapp} className="flex items-center justify-between gap-3 py-2">
+                                        <span className="min-w-0 text-sm text-gray-900">
+                                            <span className="font-semibold">{fila.nombre || fila.whatsapp}</span>
+                                            <span className="text-gray-600"> · {cuando(prox.dias)}</span>
+                                        </span>
+                                        <button type="button" onClick={() => felicitar(fila)} className="shrink-0 min-h-[44px] rounded-lg bg-pink-500 px-4 text-sm font-bold text-white hover:bg-pink-600">
+                                            {t('Felicitar')}
+                                        </button>
+                                    </li>
+                                ))}
+                            </ul>
+                        </section>
+                    );
+                })()}
+
                 {asignacionAbierta && (
                     <AsignarServiciosModal
                         asignacion={asignacionAbierta}
@@ -5577,6 +5694,14 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                                         <span className={`px-2.5 py-1 rounded-full border text-xs font-semibold ${clienteDetalle.score.tone}`}>{clienteDetalle.score.label}</span>
                                         <span className="px-2.5 py-1 rounded-full bg-white border text-xs font-semibold text-gray-700">{t('Score {n}/100', { n: clienteDetalle.score.score })}</span>
                                         <span className="px-2.5 py-1 rounded-full bg-pink-50 text-pink-700 border border-pink-100 text-xs font-semibold">{t('{n} turnos', { n: clienteDetalle.reservas.length })}</span>
+                                        {(() => {
+                                            const cumpleFicha = window.cumpleanos?.cumpleDe(clienteDetalle.cliente, 'cumple_dia', 'cumple_mes');
+                                            return cumpleFicha ? (
+                                                <span className="px-2.5 py-1 rounded-full bg-amber-50 text-amber-800 border border-amber-100 text-xs font-semibold">
+                                                    🎂 {window.cumpleanos.textoCumple(cumpleFicha, idioma)}
+                                                </span>
+                                            ) : null;
+                                        })()}
                                     </div>
                                 </div>
                                 <button onClick={() => setClienteDetalle(null)} className="w-10 h-10 rounded-full bg-white border text-gray-500 hover:text-gray-900 hover:bg-gray-50 text-xl leading-none">×</button>
@@ -5814,7 +5939,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                                                                 {formatTo12Hour(booking.hora_inicio)} - {formatTo12Hour(booking.hora_fin || calculateEndTime(booking.hora_inicio, booking.duracion || 60))}
                                                                 {Number(booking.valoracion) > 0 && <span className="ml-1" title={t('Valoracion de la clienta')}>⭐{Number(booking.valoracion)}</span>}
                                                             </p>
-                                                            {!isShort && <p className="text-sm font-bold truncate">{booking.cliente_nombre}</p>}
+                                                            {!isShort && <p className="text-sm font-bold truncate">{booking.cliente_nombre}{marcaCumple(booking)}</p>}
                                                             {!isShort && <p className="text-xs truncate opacity-90">{booking._grupoVisual ? `${booking._reservasGrupo.length} servicios - ${booking.servicio}` : booking.servicio}</p>}
                                                             {!isShort && <p className="text-[11px] truncate opacity-80">{booking.profesional_nombre || booking.trabajador_nombre || t('Sin profesional')}</p>}
                                                         </div>
@@ -5892,7 +6017,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                                                                         {formatTo12Hour(booking.hora_inicio)} - {formatTo12Hour(booking.hora_fin || calculateEndTime(booking.hora_inicio, booking.duracion || 60))}
                                                                         {Number(booking.valoracion) > 0 && <span className="ml-1" title={t('Valoracion de la clienta')}>⭐{Number(booking.valoracion)}</span>}
                                                                     </p>
-                                                                    {!isShort && <p className="font-bold text-sm truncate">{booking.cliente_nombre}</p>}
+                                                                    {!isShort && <p className="font-bold text-sm truncate">{booking.cliente_nombre}{marcaCumple(booking)}</p>}
                                                                     {!isShort && <p className="text-xs truncate opacity-90">{booking._grupoVisual ? `${booking._reservasGrupo.length} servicios - ${booking.servicio}` : booking.servicio}</p>}
                                                                     {!isShort && <p className="text-xs truncate opacity-80">{booking.profesional_nombre || booking.trabajador_nombre || 'Sin profesional'}</p>}
                                                                 </div>
@@ -5934,7 +6059,29 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                             <div className="space-y-4">
                                 {cobroEditando._fidelizacionPremiada && (
                                     <div className="p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-sm font-semibold">
-                                        {t('🎁 Esta es la cita premiada de fidelidad: {pct}% de descuento ya sugerido en el monto.', { pct: cobroEditando._fidelizacionPct })}
+                                        {cobroEditando._cualDescuento === 'cumpleanos'
+                                            ? t('🎁 También es su cita premiada de fidelidad ({pct}%), pero se sugirió el descuento de cumpleaños porque es mayor.', { pct: cobroEditando._fidelizacionPct })
+                                            : t('🎁 Esta es la cita premiada de fidelidad: {pct}% de descuento ya sugerido en el monto.', { pct: cobroEditando._fidelizacionPct })}
+                                    </div>
+                                )}
+                                {cobroEditando._cumple && (
+                                    <div className="p-3 rounded-lg bg-pink-50 border border-pink-200 text-pink-900 text-sm">
+                                        <p className="font-semibold">
+                                            {cobroEditando._cumple.tipo === 'regalo'
+                                                ? t('🎂 Cumpleaños de {nombre}: regalo «{regalo}»', { nombre: cobroEditando.cliente_nombre || '', regalo: cobroEditando._cumple.regalo })
+                                                : cobroEditando._cualDescuento === 'cumpleanos'
+                                                    ? t('🎂 Cumpleaños de {nombre}: {pct}% de descuento ya sugerido en el monto.', { nombre: cobroEditando.cliente_nombre || '', pct: cobroEditando._cumple.pct })
+                                                    : t('🎂 Cumpleaños de {nombre}: {pct}% de descuento, pero se sugirió el de fidelidad porque es mayor.', { nombre: cobroEditando.cliente_nombre || '', pct: cobroEditando._cumple.pct })}
+                                        </p>
+                                        <label className="mt-2 flex items-start gap-2 min-h-[44px] items-center cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={cobroForm.cumple_usada !== false}
+                                                onChange={(e) => setCobroForm({ ...cobroForm, cumple_usada: e.target.checked })}
+                                                className="h-5 w-5 shrink-0"
+                                            />
+                                            <span>{t('Dar la bonificación de cumpleaños (se anota que ya la recibió este año)')}</span>
+                                        </label>
                                     </div>
                                 )}
                                 <div>
@@ -6032,7 +6179,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                                             <div key={claveId} className="p-3 sm:p-4 flex flex-wrap sm:flex-nowrap items-center gap-3">
                                                 <span className="shrink-0 text-sm font-bold bg-pink-100 text-pink-700 px-2.5 py-1 rounded-full">{formatTo12Hour(b.hora_inicio)}</span>
                                                 <div className="min-w-0 flex-1">
-                                                    <p className="font-semibold text-gray-900 truncate">{b.cliente_nombre}</p>
+                                                    <p className="font-semibold text-gray-900 truncate">{b.cliente_nombre}{marcaCumple(b)}</p>
                                                     <p className="text-xs text-gray-500 truncate">
                                                         {b.servicio}{(b.profesional_nombre || b.trabajador_nombre) ? ` · ${b.profesional_nombre || b.trabajador_nombre}` : ''}
                                                     </p>
