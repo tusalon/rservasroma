@@ -1,6 +1,6 @@
 ﻿// sw.js - Service Worker para Rservasroma
 
-const CACHE_NAME = 'rservasroma-v126';
+const CACHE_NAME = 'rservasroma-v127';
 const BASE = '/rservasroma';
 
 const urlsToCache = [
@@ -17,10 +17,10 @@ const urlsToCache = [
 
   // App principal (JSX pre-compilado en compiled/ â€” ver scripts/build-jsx.sh)
   `${BASE}/compiled/client-app.js?v=20261007-cumple1`,
-  `${BASE}/compiled/admin-app.js?v=20261007-cumple1`,
+  `${BASE}/compiled/admin-app.js?v=20261008-espera1`,
 
   // Utils
-  `${BASE}/utils/api.js?v=20260903-aprobacion1`,
+  `${BASE}/utils/api.js?v=20261008-espera1`,
   `${BASE}/utils/auth-clients.js?v=20261007-cumple1`,
   `${BASE}/utils/auth-profesionales.js?v=20260920-telpaislogin1`,
   `${BASE}/utils/config.js`,
@@ -29,7 +29,7 @@ const urlsToCache = [
   `${BASE}/utils/hero-backgrounds.js?v=20260723-fotos`,
   `${BASE}/utils/native-push-notifications.js?v=20260722-platform-v4`,
   `${BASE}/utils/offline-panel.js`,
-  `${BASE}/utils/config-negocio-master.js?v=20260924-sinblob1`,
+  `${BASE}/utils/config-negocio-master.js?v=20261008-espera1`,
   `${BASE}/utils/i18n.js?v=20260904-recordar1`,
   `${BASE}/utils/cuba-geo.js?v=20260727-wizard-ubicacion1`,
   `${BASE}/utils/phone-utils.js?v=20260920-telpaislogin1`,
@@ -42,13 +42,14 @@ const urlsToCache = [
   `${BASE}/utils/suscripcion.js?v=20260904-recordar1`,
   `${BASE}/utils/supabase-config.js?v=20260723-fotos`,
   `${BASE}/utils/timeLogic.js`,
-  `${BASE}/utils/whatsapp-helper.js?v=20260926-generico1`,
+  `${BASE}/utils/whatsapp-helper.js?v=20261008-espera1`,
   `${BASE}/utils/soporte.js?v=20260906-soporteA1`,
   `${BASE}/utils/legacy-ios-fallback.css?v=20260904-bordes1`,
   `${BASE}/utils/roma-typography.css?v=20260731-tipografia`,
   `${BASE}/utils/roma-theme.js?v=20260731-tipografia`,
   `${BASE}/utils/fidelizacion.js?v=20260912-fidelidad1`,
   `${BASE}/utils/cumpleanos.js?v=20261007-cumple1`,
+  `${BASE}/utils/lista-espera.js?v=20261008-espera1`,
   `${BASE}/utils/clientes-conocidos.js?v=20260913-conocidos1`,
   `${BASE}/utils/frases-motivacionales.js?v=20260826-frases1`,
 
@@ -73,9 +74,10 @@ const urlsToCache = [
   `${BASE}/compiled/components/admin/ConfigPanel.js?v=20260731-marca`,
   `${BASE}/compiled/components/admin/CatalogoPanel.js?v=20260906-precios1`,
   `${BASE}/compiled/components/admin/RomaHubActivacion.js?v=20260731-marca`,
-  `${BASE}/compiled/components/admin/EditarNegocio.js?v=20261007-cumple1`,
+  `${BASE}/compiled/components/admin/EditarNegocio.js?v=20261008-espera1`,
   `${BASE}/compiled/components/admin/HorariosPorDiaPanel.js?v=20260723-jsx1`,
   `${BASE}/compiled/components/admin/HorariosExcepcionPanel.js?v=20260723-jsx1`,
+  `${BASE}/compiled/components/admin/ListaEsperaPanel.js?v=20261008-espera1`,
   `${BASE}/compiled/components/admin/ProfesionalesPanel.js?v=20260919-telqatar1`,
   `${BASE}/compiled/components/admin/ImportarServicios.js?v=20260723-jsx1`,
   `${BASE}/compiled/components/admin/ServiciosPanelCategorias.js?v=20260926-generico1`,

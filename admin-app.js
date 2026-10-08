@@ -538,7 +538,50 @@ function AdminApp() {
         setFraseDelDia(null);
     };
     
-    const [tabActivo, setTabActivo] = React.useState('reservas');
+    // ?ir=lista-espera es el enlace del aviso "se libero un turno": abre el panel
+    // directo en la lista de espera (solo si su rol puede verla).
+    const [tabActivo, setTabActivo] = React.useState(() => {
+        try {
+            const veLista = !profesionalInicial || (profesionalInicial.nivel || 3) >= 2;
+            if (veLista && new URLSearchParams(window.location.search).get('ir') === 'lista-espera') return 'lista-espera';
+        } catch (e) {}
+        return 'reservas';
+    });
+
+    // Lista de espera: filas 'notificada' = el turno se libero y aun no se avisa a la
+    // clienta. Se cuenta aqui (no en el panel) para la insignia y el aviso de arriba.
+    const puedeVerListaEspera = userRole === 'admin' || (userRole === 'profesional' && userNivel >= 2);
+    const [esperaLibres, setEsperaLibres] = React.useState([]);
+    const [avisoEsperaCerrado, setAvisoEsperaCerrado] = React.useState(0);
+    const cargarEsperaLibres = React.useCallback(async () => {
+        if (!puedeVerListaEspera) return;
+        try {
+            const negocioId = getNegocioId();
+            if (!negocioId) return;
+            let url = `${window.SUPABASE_URL}/rest/v1/lista_espera?negocio_id=eq.${negocioId}&estado=eq.notificada&fecha=gte.${getCurrentLocalDate()}&select=id,cliente_nombre`;
+            if (userRole === 'profesional' && profesional?.id) url += `&profesional_id=eq.${profesional.id}`;
+            const res = await fetch(url, {
+                headers: { apikey: window.SUPABASE_ANON_KEY, Authorization: `Bearer ${window.SUPABASE_ANON_KEY}` },
+                cache: 'no-store'
+            });
+            if (!res.ok) return; // sin la tabla o sin permiso: sin aviso y sin ruido
+            setEsperaLibres(await res.json());
+        } catch (e) {
+            // sin red: se reintenta en el siguiente ciclo
+        }
+    }, [puedeVerListaEspera, userRole, profesional?.id]);
+    React.useEffect(() => {
+        cargarEsperaLibres();
+        const cadaDosMinutos = setInterval(cargarEsperaLibres, 120000);
+        const alVolver = () => { if (!document.hidden) cargarEsperaLibres(); };
+        document.addEventListener('visibilitychange', alVolver);
+        window.addEventListener('rservas:lista-espera-cambio', cargarEsperaLibres);
+        return () => {
+            clearInterval(cadaDosMinutos);
+            document.removeEventListener('visibilitychange', alVolver);
+            window.removeEventListener('rservas:lista-espera-cambio', cargarEsperaLibres);
+        };
+    }, [cargarEsperaLibres]);
     const [agendaDate, setAgendaDate] = React.useState(new Date());
     const [agendaMode, setAgendaMode] = React.useState('dia');
     const [agendaDetalleBooking, setAgendaDetalleBooking] = React.useState(null);
@@ -4466,6 +4509,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
         if (userRole === 'admin' || (userRole === 'profesional' && userNivel >= 2)) {
             tabs.push({ id: 'configuracion', icono: '⚙️', label: t('Configuración') });
             tabs.push({ id: 'clientes', icono: '👥', label: t('Clientes') });
+            tabs.push({ id: 'lista-espera', icono: '⏳', label: t('Lista de espera') + (esperaLibres.length ? ` (${esperaLibres.length})` : '') });
         }
 
         if (userRole === 'admin' || (userRole === 'profesional' && userNivel >= 3)) {
@@ -5432,6 +5476,22 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                     </div>
                 )}
 
+                {esperaLibres.length > 0 && tabActivo !== 'lista-espera' && avisoEsperaCerrado !== esperaLibres.length && (
+                    <div role="status" className="bg-green-50 border border-green-300 rounded-xl p-3 flex flex-wrap items-center gap-3">
+                        <span className="flex-1 min-w-[200px] text-sm text-green-900">
+                            {esperaLibres.length === 1
+                                ? t('Se liberó un turno y {nombre} está en lista de espera.', { nombre: esperaLibres[0].cliente_nombre || '' })
+                                : t('Se liberaron {n} turnos con clientas en lista de espera.', { n: esperaLibres.length })}
+                        </span>
+                        <button type="button" onClick={() => setTabActivo('lista-espera')} className="px-4 min-h-11 rounded-lg bg-green-600 text-white text-sm font-semibold hover:bg-green-700">
+                            {t('Ver lista de espera')}
+                        </button>
+                        <button type="button" aria-label={t('Cerrar aviso')} onClick={() => setAvisoEsperaCerrado(esperaLibres.length)} className="min-h-11 min-w-11 rounded-lg text-green-900 hover:bg-green-100">
+                            ✕
+                        </button>
+                    </div>
+                )}
+
                 {/* PESTAÑAS */}
                 <div className="bg-white p-2 rounded-xl shadow-sm flex flex-wrap gap-2">
                     {tabsDisponibles.map(tab => (
@@ -5457,6 +5517,14 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                             onProfesionalInicialUsado={() => setProfesionalHorarioInicial(null)}
                         />
                     </div>
+                )}
+
+                {tabActivo === 'lista-espera' && puedeVerListaEspera && (
+                    <ListaEsperaPanel
+                        profesionalId={userRole === 'profesional' ? profesional?.id : null}
+                        nombreSalon={nombreNegocio}
+                        onCambio={cargarEsperaLibres}
+                    />
                 )}
 
                 {tabActivo === 'servicios' && (userRole === 'admin' || userNivel >= 3) && (

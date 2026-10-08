@@ -45,6 +45,7 @@ function EditarNegocio() {
         tiempo_vencimiento: 2,
         whatsapp_moneda: 'CUP',
         whatsapp_mostrar_costos: true,
+        whatsapp_envio_automatico: true,
         // 🆕 FIDELIZACIÓN: cada N citas completadas, la siguiente tiene descuento
         fidelizacion_activa: false,
         fidelizacion_cada_citas: 5,
@@ -140,6 +141,7 @@ function EditarNegocio() {
                     tiempo_vencimiento: configData.tiempo_vencimiento || 2,
                     whatsapp_moneda: ['CUP', 'USD', 'EUR', 'MXN'].includes(String(configData.whatsapp_moneda || '').toUpperCase()) ? String(configData.whatsapp_moneda).toUpperCase() : 'CUP',
                     whatsapp_mostrar_costos: configData.whatsapp_mostrar_costos !== false,
+                    whatsapp_envio_automatico: configData.whatsapp_envio_automatico !== false,
                     // 🆕 CARGAR CAMPOS DE FIDELIZACIÓN
                     fidelizacion_activa: configData.fidelizacion_activa === true,
                     fidelizacion_cada_citas: configData.fidelizacion_cada_citas || 5,
@@ -300,6 +302,7 @@ function EditarNegocio() {
                 tiempo_vencimiento: config.tiempo_vencimiento ? parseInt(config.tiempo_vencimiento) : 2,
                 whatsapp_moneda: ['CUP', 'USD', 'EUR', 'MXN'].includes(String(config.whatsapp_moneda || '').toUpperCase()) ? String(config.whatsapp_moneda).toUpperCase() : 'CUP',
                 whatsapp_mostrar_costos: config.whatsapp_mostrar_costos !== false,
+                whatsapp_envio_automatico: config.whatsapp_envio_automatico !== false,
                 // 🆕 INCLUIR CAMPOS DE FIDELIZACIÓN
                 fidelizacion_activa: config.fidelizacion_activa === true,
                 fidelizacion_cada_citas: Math.max(1, parseInt(config.fidelizacion_cada_citas, 10) || 5),
@@ -339,7 +342,7 @@ function EditarNegocio() {
             if (!response.ok) {
                 const errorText = await response.text();
                 console.error('❌ Error response:', errorText);
-                if (errorText.includes('codigo_pais') || errorText.includes('whatsapp_moneda') || errorText.includes('whatsapp_mostrar_costos') || errorText.includes('anticipos_por_servicio') || errorText.includes('municipio') || errorText.includes('provincia') || errorText.includes('imagen_fondo_url') || errorText.includes('fidelizacion') || errorText.includes('cumple_') || errorText.includes('aprobar_clientes_nuevos')) {
+                if (errorText.includes('codigo_pais') || errorText.includes('whatsapp_moneda') || errorText.includes('whatsapp_mostrar_costos') || errorText.includes('whatsapp_envio_automatico') || errorText.includes('anticipos_por_servicio') || errorText.includes('municipio') || errorText.includes('provincia') || errorText.includes('imagen_fondo_url') || errorText.includes('fidelizacion') || errorText.includes('cumple_') || errorText.includes('aprobar_clientes_nuevos')) {
                     const datosCompatibles = { ...datosActualizar };
                     if (errorText.includes('codigo_pais')) delete datosCompatibles.codigo_pais;
                     if (errorText.includes('anticipos_por_servicio')) delete datosCompatibles.anticipos_por_servicio;
@@ -355,6 +358,7 @@ function EditarNegocio() {
                         Object.keys(datosCompatibles).filter(clave => clave.startsWith('cumple_')).forEach(clave => delete datosCompatibles[clave]);
                     }
                     if (errorText.includes('aprobar_clientes_nuevos')) delete datosCompatibles.aprobar_clientes_nuevos;
+                    if (errorText.includes('whatsapp_envio_automatico')) delete datosCompatibles.whatsapp_envio_automatico;
                     if (errorText.includes('whatsapp_moneda') || errorText.includes('whatsapp_mostrar_costos')) {
                         delete datosCompatibles.whatsapp_moneda;
                         delete datosCompatibles.whatsapp_mostrar_costos;
@@ -1232,6 +1236,28 @@ function EditarNegocio() {
                                     <p className="text-xs text-gray-400 mt-1">
                                         {t('Variables:')} {'{cliente}'}, {'{nombre_negocio}'}, {'{servicio}'}, {'{fecha}'}, {'{hora}'}, {'{profesional}'}.
                                     </p>
+                                </div>
+                                <div className="rounded-xl border border-green-100 bg-green-50 p-4">
+                                    <div className="flex items-start justify-between gap-4">
+                                        <div>
+                                            <h3 className="font-semibold text-gray-900">{t('Enviar mensajes por WhatsApp')}</h3>
+                                            <p className="text-xs text-gray-600 mt-1">
+                                                {config.whatsapp_envio_automatico !== false
+                                                    ? t('Al crear, cambiar o cobrar una reserva, el panel abre WhatsApp con el mensaje para tu clienta.')
+                                                    : t('Apagado: el panel no abre WhatsApp solo. Te deja un aviso con el botón Enviar para mandarlo cuando tú quieras.')}
+                                            </p>
+                                        </div>
+                                        <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                                            <input
+                                                type="checkbox"
+                                                aria-label={t('Enviar mensajes por WhatsApp')}
+                                                checked={config.whatsapp_envio_automatico !== false}
+                                                onChange={(e) => setConfig({...config, whatsapp_envio_automatico: e.target.checked})}
+                                                className="sr-only peer"
+                                            />
+                                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+                                        </label>
+                                    </div>
                                 </div>
                                 <div className="rounded-xl border border-amber-100 bg-amber-50 p-4">
                                     <div className="flex items-start justify-between gap-4 mb-4">

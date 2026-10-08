@@ -290,7 +290,9 @@ function normalizarPreferenciasWhatsApp(config = {}) {
     const moneda = String(config.whatsapp_moneda || 'CUP').toUpperCase();
     return {
         moneda: ['CUP', 'USD', 'EUR', 'MXN'].includes(moneda) ? moneda : 'CUP',
-        mostrarCostos: config.whatsapp_mostrar_costos !== false
+        mostrarCostos: config.whatsapp_mostrar_costos !== false,
+        // false = el panel de la admin no abre WhatsApp solo (sql-whatsapp-envio-admin.sql)
+        envioAutomatico: config.whatsapp_envio_automatico !== false
     };
 }
 
@@ -424,6 +426,7 @@ async function pedirConfigNegocioARed(negocioId, LS_CFG_KEY) {
             const pref = normalizarPreferenciasWhatsApp(configCache);
             configCache.whatsapp_moneda = pref.moneda;
             configCache.whatsapp_mostrar_costos = pref.mostrarCostos;
+            configCache.whatsapp_envio_automatico = pref.envioAutomatico;
             if (window.setCodigoPaisTelefono) {
                 window.setCodigoPaisTelefono(configCache.codigo_pais || configCache.codigo_pais_telefono || '53');
             }

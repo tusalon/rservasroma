@@ -356,14 +356,19 @@ Clienta en lista de espera:
 Nombre: ${espera.cliente_nombre}
 WhatsApp: ${espera.cliente_whatsapp}`;
 
+        // El toque en el aviso lleva a la admin directo al panel "Lista de espera"
+        // (?ir=lista-espera). Antes ademas se abria WhatsApp hacia el telefono del
+        // propio salon: era un mensaje a si misma y no respetaba el interruptor
+        // "Enviar mensajes por WhatsApp". El WhatsApp a la clienta lo manda la
+        // admin desde ese panel.
         if (window.enviarNotificacionPush) {
-            await window.enviarNotificacionPush('Lista de espera: turno liberado', mensaje, 'bell', 'high');
+            await window.enviarNotificacionPush('Lista de espera: turno liberado', mensaje, 'bell', 'high', {
+                ir: 'lista-espera',
+                profesionalId: booking.profesional_id
+            });
         }
 
         const config = window.cargarConfiguracionNegocio ? await window.cargarConfiguracionNegocio(true) : {};
-        if (window.enviarWhatsApp && config?.telefono) {
-            window.enviarWhatsApp(config.telefono, mensaje);
-        }
 
         // Push directo a la clienta en espera: antes solo se avisaba al admin y
         // la entrada quedaba marcada como "notificada" sin que la clienta se
@@ -392,6 +397,10 @@ WhatsApp: ${espera.cliente_whatsapp}`;
                 })
             }
         );
+
+        // Si la admin tiene el panel abierto (la cancelacion la hizo ella), se entera
+        // al momento: admin-app.js escucha este evento.
+        window.dispatchEvent(new CustomEvent('rservas:lista-espera-cambio'));
 
         return true;
     } catch (error) {

@@ -413,7 +413,47 @@ function AdminApp() {
     }
     setFraseDelDia(null);
   };
-  const [tabActivo, setTabActivo] = React.useState("reservas");
+  const [tabActivo, setTabActivo] = React.useState(() => {
+    try {
+      const veLista = !profesionalInicial || (profesionalInicial.nivel || 3) >= 2;
+      if (veLista && new URLSearchParams(window.location.search).get("ir") === "lista-espera") return "lista-espera";
+    } catch (e) {
+    }
+    return "reservas";
+  });
+  const puedeVerListaEspera = userRole === "admin" || userRole === "profesional" && userNivel >= 2;
+  const [esperaLibres, setEsperaLibres] = React.useState([]);
+  const [avisoEsperaCerrado, setAvisoEsperaCerrado] = React.useState(0);
+  const cargarEsperaLibres = React.useCallback(async () => {
+    if (!puedeVerListaEspera) return;
+    try {
+      const negocioId = getNegocioId();
+      if (!negocioId) return;
+      let url = `${window.SUPABASE_URL}/rest/v1/lista_espera?negocio_id=eq.${negocioId}&estado=eq.notificada&fecha=gte.${getCurrentLocalDate()}&select=id,cliente_nombre`;
+      if (userRole === "profesional" && profesional?.id) url += `&profesional_id=eq.${profesional.id}`;
+      const res = await fetch(url, {
+        headers: { apikey: window.SUPABASE_ANON_KEY, Authorization: `Bearer ${window.SUPABASE_ANON_KEY}` },
+        cache: "no-store"
+      });
+      if (!res.ok) return;
+      setEsperaLibres(await res.json());
+    } catch (e) {
+    }
+  }, [puedeVerListaEspera, userRole, profesional?.id]);
+  React.useEffect(() => {
+    cargarEsperaLibres();
+    const cadaDosMinutos = setInterval(cargarEsperaLibres, 12e4);
+    const alVolver = () => {
+      if (!document.hidden) cargarEsperaLibres();
+    };
+    document.addEventListener("visibilitychange", alVolver);
+    window.addEventListener("rservas:lista-espera-cambio", cargarEsperaLibres);
+    return () => {
+      clearInterval(cadaDosMinutos);
+      document.removeEventListener("visibilitychange", alVolver);
+      window.removeEventListener("rservas:lista-espera-cambio", cargarEsperaLibres);
+    };
+  }, [cargarEsperaLibres]);
   const [agendaDate, setAgendaDate] = React.useState(/* @__PURE__ */ new Date());
   const [agendaMode, setAgendaMode] = React.useState("dia");
   const [agendaDetalleBooking, setAgendaDetalleBooking] = React.useState(null);
@@ -3527,6 +3567,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
     if (userRole === "admin" || userRole === "profesional" && userNivel >= 2) {
       tabs.push({ id: "configuracion", icono: "⚙️", label: t2("Configuración") });
       tabs.push({ id: "clientes", icono: "👥", label: t2("Clientes") });
+      tabs.push({ id: "lista-espera", icono: "⏳", label: t2("Lista de espera") + (esperaLibres.length ? ` (${esperaLibres.length})` : "") });
     }
     if (userRole === "admin" || userRole === "profesional" && userNivel >= 3) {
       tabs.push({ id: "servicios", icono: "✨", label: t2("Servicios") });
@@ -4003,7 +4044,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
     else if (disponible) className += " bg-white text-gray-800 border-gray-200 hover:bg-gray-50";
     else className += " bg-gray-100 text-gray-400 border-gray-200";
     return /* @__PURE__ */ React.createElement("div", { key: idx, className, title: esCerrado ? t2("Día cerrado") : esPasado ? t2("Fecha pasada") : disponible ? t2("{n} turno(s) disponible(s)", { n: disponiblesDia }) : t2("Sin horarios disponibles") }, /* @__PURE__ */ React.createElement("span", { className: "text-base leading-tight" }, date.getDate()), !esCerrado && !esPasado && /* @__PURE__ */ React.createElement("span", { className: `mt-0.5 min-w-5 px-1.5 py-0.5 rounded-full border text-[11px] font-bold leading-none ${tonoConteo}` }, disponiblesDia), esCerrado && /* @__PURE__ */ React.createElement("span", { className: "text-xs" }, "x"));
-  }))), modoDisponibilidad === "mes" && /* @__PURE__ */ React.createElement("div", { className: "mt-4 p-3 bg-gray-50 rounded-lg text-xs" }, /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-4" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2" }, /* @__PURE__ */ React.createElement("div", { className: "w-5 h-5 bg-green-100 border border-green-300 rounded-full flex items-center justify-center text-[10px] font-bold text-green-700" }, "6"), /* @__PURE__ */ React.createElement("span", null, t2("4+ tranquilo"))), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2" }, /* @__PURE__ */ React.createElement("div", { className: "w-5 h-5 bg-yellow-100 border border-yellow-300 rounded-full flex items-center justify-center text-[10px] font-bold text-yellow-700" }, "3"), /* @__PURE__ */ React.createElement("span", null, t2("3 medio"))), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2" }, /* @__PURE__ */ React.createElement("div", { className: "w-5 h-5 bg-red-100 border border-red-300 rounded-full flex items-center justify-center text-[10px] font-bold text-red-700" }, "2"), /* @__PURE__ */ React.createElement("span", null, t2("1-2 urgente"))), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2" }, /* @__PURE__ */ React.createElement("div", { className: "w-5 h-5 bg-gray-100 border border-gray-200 rounded-full flex items-center justify-center text-[10px] font-bold text-gray-400" }, "0"), /* @__PURE__ */ React.createElement("span", null, t2("Sin horarios"))))))), /* @__PURE__ */ React.createElement("div", { className: "bg-white p-2 rounded-xl shadow-sm flex flex-wrap gap-2" }, tabsDisponibles.map((tab) => /* @__PURE__ */ React.createElement("button", { key: tab.id, onClick: () => tab.url ? window.location.href = tab.url : setTabActivo(tab.id), className: `px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 ${tabActivo === tab.id ? "bg-pink-500 text-white shadow-md" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}` }, /* @__PURE__ */ React.createElement("span", null, tab.icono), /* @__PURE__ */ React.createElement("span", null, tab.label)))), tabActivo === "estadisticas" && renderEstadisticas(), tabActivo === "configuracion" && /* @__PURE__ */ React.createElement("div", { className: "space-y-4" }, userRole === "admin" && /* @__PURE__ */ React.createElement(RomaHubActivacion, null), /* @__PURE__ */ React.createElement(
+  }))), modoDisponibilidad === "mes" && /* @__PURE__ */ React.createElement("div", { className: "mt-4 p-3 bg-gray-50 rounded-lg text-xs" }, /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-4" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2" }, /* @__PURE__ */ React.createElement("div", { className: "w-5 h-5 bg-green-100 border border-green-300 rounded-full flex items-center justify-center text-[10px] font-bold text-green-700" }, "6"), /* @__PURE__ */ React.createElement("span", null, t2("4+ tranquilo"))), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2" }, /* @__PURE__ */ React.createElement("div", { className: "w-5 h-5 bg-yellow-100 border border-yellow-300 rounded-full flex items-center justify-center text-[10px] font-bold text-yellow-700" }, "3"), /* @__PURE__ */ React.createElement("span", null, t2("3 medio"))), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2" }, /* @__PURE__ */ React.createElement("div", { className: "w-5 h-5 bg-red-100 border border-red-300 rounded-full flex items-center justify-center text-[10px] font-bold text-red-700" }, "2"), /* @__PURE__ */ React.createElement("span", null, t2("1-2 urgente"))), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2" }, /* @__PURE__ */ React.createElement("div", { className: "w-5 h-5 bg-gray-100 border border-gray-200 rounded-full flex items-center justify-center text-[10px] font-bold text-gray-400" }, "0"), /* @__PURE__ */ React.createElement("span", null, t2("Sin horarios"))))))), esperaLibres.length > 0 && tabActivo !== "lista-espera" && avisoEsperaCerrado !== esperaLibres.length && /* @__PURE__ */ React.createElement("div", { role: "status", className: "bg-green-50 border border-green-300 rounded-xl p-3 flex flex-wrap items-center gap-3" }, /* @__PURE__ */ React.createElement("span", { className: "flex-1 min-w-[200px] text-sm text-green-900" }, esperaLibres.length === 1 ? t2("Se liberó un turno y {nombre} está en lista de espera.", { nombre: esperaLibres[0].cliente_nombre || "" }) : t2("Se liberaron {n} turnos con clientas en lista de espera.", { n: esperaLibres.length })), /* @__PURE__ */ React.createElement("button", { type: "button", onClick: () => setTabActivo("lista-espera"), className: "px-4 min-h-11 rounded-lg bg-green-600 text-white text-sm font-semibold hover:bg-green-700" }, t2("Ver lista de espera")), /* @__PURE__ */ React.createElement("button", { type: "button", "aria-label": t2("Cerrar aviso"), onClick: () => setAvisoEsperaCerrado(esperaLibres.length), className: "min-h-11 min-w-11 rounded-lg text-green-900 hover:bg-green-100" }, "✕")), /* @__PURE__ */ React.createElement("div", { className: "bg-white p-2 rounded-xl shadow-sm flex flex-wrap gap-2" }, tabsDisponibles.map((tab) => /* @__PURE__ */ React.createElement("button", { key: tab.id, onClick: () => tab.url ? window.location.href = tab.url : setTabActivo(tab.id), className: `px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 ${tabActivo === tab.id ? "bg-pink-500 text-white shadow-md" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}` }, /* @__PURE__ */ React.createElement("span", null, tab.icono), /* @__PURE__ */ React.createElement("span", null, tab.label)))), tabActivo === "estadisticas" && renderEstadisticas(), tabActivo === "configuracion" && /* @__PURE__ */ React.createElement("div", { className: "space-y-4" }, userRole === "admin" && /* @__PURE__ */ React.createElement(RomaHubActivacion, null), /* @__PURE__ */ React.createElement(
     ConfigPanel,
     {
       profesionalId: userRole === "profesional" ? profesional?.id : null,
@@ -4011,7 +4052,14 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
       profesionalInicial: profesionalHorarioInicial,
       onProfesionalInicialUsado: () => setProfesionalHorarioInicial(null)
     }
-  )), tabActivo === "servicios" && (userRole === "admin" || userNivel >= 3) && /* @__PURE__ */ React.createElement(ServiciosPanel, null), tabActivo === "catalogo" && (userRole === "admin" || userNivel >= 3) && /* @__PURE__ */ React.createElement(CatalogoPanel, null), tabActivo === "profesionales" && (userRole === "admin" || userNivel >= 3) && /* @__PURE__ */ React.createElement(ProfesionalesPanel, null), tabActivo === "clientes" && (userRole === "admin" || userNivel >= 2) && /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-xl shadow-sm p-6" }, /* @__PURE__ */ React.createElement("div", { className: "flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-5" }, /* @__PURE__ */ React.createElement("h2", { className: "text-xl font-bold" }, t2("Clientes Registrados ({n})", { n: clientesRegistrados.length }), clientesPendientes.length > 0 && /* @__PURE__ */ React.createElement("span", { className: "ml-2 px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 border border-amber-200 text-xs font-bold align-middle" }, t2("{n} esperando tu respuesta", { n: clientesPendientes.length }))), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500" }, t2("Score calculado con el historial de reservas, completadas y canceladas.")), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-2" }, (userRole === "admin" || userNivel >= 3) && /* @__PURE__ */ React.createElement("label", { className: `px-4 py-2 rounded-lg bg-gray-900 text-white text-sm font-bold hover:bg-black cursor-pointer ${importandoClientesCsv ? "opacity-60 pointer-events-none" : ""}` }, importandoClientesCsv ? t2("Importando...") : t2("Cargar CSV"), /* @__PURE__ */ React.createElement("input", { type: "file", accept: ".csv,text/csv", onChange: handleImportarClientesCsv, className: "hidden", disabled: importandoClientesCsv })), /* @__PURE__ */ React.createElement("button", { onClick: () => {
+  )), tabActivo === "lista-espera" && puedeVerListaEspera && /* @__PURE__ */ React.createElement(
+    ListaEsperaPanel,
+    {
+      profesionalId: userRole === "profesional" ? profesional?.id : null,
+      nombreSalon: nombreNegocio,
+      onCambio: cargarEsperaLibres
+    }
+  ), tabActivo === "servicios" && (userRole === "admin" || userNivel >= 3) && /* @__PURE__ */ React.createElement(ServiciosPanel, null), tabActivo === "catalogo" && (userRole === "admin" || userNivel >= 3) && /* @__PURE__ */ React.createElement(CatalogoPanel, null), tabActivo === "profesionales" && (userRole === "admin" || userNivel >= 3) && /* @__PURE__ */ React.createElement(ProfesionalesPanel, null), tabActivo === "clientes" && (userRole === "admin" || userNivel >= 2) && /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-xl shadow-sm p-6" }, /* @__PURE__ */ React.createElement("div", { className: "flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-5" }, /* @__PURE__ */ React.createElement("h2", { className: "text-xl font-bold" }, t2("Clientes Registrados ({n})", { n: clientesRegistrados.length }), clientesPendientes.length > 0 && /* @__PURE__ */ React.createElement("span", { className: "ml-2 px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 border border-amber-200 text-xs font-bold align-middle" }, t2("{n} esperando tu respuesta", { n: clientesPendientes.length }))), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500" }, t2("Score calculado con el historial de reservas, completadas y canceladas.")), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-2" }, (userRole === "admin" || userNivel >= 3) && /* @__PURE__ */ React.createElement("label", { className: `px-4 py-2 rounded-lg bg-gray-900 text-white text-sm font-bold hover:bg-black cursor-pointer ${importandoClientesCsv ? "opacity-60 pointer-events-none" : ""}` }, importandoClientesCsv ? t2("Importando...") : t2("Cargar CSV"), /* @__PURE__ */ React.createElement("input", { type: "file", accept: ".csv,text/csv", onChange: handleImportarClientesCsv, className: "hidden", disabled: importandoClientesCsv })), /* @__PURE__ */ React.createElement("button", { onClick: () => {
     setShowClientesRegistrados(!showClientesRegistrados);
     if (!showClientesRegistrados) {
       loadClientesRegistrados();

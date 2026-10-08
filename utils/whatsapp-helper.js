@@ -358,8 +358,66 @@ window.esIOS = function() {
            (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 };
 
-window.enviarWhatsApp = function(telefono, mensaje) {
+// El panel de la admin puede tener el envio automatico apagado
+// (negocios.whatsapp_envio_automatico). Solo cuenta en admin.html: en las
+// pantallas de la clienta el mensaje lo dispara ella y se abre siempre.
+window.whatsappAutomaticoActivo = function() {
+    if (!/(^|\/)admin\.html$/.test(window.location.pathname)) return true;
     try {
+        return window.getPreferenciasWhatsAppNegocio?.().envioAutomatico !== false;
+    } catch (e) {
+        return true;
+    }
+};
+
+// Con el envio automatico apagado el mensaje no se pierde: queda un aviso con
+// boton para mandarlo a mano (el clic es un gesto del usuario, WhatsApp abre).
+const _whatsappPendientes = new Set();
+function avisarWhatsAppPendiente(telefono, mensaje) {
+    const clave = telefono + '|' + mensaje;
+    if (_whatsappPendientes.has(clave)) return;
+    _whatsappPendientes.add(clave);
+
+    const tr = window.t || (x => x);
+    let caja = document.getElementById('rservas-wa-pendientes');
+    if (!caja) {
+        caja = document.createElement('div');
+        caja.id = 'rservas-wa-pendientes';
+        caja.setAttribute('role', 'status');
+        caja.style.cssText = 'position:fixed;left:0;right:0;bottom:16px;z-index:10000;display:flex;flex-direction:column;align-items:center;gap:8px;padding:0 12px;pointer-events:none';
+        document.body.appendChild(caja);
+    }
+    const fila = document.createElement('div');
+    fila.style.cssText = 'pointer-events:auto;display:flex;align-items:center;gap:10px;flex-wrap:wrap;max-width:420px;width:100%;background:#111827;color:#fff;border-radius:14px;padding:10px 12px;box-shadow:0 8px 24px rgba(0,0,0,.25);font:14px/1.3 system-ui,sans-serif';
+    const texto = document.createElement('span');
+    texto.style.cssText = 'flex:1 1 140px;min-width:0;overflow-wrap:anywhere';
+    // Primera linea del mensaje (suele traer el nombre) para saber a quien va.
+    const resumen = String(mensaje).replace(/[*_]/g, '').split('\n')[0].slice(0, 60);
+    texto.textContent = tr('WhatsApp sin enviar') + ' · ' + telefono + (resumen ? '\n' + resumen : '');
+    texto.style.whiteSpace = 'pre-line';
+    const cerrar = () => { _whatsappPendientes.delete(clave); fila.remove(); };
+    const enviar = document.createElement('button');
+    enviar.type = 'button';
+    enviar.textContent = tr('Enviar');
+    enviar.style.cssText = 'min-height:40px;padding:0 16px;border:0;border-radius:10px;background:#22c55e;color:#052e16;font-weight:700;cursor:pointer';
+    enviar.onclick = () => { window.enviarWhatsApp(telefono, mensaje, { forzar: true }); cerrar(); };
+    const descartar = document.createElement('button');
+    descartar.type = 'button';
+    descartar.textContent = tr('Descartar');
+    descartar.style.cssText = 'min-height:40px;padding:0 12px;border:0;border-radius:10px;background:transparent;color:#d1d5db;cursor:pointer';
+    descartar.onclick = cerrar;
+    fila.append(texto, enviar, descartar);
+    caja.appendChild(fila);
+}
+
+// opciones.forzar = true: acciones manuales de la admin (boton "Avisar por
+// WhatsApp") que se envian aunque el envio automatico este apagado.
+window.enviarWhatsApp = function(telefono, mensaje, opciones) {
+    try {
+        if (!(opciones && opciones.forzar) && !window.whatsappAutomaticoActivo()) {
+            avisarWhatsAppPendiente(telefono, mensaje);
+            return true;
+        }
         console.log('📤 enviarWhatsApp llamado a:', telefono);
 
         const numeroCompleto = window.normalizarTelefonoInternacional
@@ -417,9 +475,11 @@ window.enviarNotificacionPush = async function(titulo, mensaje, etiquetas = 'bel
         const safeTags = sanitizeNtfyHeader(etiquetas, 'bell');
         const safePriority = sanitizeNtfyHeader(prioridad, 'default');
         const profesionalId = options.profesionalId || options.profesional_id || null;
-        const urlAdmin = typeof window.construirUrlAdminNegocio === 'function'
+        let urlAdmin = typeof window.construirUrlAdminNegocio === 'function'
             ? window.construirUrlAdminNegocio(config)
             : '';
+        // options.ir: abre el panel directo en esa pantalla (admin-app.js lee ?ir=)
+        if (urlAdmin && options.ir) urlAdmin += '&ir=' + encodeURIComponent(options.ir);
 
         console.log(`📢 Enviando push a ntfy.sh/${topic}:`, titulo);
 
@@ -429,7 +489,8 @@ window.enviarNotificacionPush = async function(titulo, mensaje, etiquetas = 'bel
             headers: {
                 'Title': safeTitle,
                 'Priority': safePriority,
-                'Tags': safeTags
+                'Tags': safeTags,
+                ...(options.ir && urlAdmin ? { 'Click': urlAdmin } : {})
             }
         });
 
