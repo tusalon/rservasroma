@@ -1,6 +1,6 @@
 ﻿// sw.js - Service Worker para Rservasroma
 
-const CACHE_NAME = 'rservasroma-v125';
+const CACHE_NAME = 'rservasroma-v126';
 const BASE = '/rservasroma';
 
 const urlsToCache = [
@@ -99,7 +99,10 @@ const urlsToCache = [
   `${BASE}/icons/icon-192x192.png`,
   `${BASE}/icons/icon-384x384.png`,
   `${BASE}/icons/icon-512x512.png`,
-  `${BASE}/icons/badge.svg`,
+  `${BASE}/icons/icon-any-192x192.png`,
+  `${BASE}/icons/apple-touch-icon.png`,
+  `${BASE}/icons/favicon-32.png`,
+  `${BASE}/icons/badge-96.png`,
 ];
 
 // URLs externas â€” nunca interceptar
@@ -185,8 +188,10 @@ self.addEventListener('fetch', event => {
       theme_color: '#FF1493',
       background_color: '#1A1A1A',
       icons: [
-        { src: BASE_URL + '/icons/icon-192x192.png', sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
-        { src: BASE_URL + '/icons/icon-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' }
+        { src: BASE_URL + '/icons/icon-any-192x192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+        { src: BASE_URL + '/icons/icon-any-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+        { src: BASE_URL + '/icons/icon-192x192.png', sizes: '192x192', type: 'image/png', purpose: 'maskable' },
+        { src: BASE_URL + '/icons/icon-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' }
       ]
     };
 
@@ -331,7 +336,7 @@ self.addEventListener('push', event => {
     await self.registration.showNotification(payload.title || 'RservasRoma', {
       body: payload.body || 'Tienes una nueva notificaciÃ³n',
       icon: `${BASE}/icons/icon-192x192.png`,
-      badge: `${BASE}/icons/badge.svg`,
+      badge: `${BASE}/icons/badge-96.png`,
       tag: payload.tag || 'rservasroma',
       data: { url: payload.url || `https://tusalon.github.io${BASE}/admin.html`, ...(payload.data || {}) },
     });
