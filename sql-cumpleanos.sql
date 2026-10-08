@@ -70,11 +70,13 @@ begin
        and coalesce(v_nuevo ->> 'romahub_estado', '') not in ('borrador', 'en_revision') then
       new := jsonb_populate_record(new, jsonb_build_object('romahub_estado', 'borrador'));
     end if;
-    -- Nadie se auto-concede el descuento al crear el negocio.
-    new.cumple_descuento_anio := null;
+    -- Nadie se auto-concede el descuento de cumpleanos al crear el negocio.
+    -- (Con jsonb: si la columna aun no existe, simplemente no hace nada.)
+    new := jsonb_populate_record(new, jsonb_build_object('cumple_descuento_anio', null));
     return new;
   end if;
 
+  -- Se compara como jsonb para no fallar si alguna columna aun no existe.
   v_viejo := to_jsonb(old);
   foreach v_col in array array['password_hash', 'es_tienda_externa', 'archivado', 'archivado_at', 'cumple_descuento_anio'] loop
     if v_nuevo -> v_col is distinct from v_viejo -> v_col then
@@ -83,11 +85,11 @@ begin
     end if;
   end loop;
 
-  -- El cumpleaños de la dueña se puede poner una vez; despues solo el SuperAdmin.
-  if old.cumple_admin_mes is not null
-     and (new.cumple_admin_mes is distinct from old.cumple_admin_mes
-          or new.cumple_admin_dia is distinct from old.cumple_admin_dia) then
-    raise exception 'El cumpleaños ya esta guardado: pide a soporte que lo cambie'
+  -- El cumpleanos de la duena se puede poner una vez; despues solo el SuperAdmin.
+  if v_viejo ->> 'cumple_admin_mes' is not null
+     and (v_nuevo -> 'cumple_admin_mes' is distinct from v_viejo -> 'cumple_admin_mes'
+          or v_nuevo -> 'cumple_admin_dia' is distinct from v_viejo -> 'cumple_admin_dia') then
+    raise exception 'El cumpleanos ya esta guardado: pide a soporte que lo cambie'
       using errcode = '42501';
   end if;
 
