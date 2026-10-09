@@ -1,0 +1,420 @@
+{
+  "nombre": "RservasRoma",
+  "base": [
+    {
+      "id": "rosa-roma",
+      "nombre": "Rosa Roma",
+      "hex": "#FB6095",
+      "rgb": [
+        251,
+        96,
+        149
+      ],
+      "hsl": [
+        339,
+        95,
+        68
+      ],
+      "uso": "El pug. Acentos grandes, ilustraciones, fondos de anuncio."
+    },
+    {
+      "id": "rosa-claro",
+      "nombre": "Rosa claro",
+      "hex": "#FE7AAB",
+      "rgb": [
+        254,
+        122,
+        171
+      ],
+      "hsl": [
+        338,
+        99,
+        74
+      ],
+      "uso": "Brillos, estados suaves, acento sobre fondo oscuro."
+    },
+    {
+      "id": "rosa-sombra",
+      "nombre": "Rosa sombra",
+      "hex": "#DE3768",
+      "rgb": [
+        222,
+        55,
+        104
+      ],
+      "hsl": [
+        342,
+        72,
+        54
+      ],
+      "uso": "Sombra del relieve, final de degradados."
+    },
+    {
+      "id": "rosa-profundo",
+      "nombre": "Rosa profundo",
+      "hex": "#CF2D5E",
+      "rgb": [
+        207,
+        45,
+        94
+      ],
+      "hsl": [
+        342,
+        64,
+        49
+      ],
+      "uso": "Botones y texto rosa: el blanco encima pasa AA."
+    },
+    {
+      "id": "nacar",
+      "nombre": "Nácar",
+      "hex": "#FFFAF7",
+      "rgb": [
+        255,
+        250,
+        247
+      ],
+      "hsl": [
+        22,
+        100,
+        98
+      ],
+      "uso": "Baldosa del icono, fondos claros."
+    },
+    {
+      "id": "nacar-sombra",
+      "nombre": "Nácar sombra",
+      "hex": "#F7F0EC",
+      "rgb": [
+        247,
+        240,
+        236
+      ],
+      "hsl": [
+        22,
+        41,
+        95
+      ],
+      "uso": "Parte baja de la baldosa, tarjetas."
+    },
+    {
+      "id": "tinta",
+      "nombre": "Tinta",
+      "hex": "#1D1D1F",
+      "rgb": [
+        29,
+        29,
+        31
+      ],
+      "hsl": [
+        240,
+        3,
+        12
+      ],
+      "uso": "Texto, el nombre, fondos oscuros."
+    },
+    {
+      "id": "gris",
+      "nombre": "Gris",
+      "hex": "#6E6E73",
+      "rgb": [
+        110,
+        110,
+        115
+      ],
+      "hsl": [
+        240,
+        2,
+        44
+      ],
+      "uso": "Texto secundario."
+    },
+    {
+      "id": "linea",
+      "nombre": "Línea",
+      "hex": "#E5E2E0",
+      "rgb": [
+        229,
+        226,
+        224
+      ],
+      "hsl": [
+        24,
+        9,
+        89
+      ],
+      "uso": "Bordes y separadores."
+    }
+  ],
+  "escala_rosa": [
+    {
+      "id": "rosa-50",
+      "nombre": "Rosa 50",
+      "hex": "#FFF3F6",
+      "rgb": [
+        255,
+        243,
+        246
+      ],
+      "hsl": [
+        345,
+        100,
+        98
+      ]
+    },
+    {
+      "id": "rosa-100",
+      "nombre": "Rosa 100",
+      "hex": "#FFE4EB",
+      "rgb": [
+        255,
+        228,
+        235
+      ],
+      "hsl": [
+        344,
+        100,
+        95
+      ]
+    },
+    {
+      "id": "rosa-200",
+      "nombre": "Rosa 200",
+      "hex": "#FFCCDA",
+      "rgb": [
+        255,
+        204,
+        218
+      ],
+      "hsl": [
+        344,
+        100,
+        90
+      ]
+    },
+    {
+      "id": "rosa-300",
+      "nombre": "Rosa 300",
+      "hex": "#FFAEC4",
+      "rgb": [
+        255,
+        174,
+        196
+      ],
+      "hsl": [
+        344,
+        100,
+        84
+      ]
+    },
+    {
+      "id": "rosa-400",
+      "nombre": "Rosa 400",
+      "hex": "#FF8AAD",
+      "rgb": [
+        255,
+        138,
+        173
+      ],
+      "hsl": [
+        342,
+        100,
+        77
+      ]
+    },
+    {
+      "id": "rosa-500",
+      "nombre": "Rosa 500",
+      "hex": "#FB6095",
+      "rgb": [
+        251,
+        96,
+        149
+      ],
+      "hsl": [
+        339,
+        95,
+        68
+      ]
+    },
+    {
+      "id": "rosa-600",
+      "nombre": "Rosa 600",
+      "hex": "#CB4C77",
+      "rgb": [
+        203,
+        76,
+        119
+      ],
+      "hsl": [
+        340,
+        55,
+        55
+      ]
+    },
+    {
+      "id": "rosa-700",
+      "nombre": "Rosa 700",
+      "hex": "#9D395B",
+      "rgb": [
+        157,
+        57,
+        91
+      ],
+      "hsl": [
+        340,
+        47,
+        42
+      ]
+    },
+    {
+      "id": "rosa-800",
+      "nombre": "Rosa 800",
+      "hex": "#6D253E",
+      "rgb": [
+        109,
+        37,
+        62
+      ],
+      "hsl": [
+        339,
+        49,
+        29
+      ]
+    },
+    {
+      "id": "rosa-900",
+      "nombre": "Rosa 900",
+      "hex": "#401222",
+      "rgb": [
+        64,
+        18,
+        34
+      ],
+      "hsl": [
+        339,
+        56,
+        16
+      ]
+    }
+  ],
+  "semanticos": [
+    {
+      "id": "exito",
+      "nombre": "Éxito",
+      "hex": "#22C55E",
+      "rgb": [
+        34,
+        197,
+        94
+      ],
+      "uso": "Solo dentro de la app: ganancias y logros. No para anuncios."
+    },
+    {
+      "id": "aviso",
+      "nombre": "Aviso",
+      "hex": "#F59E0B",
+      "rgb": [
+        245,
+        158,
+        11
+      ],
+      "uso": "Solo dentro de la app: advertencias."
+    },
+    {
+      "id": "error",
+      "nombre": "Error",
+      "hex": "#EF4444",
+      "rgb": [
+        239,
+        68,
+        68
+      ],
+      "uso": "Solo dentro de la app: errores y pérdidas."
+    },
+    {
+      "id": "info",
+      "nombre": "Información",
+      "hex": "#3B82F6",
+      "rgb": [
+        59,
+        130,
+        246
+      ],
+      "uso": "Solo dentro de la app: estados neutros."
+    }
+  ],
+  "degradados": [
+    {
+      "id": "amanecer",
+      "nombre": "Amanecer Roma",
+      "css": "linear-gradient(135deg, #FE7AAB 0%, #FB6095 50%, #DE3768 100%)",
+      "uso": "Fondos de anuncio y portadas."
+    },
+    {
+      "id": "nacar",
+      "nombre": "Nácar",
+      "css": "linear-gradient(180deg, #FFFAF7 0%, #F7F0EC 100%)",
+      "uso": "La baldosa del icono; fondos suaves."
+    },
+    {
+      "id": "noche",
+      "nombre": "Noche rosa",
+      "css": "linear-gradient(160deg, #1D1D1F 0%, #401222 100%)",
+      "uso": "Anuncios oscuros, historias."
+    }
+  ],
+  "combinaciones": [
+    {
+      "nombre": "Clásico nácar",
+      "fondo": "#FFFAF7",
+      "texto": "#1D1D1F",
+      "acento": "#CF2D5E",
+      "uso": "Anuncios claros, posts, correos.",
+      "contraste_texto": 16.24,
+      "contraste_acento": 4.84
+    },
+    {
+      "nombre": "Rosa pleno",
+      "fondo": "#FB6095",
+      "texto": "#1D1D1F",
+      "acento": "#1D1D1F",
+      "uso": "Fondo Rosa Roma: el texto y los botones van en Tinta, no en blanco.",
+      "contraste_texto": 5.78,
+      "contraste_acento": 5.78
+    },
+    {
+      "nombre": "Rosa profundo",
+      "fondo": "#CF2D5E",
+      "texto": "#FFFFFF",
+      "acento": "#FFFAF7",
+      "uso": "Botones, banners con texto en blanco.",
+      "contraste_texto": 5.01,
+      "contraste_acento": 4.84
+    },
+    {
+      "nombre": "Noche",
+      "fondo": "#1D1D1F",
+      "texto": "#FFFAF7",
+      "acento": "#FE7AAB",
+      "uso": "Historias, anuncios oscuros. Rosa claro como acento.",
+      "contraste_texto": 16.24,
+      "contraste_acento": 6.88
+    },
+    {
+      "nombre": "Velo rosa",
+      "fondo": "#FFF3F6",
+      "texto": "#1D1D1F",
+      "acento": "#CF2D5E",
+      "uso": "Tarjetas suaves, fondos de precios o listas.",
+      "contraste_texto": 15.55,
+      "contraste_acento": 4.63
+    }
+  ],
+  "contrastes_clave": {
+    "blanco_sobre_rosa_roma": 2.91,
+    "blanco_sobre_fucsia_app": 3.64,
+    "blanco_sobre_rosa_profundo": 5.01,
+    "tinta_sobre_rosa_roma": 5.78
+  }
+}

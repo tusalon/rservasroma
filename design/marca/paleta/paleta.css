@@ -1,0 +1,29 @@
+/* RservasRoma: paleta de marca y publicitaria. Generado por tools/marca/paleta.py */
+:root {
+  --rosa-roma: #FB6095;
+  --rosa-claro: #FE7AAB;
+  --rosa-sombra: #DE3768;
+  --rosa-profundo: #CF2D5E;
+  --nacar: #FFFAF7;
+  --nacar-sombra: #F7F0EC;
+  --tinta: #1D1D1F;
+  --gris: #6E6E73;
+  --linea: #E5E2E0;
+  --rosa-50: #FFF3F6;
+  --rosa-100: #FFE4EB;
+  --rosa-200: #FFCCDA;
+  --rosa-300: #FFAEC4;
+  --rosa-400: #FF8AAD;
+  --rosa-500: #FB6095;
+  --rosa-600: #CB4C77;
+  --rosa-700: #9D395B;
+  --rosa-800: #6D253E;
+  --rosa-900: #401222;
+  --exito: #22C55E;  /* solo dentro de la app */
+  --aviso: #F59E0B;  /* solo dentro de la app */
+  --error: #EF4444;  /* solo dentro de la app */
+  --info: #3B82F6;  /* solo dentro de la app */
+  --degradado-amanecer: linear-gradient(135deg, #FE7AAB 0%, #FB6095 50%, #DE3768 100%);
+  --degradado-nacar: linear-gradient(180deg, #FFFAF7 0%, #F7F0EC 100%);
+  --degradado-noche: linear-gradient(160deg, #1D1D1F 0%, #401222 100%);
+}
