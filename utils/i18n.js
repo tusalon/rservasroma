@@ -780,6 +780,7 @@
         'No tenes permiso para registrar cobros.': 'You do not have permission to record charges.',
         'Solo se puede registrar cobro real en citas completadas.': 'Actual charges can only be recorded on completed appointments.',
         'Ingresa un monto cobrado valido.': 'Enter a valid charged amount.',
+        'Escribiste {monto} {moneda}, pero estos servicios cuestan {precio} {moneda}. ¿Cobraste en pesos (CUP)?\n\nAceptar: guardar como pesos (CUP).\nCancelar: volver a revisar el monto.': 'You entered {monto} {moneda}, but these services cost {precio} {moneda}. Did you charge in pesos (CUP)?\n\nOK: save as pesos (CUP).\nCancel: go back and check the amount.',
         'Cobro real guardado': 'Actual charge saved',
         'Error al guardar el cobro real. Verifica que ejecutaste el SQL de cobro real.': 'Error saving the actual charge. Check that you ran the actual-charge SQL.',
         'No tenes permiso para marcar ausencias.': 'You do not have permission to mark no-shows.',

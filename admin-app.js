@@ -3332,6 +3332,22 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
             return;
         }
 
+        // Si el monto es muchas veces el precio del servicio en una moneda que no es
+        // CUP, casi seguro se escribio en pesos sin cambiar el selector (Ritis Salon,
+        // 07-10-2026: 3024.19 guardados como USD = 2,3 millones en Finanzas).
+        let monedaCobro = String(cobroForm.moneda_cobrada || monedaServicioDeReserva(cobroEditando)).toUpperCase();
+        const reservasDelCobro = cobroEditando?._reservasGrupo?.length ? cobroEditando._reservasGrupo : [cobroEditando];
+        const precioDeLosServicios = reservasDelCobro.reduce((total, reserva) => total + getPrecioServicioAgenda(reserva.servicio), 0);
+        if (monedaCobro === monedaServicioDeReserva(cobroEditando) && window.cobroMoneda?.parecePesos(monto, precioDeLosServicios, monedaCobro)) {
+            const enPesos = window.confirm(t('Escribiste {monto} {moneda}, pero estos servicios cuestan {precio} {moneda}. ¿Cobraste en pesos (CUP)?\n\nAceptar: guardar como pesos (CUP).\nCancelar: volver a revisar el monto.', {
+                monto: monto.toLocaleString('es-CU'),
+                precio: precioDeLosServicios.toLocaleString('es-CU'),
+                moneda: monedaCobro
+            }));
+            if (!enPesos) return;
+            monedaCobro = 'CUP';
+        }
+
         setGuardandoCobro(true);
         try {
             const negocioId = getNegocioId();
@@ -3364,7 +3380,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                             monto_cobrado: montoReserva,
                             notas_cobro: cobroForm.notas_cobro || null,
                             cobro_registrado_at: new Date().toISOString(),
-                            ...(conMoneda && cobroForm.moneda_cobrada ? { moneda_cobrada: cobroForm.moneda_cobrada } : {})
+                            ...(conMoneda && monedaCobro ? { moneda_cobrada: monedaCobro } : {})
                         })
                     }
                 );
