@@ -553,6 +553,31 @@ function AdminApp() {
     const puedeVerListaEspera = userRole === 'admin' || (userRole === 'profesional' && userNivel >= 2);
     const [esperaLibres, setEsperaLibres] = React.useState([]);
     const [avisoEsperaCerrado, setAvisoEsperaCerrado] = React.useState(0);
+
+    // Clientas nuevas: primera reserva reciente sin bienvenida enviada. La pestana solo aparece
+    // si ya se ejecuto sql-mensajes-bienvenida.sql (disponible=true).
+    const [clientasNuevasInfo, setClientasNuevasInfo] = React.useState({ disponible: false, total: 0 });
+    const cargarClientasNuevasInfo = React.useCallback(async () => {
+        if (!puedeVerListaEspera || !window.cargarClientasNuevas) return;
+        try {
+            const resultado = await window.cargarClientasNuevas();
+            setClientasNuevasInfo({ disponible: resultado.disponible, total: resultado.nuevas.length });
+        } catch (e) {
+            // sin red: se reintenta en el siguiente ciclo
+        }
+    }, [puedeVerListaEspera]);
+    React.useEffect(() => {
+        cargarClientasNuevasInfo();
+        const cadaCincoMinutos = setInterval(cargarClientasNuevasInfo, 300000);
+        const alVolver = () => { if (!document.hidden) cargarClientasNuevasInfo(); };
+        document.addEventListener('visibilitychange', alVolver);
+        window.addEventListener('rservas:clientas-nuevas-cambio', cargarClientasNuevasInfo);
+        return () => {
+            clearInterval(cadaCincoMinutos);
+            document.removeEventListener('visibilitychange', alVolver);
+            window.removeEventListener('rservas:clientas-nuevas-cambio', cargarClientasNuevasInfo);
+        };
+    }, [cargarClientasNuevasInfo]);
     const cargarEsperaLibres = React.useCallback(async () => {
         if (!puedeVerListaEspera) return;
         try {
@@ -4526,6 +4551,9 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
             tabs.push({ id: 'configuracion', icono: '⚙️', label: t('Configuración') });
             tabs.push({ id: 'clientes', icono: '👥', label: t('Clientes') });
             tabs.push({ id: 'lista-espera', icono: '⏳', label: t('Lista de espera') + (esperaLibres.length ? ` (${esperaLibres.length})` : '') });
+            if (clientasNuevasInfo.disponible) {
+                tabs.push({ id: 'clientas-nuevas', icono: '💗', label: t('Clientas nuevas') + (clientasNuevasInfo.total ? ` (${clientasNuevasInfo.total})` : '') });
+            }
         }
 
         if (userRole === 'admin' || (userRole === 'profesional' && userNivel >= 3)) {
@@ -5540,6 +5568,13 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
                         profesionalId={userRole === 'profesional' ? profesional?.id : null}
                         nombreSalon={nombreNegocio}
                         onCambio={cargarEsperaLibres}
+                    />
+                )}
+
+                {tabActivo === 'clientas-nuevas' && puedeVerListaEspera && (
+                    <ClientasNuevasPanel
+                        nombreSalon={nombreNegocio}
+                        onCambio={cargarClientasNuevasInfo}
                     />
                 )}
 

@@ -25,6 +25,9 @@ function EditarNegocio() {
     imagen_fondo_url: "",
     mensaje_bienvenida: "",
     mensaje_confirmacion: "",
+    mensaje_confirmacion_activo: false,
+    mensaje_primera_vez: "",
+    mensaje_primera_vez_activo: false,
     mensaje_inasistencia: "Hola {cliente}, registramos que no asististe a tu turno en {nombre_negocio}.\n\nServicio: {servicio}\nFecha: {fecha}\nHora: {hora}\nProfesional: {profesional}\n\nSi necesitas reprogramar, por favor escribenos por este WhatsApp.",
     instagram: "",
     facebook: "",
@@ -109,6 +112,9 @@ function EditarNegocio() {
           imagen_fondo_url: configData.imagen_fondo_url || "",
           mensaje_bienvenida: configData.mensaje_bienvenida || "¡Bienvenido!",
           mensaje_confirmacion: configData.mensaje_confirmacion || "Tu turno ha sido reservado",
+          mensaje_confirmacion_activo: configData.mensaje_confirmacion_activo === true,
+          mensaje_primera_vez: configData.mensaje_primera_vez || "",
+          mensaje_primera_vez_activo: configData.mensaje_primera_vez_activo === true,
           mensaje_inasistencia: configData.mensaje_inasistencia || "Hola {cliente}, registramos que no asististe a tu turno en {nombre_negocio}.\n\nServicio: {servicio}\nFecha: {fecha}\nHora: {hora}\nProfesional: {profesional}\n\nSi necesitas reprogramar, por favor escribenos por este WhatsApp.",
           instagram: configData.instagram || "",
           facebook: configData.facebook || "",
@@ -248,6 +254,9 @@ function EditarNegocio() {
         municipio: config.municipio || null,
         mensaje_bienvenida: config.mensaje_bienvenida,
         mensaje_confirmacion: config.mensaje_confirmacion,
+        mensaje_confirmacion_activo: config.mensaje_confirmacion_activo === true,
+        mensaje_primera_vez: String(config.mensaje_primera_vez || "").trim().slice(0, 600) || null,
+        mensaje_primera_vez_activo: config.mensaje_primera_vez_activo === true,
         mensaje_inasistencia: config.mensaje_inasistencia || null,
         instagram: config.instagram || null,
         facebook: config.facebook || null,
@@ -305,7 +314,7 @@ function EditarNegocio() {
       if (!response.ok) {
         const errorText = await response.text();
         console.error("❌ Error response:", errorText);
-        if (errorText.includes("codigo_pais") || errorText.includes("whatsapp_moneda") || errorText.includes("whatsapp_mostrar_costos") || errorText.includes("whatsapp_envio_automatico") || errorText.includes("anticipos_por_servicio") || errorText.includes("municipio") || errorText.includes("provincia") || errorText.includes("imagen_fondo_url") || errorText.includes("fidelizacion") || errorText.includes("cumple_") || errorText.includes("aprobar_clientes_nuevos")) {
+        if (errorText.includes("codigo_pais") || errorText.includes("whatsapp_moneda") || errorText.includes("whatsapp_mostrar_costos") || errorText.includes("whatsapp_envio_automatico") || errorText.includes("anticipos_por_servicio") || errorText.includes("municipio") || errorText.includes("provincia") || errorText.includes("imagen_fondo_url") || errorText.includes("fidelizacion") || errorText.includes("cumple_") || errorText.includes("aprobar_clientes_nuevos") || errorText.includes("mensaje_confirmacion_activo") || errorText.includes("mensaje_primera_vez")) {
           const datosCompatibles = { ...datosActualizar };
           if (errorText.includes("codigo_pais")) delete datosCompatibles.codigo_pais;
           if (errorText.includes("anticipos_por_servicio")) delete datosCompatibles.anticipos_por_servicio;
@@ -321,6 +330,11 @@ function EditarNegocio() {
             Object.keys(datosCompatibles).filter((clave) => clave.startsWith("cumple_")).forEach((clave) => delete datosCompatibles[clave]);
           }
           if (errorText.includes("aprobar_clientes_nuevos")) delete datosCompatibles.aprobar_clientes_nuevos;
+          if (errorText.includes("mensaje_confirmacion_activo")) delete datosCompatibles.mensaje_confirmacion_activo;
+          if (errorText.includes("mensaje_primera_vez")) {
+            delete datosCompatibles.mensaje_primera_vez;
+            delete datosCompatibles.mensaje_primera_vez_activo;
+          }
           if (errorText.includes("whatsapp_envio_automatico")) delete datosCompatibles.whatsapp_envio_automatico;
           if (errorText.includes("whatsapp_moneda") || errorText.includes("whatsapp_mostrar_costos")) {
             delete datosCompatibles.whatsapp_moneda;
@@ -791,15 +805,47 @@ function EditarNegocio() {
       className: "w-full border rounded-lg px-3 py-2",
       rows: "3"
     }
-  ), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 mt-1" }, t("Se muestra al abrir la app"))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, t("Confirmación de reserva")), /* @__PURE__ */ React.createElement(
+  ), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 mt-1" }, t("Se muestra al abrir la app"))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "flex items-center gap-3 text-sm font-medium text-gray-700 mb-1 cursor-pointer" }, /* @__PURE__ */ React.createElement(
+    "input",
+    {
+      id: "mensaje-confirmacion-activo",
+      type: "checkbox",
+      checked: config.mensaje_confirmacion_activo === true,
+      onChange: (e) => setConfig({ ...config, mensaje_confirmacion_activo: e.target.checked }),
+      className: "h-5 w-5 shrink-0"
+    }
+  ), t("Usar mi propio mensaje de confirmación de la cita")), /* @__PURE__ */ React.createElement(
     "textarea",
     {
+      id: "mensaje-confirmacion",
       value: config.mensaje_confirmacion,
       onChange: (e) => setConfig({ ...config, mensaje_confirmacion: e.target.value }),
-      className: "w-full border rounded-lg px-3 py-2",
+      disabled: config.mensaje_confirmacion_activo !== true,
+      className: "w-full border rounded-lg px-3 py-2 disabled:bg-gray-100 disabled:text-gray-400",
       rows: "3"
     }
-  )), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, t("Mensaje por inasistencia")), /* @__PURE__ */ React.createElement(
+  ), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 mt-1" }, config.mensaje_confirmacion_activo === true ? t("Es lo que verá la clienta al reservar. Variables:") : t("Apagado: la clienta ve el mensaje de RservasRoma. Enciéndelo para usar el tuyo. Variables:"), " ", "{cliente}", ", ", "{nombre_negocio}", ", ", "{servicio}", ", ", "{fecha}", ", ", "{hora}", ", ", "{profesional}", ".")), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "flex items-center gap-3 text-sm font-medium text-gray-700 mb-1 cursor-pointer" }, /* @__PURE__ */ React.createElement(
+    "input",
+    {
+      id: "mensaje-primera-vez-activo",
+      type: "checkbox",
+      checked: config.mensaje_primera_vez_activo === true,
+      onChange: (e) => setConfig({ ...config, mensaje_primera_vez_activo: e.target.checked }),
+      className: "h-5 w-5 shrink-0"
+    }
+  ), t("Usar mi propio mensaje de bienvenida para clientas nuevas")), /* @__PURE__ */ React.createElement(
+    "textarea",
+    {
+      id: "mensaje-primera-vez",
+      value: config.mensaje_primera_vez,
+      onChange: (e) => setConfig({ ...config, mensaje_primera_vez: e.target.value }),
+      disabled: config.mensaje_primera_vez_activo !== true,
+      placeholder: window.bienvenida ? window.bienvenida.MENSAJE_PRIMERA_VEZ_DEFECTO : "",
+      className: "w-full border rounded-lg px-3 py-2 disabled:bg-gray-100 disabled:text-gray-400",
+      rows: "5",
+      maxLength: 600
+    }
+  ), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 mt-1" }, t("Se envía por WhatsApp desde el panel «Clientas nuevas», cuando una clienta hace su primera reserva. Apagado: se usa el mensaje de RservasRoma. Variables:"), " ", "{cliente}", ", ", "{nombre_negocio}", ", ", "{servicio}", ", ", "{fecha}", ", ", "{hora}", ", ", "{profesional}", ".")), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, t("Mensaje por inasistencia")), /* @__PURE__ */ React.createElement(
     "textarea",
     {
       value: config.mensaje_inasistencia,

@@ -12,6 +12,8 @@ function Confirmation({ booking, onReset }) {
     const [estrellas, setEstrellas] = React.useState(0);
     const [valoracionEnviada, setValoracionEnviada] = React.useState(false);
     const [hoverEstrella, setHoverEstrella] = React.useState(0);
+    // Mensaje de confirmacion propio de la admin (vacio = el de siempre).
+    const [mensajePropio, setMensajePropio] = React.useState('');
 
     React.useEffect(() => {
         const cargarDatos = async () => {
@@ -22,6 +24,21 @@ function Confirmation({ booking, onReset }) {
                 setNombreNegocio(nombre);
                 if (window.getCodigoPaisNegocio) {
                     setCodigoPaisDuenno(await window.getCodigoPaisNegocio());
+                }
+                // Si la admin encendio su propio mensaje de confirmacion, se muestra ese.
+                if (window.bienvenida && window.cargarConfiguracionNegocio) {
+                    const config = await window.cargarConfiguracionNegocio();
+                    const fecha = booking?.fecha ? new Date(`${booking.fecha}T12:00:00`) : null;
+                    setMensajePropio(window.bienvenida.textoConfirmacion(config, {
+                        cliente: booking?.cliente_nombre || '',
+                        nombre_negocio: nombre || config?.nombre || '',
+                        servicio: booking?.servicio || '',
+                        fecha: fecha && !Number.isNaN(fecha.getTime())
+                            ? fecha.toLocaleDateString('es', { weekday: 'long', day: 'numeric', month: 'long' })
+                            : '',
+                        hora: String(booking?.hora_inicio || '').slice(0, 5),
+                        profesional: booking?.profesional_nombre || booking?.trabajador_nombre || ''
+                    }));
                 }
             } catch (error) {}
         };
@@ -109,7 +126,9 @@ function Confirmation({ booking, onReset }) {
             ) : (
                 <>
                     <h2 className="text-2xl font-bold text-pink-800 mb-2">✨ {t('¡Turno Reservado!')} ✨</h2>
-                    <p className="text-pink-600 mb-6 max-w-xs mx-auto">{t('Tu cita ha sido agendada correctamente')}</p>
+                    <p className="text-pink-600 mb-6 max-w-xs mx-auto" style={mensajePropio ? { whiteSpace: 'pre-line' } : undefined}>
+                        {mensajePropio || t('Tu cita ha sido agendada correctamente')}
+                    </p>
                 </>
             )}
 

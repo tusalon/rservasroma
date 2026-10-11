@@ -424,6 +424,29 @@ function AdminApp() {
   const puedeVerListaEspera = userRole === "admin" || userRole === "profesional" && userNivel >= 2;
   const [esperaLibres, setEsperaLibres] = React.useState([]);
   const [avisoEsperaCerrado, setAvisoEsperaCerrado] = React.useState(0);
+  const [clientasNuevasInfo, setClientasNuevasInfo] = React.useState({ disponible: false, total: 0 });
+  const cargarClientasNuevasInfo = React.useCallback(async () => {
+    if (!puedeVerListaEspera || !window.cargarClientasNuevas) return;
+    try {
+      const resultado = await window.cargarClientasNuevas();
+      setClientasNuevasInfo({ disponible: resultado.disponible, total: resultado.nuevas.length });
+    } catch (e) {
+    }
+  }, [puedeVerListaEspera]);
+  React.useEffect(() => {
+    cargarClientasNuevasInfo();
+    const cadaCincoMinutos = setInterval(cargarClientasNuevasInfo, 3e5);
+    const alVolver = () => {
+      if (!document.hidden) cargarClientasNuevasInfo();
+    };
+    document.addEventListener("visibilitychange", alVolver);
+    window.addEventListener("rservas:clientas-nuevas-cambio", cargarClientasNuevasInfo);
+    return () => {
+      clearInterval(cadaCincoMinutos);
+      document.removeEventListener("visibilitychange", alVolver);
+      window.removeEventListener("rservas:clientas-nuevas-cambio", cargarClientasNuevasInfo);
+    };
+  }, [cargarClientasNuevasInfo]);
   const cargarEsperaLibres = React.useCallback(async () => {
     if (!puedeVerListaEspera) return;
     try {
@@ -3580,6 +3603,9 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
       tabs.push({ id: "configuracion", icono: "⚙️", label: t2("Configuración") });
       tabs.push({ id: "clientes", icono: "👥", label: t2("Clientes") });
       tabs.push({ id: "lista-espera", icono: "⏳", label: t2("Lista de espera") + (esperaLibres.length ? ` (${esperaLibres.length})` : "") });
+      if (clientasNuevasInfo.disponible) {
+        tabs.push({ id: "clientas-nuevas", icono: "💗", label: t2("Clientas nuevas") + (clientasNuevasInfo.total ? ` (${clientasNuevasInfo.total})` : "") });
+      }
     }
     if (userRole === "admin" || userRole === "profesional" && userNivel >= 3) {
       tabs.push({ id: "servicios", icono: "✨", label: t2("Servicios") });
@@ -4070,6 +4096,12 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
       profesionalId: userRole === "profesional" ? profesional?.id : null,
       nombreSalon: nombreNegocio,
       onCambio: cargarEsperaLibres
+    }
+  ), tabActivo === "clientas-nuevas" && puedeVerListaEspera && /* @__PURE__ */ React.createElement(
+    ClientasNuevasPanel,
+    {
+      nombreSalon: nombreNegocio,
+      onCambio: cargarClientasNuevasInfo
     }
   ), tabActivo === "servicios" && (userRole === "admin" || userNivel >= 3) && /* @__PURE__ */ React.createElement(ServiciosPanel, null), tabActivo === "catalogo" && (userRole === "admin" || userNivel >= 3) && /* @__PURE__ */ React.createElement(CatalogoPanel, null), tabActivo === "profesionales" && (userRole === "admin" || userNivel >= 3) && /* @__PURE__ */ React.createElement(ProfesionalesPanel, null), tabActivo === "clientes" && (userRole === "admin" || userNivel >= 2) && /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-xl shadow-sm p-6" }, /* @__PURE__ */ React.createElement("div", { className: "flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-5" }, /* @__PURE__ */ React.createElement("h2", { className: "text-xl font-bold" }, t2("Clientes Registrados ({n})", { n: clientesRegistrados.length }), clientesPendientes.length > 0 && /* @__PURE__ */ React.createElement("span", { className: "ml-2 px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 border border-amber-200 text-xs font-bold align-middle" }, t2("{n} esperando tu respuesta", { n: clientesPendientes.length }))), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500" }, t2("Score calculado con el historial de reservas, completadas y canceladas.")), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-2" }, (userRole === "admin" || userNivel >= 3) && /* @__PURE__ */ React.createElement("label", { className: `px-4 py-2 rounded-lg bg-gray-900 text-white text-sm font-bold hover:bg-black cursor-pointer ${importandoClientesCsv ? "opacity-60 pointer-events-none" : ""}` }, importandoClientesCsv ? t2("Importando...") : t2("Cargar CSV"), /* @__PURE__ */ React.createElement("input", { type: "file", accept: ".csv,text/csv", onChange: handleImportarClientesCsv, className: "hidden", disabled: importandoClientesCsv })), /* @__PURE__ */ React.createElement("button", { onClick: () => {
     setShowClientesRegistrados(!showClientesRegistrados);

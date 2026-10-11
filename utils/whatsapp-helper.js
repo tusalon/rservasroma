@@ -638,10 +638,21 @@ window.enviarConfirmacionReserva = async function(booking, configNegocio) {
         const lineaCalendario = generarLineaCalendarioCliente(booking);
         const lineaDireccion = generarLineaDireccion(configNegocio);
 
+        // Si la admin encendio su propio mensaje de confirmacion, ese va en lugar del saludo de siempre.
+        const saludoPropio = window.bienvenida?.textoConfirmacion(configNegocio, {
+            cliente: booking.cliente_nombre,
+            nombre_negocio: configNegocio?.nombre || 'Mi Salón',
+            servicio: booking.servicio,
+            fecha: fechaConDia,
+            hora: horaFormateada,
+            profesional: getProfesional(booking)
+        }) || '';
+        const saludo = saludoPropio || `Hola *${booking.cliente_nombre}*, tu turno ha sido agendado.`;
+
         const mensajeConfirmacion =
 `✅ *${configNegocio?.nombre || 'Mi Salón'} - Turno Confirmado*
 
-Hola *${booking.cliente_nombre}*, tu turno ha sido agendado.
+${saludo}
 
 📅 *Fecha:* ${fechaConDia}
 ⏰ *Hora:* ${horaFormateada}
