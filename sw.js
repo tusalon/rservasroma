@@ -1,6 +1,6 @@
 ﻿// sw.js - Service Worker para Rservasroma
 
-const CACHE_NAME = 'rservasroma-v129';
+const CACHE_NAME = 'rservasroma-v130';
 const BASE = '/rservasroma';
 
 const urlsToCache = [
@@ -17,7 +17,7 @@ const urlsToCache = [
 
   // App principal (JSX pre-compilado en compiled/ â€” ver scripts/build-jsx.sh)
   `${BASE}/compiled/client-app.js?v=20261007-cumple1`,
-  `${BASE}/compiled/admin-app.js?v=20261011-bienvenida1`,
+  `${BASE}/compiled/admin-app.js?v=20261012-bienvenida2`,
 
   // Utils
   `${BASE}/utils/api.js?v=20261008-espera1`,
@@ -42,8 +42,8 @@ const urlsToCache = [
   `${BASE}/utils/suscripcion.js?v=20260904-recordar1`,
   `${BASE}/utils/supabase-config.js?v=20260723-fotos`,
   `${BASE}/utils/timeLogic.js`,
-  `${BASE}/utils/whatsapp-helper.js?v=20261011-bienvenida1`,
-  `${BASE}/utils/bienvenida.js?v=20261011-bienvenida1`,
+  `${BASE}/utils/whatsapp-helper.js?v=20261012-bienvenida2`,
+  `${BASE}/utils/bienvenida.js?v=20261012-bienvenida2`,
   `${BASE}/utils/soporte.js?v=20260906-soporteA1`,
   `${BASE}/utils/legacy-ios-fallback.css?v=20260904-bordes1`,
   `${BASE}/utils/roma-typography.css?v=20260731-tipografia`,
@@ -60,7 +60,7 @@ const urlsToCache = [
   `${BASE}/compiled/components/Catalogo.js?v=20260926-generico1`,
   `${BASE}/compiled/components/Calendar.js?v=20260723-jsx1`,
   `${BASE}/compiled/components/ClientAuthScreen.js?v=20261007-cumple1`,
-  `${BASE}/compiled/components/Confirmation.js?v=20261011-bienvenida1`,
+  `${BASE}/compiled/components/Confirmation.js?v=20261012-bienvenida2`,
   `${BASE}/compiled/components/Header.js?v=20260731-marca`,
   `${BASE}/compiled/components/InstallButton.js?v=20260723-jsx1`,
   `${BASE}/compiled/components/MultiProfesionalSelector.js?v=20260926-generico1`,
@@ -76,11 +76,11 @@ const urlsToCache = [
   `${BASE}/compiled/components/admin/ConfigPanel.js?v=20260731-marca`,
   `${BASE}/compiled/components/admin/CatalogoPanel.js?v=20260906-precios1`,
   `${BASE}/compiled/components/admin/RomaHubActivacion.js?v=20260731-marca`,
-  `${BASE}/compiled/components/admin/EditarNegocio.js?v=20261011-bienvenida1`,
+  `${BASE}/compiled/components/admin/EditarNegocio.js?v=20261012-bienvenida2`,
   `${BASE}/compiled/components/admin/HorariosPorDiaPanel.js?v=20260723-jsx1`,
   `${BASE}/compiled/components/admin/HorariosExcepcionPanel.js?v=20260723-jsx1`,
   `${BASE}/compiled/components/admin/ListaEsperaPanel.js?v=20261008-espera1`,
-  `${BASE}/compiled/components/admin/ClientasNuevasPanel.js?v=20261011-bienvenida1`,
+  `${BASE}/compiled/components/admin/ClientasNuevasPanel.js?v=20261012-bienvenida2`,
   `${BASE}/compiled/components/admin/ProfesionalesPanel.js?v=20260919-telqatar1`,
   `${BASE}/compiled/components/admin/ImportarServicios.js?v=20260723-jsx1`,
   `${BASE}/compiled/components/admin/ServiciosPanelCategorias.js?v=20260926-generico1`,

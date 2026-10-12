@@ -2548,7 +2548,7 @@ Te esperamos.`;
         const horaFormateada = window.formatTo12Hour ? window.formatTo12Hour(bookingData.hora_inicio) : bookingData.hora_inicio;
         const nombreNegocio2 = configNegocio?.nombre || (window.getNombreNegocio ? await window.getNombreNegocio() : "Mi Negocio");
         const lineaCalendario = typeof generarLineaCalendarioCliente === "function" ? generarLineaCalendarioCliente(bookingData) : "";
-        const mensajeCliente = `*${nombreNegocio2} - Turno Confirmado*
+        const mensajeEstandar = `*${nombreNegocio2} - Turno Confirmado*
 
 Hola *${bookingData.cliente_nombre}*, tu turno ha sido CONFIRMADO.
 
@@ -2563,6 +2563,15 @@ ${lineaCalendario}
 
 Te esperamos.
 Cualquier cambio, puedes cancelarlo desde la app.`;
+        const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
+          cliente: bookingData.cliente_nombre,
+          nombre_negocio: nombreNegocio2,
+          servicio: bookingData.servicio,
+          fecha: fechaConDia,
+          hora: horaFormateada,
+          profesional: bookingData.profesional_nombre || bookingData.trabajador_nombre || "",
+          direccion: configNegocio?.direccion || ""
+        }) || mensajeEstandar;
         window.enviarWhatsApp(bookingData.cliente_whatsapp, mensajeCliente);
         if (window.enviarNotificacionPush) window.enviarNotificacionPush(`${nombreNegocio2} - Pago confirmado`, `✅ ${bookingData.cliente_nombre}
 ✨ ${bookingData.servicio}
@@ -2600,7 +2609,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
       const horaFormateada = window.formatTo12Hour ? window.formatTo12Hour(bookingData.hora_inicio) : bookingData.hora_inicio;
       const nombreNegocio2 = configNegocio?.nombre || (window.getNombreNegocio ? await window.getNombreNegocio() : "Mi Negocio");
       const lineaCalendario = typeof generarLineaCalendarioCliente === "function" ? generarLineaCalendarioCliente(bookingData) : "";
-      const mensajeCliente = `*${nombreNegocio2} - Turno Confirmado*
+      const mensajeEstandar = `*${nombreNegocio2} - Turno Confirmado*
 
 Hola *${bookingData.cliente_nombre}*, tu turno ha sido CONFIRMADO.
 
@@ -2615,6 +2624,15 @@ ${lineaCalendario}
 
 Te esperamos.
 Cualquier cambio, puedes cancelarlo desde la app.`;
+      const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
+        cliente: bookingData.cliente_nombre,
+        nombre_negocio: nombreNegocio2,
+        servicio: bookingData.servicio,
+        fecha: fechaConDia,
+        hora: horaFormateada,
+        profesional: bookingData.profesional_nombre || bookingData.trabajador_nombre || "",
+        direccion: configNegocio?.direccion || ""
+      }) || mensajeEstandar;
       window.enviarWhatsApp(bookingData.cliente_whatsapp, mensajeCliente);
       if (window.enviarNotificacionPush) window.enviarNotificacionPush(`${nombreNegocio2} - Pago confirmado`, `✅ ${bookingData.cliente_nombre}
 ✨ ${bookingData.servicio}

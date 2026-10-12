@@ -1249,7 +1249,7 @@ function EditarNegocio() {
                                         {config.mensaje_confirmacion_activo === true
                                             ? t('Es lo que verá la clienta al reservar. Variables:')
                                             : t('Apagado: la clienta ve el mensaje de RservasRoma. Enciéndelo para usar el tuyo. Variables:')}
-                                        {' '}{'{cliente}'}, {'{nombre_negocio}'}, {'{servicio}'}, {'{fecha}'}, {'{hora}'}, {'{profesional}'}.
+                                        {' '}{'{cliente}'}, {'{nombre_negocio}'}, {'{servicio}'}, {'{fecha}'}, {'{hora}'}, {'{profesional}'}, {'{direccion}'}.
                                     </p>
                                 </div>
                                 <div>
@@ -1275,7 +1275,7 @@ function EditarNegocio() {
                                     />
                                     <p className="text-xs text-gray-400 mt-1">
                                         {t('Se envía por WhatsApp desde el panel «Clientas nuevas», cuando una clienta hace su primera reserva. Apagado: se usa el mensaje de RservasRoma. Variables:')}
-                                        {' '}{'{cliente}'}, {'{nombre_negocio}'}, {'{servicio}'}, {'{fecha}'}, {'{hora}'}, {'{profesional}'}.
+                                        {' '}{'{cliente}'}, {'{nombre_negocio}'}, {'{servicio}'}, {'{fecha}'}, {'{hora}'}, {'{profesional}'}, {'{direccion}'}.
                                     </p>
                                 </div>
                                 <div>

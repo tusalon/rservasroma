@@ -12,6 +12,12 @@ assert.equal(b.rellenar('Hola {desconocida}', datos), 'Hola {desconocida}', 'una
 assert.equal(b.rellenar('  ', datos), '');
 assert.equal(b.rellenar('Hola {cliente}', {}), 'Hola {cliente}', 'sin dato, la marca se queda');
 
+// --- {dirección}: las dueñas la escriben con tilde (caso real de BELLALYS)
+assert.equal(b.rellenar('Ubicación: {dirección}', { direccion: 'Calle 5 #12' }), 'Ubicación: Calle 5 #12');
+assert.equal(b.rellenar('Ubicación: {direccion}', { direccion: 'Calle 5 #12' }), 'Ubicación: Calle 5 #12');
+assert.equal(b.rellenar('{Cliente} / {SERVICIO}', datos), 'Yadira / Limpieza facial', 'mayúsculas no importan');
+assert.equal(b.rellenar('Ubicación: {dirección}', {}), 'Ubicación: {dirección}', 'sin dirección guardada la marca queda tal cual');
+
 // --- Confirmación: solo si la admin la enciende
 const conTexto = { mensaje_confirmacion: 'Gracias {cliente}, ya tienes tu turno', mensaje_confirmacion_activo: true };
 assert.equal(b.textoConfirmacion(conTexto, datos), 'Gracias Yadira, ya tienes tu turno');

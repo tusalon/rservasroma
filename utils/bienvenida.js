@@ -2,13 +2,14 @@
 //   * Confirmacion de la cita (se ve al reservar). Interruptor: mensaje_confirmacion_activo.
 //   * Bienvenida de primera vez (se envia por WhatsApp desde el panel "Clientas nuevas").
 //     Interruptor: mensaje_primera_vez_activo.
-// Apagado = el texto de siempre. Marcas: {cliente} {nombre_negocio} {servicio} {fecha} {hora} {profesional}.
+// Apagado = el texto de siempre. Marcas: {cliente} {nombre_negocio} {servicio} {fecha} {hora} {profesional} {direccion}.
+// El mensaje propio de confirmacion REEMPLAZA entero al de siempre (las dueñas escriben el suyo con todos los detalles).
 //
 // "Clienta nueva" = su PRIMERA reserva (sin contar las canceladas), hecha hace poco.
 // Cuentas puras: se prueban en tests/bienvenida.test.js.
 
 (function (root) {
-    const MARCAS = ['cliente', 'nombre_negocio', 'servicio', 'fecha', 'hora', 'profesional'];
+    const MARCAS = ['cliente', 'nombre_negocio', 'servicio', 'fecha', 'hora', 'profesional', 'direccion'];
     const DIAS_VENTANA = 14;
 
     const MENSAJE_PRIMERA_VEZ_DEFECTO =
@@ -20,9 +21,11 @@
         const texto = String(plantilla || '').trim();
         if (!texto) return '';
         const valores = datos || {};
-        return texto.replace(/\{([^}]+)\}/g, (marca, clave) => (
-            MARCAS.includes(clave) && valores[clave] != null ? String(valores[clave]) : marca
-        ));
+        return texto.replace(/\{([^}]+)\}/g, (marca, clave) => {
+            // {dirección} y {direccion} valen igual: las dueñas escriben con tilde.
+            const limpia = clave.trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+            return MARCAS.includes(limpia) && valores[limpia] != null ? String(valores[limpia]) : marca;
+        });
     }
 
     // Texto personalizado de la confirmacion, o '' si la admin no lo usa (entonces se

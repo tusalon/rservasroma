@@ -27,7 +27,7 @@ function Confirmation({ booking, onReset }) {
                 }
                 // Si la admin encendio su propio mensaje de confirmacion, se muestra ese.
                 if (window.bienvenida && window.cargarConfiguracionNegocio) {
-                    const config = await window.cargarConfiguracionNegocio();
+                    const config = await window.cargarConfiguracionNegocio(true);
                     const fecha = booking?.fecha ? new Date(`${booking.fecha}T12:00:00`) : null;
                     setMensajePropio(window.bienvenida.textoConfirmacion(config, {
                         cliente: booking?.cliente_nombre || '',
@@ -37,7 +37,8 @@ function Confirmation({ booking, onReset }) {
                             ? fecha.toLocaleDateString('es', { weekday: 'long', day: 'numeric', month: 'long' })
                             : '',
                         hora: String(booking?.hora_inicio || '').slice(0, 5),
-                        profesional: booking?.profesional_nombre || booking?.trabajador_nombre || ''
+                        profesional: booking?.profesional_nombre || booking?.trabajador_nombre || '',
+                        direccion: config?.direccion || ''
                     }));
                 }
             } catch (error) {}

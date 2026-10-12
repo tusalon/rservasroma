@@ -824,7 +824,7 @@ function EditarNegocio() {
       className: "w-full border rounded-lg px-3 py-2 disabled:bg-gray-100 disabled:text-gray-400",
       rows: "3"
     }
-  ), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 mt-1" }, config.mensaje_confirmacion_activo === true ? t("Es lo que verá la clienta al reservar. Variables:") : t("Apagado: la clienta ve el mensaje de RservasRoma. Enciéndelo para usar el tuyo. Variables:"), " ", "{cliente}", ", ", "{nombre_negocio}", ", ", "{servicio}", ", ", "{fecha}", ", ", "{hora}", ", ", "{profesional}", ".")), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "flex items-center gap-3 text-sm font-medium text-gray-700 mb-1 cursor-pointer" }, /* @__PURE__ */ React.createElement(
+  ), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 mt-1" }, config.mensaje_confirmacion_activo === true ? t("Es lo que verá la clienta al reservar. Variables:") : t("Apagado: la clienta ve el mensaje de RservasRoma. Enciéndelo para usar el tuyo. Variables:"), " ", "{cliente}", ", ", "{nombre_negocio}", ", ", "{servicio}", ", ", "{fecha}", ", ", "{hora}", ", ", "{profesional}", ", ", "{direccion}", ".")), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "flex items-center gap-3 text-sm font-medium text-gray-700 mb-1 cursor-pointer" }, /* @__PURE__ */ React.createElement(
     "input",
     {
       id: "mensaje-primera-vez-activo",
@@ -845,7 +845,7 @@ function EditarNegocio() {
       rows: "5",
       maxLength: 600
     }
-  ), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 mt-1" }, t("Se envía por WhatsApp desde el panel «Clientas nuevas», cuando una clienta hace su primera reserva. Apagado: se usa el mensaje de RservasRoma. Variables:"), " ", "{cliente}", ", ", "{nombre_negocio}", ", ", "{servicio}", ", ", "{fecha}", ", ", "{hora}", ", ", "{profesional}", ".")), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, t("Mensaje por inasistencia")), /* @__PURE__ */ React.createElement(
+  ), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 mt-1" }, t("Se envía por WhatsApp desde el panel «Clientas nuevas», cuando una clienta hace su primera reserva. Apagado: se usa el mensaje de RservasRoma. Variables:"), " ", "{cliente}", ", ", "{nombre_negocio}", ", ", "{servicio}", ", ", "{fecha}", ", ", "{hora}", ", ", "{profesional}", ", ", "{direccion}", ".")), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, t("Mensaje por inasistencia")), /* @__PURE__ */ React.createElement(
     "textarea",
     {
       value: config.mensaje_inasistencia,

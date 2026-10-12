@@ -638,21 +638,21 @@ window.enviarConfirmacionReserva = async function(booking, configNegocio) {
         const lineaCalendario = generarLineaCalendarioCliente(booking);
         const lineaDireccion = generarLineaDireccion(configNegocio);
 
-        // Si la admin encendio su propio mensaje de confirmacion, ese va en lugar del saludo de siempre.
-        const saludoPropio = window.bienvenida?.textoConfirmacion(configNegocio, {
+        // Si la admin encendio su propio mensaje de confirmacion, ese va en lugar del de siempre.
+        const mensajePropio = window.bienvenida?.textoConfirmacion(configNegocio, {
             cliente: booking.cliente_nombre,
             nombre_negocio: configNegocio?.nombre || 'Mi Salón',
             servicio: booking.servicio,
             fecha: fechaConDia,
             hora: horaFormateada,
-            profesional: getProfesional(booking)
+            profesional: getProfesional(booking),
+            direccion: configNegocio?.direccion || ''
         }) || '';
-        const saludo = saludoPropio || `Hola *${booking.cliente_nombre}*, tu turno ha sido agendado.`;
 
-        const mensajeConfirmacion =
+        const mensajeEstandar =
 `✅ *${configNegocio?.nombre || 'Mi Salón'} - Turno Confirmado*
 
-${saludo}
+Hola *${booking.cliente_nombre}*, tu turno ha sido agendado.
 
 📅 *Fecha:* ${fechaConDia}
 ⏰ *Hora:* ${horaFormateada}
@@ -662,6 +662,7 @@ ${lineaTotalReserva}
 ${lineaDireccion}
 ${lineaCalendario}
 ¡Te esperamos! ❤️`;
+        const mensajeConfirmacion = mensajePropio || mensajeEstandar;
 
         window.enviarWhatsApp(booking.cliente_whatsapp, mensajeConfirmacion);
 

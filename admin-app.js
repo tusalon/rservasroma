@@ -3102,7 +3102,7 @@ function AdminApp() {
                 const nombreNegocio = configNegocio?.nombre || (window.getNombreNegocio ? await window.getNombreNegocio() : 'Mi Negocio');
                 const lineaCalendario = typeof generarLineaCalendarioCliente === 'function' ? generarLineaCalendarioCliente(bookingData) : '';
 
-                const mensajeCliente =
+                const mensajeEstandar =
 `*${nombreNegocio} - Turno Confirmado*
 
 Hola *${bookingData.cliente_nombre}*, tu turno ha sido CONFIRMADO.
@@ -3118,6 +3118,16 @@ ${lineaCalendario}
 
 Te esperamos.
 Cualquier cambio, puedes cancelarlo desde la app.`;
+// Si la admin encendio su propio mensaje de confirmacion, ese reemplaza al de siempre.
+const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
+    cliente: bookingData.cliente_nombre,
+    nombre_negocio: nombreNegocio,
+    servicio: bookingData.servicio,
+    fecha: fechaConDia,
+    hora: horaFormateada,
+    profesional: bookingData.profesional_nombre || bookingData.trabajador_nombre || '',
+    direccion: configNegocio?.direccion || ''
+}) || mensajeEstandar;
 
                 window.enviarWhatsApp(bookingData.cliente_whatsapp, mensajeCliente);
 
@@ -3164,7 +3174,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
             const nombreNegocio = configNegocio?.nombre || (window.getNombreNegocio ? await window.getNombreNegocio() : 'Mi Negocio');
             const lineaCalendario = typeof generarLineaCalendarioCliente === 'function' ? generarLineaCalendarioCliente(bookingData) : '';
 
-            const mensajeCliente =
+            const mensajeEstandar =
 `*${nombreNegocio} - Turno Confirmado*
 
 Hola *${bookingData.cliente_nombre}*, tu turno ha sido CONFIRMADO.
@@ -3180,6 +3190,16 @@ ${lineaCalendario}
 
 Te esperamos.
 Cualquier cambio, puedes cancelarlo desde la app.`;
+// Si la admin encendio su propio mensaje de confirmacion, ese reemplaza al de siempre.
+const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
+    cliente: bookingData.cliente_nombre,
+    nombre_negocio: nombreNegocio,
+    servicio: bookingData.servicio,
+    fecha: fechaConDia,
+    hora: horaFormateada,
+    profesional: bookingData.profesional_nombre || bookingData.trabajador_nombre || '',
+    direccion: configNegocio?.direccion || ''
+}) || mensajeEstandar;
 
             window.enviarWhatsApp(bookingData.cliente_whatsapp, mensajeCliente);
 
