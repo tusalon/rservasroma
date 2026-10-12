@@ -111,16 +111,42 @@
         return digits;
     }
 
+    // Numero de EE.UU./Canada de 10 cifras: area (2-9)XX y central (2-9)XX. Las areas 51x, 52x, 53x,
+    // 54x, 56x... empiezan igual que el prefijo de Peru, Mexico, Cuba, Argentina o Chile.
+    const esNanpLocal = (digits) => /^[2-9]\d{2}[2-9]\d{6}$/.test(digits);
+
     function normalizarTelefonoInternacional(value, codigoPais = null) {
         const digits = quitarIdd(onlyDigits(value));
         const codigoExplicito = codigoPais !== null && codigoPais !== undefined && String(codigoPais).trim() !== '';
 
         if (!codigoExplicito) {
             const telefonoInternacional = detectarTelefonoInternacional(digits);
-            if (telefonoInternacional) return digits;
+            if (telefonoInternacional) {
+                // Caso real (515 465 0340, area de Iowa): se guardo sin el "1" y parecia de Peru ("51" +
+                // 8 cifras). Un numero internacional de Peru lleva 11 cifras y este lleva 10: es de EE.UU.
+                // Cuba (53 + 8) y Guyana (592 + 7) si miden 10 y se dejan como estan.
+                const largoInternacional = telefonoInternacional.codigo.length + telefonoInternacional.localLength;
+                if (digits.length === 10 && esNanpLocal(digits) && largoInternacional !== 10) return `1${digits}`;
+                return digits;
+            }
+            // Sin pais reconocible: en un salon cuyos numeros locales no miden 10 cifras (Cuba, 8), un
+            // numero de 10 cifras con forma de EE.UU. es de EE.UU. aunque se guardara sin el "1".
+            const paisSalon = getCountryByCode(getCodigoPaisTelefono());
+            if (digits.length === 10 && esNanpLocal(digits) && paisSalon.localLength !== 10) return `1${digits}`;
         }
 
         const country = getCountryByCode(codigoPais || getCodigoPaisTelefono());
+
+        // Con el pais elegido a mano, un numero del largo LOCAL de ese pais es local: el area 515 de
+        // EE.UU. no se puede tomar por Peru solo porque empieza por 51. Salvo que sea justo el largo
+        // internacional de otro pais (un salon de EE.UU. con clientas cubanas guardadas como 53 + 8).
+        if (codigoExplicito && digits.length === country.localLength) {
+            const otro = detectarTelefonoInternacional(digits);
+            const esInternacionalExacto = otro && otro.codigo !== country.codigo
+                && digits.length === otro.codigo.length + otro.localLength;
+            if (!esInternacionalExacto) return `${country.codigo}${digits}`;
+        }
+
         if (codigoExplicito && digits.startsWith(country.codigo) && digits.length > country.localLength) {
             return digits;
         }
