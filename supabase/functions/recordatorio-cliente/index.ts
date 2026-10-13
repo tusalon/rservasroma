@@ -88,27 +88,32 @@ function clienteUrl(negocio: any): string {
   return "https://tusalon.github.io/rservasroma/";
 }
 
+// Textos de la notificacion: cortos, con tildes y en tuteo. El titulo es lo que se lee en la
+// pantalla de bloqueo, asi que lleva ya lo importante (el salon y cuando).
 function buildMessage(tipo: string, reserva: any, nombreNegocio: string) {
   const hora = hora12(reserva.hora_inicio);
+  const nombre = String(reserva.cliente_nombre || "").trim();
+  const servicio = reserva.servicio || "tu turno";
   const profesional = reserva.profesional_nombre ? ` con ${reserva.profesional_nombre}` : "";
+  const tuCita = nombre ? `Hola ${nombre}, tu cita` : "Tu cita";
 
   if (tipo === "hora") {
     return {
-      title: `Tu cita es en 1 hora - ${nombreNegocio}`,
-      body: `${reserva.cliente_nombre || "Hola"}, tienes ${reserva.servicio || "tu turno"}${profesional} a las ${hora}. Nos vemos pronto!`,
+      title: `⏰ Tu cita en ${nombreNegocio} es en 1 hora`,
+      body: `${nombre ? `${nombre}, te` : "Te"} esperamos a las ${hora} para ${servicio}${profesional}. ¡Hasta ahora! 💗`,
     };
   }
 
   if (tipo === "dia") {
     return {
-      title: `Recordatorio para manana - ${nombreNegocio}`,
-      body: `Hola ${reserva.cliente_nombre || ""}! Manana tienes ${reserva.servicio || "tu turno"}${profesional} a las ${hora}. Te esperamos!`,
+      title: `💗 Mañana tienes cita en ${nombreNegocio}`,
+      body: `${tuCita} de ${servicio}${profesional} es MAÑANA a las ${hora}. ¡Te esperamos!`,
     };
   }
 
   return {
-    title: `Recordatorio 24h - ${nombreNegocio}`,
-    body: `Hola ${reserva.cliente_nombre || ""}! En 24 horas tienes ${reserva.servicio || "tu turno"}${profesional} a las ${hora}. Te esperamos!`,
+    title: `💗 Tu cita en ${nombreNegocio} es MAÑANA a las ${hora}`,
+    body: `${tuCita} de ${servicio}${profesional} es mañana. ¡Te esperamos!`,
   };
 }
 
