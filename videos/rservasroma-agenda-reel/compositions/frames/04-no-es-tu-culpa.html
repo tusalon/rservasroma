@@ -1,0 +1,87 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+  </head>
+  <body>
+    <template>
+      <style>
+@font-face { font-family: 'Barlow'; font-weight: 400; font-style: normal; src: url('capture/assets/fonts/Barlow-400.woff2') format('woff2'); }
+@font-face { font-family: 'Barlow'; font-weight: 500; font-style: normal; src: url('capture/assets/fonts/Barlow-500.woff2') format('woff2'); }
+@font-face { font-family: 'Barlow'; font-weight: 600; font-style: normal; src: url('capture/assets/fonts/Barlow-600.woff2') format('woff2'); }
+@font-face { font-family: 'Barlow'; font-weight: 700; font-style: normal; src: url('capture/assets/fonts/Barlow-700.woff2') format('woff2'); }
+@font-face { font-family: 'Barlow'; font-weight: 800; font-style: normal; src: url('capture/assets/fonts/Barlow-800.woff2') format('woff2'); }
+@font-face { font-family: 'Barlow'; font-weight: 900; font-style: normal; src: url('capture/assets/fonts/Barlow-900.woff2') format('woff2'); }
+        #root {
+          position: absolute;
+          inset: 0;
+          background: #1A1A1A;
+          color: #FFFFFF;
+          font-family: Barlow, system-ui, sans-serif;
+          container-type: size;
+        }
+        .wrap {
+          position: absolute;
+          left: 5.5cqw;
+          right: 5.5cqw;
+          top: 42cqh;
+        }
+        .headline {
+          font-weight: 900;
+          text-transform: lowercase;
+          letter-spacing: -0.03em;
+          line-height: 0.95;
+          font-size: 12cqw;
+        }
+        .accent { color: #FF1493; }
+        .f04-sticker {
+          position: absolute;
+          left: 50%;
+          top: 68cqh;
+          width: 30cqw;
+          transform: translateX(-50%) scale(0.7);
+          opacity: 0;
+        }
+      </style>
+      <div id="root" data-composition-id="04-no-es-tu-culpa" data-start="0" data-duration="1.813" data-width="1080" data-height="1920">
+        <div class="wrap">
+          <div class="headline">el problema<br /><span class="accent">no es tu trabajo</span></div>
+        </div>
+        <img class="clip f04-sticker" id="f04-sticker" src="capture/assets/images/04-no-es-tu-culpa.png" alt="" data-start="0" data-duration="1.813" data-track-index="1" />
+        <audio id="f04-voice" src="assets/voice/04.wav" data-start="0" data-duration="1.813" data-track-index="10" data-volume="1"></audio>
+      </div>
+      <script>
+        window.__timelines = window.__timelines || {};
+        const tl = gsap.timeline({ paused: true });
+
+        // Hook-flash variant of kinetic-type-beats: ONE calm hard-cut entrance for the
+        // whole statement (discrete-text-sequence's whole-state swap) — no escalation,
+        // no per-line staggering. A brief settle lands the hit, then it holds to the cut.
+        tl.fromTo(
+          ".headline",
+          { opacity: 0 },
+          { opacity: 1, duration: 0.05, ease: "none" },
+          0.08
+        );
+        tl.fromTo(
+          ".headline",
+          { scale: 1.015 },
+          { scale: 1, duration: 0.32, ease: "power2.out", transformOrigin: "0% 0%" },
+          0.08
+        );
+
+        // Sticker (corazon abrazandose, calido) entra justo despues de que el
+        // titular se asienta — el gesto de alivio que acompaña la frase, sin
+        // adelantarse a ella.
+        tl.fromTo(
+          "#f04-sticker",
+          { opacity: 0, scale: 0.7 },
+          { opacity: 1, scale: 1, duration: 0.4, ease: "power3.out" },
+          0.55
+        );
+
+        window.__timelines["04-no-es-tu-culpa"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

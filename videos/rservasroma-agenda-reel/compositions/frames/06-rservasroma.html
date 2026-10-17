@@ -1,0 +1,164 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+  </head>
+  <body>
+    <template>
+      <style>
+@font-face { font-family: 'Barlow'; font-weight: 400; font-style: normal; src: url('capture/assets/fonts/Barlow-400.woff2') format('woff2'); }
+@font-face { font-family: 'Barlow'; font-weight: 500; font-style: normal; src: url('capture/assets/fonts/Barlow-500.woff2') format('woff2'); }
+@font-face { font-family: 'Barlow'; font-weight: 600; font-style: normal; src: url('capture/assets/fonts/Barlow-600.woff2') format('woff2'); }
+@font-face { font-family: 'Barlow'; font-weight: 700; font-style: normal; src: url('capture/assets/fonts/Barlow-700.woff2') format('woff2'); }
+@font-face { font-family: 'Barlow'; font-weight: 800; font-style: normal; src: url('capture/assets/fonts/Barlow-800.woff2') format('woff2'); }
+@font-face { font-family: 'Barlow'; font-weight: 900; font-style: normal; src: url('capture/assets/fonts/Barlow-900.woff2') format('woff2'); }
+        #root {
+          position: absolute;
+          inset: 0;
+          color: #1A1A1A;
+          font-family: Barlow, system-ui, sans-serif;
+          container-type: size;
+          overflow: hidden;
+        }
+        .bg {
+          position: absolute;
+          inset: 0;
+          background: #FF1493;
+        }
+        .kicker {
+          position: absolute;
+          left: 5.5cqw;
+          top: 30cqh;
+          display: flex;
+          align-items: baseline;
+          font-family: "IBM Plex Mono", monospace;
+          text-transform: uppercase;
+          letter-spacing: 0.14em;
+          font-weight: 500;
+          font-size: 2.6cqw;
+          color: rgba(26, 26, 26, 0.75);
+          white-space: pre;
+        }
+        .cursor {
+          display: inline-block;
+          width: 0.8cqw;
+          height: 2.3cqw;
+          margin-left: 0.3cqw;
+          background: #1A1A1A;
+          vertical-align: -0.25cqw;
+        }
+        .wrap {
+          position: absolute;
+          left: 5.5cqw;
+          right: 5.5cqw;
+          top: 38cqh;
+        }
+        .headline {
+          font-weight: 900;
+          text-transform: lowercase;
+          letter-spacing: -0.03em;
+          line-height: 0.95;
+          font-size: 10cqw;
+        }
+        .rr-sticker {
+          position: absolute;
+          right: 5.5cqw;
+          top: 60cqh;
+          width: 40cqw;
+          transform: scale(0.6);
+          opacity: 0;
+        }
+      </style>
+      <div id="root" data-composition-id="06-rservasroma" data-start="0" data-duration="2.907" data-width="1080" data-height="1920">
+        <div id="bg" class="clip" data-start="0" data-duration="2.907" data-track-index="0"></div>
+        <div id="kicker" class="clip" data-start="0" data-duration="2.907" data-track-index="1">
+          <span id="kicker-text"></span><span class="cursor" id="cursor"></span>
+        </div>
+        <div
+          id="headline-clip"
+          class="clip"
+          data-start="1.2"
+          data-duration="1.707"
+          data-track-index="2"
+        >
+          <div class="wrap">
+            <div class="headline" id="headline-inner">tus clientas<br />reservan solas</div>
+          </div>
+        </div>
+        <img class="clip rr-sticker" id="rr-sticker" src="capture/assets/images/06-rservasroma.png" alt="" data-start="0" data-duration="2.907" data-track-index="3" />
+        <audio id="f06-voice" src="assets/voice/06.wav" data-start="0" data-duration="2.907" data-track-index="10" data-volume="1"></audio>
+      </div>
+      <script>
+        window.__timelines = window.__timelines || {};
+        const tl = gsap.timeline({ paused: true });
+
+        const DURATION = 2.987;
+        const KICKER_TEXT = "con rservasroma";
+        const TYPE_START = 0.05;
+        const TYPE_DUR = 0.85;
+        const BLINK_CYCLES = 4; // whole number over DURATION so the sin sweep closes clean
+
+        const textEl = document.getElementById("kicker-text");
+        const cursorEl = document.getElementById("cursor");
+
+        // discrete-text-sequence (smooth character-slice variation): a driver value
+        // maps deterministically to a substring length — reverse-seek safe, no
+        // accumulated state.
+        const typeState = { n: 0 };
+        tl.fromTo(
+          typeState,
+          { n: 0 },
+          {
+            n: KICKER_TEXT.length,
+            duration: TYPE_DUR,
+            ease: "power1.inOut",
+            onUpdate: () => {
+              textEl.textContent = KICKER_TEXT.substring(0, Math.floor(typeState.n));
+            },
+          },
+          TYPE_START
+        );
+
+        // context-sensitive-cursor: cursor color tracks the active text segment.
+        // The orange register forbids a second accent hue, so the one segment here
+        // ("brand namedrop") stays ink-black end to end.
+        cursorEl.style.background = "#1A1A1A";
+        const blink = { p: 0 };
+        tl.fromTo(
+          blink,
+          { p: 0 },
+          {
+            p: Math.PI * 2 * BLINK_CYCLES,
+            duration: DURATION,
+            ease: "none",
+            onUpdate: () => {
+              cursorEl.style.opacity = Math.sin(blink.p) > 0 ? "1" : "0";
+            },
+          },
+          0
+        );
+
+        // Scene 2: hard-cut headline arrival under the kicker at the VO cue, with a
+        // quick settle snap (no fade/roll/blur) — the payload lands, then holds.
+        tl.fromTo(
+          "#headline-inner",
+          { scale: 1.08 },
+          { scale: 1, duration: 0.16, ease: "power3.out" },
+          1.2
+        );
+
+        // Sticker (celular heroe con capa, calendario+check) es el hero visual
+        // del giro hacia la solucion — entra justo con el titular, spring-pop
+        // suave, el elemento con mas presencia de las 9 escenas.
+        tl.fromTo(
+          "#rr-sticker",
+          { opacity: 0, scale: 0.6 },
+          { opacity: 1, scale: 1, duration: 0.5, ease: "power3.out" },
+          1.2
+        );
+
+        window.__timelines["06-rservasroma"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

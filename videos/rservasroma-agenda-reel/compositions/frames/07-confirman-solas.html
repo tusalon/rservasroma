@@ -1,0 +1,104 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+  </head>
+  <body>
+    <template>
+  <style>
+@font-face { font-family: 'Barlow'; font-weight: 400; font-style: normal; src: url('capture/assets/fonts/Barlow-400.woff2') format('woff2'); }
+@font-face { font-family: 'Barlow'; font-weight: 500; font-style: normal; src: url('capture/assets/fonts/Barlow-500.woff2') format('woff2'); }
+@font-face { font-family: 'Barlow'; font-weight: 600; font-style: normal; src: url('capture/assets/fonts/Barlow-600.woff2') format('woff2'); }
+@font-face { font-family: 'Barlow'; font-weight: 700; font-style: normal; src: url('capture/assets/fonts/Barlow-700.woff2') format('woff2'); }
+@font-face { font-family: 'Barlow'; font-weight: 800; font-style: normal; src: url('capture/assets/fonts/Barlow-800.woff2') format('woff2'); }
+@font-face { font-family: 'Barlow'; font-weight: 900; font-style: normal; src: url('capture/assets/fonts/Barlow-900.woff2') format('woff2'); }
+    #root {
+      position: absolute;
+      inset: 0;
+      color: #1A1A1A;
+      font-family: Barlow, system-ui, sans-serif;
+      container-type: size;
+    }
+    .ground {
+      position: absolute;
+      inset: 0;
+      background: #FF1493;
+    }
+    .wrap {
+      position: absolute;
+      left: 5.5cqw;
+      right: 5.5cqw;
+      top: 32cqh;
+      max-width: 78cqw;
+      display: flex;
+      flex-direction: column;
+      gap: 2.5cqh;
+    }
+    .line {
+      font-weight: 800;
+      text-transform: lowercase;
+      letter-spacing: -0.03em;
+      line-height: 0.9;
+      font-size: 7.5cqw;
+      transform-origin: 0% 50%;
+      opacity: 0;
+    }
+    .cf7-sticker {
+      position: absolute;
+      left: 50%;
+      top: 68cqh;
+      width: 32cqw;
+      transform: translateX(-50%) scale(0.7);
+      opacity: 0;
+    }
+  </style>
+  <div id="root" data-composition-id="07-confirman-solas" data-start="0" data-duration="4.029" data-width="1080" data-height="1920">
+    <div class="ground clip" data-start="0" data-duration="4.029" data-track-index="0"></div>
+    <div class="wrap">
+      <div class="line line1" id="line1">ven tus horarios reales</div>
+      <div class="line line2" id="line2">y confirman su cita sin que tú escribas nada</div>
+    </div>
+    <img class="clip cf7-sticker" id="cf7-sticker" src="capture/assets/images/07-confirman-solas.png" alt="" data-start="0" data-duration="4.029" data-track-index="1" />
+    <audio id="f07-voice" src="assets/voice/07.wav" data-start="0" data-duration="4.029" data-track-index="10" data-volume="1"></audio>
+  </div>
+  <script>
+    window.__timelines = window.__timelines || {};
+    var tl07 = gsap.timeline({ paused: true });
+    window.__timelines["07-confirman-solas"] = tl07;
+
+    // Scene 1 (0.0-2.0s): "ven tus horarios reales" fades in centered-left,
+    // scaling up gently 95% -> 100% (scale-swap-transition, incoming half only —
+    // no outgoing card precedes it, this frame continues the pink ground from 06).
+    tl07.fromTo(
+      "#line1",
+      { opacity: 0, scale: 0.95 },
+      { opacity: 1, scale: 1, duration: 0.65, ease: "back.out(1.2)" },
+      0.05
+    );
+
+    // Scene 2 (2.0-4.139s): on the VO cue "y confirman su cita sin que tú
+    // escribas nada", the second clause slides up under the first as a
+    // crossfade (discrete-text-sequence's translate-up + crossfade handoff,
+    // adapted so line 1 stays put — both clauses hold together to the cut).
+    tl07.fromTo(
+      "#line2",
+      { opacity: 0, y: 40 },
+      { opacity: 1, y: 0, duration: 0.6, ease: "power3.out" },
+      2.0
+    );
+
+    // Sticker (celular guiñando con check enorme) entra despues de que ambas
+    // lineas estan en pantalla — el remate visual del beneficio.
+    tl07.fromTo(
+      "#cf7-sticker",
+      { opacity: 0, scale: 0.7 },
+      { opacity: 1, scale: 1, duration: 0.4, ease: "power3.out" },
+      2.75
+    );
+
+    // Both lines hold, unanimated, through the end of the shot (4.139s) —
+    // the allocated stillness; no exit (non-final frame).
+  </script>
+    </template>
+  </body>
+</html>

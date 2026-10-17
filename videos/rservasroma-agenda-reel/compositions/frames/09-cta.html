@@ -1,0 +1,135 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+  </head>
+  <body>
+    <template>
+      <style>
+@font-face { font-family: 'Barlow'; font-weight: 400; font-style: normal; src: url('capture/assets/fonts/Barlow-400.woff2') format('woff2'); }
+@font-face { font-family: 'Barlow'; font-weight: 500; font-style: normal; src: url('capture/assets/fonts/Barlow-500.woff2') format('woff2'); }
+@font-face { font-family: 'Barlow'; font-weight: 600; font-style: normal; src: url('capture/assets/fonts/Barlow-600.woff2') format('woff2'); }
+@font-face { font-family: 'Barlow'; font-weight: 700; font-style: normal; src: url('capture/assets/fonts/Barlow-700.woff2') format('woff2'); }
+@font-face { font-family: 'Barlow'; font-weight: 800; font-style: normal; src: url('capture/assets/fonts/Barlow-800.woff2') format('woff2'); }
+@font-face { font-family: 'Barlow'; font-weight: 900; font-style: normal; src: url('capture/assets/fonts/Barlow-900.woff2') format('woff2'); }
+        #root {
+          position: absolute;
+          inset: 0;
+          overflow: hidden;
+          color: #1A1A1A;
+          font-family: Barlow, system-ui, sans-serif;
+          container-type: size;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .cta09-bg {
+          position: absolute;
+          inset: 0;
+          background: #FF1493;
+        }
+        .cta09-wrap {
+          position: relative;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          text-align: center;
+          gap: 1.6cqh;
+          padding: 0 5.5cqw;
+        }
+        .cta09-line {
+          font-weight: 700;
+          text-transform: lowercase;
+          letter-spacing: -0.02em;
+          line-height: 1.15;
+          font-size: 3.6cqw;
+          max-width: 78cqw;
+          color: rgba(17, 17, 17, 0.75);
+        }
+        .cta09-word {
+          font-weight: 900;
+          text-transform: uppercase;
+          letter-spacing: -0.02em;
+          line-height: 0.88;
+          font-size: 13cqw;
+          color: #1A1A1A;
+          transform-origin: 50% 50%;
+          will-change: transform;
+        }
+        .cta09-sticker {
+          position: absolute;
+          right: 6cqw;
+          top: 74cqh;
+          width: 22cqw;
+          transform: scale(0.7);
+          opacity: 0;
+        }
+      </style>
+      <div id="root" data-composition-id="09-cta" data-start="0" data-duration="2.475" data-width="1080" data-height="1920">
+        <div
+          class="cta09-bg clip"
+          id="cta09-bg"
+          data-start="0"
+          data-duration="2.475"
+          data-track-index="0"
+        ></div>
+        <div
+          class="cta09-wrap clip"
+          id="cta09-wrap"
+          data-start="0"
+          data-duration="2.475"
+          data-track-index="1"
+        >
+          <div class="cta09-line" id="cta09-comenta">comenta</div>
+          <div class="cta09-word" id="cta09-agenda">AGENDA</div>
+          <div class="cta09-line" id="cta09-detalle">y te envío los detalles</div>
+        </div>
+        <img class="clip cta09-sticker" id="cta09-sticker" src="capture/assets/images/09-cta.png" alt="" data-start="0" data-duration="2.475" data-track-index="2" />
+        <audio id="f09-voice" src="assets/voice/09.wav" data-start="0" data-duration="2.475" data-track-index="10" data-volume="1"></audio>
+      </div>
+      <script>
+        window.__timelines = window.__timelines || {};
+        const tl = gsap.timeline({ paused: true });
+
+        // Scene 1 (0.0-1.0s): hard cut to the fucsia field; "comenta" fades in
+        // centered, above the composition, on a quiet beat before the payoff.
+        tl.fromTo(
+          "#cta09-comenta",
+          { opacity: 0, y: 16 },
+          { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" },
+          0.15
+        );
+
+        // Scene 2 (1.0-2.475s): on the VO hitting "AGENDA", the word spring-pops
+        // in with overshoot -- the video's one deliberate bounce, the CTA's brand hit.
+        tl.fromTo(
+          "#cta09-agenda",
+          { scale: 0, opacity: 0 },
+          { scale: 1, opacity: 1, duration: 0.55, ease: "back.out(1.7)" },
+          1.0
+        );
+
+        // "y te envío los detalles" fades in beneath in the same beat, then the
+        // frame holds static to the end (last frame -- no exit).
+        tl.fromTo(
+          "#cta09-detalle",
+          { opacity: 0, y: 14 },
+          { opacity: 1, y: 0, duration: 0.45, ease: "power3.out" },
+          1.35
+        );
+
+        // Sticker (burbuja + mano señalando abajo) entra al final, reforzando
+        // el gesto de "comenta aqui abajo" — pequeño, secundario, nunca compite
+        // con AGENDA como elemento dominante del frame.
+        tl.fromTo(
+          "#cta09-sticker",
+          { opacity: 0, scale: 0.7 },
+          { opacity: 1, scale: 1, duration: 0.35, ease: "power3.out" },
+          1.75
+        );
+
+        window.__timelines["09-cta"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

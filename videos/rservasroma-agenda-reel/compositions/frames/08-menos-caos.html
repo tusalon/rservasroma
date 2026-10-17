@@ -1,0 +1,144 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+  </head>
+  <body>
+    <template>
+  <style>
+@font-face { font-family: 'Barlow'; font-weight: 400; font-style: normal; src: url('capture/assets/fonts/Barlow-400.woff2') format('woff2'); }
+@font-face { font-family: 'Barlow'; font-weight: 500; font-style: normal; src: url('capture/assets/fonts/Barlow-500.woff2') format('woff2'); }
+@font-face { font-family: 'Barlow'; font-weight: 600; font-style: normal; src: url('capture/assets/fonts/Barlow-600.woff2') format('woff2'); }
+@font-face { font-family: 'Barlow'; font-weight: 700; font-style: normal; src: url('capture/assets/fonts/Barlow-700.woff2') format('woff2'); }
+@font-face { font-family: 'Barlow'; font-weight: 800; font-style: normal; src: url('capture/assets/fonts/Barlow-800.woff2') format('woff2'); }
+@font-face { font-family: 'Barlow'; font-weight: 900; font-style: normal; src: url('capture/assets/fonts/Barlow-900.woff2') format('woff2'); }
+    #root {
+      position: absolute;
+      inset: 0;
+      color: #1a1a1a;
+      font-family: Barlow, system-ui, sans-serif;
+      container-type: size;
+    }
+
+    [class~="08-menos-caos-bg"] {
+      position: absolute;
+      inset: 0;
+      background: #ffffff;
+    }
+
+    [class~="08-menos-caos-list"] {
+      position: absolute;
+      left: 5.5cqw;
+      right: 5.5cqw;
+      top: 54cqh;
+      display: flex;
+      flex-direction: column;
+      gap: 2.4cqh;
+    }
+
+    [class~="08-menos-caos-item"] {
+      display: flex;
+      align-items: baseline;
+      font-weight: 800;
+      text-transform: lowercase;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+      font-size: 7.5cqw;
+      transform-origin: 0% 50%;
+      will-change: transform, opacity;
+    }
+
+    [class~="08-menos-caos-num"] {
+      color: #ff1493;
+      font-family: "IBM Plex Mono", monospace;
+      font-weight: 600;
+      font-size: 3.2cqw;
+      letter-spacing: 0.1em;
+      margin-right: 1.2cqw;
+    }
+    [class~="08-menos-caos-sticker"] {
+      position: absolute;
+      left: 50%;
+      top: 6cqh;
+      width: 34cqw;
+      transform: translateX(-50%) scale(0.7);
+      opacity: 0;
+    }
+  </style>
+  <div id="root" data-composition-id="08-menos-caos" data-start="0" data-duration="4.249" data-width="1080" data-height="1920">
+    <div class="clip 08-menos-caos-bg" data-start="0" data-duration="4.249" data-track-index="0"></div>
+    <img class="clip 08-menos-caos-sticker" id="mc8-sticker" src="capture/assets/images/08-menos-caos.png" alt="" data-start="0" data-duration="4.249" data-track-index="4" />
+
+    <div class="08-menos-caos-list">
+      <div
+        id="mc8-item-1"
+        class="clip 08-menos-caos-item"
+        data-start="0"
+        data-duration="4.249"
+        data-track-index="1"
+      >
+        <span class="08-menos-caos-num">/</span>menos caos
+      </div>
+      <div
+        id="mc8-item-2"
+        class="clip 08-menos-caos-item"
+        data-start="1.5"
+        data-duration="2.749"
+        data-track-index="2"
+      >
+        <span class="08-menos-caos-num">/</span>menos cancelaciones
+      </div>
+      <div
+        id="mc8-item-3"
+        class="clip 08-menos-caos-item"
+        data-start="3.0"
+        data-duration="1.249"
+        data-track-index="3"
+      >
+        <span class="08-menos-caos-num">/</span>más control
+      </div>
+    </div>
+    <audio id="f08-voice" src="assets/voice/08.wav" data-start="0" data-duration="4.249" data-track-index="10" data-volume="1"></audio>
+  </div>
+  <script>
+    window.__timelines = window.__timelines || {};
+    const tl08MenosCaos = gsap.timeline({ paused: true });
+
+    // Scene 1 (0.0-1.5s): "/ menos caos" spring-pops into the first line, anchored top-left.
+    tl08MenosCaos.fromTo(
+      "#mc8-item-1",
+      { scale: 0, opacity: 0, y: 16 },
+      { scale: 1, opacity: 1, y: 0, duration: 0.45, ease: "power3.out" },
+      0.0,
+    );
+
+    // Scene 2 (1.5-3.0s): VO names "menos cancelaciones de último minuto" - second line pops in the same way.
+    tl08MenosCaos.fromTo(
+      "#mc8-item-2",
+      { scale: 0, opacity: 0, y: 16 },
+      { scale: 1, opacity: 1, y: 0, duration: 0.5, ease: "power3.out" },
+      1.5,
+    );
+
+    // Scene 3 (3.0-4.459s): VO names "más control de tu agenda" - third line pops in; all three hold together, co-resident, to the cut.
+    tl08MenosCaos.fromTo(
+      "#mc8-item-3",
+      { scale: 0, opacity: 0, y: 16 },
+      { scale: 1, opacity: 1, y: 0, duration: 0.5, ease: "power3.out" },
+      3.0,
+    );
+
+    // Sticker (calendario ordenado con 3 checks) entra primero, estableciendo
+    // el tono de calma antes de que la lista empiece a construirse debajo.
+    tl08MenosCaos.fromTo(
+      "#mc8-sticker",
+      { opacity: 0, scale: 0.7 },
+      { opacity: 1, scale: 1, duration: 0.4, ease: "power3.out" },
+      0.0,
+    );
+
+    window.__timelines["08-menos-caos"] = tl08MenosCaos;
+  </script>
+    </template>
+  </body>
+</html>

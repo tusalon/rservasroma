@@ -1,0 +1,114 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+  </head>
+  <body>
+    <template>
+  <style>
+@font-face { font-family: 'Barlow'; font-weight: 400; font-style: normal; src: url('capture/assets/fonts/Barlow-400.woff2') format('woff2'); }
+@font-face { font-family: 'Barlow'; font-weight: 500; font-style: normal; src: url('capture/assets/fonts/Barlow-500.woff2') format('woff2'); }
+@font-face { font-family: 'Barlow'; font-weight: 600; font-style: normal; src: url('capture/assets/fonts/Barlow-600.woff2') format('woff2'); }
+@font-face { font-family: 'Barlow'; font-weight: 700; font-style: normal; src: url('capture/assets/fonts/Barlow-700.woff2') format('woff2'); }
+@font-face { font-family: 'Barlow'; font-weight: 800; font-style: normal; src: url('capture/assets/fonts/Barlow-800.woff2') format('woff2'); }
+@font-face { font-family: 'Barlow'; font-weight: 900; font-style: normal; src: url('capture/assets/fonts/Barlow-900.woff2') format('woff2'); }
+    #root {
+      position: absolute;
+      inset: 0;
+      color: #1a1a1a;
+      font-family: Barlow, system-ui, sans-serif;
+      container-type: size;
+    }
+    [class~="02-pregunta-bg"] {
+      position: absolute;
+      inset: 0;
+      background: #ffffff;
+    }
+    [class~="02-pregunta-wrap"] {
+      position: absolute;
+      left: 5.5cqw;
+      right: 5.5cqw;
+      top: 36cqh;
+    }
+    [class~="02-pregunta-headline"] {
+      font-weight: 800;
+      text-transform: lowercase;
+      letter-spacing: -0.02em;
+      line-height: 1.05;
+      font-size: 8.5cqw;
+    }
+    [class~="02-pregunta-word"] {
+      display: inline-block;
+      will-change: transform, opacity;
+    }
+    [class~="02-pregunta-accent"] {
+      color: #ff1493;
+    }
+    [class~="02-pregunta-sticker"] {
+      position: absolute;
+      left: 50%;
+      top: 62cqh;
+      width: 30cqw;
+      transform: translateX(-50%) scale(0.7);
+      opacity: 0;
+    }
+  </style>
+  <div id="root" data-composition-id="02-pregunta" data-start="0" data-duration="3.605" data-width="1080" data-height="1920">
+    <div class="clip 02-pregunta-bg" data-start="0" data-duration="3.605" data-track-index="0"></div>
+    <div class="clip 02-pregunta-wrap" data-start="0" data-duration="3.605" data-track-index="1">
+      <div class="02-pregunta-headline">
+        <span class="02-pregunta-word" data-w="0">&iquest;sabes</span>
+        <span class="02-pregunta-word" data-w="1">cu&aacute;ntas</span>
+        <span class="02-pregunta-word 02-pregunta-accent" data-w="2">clientas</span>
+        <span class="02-pregunta-word 02-pregunta-accent" data-w="3">perdiste</span>
+        <span class="02-pregunta-word" data-w="4">por</span>
+        <span class="02-pregunta-word" data-w="5">no</span>
+        <span class="02-pregunta-word" data-w="6">confirmar?</span>
+      </div>
+    </div>
+    <img class="clip 02-pregunta-sticker" id="pregunta-sticker" src="capture/assets/images/02-pregunta.png" alt="" data-start="0" data-duration="3.605" data-track-index="2" />
+    <audio id="f02-voice" src="assets/voice/02.wav" data-start="0" data-duration="3.605" data-track-index="10" data-volume="1"></audio>
+  </div>
+  <script>
+    (function () {
+      window.__timelines = window.__timelines || {};
+      var tl = gsap.timeline({ paused: true });
+
+      // Word-by-word reveal, precomputed once (dynamic-content-sequencing):
+      // Scene 1 (0.0-1.4s) lands "¿sabes cuántas"; Scene 2 (1.4-3.605s) lands
+      // the pink-accented "clientas perdiste" then closes with "por no confirmar?",
+      // holding complete until the crossfade out.
+      var WORDS = [
+        { i: 0, start: 0.0 },
+        { i: 1, start: 0.35 },
+        { i: 2, start: 1.4 },
+        { i: 3, start: 1.75 },
+        { i: 4, start: 2.15 },
+        { i: 5, start: 2.35 },
+        { i: 6, start: 2.55 },
+      ];
+
+      WORDS.forEach(function (w) {
+        tl.fromTo(
+          '[data-w="' + w.i + '"]',
+          { opacity: 0, y: 18 },
+          { opacity: 1, y: 0, duration: 0.34, ease: "power2.out" },
+          w.start,
+        );
+      });
+
+      // Sticker (carita preocupada) llega despues de que la pregunta completa
+      // esta en pantalla — reforzando el sentimiento, nunca antes que el texto.
+      tl.fromTo(
+        "#pregunta-sticker",
+        { opacity: 0, scale: 0.7 },
+        { opacity: 1, scale: 1, duration: 0.4, ease: "power3.out" },
+        2.75
+      );
+
+      window.__timelines["02-pregunta"] = tl;
+    })();
+  </script>
+    </template>
+  </body>
+</html>

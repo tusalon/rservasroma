@@ -1,0 +1,138 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+  </head>
+  <body>
+    <template>
+      <style>
+@font-face { font-family: 'Barlow'; font-weight: 400; font-style: normal; src: url('capture/assets/fonts/Barlow-400.woff2') format('woff2'); }
+@font-face { font-family: 'Barlow'; font-weight: 500; font-style: normal; src: url('capture/assets/fonts/Barlow-500.woff2') format('woff2'); }
+@font-face { font-family: 'Barlow'; font-weight: 600; font-style: normal; src: url('capture/assets/fonts/Barlow-600.woff2') format('woff2'); }
+@font-face { font-family: 'Barlow'; font-weight: 700; font-style: normal; src: url('capture/assets/fonts/Barlow-700.woff2') format('woff2'); }
+@font-face { font-family: 'Barlow'; font-weight: 800; font-style: normal; src: url('capture/assets/fonts/Barlow-800.woff2') format('woff2'); }
+@font-face { font-family: 'Barlow'; font-weight: 900; font-style: normal; src: url('capture/assets/fonts/Barlow-900.woff2') format('woff2'); }
+        #root {
+          position: absolute;
+          inset: 0;
+          color: #1A1A1A;
+          font-family: Barlow, system-ui, sans-serif;
+          container-type: size;
+          overflow: hidden;
+        }
+        .wac-bg {
+          position: absolute;
+          inset: 0;
+          background: #FFFFFF;
+        }
+        .wac-sticker {
+          position: absolute;
+          left: 50%;
+          top: 32cqh;
+          width: 52cqw;
+          transform: translate(-50%, -50%) scale(0.6);
+          opacity: 0;
+        }
+        .wac-headline {
+          position: absolute;
+          left: 5.5cqw;
+          right: 5.5cqw;
+          bottom: 19cqh;
+          display: flex;
+          flex-direction: column;
+          gap: 0.4cqh;
+        }
+        .wac-line {
+          font-weight: 900;
+          text-transform: lowercase;
+          letter-spacing: -0.03em;
+          line-height: 0.95;
+          font-size: 9cqw;
+        }
+      </style>
+      <div id="root" data-composition-id="03-whatsapp-caos" data-start="0" data-duration="5.216" data-width="1080" data-height="1920">
+        <div class="wac-bg clip" data-start="0" data-duration="5.216" data-track-index="0"></div>
+
+        <img class="clip wac-sticker" id="wac-sticker" src="capture/assets/images/03-whatsapp-caos.png" alt="" data-start="0" data-duration="5.216" data-track-index="1" />
+
+        <div class="wac-headline">
+          <div class="wac-line" id="wac-line-1">escribes...</div>
+          <div class="wac-line" id="wac-line-2">esperas...</div>
+          <div class="wac-line" id="wac-line-3">y nunca confirma</div>
+        </div>
+        <audio id="f03-voice" src="assets/voice/03.wav" data-start="0" data-duration="5.216" data-track-index="10" data-volume="1"></audio>
+      </div>
+      <script>
+        window.__timelines = window.__timelines || {};
+        const tl = gsap.timeline({ paused: true });
+
+        // ---- Scene 1 (0.0-1.8s): spring-pop-entrance ----
+        // El sticker (burbuja de WhatsApp con reloj — "visto, sin respuesta")
+        // entra con un asentamiento suave mientras la VO dice "escribes por
+        // WhatsApp". Reemplaza las 3 burbujas de CSS: el sticker ya trae el
+        // concepto completo en un solo elemento.
+        tl.fromTo(
+          "#wac-sticker",
+          { opacity: 0, scale: 0.6 },
+          { opacity: 1, scale: 1, duration: 0.6, ease: "power3.out" },
+          0.15
+        );
+
+        // ---- Scene 2 (1.8-3.6s): sine-wave-loop ----
+        // El sticker sostiene con un jitter sutil de baja amplitud — el unico
+        // signo de vida durante la espera silenciosa.
+        var IDLE_START_TIME = 1.8;
+        var IDLE_DUR = 1.8; // exactly one full sine cycle -> phase ends back at 0, no jump
+        var Y_AMP_PX = 2.5;
+        var SCALE_AMP = 0.01;
+        var sticker = document.getElementById("wac-sticker");
+        var phase = { p: 0 };
+        tl.to(
+          phase,
+          {
+            p: Math.PI * 2,
+            duration: IDLE_DUR,
+            ease: "none",
+            onUpdate: function () {
+              var s = Math.sin(phase.p);
+              sticker.style.transform =
+                "translate(-50%, calc(-50% + " + (s * Y_AMP_PX) + "px)) scale(" + (1 + s * SCALE_AMP) + ")";
+            },
+          },
+          IDLE_START_TIME
+        );
+
+        // ---- Scene 3 (3.6-5.376s): dynamic-content-sequencing ----
+        // The headline reveals clause by clause, timed to the VO's three beats.
+        // Per-clause reveal offset is computed from clause length (content-aware
+        // pacing), precomputed once here rather than hardcoded per item.
+        var SCENE3_START = 3.6;
+        var BASE_DURATION = 0.28;
+        var SEC_PER_CHAR = 0.025;
+        var CLAUSES = [
+          { id: "wac-line-1", text: "escribes..." },
+          { id: "wac-line-2", text: "esperas..." },
+          { id: "wac-line-3", text: "y nunca confirma" },
+        ];
+        var cumulative = 0;
+        var TIMELINE = CLAUSES.map(function (entry) {
+          var start = cumulative;
+          var dur = BASE_DURATION + entry.text.length * SEC_PER_CHAR;
+          cumulative += dur;
+          return { id: entry.id, start: start };
+        });
+
+        TIMELINE.forEach(function (entry) {
+          tl.fromTo(
+            "#" + entry.id,
+            { y: 24, opacity: 0 },
+            { y: 0, opacity: 1, duration: 0.45, ease: "power2.out" },
+            SCENE3_START + entry.start
+          );
+        });
+
+        window.__timelines["03-whatsapp-caos"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

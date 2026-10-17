@@ -890,6 +890,10 @@
         // admin-app.js — pestaña Agenda
         'Agenda diaria': 'Daily schedule',
         'Agenda semanal': 'Weekly schedule',
+        'Agenda mensual': 'Monthly schedule',
+        'Anterior': 'Previous',
+        'Siguiente': 'Next',
+        'servicios': 'services',
         'Día anterior': 'Previous day',
         'Semana anterior': 'Previous week',
         'Hoy': 'Today',

@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "preferences": {
+    "destination": {
+      "value": "instagram-reels",
+      "confirmed_in": [
+        "rservasroma-agenda-reel"
+      ],
+      "updated_at": "2026-08-04T23:28:30.556Z"
+    },
+    "aspect": {
+      "value": "1080x1920",
+      "confirmed_in": [
+        "rservasroma-agenda-reel"
+      ],
+      "updated_at": "2026-08-04T23:28:30.894Z"
+    },
+    "language": {
+      "value": "es",
+      "confirmed_in": [
+        "rservasroma-agenda-reel"
+      ],
+      "updated_at": "2026-08-04T23:28:31.205Z"
+    },
+    "flow": {
+      "value": "automation",
+      "confirmed_in": [
+        "rservasroma-agenda-reel"
+      ],
+      "updated_at": "2026-08-04T23:28:31.420Z"
+    },
+    "storyboard": {
+      "value": "yes",
+      "confirmed_in": [
+        "rservasroma-agenda-reel"
+      ],
+      "updated_at": "2026-08-04T23:28:31.636Z"
+    },
+    "style_preset.product-launch-video": {
+      "value": "broadside",
+      "confirmed_in": [
+        "rservasroma-agenda-reel"
+      ],
+      "updated_at": "2026-08-04T23:54:30.891Z"
+    }
+  },
+  "sightings": {}
+}

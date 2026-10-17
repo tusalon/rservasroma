@@ -6,6 +6,48 @@
       "runtimeExecutable": "npx",
       "runtimeArgs": ["--yes", "http-server", "-p", "8123", "-c-1", "."],
       "port": 8123
+    },
+    {
+      "name": "romadetalles-static",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["--yes", "http-server", "-p", "5176", "-c-1", "C:\\Users\\RODO\\Documents\\RomaDetalles"],
+      "port": 5176
+    },
+    {
+      "name": "calculadoracombos",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["--yes", "http-server", "-p", "5188", "-c-1", "C:\\Users\\RODO\\Documents\\calculadoracombos"],
+      "port": 5188
+    },
+    {
+      "name": "cubafitroma",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["--yes", "http-server", "-p", "5190", "-c-1", "C:\\Users\\RODO\\Documents\\CubaFitRoma"],
+      "port": 5190
+    },
+    {
+      "name": "catalgo",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["--yes", "http-server", "-p", "5196", "-c-1", "C:\\Users\\RODO\\Documents\\Catal-go"],
+      "port": 5196
+    },
+    {
+      "name": "scratchpad",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["--yes", "http-server", "-p", "5199", "-c-1", "C:\\Users\\RODO\\AppData\\Local\\Temp\\claude\\C--Users-RODO-Documents-ClientesRservas-rservasroma\\e5a8ec44-5948-423b-93ce-145e1b27c225\\scratchpad"],
+      "port": 5199
+    },
+    {
+      "name": "tudespensa25",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["--yes", "http-server", "-p", "5195", "-c-1", "C:\\Users\\RODO\\Documents\\TuDespensa.2025"],
+      "port": 5195
+    },
+    {
+      "name": "romafinanzas",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["--yes", "http-server", "-p", "5193", "-c-1", "C:\\Users\\RODO\\Documents\\RomaFinanzas\\dist"],
+      "port": 5193
     }
   ]
 }

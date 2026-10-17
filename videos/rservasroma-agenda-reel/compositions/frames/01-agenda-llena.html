@@ -1,0 +1,91 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+  </head>
+  <body>
+    <template>
+      <style>
+@font-face { font-family: 'Barlow'; font-weight: 400; font-style: normal; src: url('capture/assets/fonts/Barlow-400.woff2') format('woff2'); }
+@font-face { font-family: 'Barlow'; font-weight: 500; font-style: normal; src: url('capture/assets/fonts/Barlow-500.woff2') format('woff2'); }
+@font-face { font-family: 'Barlow'; font-weight: 600; font-style: normal; src: url('capture/assets/fonts/Barlow-600.woff2') format('woff2'); }
+@font-face { font-family: 'Barlow'; font-weight: 700; font-style: normal; src: url('capture/assets/fonts/Barlow-700.woff2') format('woff2'); }
+@font-face { font-family: 'Barlow'; font-weight: 800; font-style: normal; src: url('capture/assets/fonts/Barlow-800.woff2') format('woff2'); }
+@font-face { font-family: 'Barlow'; font-weight: 900; font-style: normal; src: url('capture/assets/fonts/Barlow-900.woff2') format('woff2'); }
+    #root {
+      position: absolute;
+      inset: 0;
+      color: #1a1a1a;
+      font-family: Barlow, system-ui, sans-serif;
+      container-type: size;
+      overflow: hidden;
+    }
+    .f01-bg {
+      position: absolute;
+      inset: 0;
+      background: #ffffff;
+    }
+    .f01-flash {
+      position: absolute;
+      inset: 0;
+      background: #ff1493;
+      opacity: 0;
+    }
+    .f01-wrap {
+      position: absolute;
+      left: 5.5cqw;
+      right: 5.5cqw;
+      top: 40cqh;
+      opacity: 0;
+    }
+    .f01-headline {
+      font-weight: 900;
+      text-transform: lowercase;
+      letter-spacing: -0.04em;
+      line-height: 0.9;
+      font-size: 11cqw;
+    }
+    .f01-sticker {
+      position: absolute;
+      left: 50%;
+      top: 66cqh;
+      width: 36cqw;
+      transform: translateX(-50%) scale(0.7);
+      opacity: 0;
+    }
+  </style>
+  <div id="root" data-composition-id="01-agenda-llena" data-start="0" data-duration="1.899" data-width="1080" data-height="1920">
+    <div class="clip f01-bg" data-start="0" data-duration="1.899" data-track-index="0"></div>
+    <div class="clip f01-flash" data-start="0" data-duration="0.12" data-track-index="1"></div>
+    <div class="clip f01-wrap" data-start="0" data-duration="1.899" data-track-index="2">
+      <div class="f01-headline">agenda llena<br />toda la semana</div>
+    </div>
+    <img class="clip f01-sticker" id="f01-sticker" src="capture/assets/images/01-agenda-llena.png" alt="" data-start="0" data-duration="1.899" data-track-index="3" />
+    <audio id="f01-voice" src="assets/voice/01.wav" data-start="0" data-duration="1.899" data-track-index="10" data-volume="1"></audio>
+  </div>
+  <script>
+    window.__timelines = window.__timelines || {};
+    var tl = gsap.timeline({ paused: true });
+
+    // Camera-flash punch (fire-orange strobe) — hard in, hard out, no fade feel
+    tl.fromTo(".f01-flash", { opacity: 0 }, { opacity: 1, duration: 0.04, ease: "none" }, 0);
+    tl.fromTo(".f01-flash", { opacity: 1 }, { opacity: 0, duration: 0.05, ease: "none" }, 0.04);
+
+    // Headline hard-cuts in as the flash clears — single punch, no escalation, holds to the exit cut
+    tl.fromTo(".f01-wrap", { opacity: 0 }, { opacity: 1, duration: 0.02, ease: "none" }, 0.09);
+
+    // Sticker (celular vibrando de notificaciones) settles in right behind the
+    // headline — smooth long-tail, no bounce, reinforcing "agenda llena" as a
+    // secondary beat, never competing with the type for dominance.
+    tl.fromTo(
+      "#f01-sticker",
+      { opacity: 0, scale: 0.7 },
+      { opacity: 1, scale: 1, duration: 0.4, ease: "power3.out" },
+      0.35
+    );
+
+    window.__timelines["01-agenda-llena"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

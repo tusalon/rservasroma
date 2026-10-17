@@ -3805,7 +3805,22 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
         .sort((a, b) => a.fecha.localeCompare(b.fecha) || a.hora_inicio.localeCompare(b.hora_inicio)));
     const agendaDateStr = formatDate(agendaDate);
     const agendaDayBookings = agendaBookings.filter(b => b.fecha === agendaDateStr);
-    const agendaVisibleBookings = agendaMode === 'dia' ? agendaDayBookings : agendaBookings;
+    const agendaMonthStart = new Date(agendaDate.getFullYear(), agendaDate.getMonth(), 1);
+    const agendaMonthKey = formatDate(agendaMonthStart).slice(0, 7);
+    const agendaMonthDays = Array.from({ length: 42 }, (_, index) => addDays(startOfWeek(agendaMonthStart), index));
+    const agendaMonthBookings = agruparReservasVisuales(bookingsVisiblesPorRol
+        .filter(b => b.fecha >= formatDate(agendaMonthDays[0]) && b.fecha <= formatDate(agendaMonthDays[41]) && b.estado !== 'Cancelado')
+        .sort((a, b) => a.fecha.localeCompare(b.fecha) || a.hora_inicio.localeCompare(b.hora_inicio)));
+    const agendaVisibleBookings = agendaMode === 'dia'
+        ? agendaDayBookings
+        : agendaMode === 'mes'
+            ? agendaMonthBookings.filter(b => b.fecha.startsWith(agendaMonthKey))
+            : agendaBookings;
+    const moveAgenda = (dir) => setAgendaDate(
+        agendaMode === 'dia' ? addDays(agendaDate, dir)
+            : agendaMode === 'semana' ? addDays(agendaDate, 7 * dir)
+                : new Date(agendaDate.getFullYear(), agendaDate.getMonth() + dir, 1)
+    );
     const agendaToday = getCurrentLocalDate();
     const agendaHours = Array.from({ length: 14 }, (_, index) => index + 7);
     const agendaStartMinutes = 7 * 60;
@@ -4067,8 +4082,31 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
         if (agendaMode === 'dia') {
             return agendaDate.toLocaleDateString(localeFecha, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
         }
+        if (agendaMode === 'mes') {
+            return agendaDate.toLocaleDateString(localeFecha, { month: 'long', year: 'numeric' });
+        }
         return `${agendaDays[0].toLocaleDateString(localeFecha, { day: 'numeric', month: 'short' })} - ${agendaDays[6].toLocaleDateString(localeFecha, { day: 'numeric', month: 'short', year: 'numeric' })}`;
     };
+
+    // Vista móvil: tarjetas en vez de la cuadrícula por horas
+    const renderAgendaCards = (list) => list.map(booking => {
+        const statusClass = agendaStatusStyle[booking.estado] || 'bg-gray-50 border-l-gray-500 border-gray-100 text-gray-900';
+        return (
+            <button
+                key={booking._grupoVisualId || booking.id}
+                onClick={() => abrirDetalleAgenda(booking)}
+                className={`w-full text-left rounded-xl border border-l-4 p-3 shadow-sm active:scale-[0.99] transition ${statusClass}`}
+            >
+                <div className="flex items-center justify-between gap-2">
+                    <p className="text-xs font-bold">{formatTo12Hour(booking.hora_inicio)} - {formatTo12Hour(booking.hora_fin || calculateEndTime(booking.hora_inicio, booking.duracion || 60))}</p>
+                    <span className="text-[10px] font-semibold uppercase opacity-80">{booking.estado}</span>
+                </div>
+                <p className="text-sm font-bold truncate mt-1">{booking.cliente_nombre}</p>
+                <p className="text-xs truncate opacity-90">{booking._grupoVisual ? `${booking._reservasGrupo.length} ${t('servicios')} - ${booking.servicio}` : booking.servicio}</p>
+                <p className="text-[11px] truncate opacity-80">{booking.profesional_nombre || booking.trabajador_nombre || t('Sin profesional')}</p>
+            </button>
+        );
+    });
 
     const normalizarServicioAgenda = (value) => {
         return String(value || '')
@@ -5984,8 +6022,8 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                         <div className="p-4 sm:p-5 border-b bg-gradient-to-r from-white to-pink-50">
                             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                                 <div>
-                                    <p className="text-xs uppercase tracking-wide text-pink-500 font-bold">{agendaMode === 'dia' ? t('Agenda diaria') : t('Agenda semanal')}</p>
-                                    <h2 className="text-2xl font-bold text-gray-900">
+                                    <p className="text-xs uppercase tracking-wide text-pink-500 font-bold">{agendaMode === 'dia' ? t('Agenda diaria') : agendaMode === 'mes' ? t('Agenda mensual') : t('Agenda semanal')}</p>
+                                    <h2 className="text-xl sm:text-2xl font-bold text-gray-900 capitalize">
                                         {getAgendaTitle()}
                                     </h2>
                                 </div>
@@ -5994,14 +6032,15 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                                     <div className="inline-flex bg-gray-100 rounded-lg p-1">
                                         <button onClick={() => setAgendaMode('dia')} className={`px-3 py-1.5 rounded-md text-sm font-medium ${agendaMode === 'dia' ? 'bg-white text-pink-600 shadow-sm' : 'text-gray-600'}`}>{t('Dia')}</button>
                                         <button onClick={() => setAgendaMode('semana')} className={`px-3 py-1.5 rounded-md text-sm font-medium ${agendaMode === 'semana' ? 'bg-white text-pink-600 shadow-sm' : 'text-gray-600'}`}>{t('Semana')}</button>
+                                        <button onClick={() => setAgendaMode('mes')} className={`px-3 py-1.5 rounded-md text-sm font-medium ${agendaMode === 'mes' ? 'bg-white text-pink-600 shadow-sm' : 'text-gray-600'}`}>{t('Mes')}</button>
                                     </div>
-                                    <button onClick={() => setAgendaDate(addDays(agendaDate, agendaMode === 'dia' ? -1 : -7))} className="px-3 py-2 rounded-lg border bg-white hover:bg-gray-50 text-sm font-medium">{agendaMode === 'dia' ? t('Día anterior') : t('Semana anterior')}</button>
+                                    <button onClick={() => moveAgenda(-1)} aria-label={t('Anterior')} className="w-10 h-10 rounded-lg border bg-white hover:bg-gray-50 text-lg font-bold">‹</button>
                                     <button onClick={() => setAgendaDate(new Date())} className="px-3 py-2 rounded-lg bg-pink-500 text-white hover:bg-pink-600 text-sm font-medium">{t('Hoy')}</button>
-                                    <button onClick={() => setAgendaDate(addDays(agendaDate, agendaMode === 'dia' ? 1 : 7))} className="px-3 py-2 rounded-lg border bg-white hover:bg-gray-50 text-sm font-medium">{agendaMode === 'dia' ? t('Día siguiente') : t('Semana siguiente')}</button>
+                                    <button onClick={() => moveAgenda(1)} aria-label={t('Siguiente')} className="w-10 h-10 rounded-lg border bg-white hover:bg-gray-50 text-lg font-bold">›</button>
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-7 gap-1 mt-5 rounded-xl bg-white border border-gray-100 p-2">
+                            <div className={`${agendaMode === 'mes' ? 'hidden' : 'grid'} grid-cols-7 gap-1 mt-5 rounded-xl bg-white border border-gray-100 p-2`}>
                                 {agendaDays.map(day => {
                                     const dateStr = formatDate(day);
                                     const selected = dateStr === agendaDateStr;
@@ -6041,7 +6080,15 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                         </div>
 
                         {agendaMode === 'dia' && (
-                            <div className="p-3 sm:p-5 overflow-x-auto">
+                            <div className="md:hidden p-3 space-y-2">
+                                {agendaDayBookings.length === 0
+                                    ? <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 p-5 text-center text-gray-500">{t('No hay citas para este día')}</div>
+                                    : renderAgendaCards(agendaDayBookings)}
+                            </div>
+                        )}
+
+                        {agendaMode === 'dia' && (
+                            <div className="hidden md:block p-3 sm:p-5 overflow-x-auto">
                                 <div className="relative border rounded-xl overflow-hidden bg-white" style={{ height: `${agendaGridHeight}px`, minWidth: `${agendaDayMinWidth}px` }}>
                                     <div className="absolute left-0 top-0 bottom-0 w-16 bg-gray-50 border-r z-0">
                                         {agendaHours.map(hour => (
@@ -6095,7 +6142,57 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                         )}
 
                         {agendaMode === 'semana' && (
-                        <div className="overflow-x-auto">
+                            <div className="md:hidden p-3 space-y-4">
+                                {agendaDays.map(day => {
+                                    const dayBookings = getAgendaDayBookings(day);
+                                    const isToday = formatDate(day) === agendaToday;
+                                    return (
+                                        <div key={formatDate(day)}>
+                                            <div className="flex items-center justify-between mb-2">
+                                                <p className={`text-sm font-bold capitalize ${isToday ? 'text-pink-600' : 'text-gray-800'}`}>
+                                                    {day.toLocaleDateString(idioma === 'en' ? 'en-US' : 'es-CU', { weekday: 'long', day: 'numeric', month: 'short' })}
+                                                </p>
+                                                <span className={`text-xs px-2 py-0.5 rounded-full ${dayBookings.length ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-500'}`}>{dayBookings.length}</span>
+                                            </div>
+                                            <div className="space-y-2">
+                                                {dayBookings.length === 0
+                                                    ? <p className="text-xs text-gray-400 pl-1">{t('Sin citas')}</p>
+                                                    : renderAgendaCards(dayBookings)}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+
+                        {agendaMode === 'mes' && (
+                            <div className="p-3 sm:p-5">
+                                <div className="grid grid-cols-7 text-center text-[11px] font-bold uppercase text-gray-400 mb-1">
+                                    {agendaMonthDays.slice(0, 7).map(d => <span key={d.getDay()}>{d.toLocaleDateString(idioma === 'en' ? 'en-US' : 'es-CU', { weekday: 'short' }).charAt(0)}</span>)}
+                                </div>
+                                <div className="grid grid-cols-7 gap-1">
+                                    {agendaMonthDays.map(day => {
+                                        const dateStr = formatDate(day);
+                                        const count = agendaMonthBookings.filter(b => b.fecha === dateStr).length;
+                                        const inMonth = dateStr.startsWith(agendaMonthKey);
+                                        const isToday = dateStr === agendaToday;
+                                        return (
+                                            <button
+                                                key={dateStr}
+                                                onClick={() => { setAgendaDate(day); setAgendaMode('dia'); }}
+                                                className={`aspect-square rounded-lg flex flex-col items-center justify-center text-sm transition ${inMonth ? 'text-gray-800' : 'text-gray-300'} ${isToday ? 'bg-pink-50 ring-1 ring-pink-300 font-bold text-pink-700' : 'hover:bg-gray-50'}`}
+                                            >
+                                                <span>{day.getDate()}</span>
+                                                <span className={`mt-0.5 min-w-[18px] px-1 rounded-full text-[10px] leading-4 ${count ? (inMonth ? 'bg-pink-500 text-white' : 'bg-pink-200 text-white') : 'invisible'}`}>{count || 0}</span>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+
+                        {agendaMode === 'semana' && (
+                        <div className="hidden md:block overflow-x-auto">
                             <div className="min-w-[1440px]">
                                 <div className="grid grid-cols-[72px_repeat(7,minmax(190px,1fr))] border-b bg-white sticky top-0 z-10">
                                     <div className="p-3 text-xs font-semibold text-gray-400 border-r">{t('Hora')}</div>

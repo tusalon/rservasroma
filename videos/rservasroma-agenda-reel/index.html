@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=1080, height=1920">
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js" integrity="sha384-sG0Hv1tP1lZCk9KQmrIbY/XNwi+OY84GQqhMscbnsoBFqAz8KNCil1kvfL3Hbbk2" crossorigin="anonymous"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: #000;
+      }
+      #root {
+        position: relative;
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: #FFFFFF;
+      }
+      .scene {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <div data-hf-id="hf-7n6r" id="root" data-composition-id="main" data-start="0" data-duration="28.609" data-width="1080" data-height="1920">
+      <div data-hf-id="hf-jmzu" id="el-01-agenda-llena" class="scene" data-composition-id="01-agenda-llena" data-composition-src="compositions/frames/01-agenda-llena.html" data-start="0" data-duration="2.399" data-track-index="0"></div>
+      <audio data-hf-id="hf-i4t6" id="el-01-agenda-llena-voice" src="assets/voice/01.wav" data-start="0" data-duration="1.899" data-track-index="10" data-volume="1"></audio>
+
+      <div data-hf-id="hf-pc9k" id="el-02-pregunta" class="scene" data-composition-id="02-pregunta" data-composition-src="compositions/frames/02-pregunta.html" data-start="1.899" data-duration="4.105" data-track-index="1"></div>
+      <audio data-hf-id="hf-9bjz" id="el-02-pregunta-voice" src="assets/voice/02.wav" data-start="1.899" data-duration="3.605" data-track-index="10" data-volume="1"></audio>
+
+      <div data-hf-id="hf-z19s" id="el-03-whatsapp-caos" class="scene" data-composition-id="03-whatsapp-caos" data-composition-src="compositions/frames/03-whatsapp-caos.html" data-start="5.504" data-duration="5.776" data-track-index="0"></div>
+      <audio data-hf-id="hf-rmxw" id="el-03-whatsapp-caos-voice" src="assets/voice/03.wav" data-start="5.504" data-duration="5.376" data-track-index="10" data-volume="1"></audio>
+
+      <div data-hf-id="hf-4c9p" id="el-04-no-es-tu-culpa" class="scene" data-composition-id="04-no-es-tu-culpa" data-composition-src="compositions/frames/04-no-es-tu-culpa.html" data-start="10.879999999999999" data-duration="2.313" data-track-index="1"></div>
+      <audio data-hf-id="hf-5mjk" id="el-04-no-es-tu-culpa-voice" src="assets/voice/04.wav" data-start="10.879999999999999" data-duration="1.813" data-track-index="10" data-volume="1"></audio>
+
+      <div data-hf-id="hf-vz21" id="el-05-a-ciegas" class="scene" data-composition-id="05-a-ciegas" data-composition-src="compositions/frames/05-a-ciegas.html" data-start="12.693" data-duration="2.256" data-track-index="0"></div>
+      <audio data-hf-id="hf-1xe1" id="el-05-a-ciegas-voice" src="assets/voice/05.wav" data-start="12.693" data-duration="1.856" data-track-index="10" data-volume="1"></audio>
+
+      <div data-hf-id="hf-pv8f" id="el-06-rservasroma" class="scene" data-composition-id="06-rservasroma" data-composition-src="compositions/frames/06-rservasroma.html" data-start="14.549" data-duration="3.487" data-track-index="1"></div>
+      <audio data-hf-id="hf-450k" id="el-06-rservasroma-voice" src="assets/voice/06.wav" data-start="14.549" data-duration="2.987" data-track-index="10" data-volume="1"></audio>
+
+      <div data-hf-id="hf-l8nj" id="el-07-confirman-solas" class="scene" data-composition-id="07-confirman-solas" data-composition-src="compositions/frames/07-confirman-solas.html" data-start="17.536" data-duration="4.539" data-track-index="0"></div>
+      <audio data-hf-id="hf-ikqd" id="el-07-confirman-solas-voice" src="assets/voice/07.wav" data-start="17.536" data-duration="4.139" data-track-index="10" data-volume="1"></audio>
+
+      <div data-hf-id="hf-0b4h" id="el-08-menos-caos" class="scene" data-composition-id="08-menos-caos" data-composition-src="compositions/frames/08-menos-caos.html" data-start="21.675" data-duration="4.959" data-track-index="1"></div>
+      <audio data-hf-id="hf-1w00" id="el-08-menos-caos-voice" src="assets/voice/08.wav" data-start="21.675" data-duration="4.459" data-track-index="10" data-volume="1"></audio>
+
+      <div data-hf-id="hf-23tm" id="el-09-cta" class="scene" data-composition-id="09-cta" data-composition-src="compositions/frames/09-cta.html" data-start="26.134" data-duration="2.475" data-track-index="0"></div>
+      <audio data-hf-id="hf-j5sg" id="el-09-cta-voice" src="assets/voice/09.wav" data-start="26.134" data-duration="2.475" data-track-index="10" data-volume="1"></audio>
+
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      window.__timelines["main"] = gsap.timeline({ paused: true });
+      // ── frame transitions (injected by transitions.mjs) ──
+      (function () { var tl = window.__timelines["main"];
+        tl.to("#el-01-agenda-llena", { opacity: 0, duration: 0.5, ease: "power2.inOut" }, 1.899);
+        tl.fromTo("#el-02-pregunta", { opacity: 0 }, { opacity: 1, duration: 0.5, ease: "power2.inOut" }, 1.899);
+        tl.to("#el-02-pregunta", { opacity: 0, duration: 0.5, ease: "power2.inOut" }, 5.504);
+        tl.fromTo("#el-03-whatsapp-caos", { opacity: 0 }, { opacity: 1, duration: 0.5, ease: "power2.inOut" }, 5.504);
+        tl.to("#el-03-whatsapp-caos", { scale: 2.5, opacity: 0, filter: "blur(8px)", duration: 0.4, ease: "power3.in" }, 10.88);
+        tl.fromTo("#el-04-no-es-tu-culpa", { scale: 0.5, opacity: 0, filter: "blur(8px)" }, { scale: 1, opacity: 1, filter: "blur(0px)", duration: 0.4, ease: "power3.out" }, 10.88);
+        tl.to("#el-04-no-es-tu-culpa", { opacity: 0, duration: 0.5, ease: "power2.inOut" }, 12.693);
+        tl.fromTo("#el-05-a-ciegas", { opacity: 0 }, { opacity: 1, duration: 0.5, ease: "power2.inOut" }, 12.693);
+        tl.to("#el-05-a-ciegas", { scale: 2.5, opacity: 0, filter: "blur(8px)", duration: 0.4, ease: "power3.in" }, 14.549);
+        tl.fromTo("#el-06-rservasroma", { scale: 0.5, opacity: 0, filter: "blur(8px)" }, { scale: 1, opacity: 1, filter: "blur(0px)", duration: 0.4, ease: "power3.out" }, 14.549);
+        tl.to("#el-06-rservasroma", { opacity: 0, duration: 0.5, ease: "power2.inOut" }, 17.536);
+        tl.fromTo("#el-07-confirman-solas", { opacity: 0 }, { opacity: 1, duration: 0.5, ease: "power2.inOut" }, 17.536);
+        tl.to("#el-07-confirman-solas", { scale: 2.5, opacity: 0, filter: "blur(8px)", duration: 0.4, ease: "power3.in" }, 21.675);
+        tl.fromTo("#el-08-menos-caos", { scale: 0.5, opacity: 0, filter: "blur(8px)" }, { scale: 1, opacity: 1, filter: "blur(0px)", duration: 0.4, ease: "power3.out" }, 21.675);
+        tl.to("#el-08-menos-caos", { opacity: 0, duration: 0.5, ease: "power2.inOut" }, 26.134);
+        tl.fromTo("#el-09-cta", { opacity: 0 }, { opacity: 1, duration: 0.5, ease: "power2.inOut" }, 26.134);
+        tl.to({}, { duration: 28.609 }, 0); // full-span anchor — main.duration() == composition total (Studio master duration)
+      })();
+    </script>
+  </body>
+</html>
