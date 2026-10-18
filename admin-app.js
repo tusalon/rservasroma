@@ -3812,6 +3812,19 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
         .sort((a, b) => a.fecha.localeCompare(b.fecha) || a.hora_inicio.localeCompare(b.hora_inicio)));
     const agendaDateStr = formatDate(agendaDate);
     const agendaDayBookings = agendaBookings.filter(b => b.fecha === agendaDateStr);
+    // Profesional elegido en los chips: filtra semana y mes (el día usa sus columnas)
+    const agendaProKeyDe = (b) => {
+        const id = b.profesional_id ?? b.trabajador_id ?? b.barbero_id;
+        const nombre = normalizarTextoProfesional(b.profesional_nombre || b.trabajador_nombre || b.barbero_nombre);
+        const pro = (profesionalesList || []).find(pr =>
+            (id !== undefined && id !== null && id !== '' && String(pr.id) === String(id))
+            || (nombre && normalizarTextoProfesional(pr.nombre) === nombre));
+        return pro ? String(pro.id) : 'sin-profesional';
+    };
+    const agendaProFiltro = (agendaProSel && agendaProSel !== 'todos'
+        && (agendaProSel === 'sin-profesional' || (profesionalesList || []).some(pr => String(pr.id) === agendaProSel)))
+        ? agendaProSel : null;
+    const agendaPasaFiltro = (b) => !agendaProFiltro || agendaProKeyDe(b) === agendaProFiltro;
     const agendaMonthStart = new Date(agendaDate.getFullYear(), agendaDate.getMonth(), 1);
     const agendaMonthKey = formatDate(agendaMonthStart).slice(0, 7);
     const agendaMonthDays = Array.from({ length: 42 }, (_, index) => addDays(startOfWeek(agendaMonthStart), index));
@@ -3821,8 +3834,8 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
     const agendaVisibleBookings = agendaMode === 'dia'
         ? agendaDayBookings
         : agendaMode === 'mes'
-            ? agendaMonthBookings.filter(b => b.fecha.startsWith(agendaMonthKey))
-            : agendaBookings;
+            ? agendaMonthBookings.filter(b => b.fecha.startsWith(agendaMonthKey) && agendaPasaFiltro(b))
+            : agendaBookings.filter(agendaPasaFiltro);
     const moveAgenda = (dir) => setAgendaDate(
         agendaMode === 'dia' ? addDays(agendaDate, dir)
             : agendaMode === 'semana' ? addDays(agendaDate, 7 * dir)
@@ -3850,7 +3863,7 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
 
     const getAgendaDayBookings = (date) => {
         const dateStr = formatDate(date);
-        return agendaBookings.filter(b => b.fecha === dateStr);
+        return agendaBookings.filter(b => b.fecha === dateStr && agendaPasaFiltro(b));
     };
 
     const getBookingEndMinutes = (booking) => {
@@ -4188,6 +4201,12 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
             <span className="h-px flex-1 bg-red-500"></span>
         </div>
     ) : null;
+    const agendaChipCount = (col) => {
+        const lista = agendaMode === 'mes' ? agendaMonthBookings.filter(b => b.fecha.startsWith(agendaMonthKey))
+            : agendaMode === 'semana' ? agendaBookings
+                : agendaDayBookings;
+        return col.key === 'todos' ? lista.length : lista.filter(b => agendaProKeyDe(b) === col.key).length;
+    };
     // fin helpers agenda
 
     const normalizarServicioAgenda = (value) => {
@@ -5400,10 +5419,10 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                                     : 'bg-cyan-50 text-cyan-700 border-cyan-200';
 
                     return (
-                    <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 sm:p-4">
-                        <div className="bg-white w-full sm:max-w-xl max-h-[96vh] overflow-y-auto rounded-t-3xl sm:rounded-2xl shadow-2xl">
+                    <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 sm:p-4" onClick={() => setAgendaDetalleBooking(null)}>
+                        <div className="bg-white w-full sm:max-w-xl max-h-[96vh] overflow-y-auto rounded-t-3xl sm:rounded-2xl shadow-2xl" onClick={(e) => e.stopPropagation()}>
                             <div className="sticky top-0 z-10 bg-white/95 backdrop-blur border-b px-5 py-4 flex items-center justify-between">
-                                <button onClick={() => setAgendaDetalleBooking(null)} className="w-10 h-10 rounded-full hover:bg-gray-100 text-2xl leading-none">x</button>
+                                <button onClick={() => setAgendaDetalleBooking(null)} aria-label={t('Cerrar')} className="h-10 px-3 -ml-2 rounded-full hover:bg-gray-100 text-sm font-bold text-gray-700 flex items-center gap-1"><span className="text-2xl leading-none">‹</span>{t('Volver')}</button>
                                 <h3 className="text-xl font-bold text-gray-900">{t('Cita')}</h3>
                                 {puedeEditarReserva(agendaDetalleBooking) ? (
                                     <button onClick={() => abrirModalReprogramar(agendaDetalleBooking)} className="w-16 h-10 rounded-full hover:bg-gray-100 text-sm font-bold">{t('Editar')}</button>
@@ -5488,6 +5507,8 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                                         {puedeGestionarAvanzado && ['Cancelado', 'Completado', 'Ausente'].includes(agendaDetalleBooking.estado) && <button onClick={() => eliminarReservaHistorial(agendaDetalleBooking)} className="px-3 py-2 rounded-lg bg-gray-900 text-white font-bold text-sm">{t('Eliminar')}</button>}
                                     </div>
                                 </div>
+
+                                <button onClick={() => setAgendaDetalleBooking(null)} className="mt-4 w-full rounded-xl border border-gray-300 py-3 font-bold text-gray-700 hover:bg-gray-50">{t('Cerrar')}</button>
                             </div>
                         </div>
                     </div>
@@ -6169,25 +6190,30 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                             </div>
                         </div>
 
+                        {agendaProColumns.length > 1 && (agendaMode !== 'dia' || agendaEsMovil) && (
+                            <div className="flex gap-1 overflow-x-auto px-2 sm:px-5 pt-2 sm:pt-4">
+                                {[...agendaProColumns, { key: 'todos', nombre: t('Todos'), avatar: '👥', color: 'bg-gray-700' }].map(col => {
+                                    const sel = (agendaMode === 'dia' ? agendaSelKey : (agendaProFiltro || 'todos')) === col.key;
+                                    const total = agendaChipCount(col);
+                                    return (
+                                        <button
+                                            key={col.key}
+                                            onClick={() => setAgendaProSel(col.key)}
+                                            className={`flex-shrink-0 w-16 flex flex-col items-center gap-0.5 rounded-xl border py-1.5 ${sel ? 'border-pink-400 bg-pink-50' : 'border-transparent'}`}
+                                        >
+                                            <span className={`relative w-10 h-10 rounded-full flex items-center justify-center text-xl ${col.color || 'bg-pink-500'}`}>
+                                                {col.avatar || String(col.nombre || '?').charAt(0).toUpperCase()}
+                                                {total > 0 && <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-gray-900 text-white text-[10px] leading-4 text-center">{total}</span>}
+                                            </span>
+                                            <span className="text-[11px] font-medium text-gray-700 truncate max-w-full">{col.nombre}</span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        )}
+
                         {agendaMode === 'dia' && (
                             <div className="p-2 sm:p-5">
-                                {agendaEsMovil && agendaProColumns.length > 1 && (
-                                    <div className="flex gap-1 overflow-x-auto pb-2">
-                                        {[...agendaProColumns, { key: 'todos', nombre: t('Todos'), avatar: '👥', color: 'bg-gray-700', items: agendaDayBookings }].map(col => (
-                                            <button
-                                                key={col.key}
-                                                onClick={() => setAgendaProSel(col.key)}
-                                                className={`flex-shrink-0 w-16 flex flex-col items-center gap-0.5 rounded-xl border py-1.5 ${agendaSelKey === col.key ? 'border-pink-400 bg-pink-50' : 'border-transparent'}`}
-                                            >
-                                                <span className={`relative w-10 h-10 rounded-full flex items-center justify-center text-xl ${col.color || 'bg-pink-500'}`}>
-                                                    {col.avatar || String(col.nombre || '?').charAt(0).toUpperCase()}
-                                                    {col.items.length > 0 && <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-gray-900 text-white text-[10px] leading-4 text-center">{col.items.length}</span>}
-                                                </span>
-                                                <span className="text-[11px] font-medium text-gray-700 truncate max-w-full">{col.nombre}</span>
-                                            </button>
-                                        ))}
-                                    </div>
-                                )}
                                 <div
                                     className="border rounded-xl bg-white overflow-auto"
                                     style={{ maxHeight: '78vh', overflow: 'auto' }}
@@ -6357,7 +6383,7 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                                 <div className="grid grid-cols-7 gap-1">
                                     {agendaMonthDays.map(day => {
                                         const dateStr = formatDate(day);
-                                        const dayList = agendaMonthBookings.filter(b => b.fecha === dateStr);
+                                        const dayList = agendaMonthBookings.filter(b => b.fecha === dateStr && agendaPasaFiltro(b));
                                         const inMonth = dateStr.startsWith(agendaMonthKey);
                                         const isToday = dateStr === agendaToday;
                                         return (
