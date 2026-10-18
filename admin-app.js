@@ -609,6 +609,13 @@ function AdminApp() {
     }, [cargarEsperaLibres]);
     const [agendaDate, setAgendaDate] = React.useState(new Date());
     const [agendaMode, setAgendaMode] = React.useState('dia');
+    const agendaTouch = React.useRef(null);
+    const [agendaProSel, setAgendaProSel] = React.useState('');
+    const [agendaAhora, setAgendaAhora] = React.useState(() => Date.now());
+    React.useEffect(() => {
+        const id = setInterval(() => setAgendaAhora(Date.now()), 60000);
+        return () => clearInterval(id);
+    }, []);
     const [agendaDetalleBooking, setAgendaDetalleBooking] = React.useState(null);
     const [estadisticasPeriodo, setEstadisticasPeriodo] = React.useState('mes');
     const [estadisticasFecha, setEstadisticasFecha] = React.useState(getCurrentLocalDate());
@@ -4088,25 +4095,91 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
         return `${agendaDays[0].toLocaleDateString(localeFecha, { day: 'numeric', month: 'short' })} - ${agendaDays[6].toLocaleDateString(localeFecha, { day: 'numeric', month: 'short', year: 'numeric' })}`;
     };
 
-    // Vista móvil: tarjetas en vez de la cuadrícula por horas
-    const renderAgendaCards = (list) => list.map(booking => {
-        const statusClass = agendaStatusStyle[booking.estado] || 'bg-gray-50 border-l-gray-500 border-gray-100 text-gray-900';
-        return (
-            <button
-                key={booking._grupoVisualId || booking.id}
-                onClick={() => abrirDetalleAgenda(booking)}
-                className={`w-full text-left rounded-xl border border-l-4 p-3 shadow-sm active:scale-[0.99] transition ${statusClass}`}
-            >
-                <div className="flex items-center justify-between gap-2">
-                    <p className="text-xs font-bold">{formatTo12Hour(booking.hora_inicio)} - {formatTo12Hour(booking.hora_fin || calculateEndTime(booking.hora_inicio, booking.duracion || 60))}</p>
-                    <span className="text-[10px] font-semibold uppercase opacity-80">{booking.estado}</span>
-                </div>
-                <p className="text-sm font-bold truncate mt-1">{booking.cliente_nombre}</p>
-                <p className="text-xs truncate opacity-90">{booking._grupoVisual ? `${booking._reservasGrupo.length} ${t('servicios')} - ${booking.servicio}` : booking.servicio}</p>
-                <p className="text-[11px] truncate opacity-80">{booking.profesional_nombre || booking.trabajador_nombre || t('Sin profesional')}</p>
-            </button>
-        );
-    });
+    // Vista móvil: bloques compactos dentro de una columna estrecha
+    const getAgendaCompactStyle = (booking) => {
+        const columns = Math.max(1, booking._agendaColumns || 1);
+        const column = Math.min(columns - 1, Math.max(0, booking._agendaColumn || 0));
+        return {
+            top: `${getBookingTop(booking)}px`,
+            height: `${getBookingHeight(booking)}px`,
+            left: `calc(${(column * 100) / columns}% + 1px)`,
+            width: `calc(${100 / columns}% - 2px)`
+        };
+    };
+    const agendaChipStyle = {
+        Reservado: 'bg-cyan-100 text-cyan-900',
+        Pendiente: 'bg-amber-100 text-amber-900',
+        Completado: 'bg-emerald-100 text-emerald-900',
+        Ausente: 'bg-slate-200 text-slate-700'
+    };
+    const primerNombre = (booking) => String(booking.cliente_nombre || '').trim().split(/\s+/)[0] || '-';
+    const horaCorta = (hora) => formatTo12Hour(hora).replace(':00', '');
+    const onAgendaTouchStart = (e) => {
+        const point = e.touches[0];
+        agendaTouch.current = { x: point.clientX, y: point.clientY };
+    };
+    const onAgendaTouchEnd = (e) => {
+        const start = agendaTouch.current;
+        agendaTouch.current = null;
+        if (!start) return;
+        const point = e.changedTouches[0];
+        const dx = point.clientX - start.x;
+        const dy = point.clientY - start.y;
+        if (Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 2) moveAgenda(dx < 0 ? 1 : -1);
+    };
+
+    // Vista día estilo Fresha: una columna por profesional, bloques pastel
+    const agendaPastel = [
+        'bg-orange-200 border-orange-400 text-orange-950',
+        'bg-teal-200 border-teal-400 text-teal-950',
+        'bg-pink-200 border-pink-400 text-pink-950',
+        'bg-sky-200 border-sky-400 text-sky-950',
+        'bg-violet-200 border-violet-400 text-violet-950',
+        'bg-lime-200 border-lime-500 text-lime-950'
+    ];
+    const agendaEstadoMarca = { Pendiente: '⏳ ', Completado: '✓ ', Ausente: '✕ ' };
+    const rangoHora = (b) => {
+        const a = formatTo12Hour(b.hora_inicio).split(' ');
+        const e = formatTo12Hour(b.hora_fin || calculateEndTime(b.hora_inicio, b.duracion || 60)).split(' ');
+        return a[1] === e[1] ? `${a[0]} - ${e[0]} ${e[1]}` : `${a[0]} ${a[1]} - ${e[0]} ${e[1]}`;
+    };
+    const agendaProColumns = (() => {
+        const lista = (profesionalesList || []).filter(pro => userRole !== 'profesional' || !profesional || Number(pro.id) === Number(profesional.id));
+        const cols = lista.map(pro => ({ key: String(pro.id), id: pro.id, nombre: pro.nombre, avatar: pro.avatar, color: pro.color, items: [] }));
+        const sinAsignar = { key: 'sin-profesional', id: null, nombre: t('Sin profesional'), avatar: '👤', color: 'bg-gray-400', items: [] };
+        agendaDayBookings.forEach(b => {
+            const idReserva = b.profesional_id ?? b.trabajador_id ?? b.barbero_id;
+            const nombreReserva = normalizarTextoProfesional(b.profesional_nombre || b.trabajador_nombre || b.barbero_nombre);
+            const col = cols.find(c => idReserva !== undefined && idReserva !== null && idReserva !== '' && String(c.id) === String(idReserva))
+                || cols.find(c => nombreReserva && normalizarTextoProfesional(c.nombre) === nombreReserva);
+            (col || sinAsignar).items.push(b);
+        });
+        if (sinAsignar.items.length || cols.length === 0) cols.push(sinAsignar);
+        return cols;
+    })();
+    const agendaEsMovil = typeof window !== 'undefined' && !!window.matchMedia && window.matchMedia('(max-width: 767px)').matches;
+    // En el móvil se ve un profesional a la vez (como Fresha); 'todos' muestra las columnas juntas
+    const agendaSelKey = (agendaProSel === 'todos' || agendaProColumns.some(c => c.key === agendaProSel))
+        ? agendaProSel
+        : (agendaProColumns.find(c => c.items.length) || agendaProColumns[0]).key;
+    const agendaMostrarUna = agendaEsMovil && agendaProColumns.length > 1 && agendaSelKey !== 'todos';
+    const agendaDiaColumns = agendaMostrarUna ? agendaProColumns.filter(c => c.key === agendaSelKey) : agendaProColumns;
+    const agendaGutterPx = agendaEsMovil ? 44 : 64;
+    const agendaColMinPx = agendaMostrarUna ? 0 : (agendaEsMovil ? 104 : 170);
+    const agendaDiaGridCols = `${agendaGutterPx}px repeat(${agendaDiaColumns.length}, minmax(${agendaColMinPx}px, 1fr))`;
+    const agendaDiaMinWidth = agendaGutterPx + agendaDiaColumns.length * agendaColMinPx;
+    // Línea roja de la hora actual (solo hoy y dentro del horario de la cuadrícula)
+    const agendaAhoraFecha = new Date(agendaAhora);
+    const agendaAhoraTop = (agendaAhoraFecha.getHours() * 60 + agendaAhoraFecha.getMinutes() - agendaStartMinutes) * agendaPxPerMinute;
+    const agendaAhoraVisible = agendaAhoraTop >= 0 && agendaAhoraTop <= agendaGridHeight;
+    const agendaAhoraLabel = `${agendaAhoraFecha.getHours() % 12 || 12}:${String(agendaAhoraFecha.getMinutes()).padStart(2, '0')}`;
+    const renderLineaAhora = (dateStr) => (dateStr === agendaToday && agendaAhoraVisible) ? (
+        <div className="pointer-events-none absolute left-0 right-0 z-10 flex items-center" style={{ top: `${agendaAhoraTop}px` }}>
+            <span className="-ml-1 h-2 w-2 rounded-full bg-red-500"></span>
+            <span className="h-px flex-1 bg-red-500"></span>
+        </div>
+    ) : null;
+    // fin helpers agenda
 
     const normalizarServicioAgenda = (value) => {
         return String(value || '')
@@ -6018,29 +6091,31 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
 
                 {/* AGENDA CALENDARIO */}
                 {tabActivo === 'agenda' && (
-                    <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
+                    <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100" onTouchStart={onAgendaTouchStart} onTouchEnd={onAgendaTouchEnd}>
                         <div className="p-4 sm:p-5 border-b bg-gradient-to-r from-white to-pink-50">
                             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                                 <div>
                                     <p className="text-xs uppercase tracking-wide text-pink-500 font-bold">{agendaMode === 'dia' ? t('Agenda diaria') : agendaMode === 'mes' ? t('Agenda mensual') : t('Agenda semanal')}</p>
-                                    <h2 className="text-xl sm:text-2xl font-bold text-gray-900 capitalize">
+                                    <h2 className="text-xl sm:text-2xl font-bold text-gray-900 first-letter:uppercase">
                                         {getAgendaTitle()}
                                     </h2>
                                 </div>
 
-                                <div className="flex flex-wrap items-center gap-2">
-                                    <div className="inline-flex bg-gray-100 rounded-lg p-1">
-                                        <button onClick={() => setAgendaMode('dia')} className={`px-3 py-1.5 rounded-md text-sm font-medium ${agendaMode === 'dia' ? 'bg-white text-pink-600 shadow-sm' : 'text-gray-600'}`}>{t('Dia')}</button>
-                                        <button onClick={() => setAgendaMode('semana')} className={`px-3 py-1.5 rounded-md text-sm font-medium ${agendaMode === 'semana' ? 'bg-white text-pink-600 shadow-sm' : 'text-gray-600'}`}>{t('Semana')}</button>
-                                        <button onClick={() => setAgendaMode('mes')} className={`px-3 py-1.5 rounded-md text-sm font-medium ${agendaMode === 'mes' ? 'bg-white text-pink-600 shadow-sm' : 'text-gray-600'}`}>{t('Mes')}</button>
+                                <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full lg:w-auto">
+                                    <div className="flex w-full sm:w-auto bg-gray-100 rounded-lg p-1">
+                                        {[['dia', 'Dia'], ['semana', 'Semana'], ['mes', 'Mes']].map(([mode, label]) => (
+                                            <button key={mode} onClick={() => setAgendaMode(mode)} className={`flex-1 sm:flex-none px-3 py-2 sm:py-1.5 rounded-md text-sm font-medium ${agendaMode === mode ? 'bg-white text-pink-600 shadow-sm' : 'text-gray-600'}`}>{t(label)}</button>
+                                        ))}
                                     </div>
-                                    <button onClick={() => moveAgenda(-1)} aria-label={t('Anterior')} className="w-10 h-10 rounded-lg border bg-white hover:bg-gray-50 text-lg font-bold">‹</button>
-                                    <button onClick={() => setAgendaDate(new Date())} className="px-3 py-2 rounded-lg bg-pink-500 text-white hover:bg-pink-600 text-sm font-medium">{t('Hoy')}</button>
-                                    <button onClick={() => moveAgenda(1)} aria-label={t('Siguiente')} className="w-10 h-10 rounded-lg border bg-white hover:bg-gray-50 text-lg font-bold">›</button>
+                                    <div className="flex items-center gap-2">
+                                        <button onClick={() => moveAgenda(-1)} aria-label={t('Anterior')} className="w-11 h-11 rounded-lg border bg-white hover:bg-gray-50 text-xl font-bold">‹</button>
+                                        <button onClick={() => setAgendaDate(new Date())} className="flex-1 sm:flex-none h-11 px-4 rounded-lg bg-pink-500 text-white hover:bg-pink-600 text-sm font-medium">{t('Hoy')}</button>
+                                        <button onClick={() => moveAgenda(1)} aria-label={t('Siguiente')} className="w-11 h-11 rounded-lg border bg-white hover:bg-gray-50 text-xl font-bold">›</button>
+                                    </div>
                                 </div>
                             </div>
 
-                            <div className={`${agendaMode === 'mes' ? 'hidden' : 'grid'} grid-cols-7 gap-1 mt-5 rounded-xl bg-white border border-gray-100 p-2`}>
+                            <div className={`${agendaMode === 'dia' ? 'grid' : 'hidden'} grid-cols-7 gap-1 mt-4 rounded-xl bg-white border border-gray-100 p-2`}>
                                 {agendaDays.map(day => {
                                     const dateStr = formatDate(day);
                                     const selected = dateStr === agendaDateStr;
@@ -6059,7 +6134,13 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                                 })}
                             </div>
 
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5">
+                            <div className="sm:hidden mt-3 flex flex-wrap gap-2 text-xs">
+                                <span className="rounded-full bg-white border border-pink-100 px-2.5 py-1 text-gray-700"><b>{agendaVisibleBookings.length}</b> {t('Turnos').toLowerCase()}</span>
+                                <span className="rounded-full bg-white border border-amber-100 px-2.5 py-1 text-amber-700"><b>{agendaVisibleBookings.filter(b => b.estado === 'Pendiente').length}</b> {t('Pendientes').toLowerCase()}</span>
+                                <span className="rounded-full bg-white border border-emerald-100 px-2.5 py-1 text-emerald-700"><b>{agendaVisibleBookings.filter(b => b.estado === 'Completado').length}</b> {t('Completados').toLowerCase()}</span>
+                            </div>
+
+                            <div className="hidden sm:grid grid-cols-4 gap-3 mt-5">
                                 <div className="rounded-lg border border-pink-100 bg-white p-3">
                                     <p className="text-xs text-gray-500">{t('Turnos')}</p>
                                     <p className="text-2xl font-bold text-gray-900">{agendaVisibleBookings.length}</p>
@@ -6080,110 +6161,189 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                         </div>
 
                         {agendaMode === 'dia' && (
-                            <div className="md:hidden p-3 space-y-2">
-                                {agendaDayBookings.length === 0
-                                    ? <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 p-5 text-center text-gray-500">{t('No hay citas para este día')}</div>
-                                    : renderAgendaCards(agendaDayBookings)}
-                            </div>
-                        )}
-
-                        {agendaMode === 'dia' && (
-                            <div className="hidden md:block p-3 sm:p-5 overflow-x-auto">
-                                <div className="relative border rounded-xl overflow-hidden bg-white" style={{ height: `${agendaGridHeight}px`, minWidth: `${agendaDayMinWidth}px` }}>
-                                    <div className="absolute left-0 top-0 bottom-0 w-16 bg-gray-50 border-r z-0">
-                                        {agendaHours.map(hour => (
-                                            <div key={hour} className="relative border-b border-gray-100 text-right pr-2 text-xs text-gray-400" style={{ height: `${60 * agendaPxPerMinute}px` }}>
-                                                <span className="relative -top-2">{formatTo12Hour(`${String(hour).padStart(2, '0')}:00`).replace(':00', '')}</span>
-                                            </div>
+                            <div className="p-2 sm:p-5">
+                                {agendaEsMovil && agendaProColumns.length > 1 && (
+                                    <div className="flex gap-1 overflow-x-auto pb-2">
+                                        {[...agendaProColumns, { key: 'todos', nombre: t('Todos'), avatar: '👥', color: 'bg-gray-700', items: agendaDayBookings }].map(col => (
+                                            <button
+                                                key={col.key}
+                                                onClick={() => setAgendaProSel(col.key)}
+                                                className={`flex-shrink-0 w-16 flex flex-col items-center gap-0.5 rounded-xl border py-1.5 ${agendaSelKey === col.key ? 'border-pink-400 bg-pink-50' : 'border-transparent'}`}
+                                            >
+                                                <span className={`relative w-10 h-10 rounded-full flex items-center justify-center text-xl ${col.color || 'bg-pink-500'}`}>
+                                                    {col.avatar || String(col.nombre || '?').charAt(0).toUpperCase()}
+                                                    {col.items.length > 0 && <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-gray-900 text-white text-[10px] leading-4 text-center">{col.items.length}</span>}
+                                                </span>
+                                                <span className="text-[11px] font-medium text-gray-700 truncate max-w-full">{col.nombre}</span>
+                                            </button>
                                         ))}
                                     </div>
-
-                                    <div className="absolute left-16 right-0 top-0 bottom-0">
-                                        {agendaHours.map(hour => (
-                                            <div key={hour} className="border-b border-gray-100" style={{ height: `${60 * agendaPxPerMinute}px` }}></div>
-                                        ))}
-
-                                        {agendaDayBookings.length === 0 && (
-                                            <div className="absolute inset-x-4 top-8 rounded-xl border border-dashed border-gray-200 bg-gray-50 p-5 text-center text-gray-500">
-                                                {t('No hay citas para este día')}
-                                            </div>
-                                        )}
-
-                                        {agendaDayLayoutBookings.map(booking => {
-                                            const statusClass = agendaStatusStyle[booking.estado] || 'bg-gray-50 border-l-gray-500 border-gray-100 text-gray-900';
-                                            const isShort = getBookingHeight(booking) < 76;
-                                            return (
-                                                <div
-                                                    key={booking._grupoVisualId || booking.id}
-                                                    className={`absolute rounded-xl border border-l-4 shadow-sm hover:shadow-md transition ${isShort ? 'p-2' : 'p-3'} overflow-hidden cursor-pointer ${statusClass}`}
-                                                    style={getAgendaBookingStyle(booking)}
-                                                    onClick={() => abrirDetalleAgenda(booking)}
-                                                >
-                                                    <div className="flex h-full flex-col gap-1">
-                                                        <div className="min-w-0">
-                                                            <p className="text-[11px] font-bold leading-tight opacity-90">
-                                                                {formatTo12Hour(booking.hora_inicio)} - {formatTo12Hour(booking.hora_fin || calculateEndTime(booking.hora_inicio, booking.duracion || 60))}
-                                                                {Number(booking.valoracion) > 0 && <span className="ml-1" title={t('Valoracion de la clienta')}>⭐{Number(booking.valoracion)}</span>}
-                                                            </p>
-                                                            {!isShort && <p className="text-sm font-bold truncate">{booking.cliente_nombre}{marcaCumple(booking)}</p>}
-                                                            {!isShort && <p className="text-xs truncate opacity-90">{booking._grupoVisual ? `${booking._reservasGrupo.length} servicios - ${booking.servicio}` : booking.servicio}</p>}
-                                                            {!isShort && <p className="text-[11px] truncate opacity-80">{booking.profesional_nombre || booking.trabajador_nombre || t('Sin profesional')}</p>}
-                                                        </div>
-                                                        <button onClick={(event) => { event.stopPropagation(); abrirDetalleAgenda(booking); }} className="mt-auto w-full rounded-md py-1 text-[11px] bg-white/80 hover:bg-white text-gray-700 font-bold">
-                                                            {t('Detalles')}
-                                                        </button>
+                                )}
+                                <div
+                                    className="border rounded-xl bg-white overflow-auto"
+                                    style={{ maxHeight: '78vh', overflow: 'auto' }}
+                                    ref={(el) => {
+                                        // Al cambiar de día, deja la primera cita a la vista
+                                        const clave = `${agendaDateStr}|${agendaMostrarUna ? agendaSelKey : 'todos'}`;
+                                        if (!el || el.dataset.dia === clave) return;
+                                        el.dataset.dia = clave;
+                                        const visibles = agendaDiaColumns.flatMap(c => c.items);
+                                        const primera = visibles.length ? Math.min(...visibles.map(getBookingTop)) : 0;
+                                        const hoy = agendaDateStr === agendaToday && agendaAhoraVisible;
+                                        const destino = Math.max(0, hoy ? agendaAhoraTop - 120 : primera - 30);
+                                        el.scrollTop = destino;
+                                        requestAnimationFrame(() => { el.scrollTop = destino; });
+                                    }}
+                                >
+                                    <div style={{ minWidth: `${agendaDiaMinWidth}px` }}>
+                                        <div className={`${agendaMostrarUna ? 'hidden' : 'grid'} sticky top-0 z-20 bg-white border-b`} style={{ gridTemplateColumns: agendaDiaGridCols }}>
+                                            <div className="sticky left-0 z-30 bg-white"></div>
+                                            {agendaDiaColumns.map(col => (
+                                                <div key={col.key} className="flex flex-col items-center gap-0.5 py-2 px-1 border-l min-w-0">
+                                                    <div className={`w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center text-xl shadow-sm ${col.color || 'bg-pink-500'}`}>
+                                                        {col.avatar || String(col.nombre || '?').charAt(0).toUpperCase()}
                                                     </div>
+                                                    <p className="text-xs font-semibold text-gray-800 truncate max-w-full">{col.nombre}</p>
+                                                    <span className="text-[10px] text-gray-500">{col.items.length} {t('turnos').toLowerCase()}</span>
                                                 </div>
-                                            );
-                                        })}
+                                            ))}
+                                        </div>
+
+                                        <div className="grid relative" style={{ gridTemplateColumns: agendaDiaGridCols, height: `${agendaGridHeight}px` }}>
+                                            <div className="sticky left-0 z-10 bg-gray-50 border-r">
+                                                {agendaHours.map(hour => (
+                                                    <div key={hour} className="relative border-b border-gray-100 text-right pr-1 md:pr-2 text-[10px] md:text-xs text-gray-400" style={{ height: `${60 * agendaPxPerMinute}px` }}>
+                                                        <span className="relative -top-2">{formatTo12Hour(`${String(hour).padStart(2, '0')}:00`).replace(':00', '')}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+
+                                            {agendaDiaColumns.map((col) => (
+                                                <div key={col.key} className="relative border-l min-w-0">
+                                                    {agendaHours.map(hour => (
+                                                        <div key={hour} className="border-b border-gray-100" style={{ height: `${60 * agendaPxPerMinute}px` }}></div>
+                                                    ))}
+
+                                                    {getAgendaLayoutBookings(col.items).map(booking => {
+                                                        const alto = getBookingHeight(booking);
+                                                        const color = col.key === 'sin-profesional' ? 'bg-gray-200 border-gray-400 text-gray-900' : agendaPastel[Math.max(0, agendaProColumns.indexOf(col)) % agendaPastel.length];
+                                                        const pendiente = booking.estado === 'Pendiente';
+                                                        return (
+                                                            <button
+                                                                key={booking._grupoVisualId || booking.id}
+                                                                onClick={() => abrirDetalleAgenda(booking)}
+                                                                className={`absolute rounded-lg border-l-4 ${agendaMostrarUna ? 'px-3 py-2' : 'px-1.5 py-1'} text-left overflow-hidden shadow-sm transition hover:shadow-md ${color} ${pendiente ? 'ring-1 ring-amber-500 ring-inset' : ''} ${booking.estado === 'Completado' || booking.estado === 'Ausente' ? 'opacity-70' : ''}`}
+                                                                style={getAgendaCompactStyle(booking)}
+                                                            >
+                                                                <span className={`block ${agendaMostrarUna ? 'text-xs' : 'text-[10px] md:text-xs'} font-semibold leading-tight truncate`}>
+                                                                    {agendaEstadoMarca[booking.estado] || ''}{rangoHora(booking)}
+                                                                    {Number(booking.valoracion) > 0 && <span className="ml-1">⭐{Number(booking.valoracion)}</span>}
+                                                                </span>
+                                                                {alto >= (agendaMostrarUna ? 44 : 52) && <span className={`block ${agendaMostrarUna ? 'text-sm' : 'text-[11px] md:text-sm'} font-bold leading-tight truncate`}>{booking.cliente_nombre}{marcaCumple(booking)}</span>}
+                                                                {alto >= (agendaMostrarUna ? 60 : 68) && <span className={`block ${agendaMostrarUna ? 'text-xs' : 'text-[10px] md:text-xs'} leading-tight truncate opacity-80`}>{booking._grupoVisual ? `${booking._reservasGrupo.length} ${t('servicios')} - ${booking.servicio}` : booking.servicio}</span>}
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            ))}
+
+                                            {agendaDateStr === agendaToday && agendaAhoraVisible && (
+                                                <div className="pointer-events-none absolute left-0 right-0 z-20 flex items-center" style={{ top: `${agendaAhoraTop}px` }}>
+                                                    <span className="ml-0.5 rounded bg-red-500 px-1 text-[9px] md:text-[10px] font-bold leading-4 text-white">{agendaAhoraLabel}</span>
+                                                    <span className="h-px flex-1 bg-red-500"></span>
+                                                </div>
+                                            )}
+
+                                            {agendaDayBookings.length === 0 && (
+                                                <div className="pointer-events-none absolute inset-x-4 top-8 z-10 rounded-xl border border-dashed border-gray-200 bg-gray-50/90 p-4 text-center text-sm text-gray-500" style={{ left: `${agendaGutterPx + 16}px` }}>
+                                                    {t('No hay citas para este día')}
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         )}
 
                         {agendaMode === 'semana' && (
-                            <div className="md:hidden p-3 space-y-4">
-                                {agendaDays.map(day => {
-                                    const dayBookings = getAgendaDayBookings(day);
-                                    const isToday = formatDate(day) === agendaToday;
-                                    return (
-                                        <div key={formatDate(day)}>
-                                            <div className="flex items-center justify-between mb-2">
-                                                <p className={`text-sm font-bold capitalize ${isToday ? 'text-pink-600' : 'text-gray-800'}`}>
-                                                    {day.toLocaleDateString(idioma === 'en' ? 'en-US' : 'es-CU', { weekday: 'long', day: 'numeric', month: 'short' })}
-                                                </p>
-                                                <span className={`text-xs px-2 py-0.5 rounded-full ${dayBookings.length ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-500'}`}>{dayBookings.length}</span>
+                            <div className="md:hidden p-2">
+                                <div className="grid grid-cols-[2.25rem_repeat(7,minmax(0,1fr))] sticky top-0 z-10 bg-white border border-b-0 rounded-t-xl overflow-hidden">
+                                    <div></div>
+                                    {agendaDays.map(day => {
+                                        const dateStr = formatDate(day);
+                                        const isToday = dateStr === agendaToday;
+                                        const total = getAgendaDayBookings(day).length;
+                                        return (
+                                            <button key={dateStr} onClick={() => { setAgendaDate(day); setAgendaMode('dia'); }} className={`py-1.5 text-center ${isToday ? 'bg-pink-50' : ''}`}>
+                                                <span className="block text-[10px] font-semibold uppercase text-gray-500">{day.toLocaleDateString(idioma === 'en' ? 'en-US' : 'es-CU', { weekday: 'short' }).charAt(0)}</span>
+                                                <span className={`block text-base font-bold leading-tight ${isToday ? 'text-pink-600' : 'text-gray-900'}`}>{day.getDate()}</span>
+                                                <span className={`block text-[10px] leading-3 ${total ? 'text-pink-600 font-bold' : 'text-transparent'}`}>{total || 0}</span>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                                <div className="grid grid-cols-[2.25rem_repeat(7,minmax(0,1fr))] border rounded-b-xl overflow-hidden bg-white" style={{ height: `${agendaGridHeight}px` }}>
+                                    <div className="bg-gray-50 border-r">
+                                        {agendaHours.map(hour => (
+                                            <div key={hour} className="relative border-b border-gray-100 text-right pr-1 text-[9px] text-gray-400" style={{ height: `${60 * agendaPxPerMinute}px` }}>
+                                                <span className="relative -top-1.5">{horaCorta(`${String(hour).padStart(2, '0')}:00`)}</span>
                                             </div>
-                                            <div className="space-y-2">
-                                                {dayBookings.length === 0
-                                                    ? <p className="text-xs text-gray-400 pl-1">{t('Sin citas')}</p>
-                                                    : renderAgendaCards(dayBookings)}
+                                        ))}
+                                    </div>
+                                    {agendaDays.map(day => {
+                                        const dateStr = formatDate(day);
+                                        const isToday = dateStr === agendaToday;
+                                        const dayLayoutBookings = getAgendaLayoutBookings(getAgendaDayBookings(day));
+                                        return (
+                                            <div key={dateStr} className={`relative border-r last:border-r-0 ${isToday ? 'bg-pink-50/40' : ''}`}>
+                                                {agendaHours.map(hour => (
+                                                    <div key={hour} className="border-b border-gray-100" style={{ height: `${60 * agendaPxPerMinute}px` }}></div>
+                                                ))}
+                                                {renderLineaAhora(dateStr)}
+                                                {dayLayoutBookings.map(booking => {
+                                                    const statusClass = agendaStatusStyle[booking.estado] || 'bg-gray-50 border-l-gray-500 border-gray-100 text-gray-900';
+                                                    return (
+                                                        <button
+                                                            key={booking._grupoVisualId || booking.id}
+                                                            onClick={() => abrirDetalleAgenda(booking)}
+                                                            className={`absolute overflow-hidden rounded-md border border-l-2 px-0.5 py-0.5 text-left leading-tight ${statusClass}`}
+                                                            style={getAgendaCompactStyle(booking)}
+                                                            title={`${booking.cliente_nombre} - ${booking.servicio}`}
+                                                        >
+                                                            <span className="block text-[9px] font-bold truncate">{primerNombre(booking)}</span>
+                                                            <span className="block text-[8px] opacity-80 truncate">{horaCorta(booking.hora_inicio)}</span>
+                                                        </button>
+                                                    );
+                                                })}
                                             </div>
-                                        </div>
-                                    );
-                                })}
+                                        );
+                                    })}
+                                </div>
                             </div>
                         )}
 
                         {agendaMode === 'mes' && (
-                            <div className="p-3 sm:p-5">
+                            <div className="p-2 sm:p-5">
                                 <div className="grid grid-cols-7 text-center text-[11px] font-bold uppercase text-gray-400 mb-1">
                                     {agendaMonthDays.slice(0, 7).map(d => <span key={d.getDay()}>{d.toLocaleDateString(idioma === 'en' ? 'en-US' : 'es-CU', { weekday: 'short' }).charAt(0)}</span>)}
                                 </div>
                                 <div className="grid grid-cols-7 gap-1">
                                     {agendaMonthDays.map(day => {
                                         const dateStr = formatDate(day);
-                                        const count = agendaMonthBookings.filter(b => b.fecha === dateStr).length;
+                                        const dayList = agendaMonthBookings.filter(b => b.fecha === dateStr);
                                         const inMonth = dateStr.startsWith(agendaMonthKey);
                                         const isToday = dateStr === agendaToday;
                                         return (
                                             <button
                                                 key={dateStr}
                                                 onClick={() => { setAgendaDate(day); setAgendaMode('dia'); }}
-                                                className={`aspect-square rounded-lg flex flex-col items-center justify-center text-sm transition ${inMonth ? 'text-gray-800' : 'text-gray-300'} ${isToday ? 'bg-pink-50 ring-1 ring-pink-300 font-bold text-pink-700' : 'hover:bg-gray-50'}`}
+                                                className={`min-h-[68px] sm:min-h-[96px] rounded-lg border p-1 flex flex-col items-stretch text-left transition ${inMonth ? '' : 'opacity-40'} ${isToday ? 'bg-pink-50 border-pink-300' : 'bg-white border-gray-100 hover:bg-gray-50'}`}
                                             >
-                                                <span>{day.getDate()}</span>
-                                                <span className={`mt-0.5 min-w-[18px] px-1 rounded-full text-[10px] leading-4 ${count ? (inMonth ? 'bg-pink-500 text-white' : 'bg-pink-200 text-white') : 'invisible'}`}>{count || 0}</span>
+                                                <span className={`text-xs font-bold ${isToday ? 'text-pink-600' : 'text-gray-700'}`}>{day.getDate()}</span>
+                                                {dayList.slice(0, 2).map(booking => (
+                                                    <span key={booking._grupoVisualId || booking.id} className={`mt-0.5 block truncate rounded px-1 text-[9px] sm:text-[11px] leading-4 ${agendaChipStyle[booking.estado] || 'bg-gray-100 text-gray-700'}`}>{primerNombre(booking)}</span>
+                                                ))}
+                                                {dayList.length > 2 && <span className="mt-0.5 pl-0.5 text-[9px] sm:text-[11px] font-semibold text-gray-500">+{dayList.length - 2}</span>}
                                             </button>
                                         );
                                     })}
@@ -6235,6 +6395,7 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                                                 {agendaHours.map(hour => (
                                                     <div key={hour} className="border-b border-gray-100" style={{ height: `${60 * agendaPxPerMinute}px` }}></div>
                                                 ))}
+                                                {renderLineaAhora(dateStr)}
 
                                                 {dayLayoutBookings.map(booking => {
                                                     const statusClass = agendaStatusStyle[booking.estado] || 'bg-gray-50 border-l-gray-500 border-gray-100 text-gray-900';
