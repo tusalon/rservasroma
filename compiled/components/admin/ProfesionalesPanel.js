@@ -49,25 +49,27 @@ function ProfesionalesPanel() {
       alert(t("No se pudo comprobar si este profesional tiene reservas. Revisa tu conexión e inténtalo de nuevo."));
       return;
     }
-    if (consecuencias.reservas > 0) {
-      const detalle = t("Este profesional tiene {n} reservas en su historial, por eso no se puede eliminar.").replace("{n}", consecuencias.reservas);
-      if (profesional && profesional.activo) {
-        if (confirm(detalle + "\n\n" + t("¿Quieres desactivarlo? Dejará de aparecer para reservar y tu historial queda intacto."))) {
-          await toggleActivo(id);
-        }
-      } else {
-        alert(detalle + "\n\n" + t("Ya está inactivo: no aparece para reservar y tu historial queda intacto."));
+    let cancelarFuturas = false;
+    if (consecuencias.futuras > 0) {
+      const aviso = t("Este profesional tiene {n} citas futuras sin atender.").replace("{n}", consecuencias.futuras);
+      if (profesional && profesional.activo && confirm(aviso + "\n\n" + t("¿Quieres desactivarlo en vez de eliminarlo? Dejará de aparecer para reservar y sus citas siguen en tu agenda."))) {
+        await toggleActivo(id);
+        return;
       }
-      return;
+      if (!confirm(aviso + "\n\n" + t("Si lo eliminas, esas citas se cancelarán y las clientas NO serán avisadas. ¿Eliminar de todos modos?"))) return;
+      cancelarFuturas = true;
     }
     let mensaje = t("¿Eliminar este profesional?");
+    if (consecuencias.reservas > 0) {
+      mensaje += "\n\n" + t("Tiene {n} reservas en su historial: se conservan en tu agenda y estadísticas, pero ya no quedarán ligadas a su ficha.").replace("{n}", consecuencias.reservas);
+    }
     if (consecuencias.serviciosSinNadie.length > 0) {
       mensaje += "\n\n" + t("Estos servicios se quedarán sin ningún profesional y las clientas no podrán reservarlos:") + "\n• " + consecuencias.serviciosSinNadie.join("\n• ");
     }
-    if (!confirm(mensaje)) return;
+    if (!cancelarFuturas && !confirm(mensaje)) return;
     try {
       console.log("🗑️ Eliminando profesional:", id);
-      const ok = await window.salonProfesionales.eliminar(id);
+      const ok = await window.salonProfesionales.eliminar(id, { cancelarFuturas });
       if (!ok) {
         alert(t("No se pudo eliminar el profesional. Revisa tu conexión e inténtalo de nuevo."));
         return;

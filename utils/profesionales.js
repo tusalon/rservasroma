@@ -9,6 +9,12 @@ let profesionalesCache = [];
 let ultimaActualizacionProfesionales = 0;
 const CACHE_DURATION_PROFESIONALES = 5 * 60 * 1000;
 
+// Hoy en hora local (YYYY-MM-DD): la fecha de una cita es la del salon, no la UTC.
+function fechaHoyLocal() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 async function hashPasswordProfesional(password) {
     const texto = String(password || '').trim();
     if (!texto || !window.crypto?.subtle) return texto;
@@ -176,9 +182,9 @@ window.salonProfesionales = {
         }
     },
     
-    // Antes de eliminar: que se llevaria por delante. Una reserva (aunque sea vieja) impide borrar al
-    // profesional: la base lo rechaza (reservas.profesional_id sin ON DELETE). Hay que decirselo a la
-    // duena en vez de fallar en silencio, y ofrecer desactivarlo (conserva el historial).
+    // Antes de eliminar: que se llevaria por delante. La base rechaza borrar a quien aparece en una reserva
+    // (reservas.profesional_id sin ON DELETE), asi que eliminar() primero suelta esas reservas. El historial
+    // no impide borrar; las citas FUTURAS si requieren que la duena lo decida (se cancelarian).
     consecuenciasDeEliminar: async function(id) {
         const negocioId = getNegocioId();
         const headers = {
@@ -196,6 +202,15 @@ window.salonProfesionales = {
         const rango = resReservas.headers.get('content-range') || '';
         const total = parseInt(rango.split('/')[1], 10);
         const reservas = Number.isFinite(total) ? total : 0;
+
+        // citas futuras todavia activas: esas son las que alguien espera
+        const resFuturas = await fetch(
+            `${base}/reservas?negocio_id=eq.${negocioId}&profesional_id=eq.${id}&fecha=gte.${fechaHoyLocal()}&estado=in.(Reservado,Pendiente)&select=id`,
+            { headers: { ...headers, 'Prefer': 'count=exact', 'Range': '0-0' } }
+        );
+        if (!resFuturas.ok && resFuturas.status !== 206) throw new Error(`reservas futuras ${resFuturas.status}`);
+        const totalFuturas = parseInt((resFuturas.headers.get('content-range') || '').split('/')[1], 10);
+        const futuras = Number.isFinite(totalFuturas) ? totalFuturas : 0;
 
         // servicios que se quedarian sin ningun profesional
         let serviciosSinNadie = [];
@@ -229,32 +244,38 @@ window.salonProfesionales = {
             }
         }
 
-        return { reservas, serviciosSinNadie };
+        return { reservas, futuras, serviciosSinNadie };
     },
 
-    eliminar: async function(id) {
+    // Elimina al profesional. Sus reservas se conservan (nombre incluido) pero dejan de apuntar a su ficha.
+    // cancelarFuturas: solo si la duena lo decidio, cancela antes sus citas futuras activas.
+    // Si algun paso falla devuelve false y NO borra la ficha.
+    eliminar: async function(id, { cancelarFuturas = false } = {}) {
         try {
             const negocioId = getNegocioId();
             console.log('🗑️ Eliminando profesional:', id, 'negocio:', negocioId);
-            
-            const response = await fetch(
-                `${window.SUPABASE_URL}/rest/v1/profesionales?negocio_id=eq.${negocioId}&id=eq.${id}`,
-                {
-                    method: 'DELETE',
-                    headers: {
-                        'apikey': window.SUPABASE_ANON_KEY,
-                        'Authorization': `Bearer ${window.SUPABASE_ANON_KEY}`,
-                        'Content-Type': 'application/json'
-                    }
-                }
-            );
-            
-            if (!response.ok) {
-                // 409 = tiene reservas (llave foranea). El panel ya lo avisa antes; aqui solo se registra.
-                console.warn('No se pudo eliminar el profesional:', response.status);
-                return false;
+            const base = `${window.SUPABASE_URL}/rest/v1`;
+            const headers = {
+                'apikey': window.SUPABASE_ANON_KEY,
+                'Authorization': `Bearer ${window.SUPABASE_ANON_KEY}`,
+                'Content-Type': 'application/json'
+            };
+            const paso = async (url, method, body) => {
+                const res = await fetch(url, { method, headers, body: body ? JSON.stringify(body) : undefined });
+                if (!res.ok) console.warn('No se pudo eliminar el profesional:', method, res.status);
+                return res.ok;
+            };
+
+            if (cancelarFuturas) {
+                const okCancelar = await paso(
+                    `${base}/reservas?negocio_id=eq.${negocioId}&profesional_id=eq.${id}&fecha=gte.${fechaHoyLocal()}&estado=in.(Reservado,Pendiente)`,
+                    'PATCH', { estado: 'Cancelado' });
+                if (!okCancelar) return false;
             }
-            
+            // Soltar TODAS sus reservas: sin esto la llave foranea rechaza el borrado (409).
+            if (!await paso(`${base}/reservas?negocio_id=eq.${negocioId}&profesional_id=eq.${id}`, 'PATCH', { profesional_id: null })) return false;
+            if (!await paso(`${base}/profesionales?negocio_id=eq.${negocioId}&id=eq.${id}`, 'DELETE')) return false;
+
             profesionalesCache = await cargarProfesionalesDesdeDB() || profesionalesCache;
             
             if (window.dispatchEvent) {

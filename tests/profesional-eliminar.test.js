@@ -53,12 +53,14 @@ function cargar(respuestas) {
     // 1a. Con reservas: las cuenta aunque haya servicios compartidos
     {
         const { api } = cargar((url, opciones, r) => {
+            if (url.includes('/reservas?') && url.includes('fecha=gte.')) return r([], { status: 206, rango: '0-0/2' });
             if (url.includes('/reservas?')) return r([], { status: 206, rango: '0-0/12' });
             if (url.includes('/servicios_profesionales?') && url.includes('profesional_id=eq.7')) return r([]);
             return r([]);
         });
         const c = await api.consecuenciasDeEliminar(7);
         assert.equal(c.reservas, 12, 'cuenta todas las reservas, no solo las futuras');
+        assert.equal(c.futuras, 2, 'cuenta aparte las citas futuras activas');
         assert.deepEqual([...c.serviciosSinNadie], []);
     }
 
@@ -88,6 +90,7 @@ function cargar(respuestas) {
         });
         const c = await api.consecuenciasDeEliminar(7);
         assert.equal(c.reservas, 0);
+        assert.equal(c.futuras, 0);
         assert.deepEqual([...c.serviciosSinNadie], ['Corte'], 'Barba lo atiende tambien el 8; el apagado no cuenta');
     }
 
@@ -97,7 +100,7 @@ function cargar(respuestas) {
         await assert.rejects(() => api.consecuenciasDeEliminar(7));
     }
 
-    // 2. La base rechaza el borrado (409 por la llave foranea): false, sin excepcion y sin recargar
+    // 2. La base rechaza el borrado: false, sin excepcion y sin recargar
     {
         const { api, llamadas } = cargar((url, opciones, r) => {
             if (opciones.method === 'DELETE') return r({ code: '23503' }, { status: 409 });
@@ -105,6 +108,32 @@ function cargar(respuestas) {
         });
         assert.equal(await api.eliminar(7), false);
         assert.equal(llamadas.filter((l) => l.metodo === 'DELETE').length, 1);
+    }
+
+    // 3. Con historial: primero suelta TODAS sus reservas y despues borra; sin cancelar nada
+    {
+        const { api, llamadas } = cargar((url, opciones, r) => r([]));
+        assert.equal(await api.eliminar(7), true);
+        const escrituras = llamadas.filter((l) => l.metodo !== 'GET');
+        assert.deepEqual(escrituras.map((l) => l.metodo), ['PATCH', 'DELETE']);
+        assert.ok(escrituras[0].url.includes('/reservas?') && !escrituras[0].url.includes('fecha=gte.'), 'suelta todas, no solo las futuras');
+        assert.ok(escrituras[1].url.includes('/profesionales?'));
+    }
+
+    // 4. Si la duena decide eliminar con citas futuras: cancela esas, suelta las reservas y borra
+    {
+        const { api, llamadas } = cargar((url, opciones, r) => r([]));
+        assert.equal(await api.eliminar(7, { cancelarFuturas: true }), true);
+        const escrituras = llamadas.filter((l) => l.metodo !== 'GET');
+        assert.deepEqual(escrituras.map((l) => l.metodo), ['PATCH', 'PATCH', 'DELETE']);
+        assert.ok(escrituras[0].url.includes('estado=in.(Reservado,Pendiente)'));
+    }
+
+    // 5. Si falla soltar las reservas, NO borra la ficha
+    {
+        const { api, llamadas } = cargar((url, opciones, r) => (opciones.method === 'PATCH' ? r({}, { status: 500 }) : r([])));
+        assert.equal(await api.eliminar(7), false);
+        assert.equal(llamadas.filter((l) => l.metodo === 'DELETE').length, 0);
     }
 
     console.log('OK: eliminar profesional (consecuencias y rechazo de la base)');

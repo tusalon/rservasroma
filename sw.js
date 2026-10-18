@@ -1,6 +1,6 @@
 ﻿// sw.js - Service Worker para Rservasroma
 
-const CACHE_NAME = 'rservasroma-v139';
+const CACHE_NAME = 'rservasroma-v140';
 const BASE = '/rservasroma';
 
 const urlsToCache = [
@@ -30,10 +30,10 @@ const urlsToCache = [
   `${BASE}/utils/native-push-notifications.js?v=20260722-platform-v4`,
   `${BASE}/utils/offline-panel.js`,
   `${BASE}/utils/config-negocio-master.js?v=20261008-espera1`,
-  `${BASE}/utils/i18n.js?v=20260904-recordar1`,
+  `${BASE}/utils/i18n.js?v=20261018-elimprof2`,
   `${BASE}/utils/cuba-geo.js?v=20260727-wizard-ubicacion1`,
   `${BASE}/utils/phone-utils.js?v=20261012-eeuu1`,
-  `${BASE}/utils/profesionales.js`,
+  `${BASE}/utils/profesionales.js?v=20261018-elimprof2`,
   `${BASE}/utils/push-config.js?v=20260717-push-activo`,
   `${BASE}/utils/push-notifications.js?v=20260722-platform-v4`,
   `${BASE}/utils/servicios.js?v=20260923-anticipo1`,
@@ -81,7 +81,7 @@ const urlsToCache = [
   `${BASE}/compiled/components/admin/HorariosExcepcionPanel.js?v=20260723-jsx1`,
   `${BASE}/compiled/components/admin/ListaEsperaPanel.js?v=20261008-espera1`,
   `${BASE}/compiled/components/admin/ClientasNuevasPanel.js?v=20261012-bienvenida2`,
-  `${BASE}/compiled/components/admin/ProfesionalesPanel.js?v=20261018-elimprof1`,
+  `${BASE}/compiled/components/admin/ProfesionalesPanel.js?v=20261018-elimprof2`,
   `${BASE}/compiled/components/admin/ImportarServicios.js?v=20260723-jsx1`,
   `${BASE}/compiled/components/admin/ServiciosPanelCategorias.js?v=20260926-generico1`,
   `${BASE}/compiled/components/admin/SetupWizard.js?v=20260926-generico1`,
