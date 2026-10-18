@@ -4122,6 +4122,7 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
         const start = agendaTouch.current;
         agendaTouch.current = null;
         if (!start) return;
+        if (agendaMode === 'semana' && agendaEsMovil) return;
         const point = e.changedTouches[0];
         const dx = point.clientX - start.x;
         const dy = point.clientY - start.y;
@@ -4138,6 +4139,14 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
         'bg-lime-200 border-lime-500 text-lime-950'
     ];
     const agendaEstadoMarca = { Pendiente: '⏳ ', Completado: '✓ ', Ausente: '✕ ' };
+    const agendaColorPro = (b) => {
+        const id = b.profesional_id ?? b.trabajador_id ?? b.barbero_id;
+        const nombre = normalizarTextoProfesional(b.profesional_nombre || b.trabajador_nombre || b.barbero_nombre);
+        const idx = (profesionalesList || []).findIndex(pr =>
+            (id !== undefined && id !== null && id !== '' && String(pr.id) === String(id))
+            || (nombre && normalizarTextoProfesional(pr.nombre) === nombre));
+        return idx >= 0 ? agendaPastel[idx % agendaPastel.length] : 'bg-gray-200 border-gray-400 text-gray-900';
+    };
     const rangoHora = (b) => {
         const a = formatTo12Hour(b.hora_inicio).split(' ');
         const e = formatTo12Hour(b.hora_fin || calculateEndTime(b.hora_inicio, b.duracion || 60)).split(' ');
@@ -6267,57 +6276,75 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
 
                         {agendaMode === 'semana' && (
                             <div className="md:hidden p-2">
-                                <div className="grid grid-cols-[2.25rem_repeat(7,minmax(0,1fr))] sticky top-0 z-10 bg-white border border-b-0 rounded-t-xl overflow-hidden">
-                                    <div></div>
-                                    {agendaDays.map(day => {
-                                        const dateStr = formatDate(day);
-                                        const isToday = dateStr === agendaToday;
-                                        const total = getAgendaDayBookings(day).length;
-                                        return (
-                                            <button key={dateStr} onClick={() => { setAgendaDate(day); setAgendaMode('dia'); }} className={`py-1.5 text-center ${isToday ? 'bg-pink-50' : ''}`}>
-                                                <span className="block text-[10px] font-semibold uppercase text-gray-500">{day.toLocaleDateString(idioma === 'en' ? 'en-US' : 'es-CU', { weekday: 'short' }).charAt(0)}</span>
-                                                <span className={`block text-base font-bold leading-tight ${isToday ? 'text-pink-600' : 'text-gray-900'}`}>{day.getDate()}</span>
-                                                <span className={`block text-[10px] leading-3 ${total ? 'text-pink-600 font-bold' : 'text-transparent'}`}>{total || 0}</span>
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-                                <div className="grid grid-cols-[2.25rem_repeat(7,minmax(0,1fr))] border rounded-b-xl overflow-hidden bg-white" style={{ height: `${agendaGridHeight}px` }}>
-                                    <div className="bg-gray-50 border-r">
-                                        {agendaHours.map(hour => (
-                                            <div key={hour} className="relative border-b border-gray-100 text-right pr-1 text-[9px] text-gray-400" style={{ height: `${60 * agendaPxPerMinute}px` }}>
-                                                <span className="relative -top-1.5">{horaCorta(`${String(hour).padStart(2, '0')}:00`)}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                    {agendaDays.map(day => {
-                                        const dateStr = formatDate(day);
-                                        const isToday = dateStr === agendaToday;
-                                        const dayLayoutBookings = getAgendaLayoutBookings(getAgendaDayBookings(day));
-                                        return (
-                                            <div key={dateStr} className={`relative border-r last:border-r-0 ${isToday ? 'bg-pink-50/40' : ''}`}>
+                                <div
+                                    className="border rounded-xl bg-white overflow-auto"
+                                    style={{ maxHeight: '78vh', overflow: 'auto' }}
+                                    ref={(el) => {
+                                        // Al cambiar de semana: hoy a la vista, a la hora actual o a la primera cita
+                                        if (!el || el.dataset.sem === agendaStartStr) return;
+                                        el.dataset.sem = agendaStartStr;
+                                        const todas = agendaDays.flatMap(d => getAgendaDayBookings(d));
+                                        const idxHoy = agendaDays.findIndex(d => formatDate(d) === agendaToday);
+                                        const primera = todas.length ? Math.min(...todas.map(getBookingTop)) : 0;
+                                        const top = Math.max(0, (idxHoy >= 0 && agendaAhoraVisible) ? agendaAhoraTop - 120 : primera - 30);
+                                        const left = Math.max(0, idxHoy * 136 - 20);
+                                        requestAnimationFrame(() => { el.scrollTop = top; el.scrollLeft = left; });
+                                    }}
+                                >
+                                    <div style={{ minWidth: `${44 + 7 * 136}px` }}>
+                                        <div className="grid sticky top-0 z-20 bg-white border-b" style={{ gridTemplateColumns: '44px repeat(7, minmax(136px, 1fr))' }}>
+                                            <div className="sticky left-0 z-30 bg-white"></div>
+                                            {agendaDays.map(day => {
+                                                const dateStr = formatDate(day);
+                                                const isToday = dateStr === agendaToday;
+                                                const total = getAgendaDayBookings(day).length;
+                                                return (
+                                                    <button key={dateStr} onClick={() => { setAgendaDate(day); setAgendaMode('dia'); }} className={`py-1.5 text-center border-l ${isToday ? 'bg-pink-50' : ''}`}>
+                                                        <span className="block text-[10px] font-semibold uppercase text-gray-500">{day.toLocaleDateString(idioma === 'en' ? 'en-US' : 'es-CU', { weekday: 'short' })}</span>
+                                                        <span className={`block text-lg font-bold leading-tight ${isToday ? 'text-pink-600' : 'text-gray-900'}`}>{day.getDate()}</span>
+                                                        <span className={`block text-[10px] leading-3 ${total ? 'text-pink-600 font-bold' : 'text-gray-400'}`}>{total} {t('turnos').toLowerCase()}</span>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                        <div className="grid relative" style={{ gridTemplateColumns: '44px repeat(7, minmax(136px, 1fr))', height: `${agendaGridHeight}px` }}>
+                                            <div className="sticky left-0 z-10 bg-gray-50 border-r">
                                                 {agendaHours.map(hour => (
-                                                    <div key={hour} className="border-b border-gray-100" style={{ height: `${60 * agendaPxPerMinute}px` }}></div>
+                                                    <div key={hour} className="relative border-b border-gray-100 text-right pr-1 text-[10px] text-gray-400" style={{ height: `${60 * agendaPxPerMinute}px` }}>
+                                                        <span className="relative -top-2">{horaCorta(`${String(hour).padStart(2, '0')}:00`)}</span>
+                                                    </div>
                                                 ))}
-                                                {renderLineaAhora(dateStr)}
-                                                {dayLayoutBookings.map(booking => {
-                                                    const statusClass = agendaStatusStyle[booking.estado] || 'bg-gray-50 border-l-gray-500 border-gray-100 text-gray-900';
-                                                    return (
-                                                        <button
-                                                            key={booking._grupoVisualId || booking.id}
-                                                            onClick={() => abrirDetalleAgenda(booking)}
-                                                            className={`absolute overflow-hidden rounded-md border border-l-2 px-0.5 py-0.5 text-left leading-tight ${statusClass}`}
-                                                            style={getAgendaCompactStyle(booking)}
-                                                            title={`${booking.cliente_nombre} - ${booking.servicio}`}
-                                                        >
-                                                            <span className="block text-[9px] font-bold truncate">{primerNombre(booking)}</span>
-                                                            <span className="block text-[8px] opacity-80 truncate">{horaCorta(booking.hora_inicio)}</span>
-                                                        </button>
-                                                    );
-                                                })}
                                             </div>
-                                        );
-                                    })}
+                                            {agendaDays.map(day => {
+                                                const dateStr = formatDate(day);
+                                                const isToday = dateStr === agendaToday;
+                                                const dayLayoutBookings = getAgendaLayoutBookings(getAgendaDayBookings(day));
+                                                return (
+                                                    <div key={dateStr} className={`relative border-l min-w-0 ${isToday ? 'bg-pink-50/40' : ''}`}>
+                                                        {agendaHours.map(hour => (
+                                                            <div key={hour} className="border-b border-gray-100" style={{ height: `${60 * agendaPxPerMinute}px` }}></div>
+                                                        ))}
+                                                        {renderLineaAhora(dateStr)}
+                                                        {dayLayoutBookings.map(booking => {
+                                                            const alto = getBookingHeight(booking);
+                                                            return (
+                                                                <button
+                                                                    key={booking._grupoVisualId || booking.id}
+                                                                    onClick={() => abrirDetalleAgenda(booking)}
+                                                                    className={`absolute rounded-lg border-l-4 px-1.5 py-1 text-left overflow-hidden shadow-sm ${agendaColorPro(booking)} ${booking.estado === 'Pendiente' ? 'ring-1 ring-amber-500 ring-inset' : ''} ${booking.estado === 'Completado' || booking.estado === 'Ausente' ? 'opacity-70' : ''}`}
+                                                                    style={getAgendaCompactStyle(booking)}
+                                                                >
+                                                                    <span className="block text-[10px] font-semibold leading-tight truncate">{agendaEstadoMarca[booking.estado] || ''}{rangoHora(booking)}</span>
+                                                                    {alto >= 44 && <span className="block text-xs font-bold leading-tight truncate">{booking.cliente_nombre}</span>}
+                                                                    {alto >= 60 && <span className="block text-[10px] leading-tight truncate opacity-80">{booking.servicio}</span>}
+                                                                </button>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         )}
