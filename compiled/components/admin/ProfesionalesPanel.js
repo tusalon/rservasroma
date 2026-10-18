@@ -40,10 +40,38 @@ function ProfesionalesPanel() {
     }
   };
   const handleEliminar = async (id) => {
-    if (!confirm(t("¿Eliminar este profesional?"))) return;
+    const profesional = profesionales.find((p) => p.id === id);
+    let consecuencias = null;
+    try {
+      consecuencias = await window.salonProfesionales.consecuenciasDeEliminar(id);
+    } catch (error) {
+      console.error("No se pudo comprobar el historial del profesional:", error);
+      alert(t("No se pudo comprobar si este profesional tiene reservas. Revisa tu conexión e inténtalo de nuevo."));
+      return;
+    }
+    if (consecuencias.reservas > 0) {
+      const detalle = t("Este profesional tiene {n} reservas en su historial, por eso no se puede eliminar.").replace("{n}", consecuencias.reservas);
+      if (profesional && profesional.activo) {
+        if (confirm(detalle + "\n\n" + t("¿Quieres desactivarlo? Dejará de aparecer para reservar y tu historial queda intacto."))) {
+          await toggleActivo(id);
+        }
+      } else {
+        alert(detalle + "\n\n" + t("Ya está inactivo: no aparece para reservar y tu historial queda intacto."));
+      }
+      return;
+    }
+    let mensaje = t("¿Eliminar este profesional?");
+    if (consecuencias.serviciosSinNadie.length > 0) {
+      mensaje += "\n\n" + t("Estos servicios se quedarán sin ningún profesional y las clientas no podrán reservarlos:") + "\n• " + consecuencias.serviciosSinNadie.join("\n• ");
+    }
+    if (!confirm(mensaje)) return;
     try {
       console.log("🗑️ Eliminando profesional:", id);
-      await window.salonProfesionales.eliminar(id);
+      const ok = await window.salonProfesionales.eliminar(id);
+      if (!ok) {
+        alert(t("No se pudo eliminar el profesional. Revisa tu conexión e inténtalo de nuevo."));
+        return;
+      }
       await cargarProfesionales();
     } catch (error) {
       console.error("Error eliminando profesional:", error);

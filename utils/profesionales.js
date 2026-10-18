@@ -176,6 +176,62 @@ window.salonProfesionales = {
         }
     },
     
+    // Antes de eliminar: que se llevaria por delante. Una reserva (aunque sea vieja) impide borrar al
+    // profesional: la base lo rechaza (reservas.profesional_id sin ON DELETE). Hay que decirselo a la
+    // duena en vez de fallar en silencio, y ofrecer desactivarlo (conserva el historial).
+    consecuenciasDeEliminar: async function(id) {
+        const negocioId = getNegocioId();
+        const headers = {
+            'apikey': window.SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${window.SUPABASE_ANON_KEY}`
+        };
+        const base = `${window.SUPABASE_URL}/rest/v1`;
+
+        // reservas del profesional (cuenta exacta sin traer filas)
+        const resReservas = await fetch(
+            `${base}/reservas?negocio_id=eq.${negocioId}&profesional_id=eq.${id}&select=id`,
+            { headers: { ...headers, 'Prefer': 'count=exact', 'Range': '0-0' } }
+        );
+        if (!resReservas.ok && resReservas.status !== 206) throw new Error(`reservas ${resReservas.status}`);
+        const rango = resReservas.headers.get('content-range') || '';
+        const total = parseInt(rango.split('/')[1], 10);
+        const reservas = Number.isFinite(total) ? total : 0;
+
+        // servicios que se quedarian sin ningun profesional
+        let serviciosSinNadie = [];
+        const resMios = await fetch(
+            `${base}/servicios_profesionales?negocio_id=eq.${negocioId}&profesional_id=eq.${id}&select=servicio_id`,
+            { headers }
+        );
+        if (resMios.ok) {
+            const mios = (await resMios.json()).map(r => r.servicio_id);
+            if (mios.length) {
+                const lista = mios.join(',');
+                const resTodos = await fetch(
+                    `${base}/servicios_profesionales?negocio_id=eq.${negocioId}&servicio_id=in.(${lista})&select=servicio_id,profesional_id`,
+                    { headers }
+                );
+                const resServicios = await fetch(
+                    `${base}/servicios?negocio_id=eq.${negocioId}&id=in.(${lista})&select=id,nombre,activo`,
+                    { headers }
+                );
+                if (resTodos.ok && resServicios.ok) {
+                    const asignaciones = await resTodos.json();
+                    const servicios = await resServicios.json();
+                    const solos = mios.filter(sid => {
+                        const otros = asignaciones.filter(r => r.servicio_id === sid && Number(r.profesional_id) !== Number(id));
+                        return otros.length === 0;
+                    });
+                    serviciosSinNadie = servicios
+                        .filter(sv => solos.includes(sv.id) && sv.activo !== false)
+                        .map(sv => sv.nombre);
+                }
+            }
+        }
+
+        return { reservas, serviciosSinNadie };
+    },
+
     eliminar: async function(id) {
         try {
             const negocioId = getNegocioId();
@@ -193,7 +249,11 @@ window.salonProfesionales = {
                 }
             );
             
-            if (!response.ok) return false;
+            if (!response.ok) {
+                // 409 = tiene reservas (llave foranea). El panel ya lo avisa antes; aqui solo se registra.
+                console.warn('No se pudo eliminar el profesional:', response.status);
+                return false;
+            }
             
             profesionalesCache = await cargarProfesionalesDesdeDB() || profesionalesCache;
             
