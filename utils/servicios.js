@@ -124,6 +124,17 @@ function calcularMontoAnticipoReservaSync(configNegocio = {}, servicioSelecciona
     return redondearSegunMoneda(total, getMonedaAnticipo(configNegocio, servicioSeleccionado));
 }
 
+// Alta MANUAL desde el panel: ¿se le pide anticipo a la clienta? Misma regla que BookingForm: si el
+// salon lo exige, la reserva nace "Pendiente" y se le manda el pedido de pago. La duena puede
+// quitarlo con la casilla (quiereAdmin=false); una profesional no. sinMonto = el salon cobra por
+// servicio y esta seleccion no tiene monto: la duena debe corregirlo, a la profesional se le deja pasar.
+function decidirAnticipoManual(configNegocio = {}, seleccion = {}, { esAdmin = false, quiereAdmin = true } = {}) {
+    if (configNegocio?.requiere_anticipo !== true) return { requiere: false, sinMonto: false };
+    if (esAdmin && !quiereAdmin) return { requiere: false, sinMonto: false };
+    const sinMonto = Boolean(configNegocio.anticipos_por_servicio) && !(calcularMontoAnticipoReservaSync(configNegocio, seleccion) > 0);
+    return { requiere: !sinMonto || esAdmin, sinMonto };
+}
+
 window.parsePrecioServicio = parsePrecioServicio;
 window.formatearPrecioServicio = formatearPrecioServicio;
 window.getPrecioServicioBase = getPrecioServicioBase;
@@ -131,6 +142,7 @@ window.getPrecioServicioHasta = getPrecioServicioHasta;
 window.getMonedaServicio = getMonedaServicio;
 window.getAnticipoServicio = getAnticipoServicio;
 window.calcularMontoAnticipoReservaSync = calcularMontoAnticipoReservaSync;
+window.decidirAnticipoManual = decidirAnticipoManual;
 window.getMonedaAnticipo = getMonedaAnticipo;
 window.redondearSegunMoneda = redondearSegunMoneda;
 

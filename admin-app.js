@@ -652,6 +652,20 @@ function AdminApp() {
         duracion_personalizada: '',
         requiereAnticipo: false
     });
+    // ¿El salon pide anticipo? Al abrir el alta manual se marca la casilla igual que a la clienta:
+    // la reserva queda "Pendiente" y se le manda el pedido de pago hasta que se confirme.
+    const [salonPideAnticipo, setSalonPideAnticipo] = React.useState(false);
+    React.useEffect(() => {
+        if (!showNuevaReservaModal || reservaEditando) return;
+        let vigente = true;
+        window.cargarConfiguracionNegocio().then((cfg) => {
+            if (!vigente) return;
+            const pide = cfg?.requiere_anticipo === true;
+            setSalonPideAnticipo(pide);
+            if (pide) setNuevaReservaData((d) => ({ ...d, requiereAnticipo: true }));
+        }).catch(() => {});
+        return () => { vigente = false; };
+    }, [showNuevaReservaModal, reservaEditando]);
     const [serviciosManualSeleccionados, setServiciosManualSeleccionados] = React.useState([]);
     
     // Estado para el modal de disponibilidad
@@ -2553,19 +2567,18 @@ function AdminApp() {
                 return;
             }
             const configNegocio = await window.cargarConfiguracionNegocio();
-            const requiereAnticipo = nuevaReservaData.requiereAnticipo;
-            // Al reprogramar no se toca el anticipo (solo cambia fecha/hora),
-            // asi que no tiene sentido bloquear la edicion por eso.
-            if (!reservaEditando && requiereAnticipo && configNegocio?.anticipos_por_servicio && window.calcularMontoAnticipoReservaSync) {
-                const montoAnticipoManual = window.calcularMontoAnticipoReservaSync(configNegocio, {
+            // Al reprogramar no se toca el anticipo (solo cambia fecha/hora).
+            const anticipoManual = reservaEditando
+                ? { requiere: false, sinMonto: false }
+                : window.decidirAnticipoManual(configNegocio, {
                     esMultiple: serviciosSeleccionados.length > 1,
                     servicios: serviciosSeleccionados
-                });
-                if (!montoAnticipoManual || montoAnticipoManual <= 0) {
-                    alert(t('Este servicio no tiene anticipo configurado. Ponle un monto en Servicios o un anticipo global en Editar negocio, o desmarca requerir anticipo.'));
-                    return;
-                }
+                }, { esAdmin: userRole === 'admin', quiereAdmin: nuevaReservaData.requiereAnticipo });
+            if (anticipoManual.requiere && anticipoManual.sinMonto) {
+                alert(t('Este servicio no tiene anticipo configurado. Ponle un monto en Servicios o un anticipo global en Editar negocio, o desmarca requerir anticipo.'));
+                return;
             }
+            const requiereAnticipo = anticipoManual.requiere;
             
             const bookingData = {
                 cliente_nombre: nuevaReservaData.cliente_nombre,
@@ -5270,10 +5283,13 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                                         <p className="text-xs text-red-500 mt-1">{t('No hay profesionales asignados a este servicio.')}</p>
                                     )}
                                 </div>
-                                {userRole === 'admin' && (
-                                    <div className="flex items-center gap-3 bg-yellow-50 p-3 rounded-lg">
-                                        <input type="checkbox" id="requiereAnticipo" checked={nuevaReservaData.requiereAnticipo} onChange={(e) => setNuevaReservaData({...nuevaReservaData, requiereAnticipo: e.target.checked})} />
-                                        <label htmlFor="requiereAnticipo" className="text-sm font-medium text-yellow-800">{t('Requerir anticipo al cliente')}</label>
+                                {userRole === 'admin' && salonPideAnticipo && !reservaEditando && (
+                                    <div className="bg-yellow-50 p-3 rounded-lg">
+                                        <div className="flex items-center gap-3">
+                                            <input type="checkbox" id="requiereAnticipo" checked={nuevaReservaData.requiereAnticipo} onChange={(e) => setNuevaReservaData({...nuevaReservaData, requiereAnticipo: e.target.checked})} />
+                                            <label htmlFor="requiereAnticipo" className="text-sm font-medium text-yellow-800">{t('Requerir anticipo al cliente')}</label>
+                                        </div>
+                                        <p className="text-xs text-yellow-800 mt-1">{nuevaReservaData.requiereAnticipo ? t('La reserva queda pendiente y se le manda el pedido de anticipo por WhatsApp. Se confirma cuando recibas el pago.') : t('Sin anticipo: la reserva queda confirmada al guardar.')}</p>
                                     </div>
                                 )}
                                 {nuevaReservaData.servicio && nuevaReservaData.profesional_id && (

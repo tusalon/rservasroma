@@ -301,6 +301,8 @@
         'No se pudo comprobar si este profesional tiene reservas. Revisa tu conexión e inténtalo de nuevo.': "Couldn't check whether this professional has bookings. Check your connection and try again.",
         'Este profesional tiene {n} reservas en su historial, por eso no se puede eliminar.': 'This professional has {n} bookings in their history, so they cannot be deleted.',
         '¿Quieres desactivarlo? Dejará de aparecer para reservar y tu historial queda intacto.': 'Do you want to deactivate them instead? They will stop appearing for booking and your history stays intact.',
+        'La reserva queda pendiente y se le manda el pedido de anticipo por WhatsApp. Se confirma cuando recibas el pago.': 'The booking stays pending and the deposit request is sent by WhatsApp. It is confirmed when you receive the payment.',
+        'Sin anticipo: la reserva queda confirmada al guardar.': 'No deposit: the booking is confirmed when saved.',
         'Este profesional tiene {n} citas futuras sin atender.': 'This professional has {n} upcoming appointments.',
         '¿Quieres desactivarlo en vez de eliminarlo? Dejará de aparecer para reservar y sus citas siguen en tu agenda.': 'Do you want to deactivate them instead of deleting? They will stop appearing for booking and their appointments stay in your agenda.',
         'Si lo eliminas, esas citas se cancelarán y las clientas NO serán avisadas. ¿Eliminar de todos modos?': 'If you delete them, those appointments will be cancelled and clients will NOT be notified. Delete anyway?',

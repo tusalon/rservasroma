@@ -33,7 +33,7 @@ function cargarServicios() {
     return window;
 }
 
-const { getAnticipoServicio, calcularMontoAnticipoReservaSync } = cargarServicios();
+const { getAnticipoServicio, calcularMontoAnticipoReservaSync, decidirAnticipoManual } = cargarServicios();
 
 // Spa VidaMassage: global 10%, ningun servicio con anticipo propio.
 {
@@ -133,3 +133,20 @@ const { getAnticipoServicio, calcularMontoAnticipoReservaSync } = cargarServicio
 }
 
 console.log('anticipo-servicio.test.js OK');
+
+// Alta manual desde el panel: se pide anticipo igual que a la clienta, no solo si la duena marca la casilla.
+{
+    const global = { requiere_anticipo: true, tipo_anticipo: 'fijo', valor_anticipo: 500 };
+    const sel = { esMultiple: false, servicios: [{ nombre: 'Corte', precio: 1000 }] };
+
+    assert.deepEqual({ ...decidirAnticipoManual({ requiere_anticipo: false }, sel, { esAdmin: true, quiereAdmin: true }) }, { requiere: false, sinMonto: false }, 'si el salon no pide anticipo, no hay pedido de pago');
+    assert.equal(decidirAnticipoManual(global, sel, { esAdmin: true, quiereAdmin: true }).requiere, true, 'la duena con la casilla marcada');
+    assert.equal(decidirAnticipoManual(global, sel, { esAdmin: true, quiereAdmin: false }).requiere, false, 'la duena puede quitarlo');
+    assert.equal(decidirAnticipoManual(global, sel, { esAdmin: false, quiereAdmin: false }).requiere, true, 'una profesional no se salta el anticipo del salon');
+
+    // Por servicio y sin monto: la duena debe corregirlo; a la profesional no se le bloquea (igual que BookingForm).
+    const porServicio = { requiere_anticipo: true, anticipos_por_servicio: true, tipo_anticipo: 'fijo', valor_anticipo: 0 };
+    const sinMonto = { esMultiple: false, servicios: [{ nombre: 'Corte', precio: 1000, requiere_anticipo: false }] };
+    assert.deepEqual({ ...decidirAnticipoManual(porServicio, sinMonto, { esAdmin: true, quiereAdmin: true }) }, { requiere: true, sinMonto: true });
+    assert.deepEqual({ ...decidirAnticipoManual(porServicio, sinMonto, { esAdmin: false }) }, { requiere: false, sinMonto: true });
+}

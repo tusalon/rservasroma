@@ -518,6 +518,21 @@ function AdminApp() {
     duracion_personalizada: "",
     requiereAnticipo: false
   });
+  const [salonPideAnticipo, setSalonPideAnticipo] = React.useState(false);
+  React.useEffect(() => {
+    if (!showNuevaReservaModal || reservaEditando) return;
+    let vigente = true;
+    window.cargarConfiguracionNegocio().then((cfg) => {
+      if (!vigente) return;
+      const pide = cfg?.requiere_anticipo === true;
+      setSalonPideAnticipo(pide);
+      if (pide) setNuevaReservaData((d) => ({ ...d, requiereAnticipo: true }));
+    }).catch(() => {
+    });
+    return () => {
+      vigente = false;
+    };
+  }, [showNuevaReservaModal, reservaEditando]);
   const [serviciosManualSeleccionados, setServiciosManualSeleccionados] = React.useState([]);
   const [showDisponibilidadModal, setShowDisponibilidadModal] = React.useState(false);
   const [disponibilidadFecha, setDisponibilidadFecha] = React.useState(/* @__PURE__ */ new Date());
@@ -2066,17 +2081,15 @@ function AdminApp() {
         return;
       }
       const configNegocio = await window.cargarConfiguracionNegocio();
-      const requiereAnticipo = nuevaReservaData.requiereAnticipo;
-      if (!reservaEditando && requiereAnticipo && configNegocio?.anticipos_por_servicio && window.calcularMontoAnticipoReservaSync) {
-        const montoAnticipoManual = window.calcularMontoAnticipoReservaSync(configNegocio, {
-          esMultiple: serviciosSeleccionados.length > 1,
-          servicios: serviciosSeleccionados
-        });
-        if (!montoAnticipoManual || montoAnticipoManual <= 0) {
-          alert(t2("Este servicio no tiene anticipo configurado. Ponle un monto en Servicios o un anticipo global en Editar negocio, o desmarca requerir anticipo."));
-          return;
-        }
+      const anticipoManual = reservaEditando ? { requiere: false, sinMonto: false } : window.decidirAnticipoManual(configNegocio, {
+        esMultiple: serviciosSeleccionados.length > 1,
+        servicios: serviciosSeleccionados
+      }, { esAdmin: userRole === "admin", quiereAdmin: nuevaReservaData.requiereAnticipo });
+      if (anticipoManual.requiere && anticipoManual.sinMonto) {
+        alert(t2("Este servicio no tiene anticipo configurado. Ponle un monto en Servicios o un anticipo global en Editar negocio, o desmarca requerir anticipo."));
+        return;
       }
+      const requiereAnticipo = anticipoManual.requiere;
       const bookingData = {
         cliente_nombre: nuevaReservaData.cliente_nombre,
         cliente_whatsapp: normalizarTelefonoCompletoSeguro(nuevaReservaData.cliente_whatsapp),
@@ -4076,7 +4089,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
       className: "w-full border border-pink-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-pink-300 focus:border-pink-400",
       placeholder: t2("Usar {min} min", { min: getDuracionManualConfigurada(getServiciosManualSeleccionados()) })
     }
-  ), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-pink-700 mt-1" }, t2("Dejalo vacio para usar la duracion configurada. Si escribes un tiempo, solo aplica a esta cita.")), tieneDuracionManualPersonalizada() && /* @__PURE__ */ React.createElement("p", { className: "text-xs font-semibold text-pink-800 mt-1" }, t2("Esta reserva se calculara con {min} min.", { min: getDuracionManualTotal(getServiciosManualSeleccionados()) }))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, t2("Profesional *")), /* @__PURE__ */ React.createElement("select", { value: nuevaReservaData.profesional_id, onChange: (e) => setNuevaReservaData({ ...nuevaReservaData, profesional_id: e.target.value }), className: "w-full border rounded-lg px-3 py-2" }, /* @__PURE__ */ React.createElement("option", { value: "" }, t2("Seleccionar profesional")), profesionalesManualFiltrados.map((p) => /* @__PURE__ */ React.createElement("option", { key: p.id, value: p.id }, p.nombre, " - ", p.especialidad))), nuevaReservaData.servicio && profesionalesManualFiltrados.length === 0 && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-red-500 mt-1" }, t2("No hay profesionales asignados a este servicio."))), userRole === "admin" && /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3 bg-yellow-50 p-3 rounded-lg" }, /* @__PURE__ */ React.createElement("input", { type: "checkbox", id: "requiereAnticipo", checked: nuevaReservaData.requiereAnticipo, onChange: (e) => setNuevaReservaData({ ...nuevaReservaData, requiereAnticipo: e.target.checked }) }), /* @__PURE__ */ React.createElement("label", { htmlFor: "requiereAnticipo", className: "text-sm font-medium text-yellow-800" }, t2("Requerir anticipo al cliente"))), nuevaReservaData.servicio && nuevaReservaData.profesional_id && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-2" }, t2("Fecha *")), /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-xl border" }, /* @__PURE__ */ React.createElement("div", { className: "flex justify-between p-3 bg-gray-50 border-b" }, /* @__PURE__ */ React.createElement("button", { onClick: () => cambiarMes(-1) }, "›"), /* @__PURE__ */ React.createElement("span", { className: "font-bold" }, monthNames[currentDate.getMonth()], " ", currentDate.getFullYear()), /* @__PURE__ */ React.createElement("button", { onClick: () => cambiarMes(1) }, "›")), /* @__PURE__ */ React.createElement("div", { className: "p-3" }, /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-7 mb-2 text-center text-xs text-gray-400" }, (idioma === "en" ? ["S", "M", "T", "W", "T", "F", "S"] : ["D", "L", "M", "M", "J", "V", "S"]).map((d, i) => /* @__PURE__ */ React.createElement("div", { key: i }, d))), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-7 gap-1" }, days.map((date, idx) => {
+  ), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-pink-700 mt-1" }, t2("Dejalo vacio para usar la duracion configurada. Si escribes un tiempo, solo aplica a esta cita.")), tieneDuracionManualPersonalizada() && /* @__PURE__ */ React.createElement("p", { className: "text-xs font-semibold text-pink-800 mt-1" }, t2("Esta reserva se calculara con {min} min.", { min: getDuracionManualTotal(getServiciosManualSeleccionados()) }))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, t2("Profesional *")), /* @__PURE__ */ React.createElement("select", { value: nuevaReservaData.profesional_id, onChange: (e) => setNuevaReservaData({ ...nuevaReservaData, profesional_id: e.target.value }), className: "w-full border rounded-lg px-3 py-2" }, /* @__PURE__ */ React.createElement("option", { value: "" }, t2("Seleccionar profesional")), profesionalesManualFiltrados.map((p) => /* @__PURE__ */ React.createElement("option", { key: p.id, value: p.id }, p.nombre, " - ", p.especialidad))), nuevaReservaData.servicio && profesionalesManualFiltrados.length === 0 && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-red-500 mt-1" }, t2("No hay profesionales asignados a este servicio."))), userRole === "admin" && salonPideAnticipo && !reservaEditando && /* @__PURE__ */ React.createElement("div", { className: "bg-yellow-50 p-3 rounded-lg" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3" }, /* @__PURE__ */ React.createElement("input", { type: "checkbox", id: "requiereAnticipo", checked: nuevaReservaData.requiereAnticipo, onChange: (e) => setNuevaReservaData({ ...nuevaReservaData, requiereAnticipo: e.target.checked }) }), /* @__PURE__ */ React.createElement("label", { htmlFor: "requiereAnticipo", className: "text-sm font-medium text-yellow-800" }, t2("Requerir anticipo al cliente"))), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-yellow-800 mt-1" }, nuevaReservaData.requiereAnticipo ? t2("La reserva queda pendiente y se le manda el pedido de anticipo por WhatsApp. Se confirma cuando recibas el pago.") : t2("Sin anticipo: la reserva queda confirmada al guardar."))), nuevaReservaData.servicio && nuevaReservaData.profesional_id && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-2" }, t2("Fecha *")), /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-xl border" }, /* @__PURE__ */ React.createElement("div", { className: "flex justify-between p-3 bg-gray-50 border-b" }, /* @__PURE__ */ React.createElement("button", { onClick: () => cambiarMes(-1) }, "›"), /* @__PURE__ */ React.createElement("span", { className: "font-bold" }, monthNames[currentDate.getMonth()], " ", currentDate.getFullYear()), /* @__PURE__ */ React.createElement("button", { onClick: () => cambiarMes(1) }, "›")), /* @__PURE__ */ React.createElement("div", { className: "p-3" }, /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-7 mb-2 text-center text-xs text-gray-400" }, (idioma === "en" ? ["S", "M", "T", "W", "T", "F", "S"] : ["D", "L", "M", "M", "J", "V", "S"]).map((d, i) => /* @__PURE__ */ React.createElement("div", { key: i }, d))), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-7 gap-1" }, days.map((date, idx) => {
     if (!date) return /* @__PURE__ */ React.createElement("div", { key: idx, className: "h-10" });
     const fechaStr = formatDate(date);
     const available = isDateAvailable(date);
