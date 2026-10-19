@@ -502,6 +502,7 @@ function AdminApp() {
   const [busquedaClienteManual, setBusquedaClienteManual] = React.useState("");
   const [busquedaClientes, setBusquedaClientes] = React.useState("");
   const [clienteDetalle, setClienteDetalle] = React.useState(null);
+  const [fichaClienta, setFichaClienta] = React.useState(null);
   const [ajustesFidelizacion, setAjustesFidelizacion] = React.useState({});
   const [guardandoAjusteFid, setGuardandoAjusteFid] = React.useState(false);
   const [showNuevaReservaModal, setShowNuevaReservaModal] = React.useState(false);
@@ -4308,10 +4309,28 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
         /* @__PURE__ */ React.createElement("div", { className: "mt-3" }, /* @__PURE__ */ React.createElement("div", { className: "flex justify-between text-xs text-gray-500 mb-1" }, /* @__PURE__ */ React.createElement("span", null, t2("Completadas {n}%", { n: score.completionRate })), /* @__PURE__ */ React.createElement("span", null, t2("Cancelación {n}%", { n: score.cancelRate }))), /* @__PURE__ */ React.createElement("div", { className: "h-2 bg-white rounded-full overflow-hidden border" }, /* @__PURE__ */ React.createElement("div", { className: "h-full bg-emerald-400", style: { width: `${score.completionRate}%` } })))
       );
     });
-  })())), clienteDetalle && /* @__PURE__ */ React.createElement("div", { className: "fixed inset-0 bg-black/50 z-[80] flex items-end sm:items-center justify-center p-0 sm:p-4", onClick: () => setClienteDetalle(null) }, /* @__PURE__ */ React.createElement("div", { className: "bg-white w-full sm:max-w-2xl max-h-[88vh] rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden", onClick: (event) => event.stopPropagation() }, /* @__PURE__ */ React.createElement("div", { className: "p-5 border-b bg-gradient-to-r from-white to-pink-50 flex items-start justify-between gap-4" }, /* @__PURE__ */ React.createElement("div", { className: "min-w-0" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold uppercase text-pink-500 tracking-wide" }, t2("Historial del cliente")), /* @__PURE__ */ React.createElement("h3", { className: "text-2xl font-bold text-gray-900 truncate" }, clienteDetalle.cliente.nombre || t2("Cliente")), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500" }, "+", clienteDetalle.cliente.whatsapp), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-2 mt-3" }, /* @__PURE__ */ React.createElement("span", { className: `px-2.5 py-1 rounded-full border text-xs font-semibold ${clienteDetalle.score.tone}` }, clienteDetalle.score.label), /* @__PURE__ */ React.createElement("span", { className: "px-2.5 py-1 rounded-full bg-white border text-xs font-semibold text-gray-700" }, t2("Score {n}/100", { n: clienteDetalle.score.score })), /* @__PURE__ */ React.createElement("span", { className: "px-2.5 py-1 rounded-full bg-pink-50 text-pink-700 border border-pink-100 text-xs font-semibold" }, t2("{n} turnos", { n: clienteDetalle.reservas.length })), (() => {
+  })())), fichaClienta && userRole === "admin" && /* @__PURE__ */ React.createElement(
+    FichaClientaPanel,
+    {
+      cliente: fichaClienta.cliente,
+      reservas: fichaClienta.reservas,
+      serviciosList,
+      profesionalesList,
+      onCerrar: () => setFichaClienta(null)
+    }
+  ), clienteDetalle && /* @__PURE__ */ React.createElement("div", { className: "fixed inset-0 bg-black/50 z-[80] flex items-end sm:items-center justify-center p-0 sm:p-4", onClick: () => setClienteDetalle(null) }, /* @__PURE__ */ React.createElement("div", { className: "bg-white w-full sm:max-w-2xl max-h-[88vh] rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden", onClick: (event) => event.stopPropagation() }, /* @__PURE__ */ React.createElement("div", { className: "p-5 border-b bg-gradient-to-r from-white to-pink-50 flex items-start justify-between gap-4" }, /* @__PURE__ */ React.createElement("div", { className: "min-w-0" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold uppercase text-pink-500 tracking-wide" }, t2("Historial del cliente")), /* @__PURE__ */ React.createElement("h3", { className: "text-2xl font-bold text-gray-900 truncate" }, clienteDetalle.cliente.nombre || t2("Cliente")), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500" }, "+", clienteDetalle.cliente.whatsapp), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-2 mt-3" }, /* @__PURE__ */ React.createElement("span", { className: `px-2.5 py-1 rounded-full border text-xs font-semibold ${clienteDetalle.score.tone}` }, clienteDetalle.score.label), /* @__PURE__ */ React.createElement("span", { className: "px-2.5 py-1 rounded-full bg-white border text-xs font-semibold text-gray-700" }, t2("Score {n}/100", { n: clienteDetalle.score.score })), /* @__PURE__ */ React.createElement("span", { className: "px-2.5 py-1 rounded-full bg-pink-50 text-pink-700 border border-pink-100 text-xs font-semibold" }, t2("{n} turnos", { n: clienteDetalle.reservas.length })), (() => {
     const cumpleFicha = window.cumpleanos?.cumpleDe(clienteDetalle.cliente, "cumple_dia", "cumple_mes");
     return cumpleFicha ? /* @__PURE__ */ React.createElement("span", { className: "px-2.5 py-1 rounded-full bg-amber-50 text-amber-800 border border-amber-100 text-xs font-semibold" }, "🎂 ", window.cumpleanos.textoCumple(cumpleFicha, idioma)) : null;
-  })())), /* @__PURE__ */ React.createElement("button", { onClick: () => setClienteDetalle(null), className: "w-10 h-10 rounded-full bg-white border text-gray-500 hover:text-gray-900 hover:bg-gray-50 text-xl leading-none" }, "×")), (() => {
+  })())), /* @__PURE__ */ React.createElement("button", { onClick: () => setClienteDetalle(null), className: "w-10 h-10 rounded-full bg-white border text-gray-500 hover:text-gray-900 hover:bg-gray-50 text-xl leading-none" }, "×")), userRole === "admin" && /* @__PURE__ */ React.createElement("div", { className: "mx-5 mt-4" }, /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      type: "button",
+      onClick: () => setFichaClienta({ cliente: clienteDetalle.cliente, reservas: clienteDetalle.reservas }),
+      className: "w-full flex items-center justify-center gap-2 rounded-xl border border-pink-200 bg-white px-4 py-3 text-sm font-bold text-pink-700 hover:bg-pink-50"
+    },
+    "🩺 ",
+    t2("Abrir ficha de la clienta")
+  )), (() => {
     const fid = window.getFidelizacionConfig(config);
     if (!fid.activa) return null;
     const phone = normalizePhone(clienteDetalle.cliente.whatsapp);

@@ -636,6 +636,8 @@ function AdminApp() {
     const [busquedaClienteManual, setBusquedaClienteManual] = React.useState('');
     const [busquedaClientes, setBusquedaClientes] = React.useState('');
     const [clienteDetalle, setClienteDetalle] = React.useState(null);
+    // Ficha de la clienta (historia clinica): solo la duena y el nivel Avanzado (userRole 'admin').
+    const [fichaClienta, setFichaClienta] = React.useState(null);
     // { telefonoNormalizado: citas que no cuentan }. Se lee una vez para todo
     // el salón y se cruza en memoria (ver utils/fidelizacion.js).
     const [ajustesFidelizacion, setAjustesFidelizacion] = React.useState({});
@@ -5981,6 +5983,16 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                     </div>
                 )}
 
+                {fichaClienta && userRole === 'admin' && (
+                    <FichaClientaPanel
+                        cliente={fichaClienta.cliente}
+                        reservas={fichaClienta.reservas}
+                        serviciosList={serviciosList}
+                        profesionalesList={profesionalesList}
+                        onCerrar={() => setFichaClienta(null)}
+                    />
+                )}
+
                 {clienteDetalle && (
                     <div className="fixed inset-0 bg-black/50 z-[80] flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={() => setClienteDetalle(null)}>
                         <div className="bg-white w-full sm:max-w-2xl max-h-[88vh] rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden" onClick={(event) => event.stopPropagation()}>
@@ -6005,6 +6017,18 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                                 </div>
                                 <button onClick={() => setClienteDetalle(null)} className="w-10 h-10 rounded-full bg-white border text-gray-500 hover:text-gray-900 hover:bg-gray-50 text-xl leading-none">×</button>
                             </div>
+
+                            {userRole === 'admin' && (
+                                <div className="mx-5 mt-4">
+                                    <button
+                                        type="button"
+                                        onClick={() => setFichaClienta({ cliente: clienteDetalle.cliente, reservas: clienteDetalle.reservas })}
+                                        className="w-full flex items-center justify-center gap-2 rounded-xl border border-pink-200 bg-white px-4 py-3 text-sm font-bold text-pink-700 hover:bg-pink-50"
+                                    >
+                                        🩺 {t('Abrir ficha de la clienta')}
+                                    </button>
+                                </div>
+                            )}
 
                             {(() => {
                                 const fid = window.getFidelizacionConfig(config);

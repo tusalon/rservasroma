@@ -318,6 +318,8 @@
         'No se hace': 'Not offered',
         'Ya tienes una categoría con ese nombre.': 'You already have a category with that name.',
         'Puede gestionar todo como el dueño, menos Finanzas y la activación de RomaHub': 'Can manage everything like the owner, except Finances and RomaHub activation',
+        'Abrir ficha de la clienta': 'Open client record',
+        'Dueña': 'Owner',
         'Lunes': 'Monday',
         'Martes': 'Tuesday',
         'Miércoles': 'Wednesday',
