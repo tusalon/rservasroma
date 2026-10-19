@@ -1,6 +1,6 @@
 ﻿// sw.js - Service Worker para Rservasroma
 
-const CACHE_NAME = 'rservasroma-v140';
+const CACHE_NAME = 'rservasroma-v141';
 const BASE = '/rservasroma';
 
 const urlsToCache = [
@@ -16,12 +16,12 @@ const urlsToCache = [
   `${BASE}/manifest.json`,
 
   // App principal (JSX pre-compilado en compiled/ â€” ver scripts/build-jsx.sh)
-  `${BASE}/compiled/client-app.js?v=20261007-cumple1`,
+  `${BASE}/compiled/client-app.js?v=20261018-cumple2`,
   `${BASE}/compiled/admin-app.js?v=20261012-bienvenida2`,
 
   // Utils
   `${BASE}/utils/api.js?v=20261008-espera1`,
-  `${BASE}/utils/auth-clients.js?v=20261007-cumple1`,
+  `${BASE}/utils/auth-clients.js?v=20261018-cumple2`,
   `${BASE}/utils/auth-profesionales.js?v=20260920-telpaislogin1`,
   `${BASE}/utils/config.js`,
   `${BASE}/utils/client-native-links.js?v=20260721-native-origin-v1`,
@@ -49,7 +49,7 @@ const urlsToCache = [
   `${BASE}/utils/roma-typography.css?v=20260731-tipografia`,
   `${BASE}/utils/roma-theme.js?v=20260731-tipografia`,
   `${BASE}/utils/fidelizacion.js?v=20260912-fidelidad1`,
-  `${BASE}/utils/cumpleanos.js?v=20261007-cumple1`,
+  `${BASE}/utils/cumpleanos.js?v=20261018-cumple2`,
   `${BASE}/utils/cobro-moneda.js?v=20261010-cobro1`,
   `${BASE}/utils/lista-espera.js?v=20261008-espera1`,
   `${BASE}/utils/clientes-conocidos.js?v=20260913-conocidos1`,
@@ -59,7 +59,7 @@ const urlsToCache = [
   `${BASE}/compiled/components/BookingForm.js?v=20260926-generico1`,
   `${BASE}/compiled/components/Catalogo.js?v=20260926-generico1`,
   `${BASE}/compiled/components/Calendar.js?v=20260723-jsx1`,
-  `${BASE}/compiled/components/ClientAuthScreen.js?v=20261007-cumple1`,
+  `${BASE}/compiled/components/ClientAuthScreen.js?v=20261018-cumple2`,
   `${BASE}/compiled/components/Confirmation.js?v=20261012-bienvenida2`,
   `${BASE}/compiled/components/Header.js?v=20260731-marca`,
   `${BASE}/compiled/components/InstallButton.js?v=20260723-jsx1`,

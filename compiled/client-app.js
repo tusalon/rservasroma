@@ -110,7 +110,7 @@ function CumpleClienteCard({ cliente }) {
         const fila = (await rc.json())[0];
         if (cancelado || !negocio || !fila) return;
         const config = window.cumpleanos.bonificacionConfig(negocio);
-        if (!config.activa || window.cumpleanos.cumpleDe(fila, "cumple_dia", "cumple_mes")) return;
+        if (window.cumpleanos.cumpleDe(fila, "cumple_dia", "cumple_mes")) return;
         setBono(config);
         setSalon(negocio.nombre || "");
         setEstado("pregunta");
@@ -125,7 +125,7 @@ function CumpleClienteCard({ cliente }) {
   if (estado === "oculta" || !bono) return null;
   const aplazar = () => {
     try {
-      localStorage.setItem(claveAplazo, String(Date.now() + 30 * 864e5));
+      localStorage.setItem(claveAplazo, String(Date.now() + 7 * 864e5));
     } catch (e) {
     }
     setEstado("oculta");
@@ -149,7 +149,7 @@ function CumpleClienteCard({ cliente }) {
   if (estado === "listo") {
     return /* @__PURE__ */ React.createElement("div", { role: "status", className: "bg-white rounded-2xl shadow-sm p-4 text-sm text-gray-800" }, "🎂 ", t("¡Anotado! Tu salón te lo tendrá en cuenta."));
   }
-  return /* @__PURE__ */ React.createElement("section", { className: "bg-white rounded-2xl shadow-sm p-4 border border-pink-100", "aria-labelledby": "cumple-titulo" }, /* @__PURE__ */ React.createElement("h2", { id: "cumple-titulo", className: "font-bold text-gray-900" }, "🎂 ", t("¿Cuándo es tu cumpleaños?")), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-700 mt-1" }, bono.tipo === "regalo" ? t("{salon} tiene un regalo para ti en tu cumpleaños: {regalo}.", { salon: salon || t("Tu salón"), regalo: bono.regalo }) : t("{salon} tiene {pct}% de descuento para ti en tu cumpleaños.", { salon: salon || t("Tu salón"), pct: bono.pct })), /* @__PURE__ */ React.createElement("div", { className: "flex gap-2 mt-3" }, /* @__PURE__ */ React.createElement(
+  return /* @__PURE__ */ React.createElement("section", { className: "bg-white rounded-2xl shadow-sm p-4 border border-pink-100", "aria-labelledby": "cumple-titulo" }, /* @__PURE__ */ React.createElement("h2", { id: "cumple-titulo", className: "font-bold text-gray-900" }, "🎂 ", t("¿Cuándo es tu cumpleaños?")), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-700 mt-1" }, !bono.activa ? t("{salon} quiere felicitarte en tu cumpleaños.", { salon: salon || t("Tu salón") }) : bono.tipo === "regalo" ? t("{salon} tiene un regalo para ti en tu cumpleaños: {regalo}.", { salon: salon || t("Tu salón"), regalo: bono.regalo }) : t("{salon} tiene {pct}% de descuento para ti en tu cumpleaños.", { salon: salon || t("Tu salón"), pct: bono.pct })), /* @__PURE__ */ React.createElement("div", { className: "flex gap-2 mt-3" }, /* @__PURE__ */ React.createElement(
     "select",
     {
       value: dia,

@@ -452,7 +452,7 @@ function ClientAuthScreen({ onAccessGranted, onGoBack, disenoPendiente }) {
                                     autoFocus
                                 />
 
-                                {window.cumpleanos?.bonificacionConfig(config).activa && (
+                                {window.cumpleanos && (
                                     <div className="mt-3">
                                         <label className="block text-sm font-medium text-white mb-1">
                                             🎂 {t('Tu cumpleaños (opcional)')}
@@ -483,7 +483,7 @@ function ClientAuthScreen({ onAccessGranted, onGoBack, disenoPendiente }) {
                                                 ))}
                                             </select>
                                         </div>
-                                        <p className="mt-1 text-xs text-pink-100/80">{t('Tu salón puede tener un detalle para ti ese día.')}</p>
+                                        <p className="mt-1 text-xs text-pink-100/80">{window.cumpleanos.bonificacionConfig(config).activa ? t('Tu salón puede tener un detalle para ti ese día.') : t('Así tu salón podrá felicitarte ese día.')}</p>
                                     </div>
                                 )}
                             </div>

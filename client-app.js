@@ -125,7 +125,7 @@ function CumpleClienteCard({ cliente }) {
                 const fila = (await rc.json())[0];
                 if (cancelado || !negocio || !fila) return;
                 const config = window.cumpleanos.bonificacionConfig(negocio);
-                if (!config.activa || window.cumpleanos.cumpleDe(fila, 'cumple_dia', 'cumple_mes')) return;
+                if (window.cumpleanos.cumpleDe(fila, 'cumple_dia', 'cumple_mes')) return;
                 setBono(config);
                 setSalon(negocio.nombre || '');
                 setEstado('pregunta');
@@ -139,7 +139,7 @@ function CumpleClienteCard({ cliente }) {
     if (estado === 'oculta' || !bono) return null;
 
     const aplazar = () => {
-        try { localStorage.setItem(claveAplazo, String(Date.now() + 30 * 86400000)); } catch (e) {}
+        try { localStorage.setItem(claveAplazo, String(Date.now() + 7 * 86400000)); } catch (e) {}
         setEstado('oculta');
     };
     const guardar = async () => {
@@ -171,9 +171,11 @@ function CumpleClienteCard({ cliente }) {
         <section className="bg-white rounded-2xl shadow-sm p-4 border border-pink-100" aria-labelledby="cumple-titulo">
             <h2 id="cumple-titulo" className="font-bold text-gray-900">🎂 {t('¿Cuándo es tu cumpleaños?')}</h2>
             <p className="text-sm text-gray-700 mt-1">
-                {bono.tipo === 'regalo'
-                    ? t('{salon} tiene un regalo para ti en tu cumpleaños: {regalo}.', { salon: salon || t('Tu salón'), regalo: bono.regalo })
-                    : t('{salon} tiene {pct}% de descuento para ti en tu cumpleaños.', { salon: salon || t('Tu salón'), pct: bono.pct })}
+                {!bono.activa
+                    ? t('{salon} quiere felicitarte en tu cumpleaños.', { salon: salon || t('Tu salón') })
+                    : bono.tipo === 'regalo'
+                        ? t('{salon} tiene un regalo para ti en tu cumpleaños: {regalo}.', { salon: salon || t('Tu salón'), regalo: bono.regalo })
+                        : t('{salon} tiene {pct}% de descuento para ti en tu cumpleaños.', { salon: salon || t('Tu salón'), pct: bono.pct })}
             </p>
             <div className="flex gap-2 mt-3">
                 <select value={dia} onChange={(e) => setDia(e.target.value)} aria-label={t('Día')}

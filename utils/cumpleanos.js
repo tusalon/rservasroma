@@ -177,6 +177,8 @@
         'Este mes tienes {pct} % de descuento en tu suscripción. Escríbenos y lo aplicamos al registrar tu pago.': 'This month you get {pct} % off your subscription. Message us and we apply it when we register your payment.',
         'Quiero mi descuento': 'I want my discount',
         'Tu salón puede tener un detalle para ti ese día.': 'Your salon may have a little gift for you that day.',
+        'Así tu salón podrá felicitarte ese día.': 'This way your salon can congratulate you that day.',
+        '{salon} quiere felicitarte en tu cumpleaños.': '{salon} wants to wish you a happy birthday.',
         '🎂 Cumpleaños de tus clientas': '🎂 Your clients’ birthdays',
         'Premiar los cumpleaños': 'Reward birthdays',
         'Si activas, las clientas que te digan su cumpleaños reciben un detalle: se te sugiere al cobrar y se te avisa cuando se acerca.': 'If you turn this on, clients who tell you their birthday get a treat: it is suggested when you charge and you are warned when it is near.',
