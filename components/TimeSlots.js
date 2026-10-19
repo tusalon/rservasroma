@@ -171,8 +171,8 @@ function TimeSlots({ service, date, profesional, cliente, onTimeSelect, selected
                 let baseSlots = indicesDelDia.map(indice => indiceToHoraLegible(indice));
                 
                 // 🔥 FILTRO POR HORARIOS PERMITIDOS DEL SERVICIO (si existen)
-                if (service.horarios_permitidos && service.horarios_permitidos.length > 0) {
-                    baseSlots = baseSlots.filter(slot => servicioPermiteHorario(service, slot));
+                if (servicioRestringeHorarios(service, diaSemana)) {
+                    baseSlots = baseSlots.filter(slot => servicioPermiteHorario(service, slot, diaSemana));
                     console.log(`📋 Slots filtrados por horarios permitidos del servicio:`, baseSlots);
                 }
                 

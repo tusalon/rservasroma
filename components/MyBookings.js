@@ -194,7 +194,7 @@ function MyBookings({ cliente, onVolver }) {
         const minFechaPermitida = new Date(Date.now() + minHoras * 3600000);
 
         let baseSlots = indicesDelDia.map(indiceToHoraLegible);
-        if (servicio?.horarios_permitidos?.length) baseSlots = baseSlots.filter(s => servicioPermiteHorario(servicio, s));
+        if (servicioRestringeHorarios(servicio, diaSemana)) baseSlots = baseSlots.filter(s => servicioPermiteHorario(servicio, s, diaSemana));
 
         const disponibles = baseSlots.filter(slot => {
             const slotStart = timeToMinutes(slot);

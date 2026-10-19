@@ -29,9 +29,29 @@ function variantesHorarioPermitido(timeStr) {
     return variantes;
 }
 
+// Horas que permite el servicio ese dia de la semana ('lunes'...'domingo', las mismas claves de
+// horariosPorDia). Si el servicio tiene horas propias para ese dia (servicios.horarios_permitidos_por_dia,
+// ver sql-horarios-servicio-por-dia.sql) mandan ellas y SOLO ese dia; los demas dias siguen con la lista
+// general (horarios_permitidos). Lista vacia = sin restriccion. Un dia puede valer "cerrado" (servicio apagado ese dia).
+function horariosPermitidosDelDia(servicio, diaSemana) {
+    const propias = diaSemana ? servicio?.horarios_permitidos_por_dia?.[diaSemana] : null;
+    if (Array.isArray(propias) && propias.length) return propias;
+    return Array.isArray(servicio?.horarios_permitidos) ? servicio.horarios_permitidos : [];
+}
+
+// El servicio esta apagado ese dia: en horarios_permitidos_por_dia el dia vale "cerrado". No ofrece ninguna hora.
+function servicioCerradoEseDia(servicio, diaSemana) {
+    return Boolean(diaSemana) && servicio?.horarios_permitidos_por_dia?.[diaSemana] === 'cerrado';
+}
+
+function servicioRestringeHorarios(servicio, diaSemana) {
+    return servicioCerradoEseDia(servicio, diaSemana) || horariosPermitidosDelDia(servicio, diaSemana).length > 0;
+}
+
 // Si el servicio restringe horarios, valida que el slot esté permitido
-function servicioPermiteHorario(servicio, slot) {
-    const permitidos = servicio?.horarios_permitidos || [];
+function servicioPermiteHorario(servicio, slot, diaSemana) {
+    if (servicioCerradoEseDia(servicio, diaSemana)) return false;
+    const permitidos = horariosPermitidosDelDia(servicio, diaSemana);
     if (!permitidos.length) return true;
     const normalizados = new Set(permitidos.flatMap(variantesHorarioPermitido));
     return normalizados.has(slot);

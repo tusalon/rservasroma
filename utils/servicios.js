@@ -283,6 +283,11 @@ window.salonServicios = {
                 horarios_permitidos: servicio.horarios_permitidos || []
             };
 
+            // Solo si trae horas por dia: asi un salon sin la columna (falta sql-horarios-servicio-por-dia.sql) sigue guardando igual.
+            if (servicio.horarios_permitidos_por_dia && Object.keys(servicio.horarios_permitidos_por_dia).length > 0) {
+                payloadCrearServicio.horarios_permitidos_por_dia = servicio.horarios_permitidos_por_dia;
+            }
+
             let response = await fetchServicioConCompatibilidad(
                 `${window.SUPABASE_URL}/rest/v1/servicios`,
                 {
@@ -362,6 +367,7 @@ window.salonServicios = {
             if (cambios.activo !== undefined) datosActualizar.activo = cambios.activo;
             if (cambios.imagen !== undefined) datosActualizar.imagen = cambios.imagen;
             if (cambios.horarios_permitidos !== undefined) datosActualizar.horarios_permitidos = cambios.horarios_permitidos;
+            if (cambios.horarios_permitidos_por_dia !== undefined) datosActualizar.horarios_permitidos_por_dia = cambios.horarios_permitidos_por_dia;
             
             let response = await fetchServicioConCompatibilidad(
                 `${window.SUPABASE_URL}/rest/v1/servicios?negocio_id=eq.${negocioId}&id=eq.${id}`,

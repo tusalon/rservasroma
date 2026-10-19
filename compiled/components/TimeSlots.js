@@ -128,8 +128,8 @@ function TimeSlots({ service, date, profesional, cliente, onTimeSelect, selected
           console.log(`No hay horas base configuradas para ${diaSemana}; se revisan turnos ocupados para lista de espera.`);
         }
         let baseSlots = indicesDelDia.map((indice) => indiceToHoraLegible(indice));
-        if (service.horarios_permitidos && service.horarios_permitidos.length > 0) {
-          baseSlots = baseSlots.filter((slot) => servicioPermiteHorario(service, slot));
+        if (servicioRestringeHorarios(service, diaSemana)) {
+          baseSlots = baseSlots.filter((slot) => servicioPermiteHorario(service, slot, diaSemana));
           console.log(`📋 Slots filtrados por horarios permitidos del servicio:`, baseSlots);
         }
         console.log(`📋 Slots base para ${diaSemana} (después de filtro de servicio):`, baseSlots);

@@ -1379,8 +1379,8 @@ function AdminApp() {
 
         const primerServicio = serviciosSeleccionados[0];
         let horasTrabajoFiltradas = horasTrabajo;
-        if (!usarHorarioManualCompleto && primerServicio?.horarios_permitidos?.length) {
-            horasTrabajoFiltradas = horasTrabajo.filter(indice => servicioPermiteHorario(primerServicio, indiceToHoraLegible(indice)));
+        if (!usarHorarioManualCompleto && servicioRestringeHorarios(primerServicio, diaSemana)) {
+            horasTrabajoFiltradas = horasTrabajo.filter(indice => servicioPermiteHorario(primerServicio, indiceToHoraLegible(indice), diaSemana));
         }
         const slotsTrabajo = usarHorarioManualCompleto
             ? Array.from(
@@ -1559,8 +1559,8 @@ function AdminApp() {
 
                 let horariosDelDia = horariosPorDia[diaSemana] || horasTrabajo;
                 const primerServicio = serviciosSeleccionados[0];
-                if (primerServicio?.horarios_permitidos?.length) {
-                    horariosDelDia = horariosDelDia.filter(indice => servicioPermiteHorario(primerServicio, indiceToHoraLegible(indice)));
+                if (servicioRestringeHorarios(primerServicio, diaSemana)) {
+                    horariosDelDia = horariosDelDia.filter(indice => servicioPermiteHorario(primerServicio, indiceToHoraLegible(indice), diaSemana));
                 }
 
                 if (horariosDelDia.length === 0) {

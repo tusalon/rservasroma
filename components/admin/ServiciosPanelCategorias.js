@@ -20,6 +20,11 @@ function categoriaIcono(categoria) {
     return categoria?.icono || '⭐';
 }
 
+const DIAS_HORARIOS_SERVICIO = [
+    ['lunes', 'Lunes'], ['martes', 'Martes'], ['miercoles', 'Miércoles'], ['jueves', 'Jueves'],
+    ['viernes', 'Viernes'], ['sabado', 'Sábado'], ['domingo', 'Domingo']
+];
+
 function formatearListaHorasAdmin(horas = []) {
     return horas.map(hora => window.formatTo12Hour ? window.formatTo12Hour(hora) : hora).join(', ');
 }
@@ -219,7 +224,8 @@ function ServiciosPanel() {
             valor_anticipo: servicio.valor_anticipo || null,
             descripcion: servicio.descripcion || '',
             imagen: servicio.imagen || null,
-            horarios_permitidos: servicio.horarios_permitidos || []
+            horarios_permitidos: servicio.horarios_permitidos || [],
+            horarios_permitidos_por_dia: servicio.horarios_permitidos_por_dia || {}
         });
         await cargarDatos();
     };
@@ -367,6 +373,11 @@ function ServiciosPanel() {
                                         </div>
                                         {servicio.descripcion && <p className="text-sm text-gray-500 mt-3 line-clamp-2">{servicio.descripcion}</p>}
                                         {servicio.horarios_permitidos?.length > 0 && <p className="text-xs text-pink-600 mt-3">🕐 {t('Horarios permitidos:')} {formatearListaHorasAdmin(servicio.horarios_permitidos)}</p>}
+                                        {DIAS_HORARIOS_SERVICIO.filter(([clave]) => servicio.horarios_permitidos_por_dia?.[clave]?.length > 0).map(([clave, nombre]) => (
+                                            servicio.horarios_permitidos_por_dia[clave] === 'cerrado'
+                                                ? <p key={clave} className="text-xs text-red-600 mt-1">🚫 {t(nombre)}: {t('no disponible')}</p>
+                                                : <p key={clave} className="text-xs text-pink-600 mt-1">🕐 {t(nombre)}: {formatearListaHorasAdmin(servicio.horarios_permitidos_por_dia[clave])}</p>
+                                        ))}
                                     </div>
                                     <div className="flex gap-1 shrink-0">
                                         <button onClick={() => setServicioParaAsignar(servicio)} className="w-9 h-9 rounded-lg hover:bg-purple-50 text-purple-600" title={t('Asignar profesionales')}>👥</button>
@@ -537,6 +548,17 @@ function ServicioFormCategorias({ servicio, categorias, onGuardar, onCancelar })
         horarios_permitidos: servicio?.horarios_permitidos || []
     });
     const [horariosStr, setHorariosStr] = React.useState(servicio?.horarios_permitidos ? servicio.horarios_permitidos.join(', ') : '');
+    // Horas propias por dia de la semana: { miercoles: '13:00, 13:30' }. Un dia con horas manda sobre la lista general SOLO ese dia.
+    const [horariosDiaStr, setHorariosDiaStr] = React.useState(() => Object.fromEntries(
+        DIAS_HORARIOS_SERVICIO.map(([clave]) => {
+            const horas = servicio?.horarios_permitidos_por_dia?.[clave];
+            return [clave, Array.isArray(horas) ? horas.join(', ') : ''];
+        })
+    ));
+    // Dias en que el servicio NO se hace (se guardan como "cerrado").
+    const [diasApagados, setDiasApagados] = React.useState(() => Object.fromEntries(
+        DIAS_HORARIOS_SERVICIO.map(([clave]) => [clave, servicio?.horarios_permitidos_por_dia?.[clave] === 'cerrado'])
+    ));
     const [subiendoImagen, setSubiendoImagen] = React.useState(false);
 
     // La foto va a Cloudinary, no a Supabase Storage.
@@ -575,8 +597,27 @@ function ServicioFormCategorias({ servicio, categorias, onGuardar, onCancelar })
             if (horarios.length === 0) return alert(t('Formato de horarios inválido. Usa HH:MM separados por comas.'));
         }
 
+        const porDia = {};
+        for (const [clave, nombreDia] of DIAS_HORARIOS_SERVICIO) {
+            if (diasApagados[clave]) {
+                porDia[clave] = 'cerrado';
+                continue;
+            }
+            const texto = (horariosDiaStr[clave] || '').trim();
+            if (!texto) continue;
+            const horas = texto.split(',').map(h => h.trim()).filter(Boolean);
+            if (horas.some(h => !/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/.test(h))) {
+                return alert(t('Formato de horarios inválido en {dia}. Usa HH:MM separados por comas.', { dia: t(nombreDia) }));
+            }
+            porDia[clave] = horas;
+        }
+        // Se envia solo si hay horas por dia, o si las tenia y ahora se quitan (asi no se toca la columna si no hace falta).
+        const teniaPorDia = Object.keys(servicio?.horarios_permitidos_por_dia || {}).length > 0;
+        const campoPorDia = (Object.keys(porDia).length > 0 || teniaPorDia) ? { horarios_permitidos_por_dia: porDia } : {};
+
         onGuardar({
             ...form,
+            ...campoPorDia,
             nombre: form.nombre.trim(),
             descripcion: form.descripcion.trim(),
             imagen: form.imagen || null,
@@ -687,6 +728,35 @@ function ServicioFormCategorias({ servicio, categorias, onGuardar, onCancelar })
                     </div>
                     <input value={horariosStr} onChange={(e) => setHorariosStr(e.target.value)} className="w-full border border-gray-200 rounded-lg px-3 py-2" placeholder={t('Horarios permitidos: 09:00, 11:00')} />
                     <p className="text-xs text-gray-400">{t('Déjalo vacío para usar todos los horarios del profesional.')}</p>
+                    <details className="rounded-lg border border-gray-200 bg-gray-50 p-3" open={Object.values(horariosDiaStr).some(Boolean) || Object.values(diasApagados).some(Boolean)}>
+                        <summary className="text-sm font-semibold text-gray-700 cursor-pointer">{t('Horarios distintos según el día de la semana (opcional)')}</summary>
+                        <p className="text-xs text-gray-500 mt-2">{t('Ej: el miércoles solo 13:00, 13:30. Ese día usa estas horas; los demás días siguen con los horarios de arriba.')}</p>
+                        <p className="text-xs text-gray-500 mt-1">{t('Marca "No se hace" para que este servicio no se pueda reservar ese día.')}</p>
+                        <div className="space-y-2 mt-3">
+                            {DIAS_HORARIOS_SERVICIO.map(([clave, nombreDia]) => (
+                                <label key={clave} className="flex items-center gap-2">
+                                    <span className="w-24 shrink-0 text-sm text-gray-700">{t(nombreDia)}</span>
+                                    <input
+                                        value={horariosDiaStr[clave] || ''}
+                                        onChange={(e) => setHorariosDiaStr(actual => ({ ...actual, [clave]: e.target.value }))}
+                                        className="flex-1 min-w-0 border border-gray-200 rounded-lg px-3 py-2 bg-white disabled:bg-gray-100 disabled:text-gray-400"
+                                        placeholder={diasApagados[clave] ? t('No se hace este día') : t('Todos')}
+                                        inputMode="text"
+                                        disabled={diasApagados[clave]}
+                                    />
+                                    <span className="flex items-center gap-1 shrink-0 text-xs text-gray-700">
+                                        <input
+                                            type="checkbox"
+                                            checked={diasApagados[clave] === true}
+                                            onChange={(e) => setDiasApagados(actual => ({ ...actual, [clave]: e.target.checked }))}
+                                            aria-label={t('No se hace') + ' ' + t(nombreDia)}
+                                        />
+                                        {t('No se hace')}
+                                    </span>
+                                </label>
+                            ))}
+                        </div>
+                    </details>
                 </section>
             </div>
 

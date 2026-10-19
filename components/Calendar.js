@@ -203,8 +203,8 @@ function Calendar({ onDateSelect, selectedDate, profesional, profesionalCompleto
                 const horariosFechaPorDia = horariosFecha.horariosPorDia || {};
                 const descansosFechaPorDia = horariosFecha.descansosPorDia || {};
                 let baseSlots = (horariosFechaPorDia[diaSemana] || []).map(indiceToHoraLegible);
-                if (!service?.esMultiple && service?.horarios_permitidos?.length) {
-                    baseSlots = baseSlots.filter(slot => servicioPermiteHorario(service, slot));
+                if (!service?.esMultiple && servicioRestringeHorarios(service, diaSemana)) {
+                    baseSlots = baseSlots.filter(slot => servicioPermiteHorario(service, slot, diaSemana));
                 }
                 
                 if (Number(maxDias) > 0 && diffDias > Number(maxDias)) {
@@ -223,8 +223,8 @@ function Calendar({ onDateSelect, selectedDate, profesional, profesionalCompleto
                     const primerItem = datosMultiples[0];
                     const primerHorario = primerItem.horariosPorFecha[fechaStr] || {};
                     baseSlots = ((primerHorario.horariosPorDia || {})[diaSemana] || []).map(indiceToHoraLegible);
-                    if (primerItem.servicio?.horarios_permitidos?.length) {
-                        baseSlots = baseSlots.filter(slot => servicioPermiteHorario(primerItem.servicio, slot));
+                    if (servicioRestringeHorarios(primerItem.servicio, diaSemana)) {
+                        baseSlots = baseSlots.filter(slot => servicioPermiteHorario(primerItem.servicio, slot, diaSemana));
                     }
                     if (baseSlots.length === 0) {
                         sinDisponibilidad.push(fechaStr);

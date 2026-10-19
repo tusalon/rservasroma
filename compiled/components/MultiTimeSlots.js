@@ -44,8 +44,8 @@ function MultiTimeSlots({ service, date, profesional, onTimeSelect, selectedTime
         }
         let baseSlots = (datos[0].horarios[diaSemana] || []).map(indiceToHoraLegible);
         const primerServicio = datos[0].servicio;
-        if (primerServicio.horarios_permitidos?.length) {
-          baseSlots = baseSlots.filter((slot) => servicioPermiteHorario(primerServicio, slot));
+        if (servicioRestringeHorarios(primerServicio, diaSemana)) {
+          baseSlots = baseSlots.filter((slot) => servicioPermiteHorario(primerServicio, slot, diaSemana));
         }
         const esHoy = date === getCurrentLocalDate();
         const ahora = /* @__PURE__ */ new Date();
