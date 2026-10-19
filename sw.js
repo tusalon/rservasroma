@@ -1,6 +1,6 @@
 ﻿// sw.js - Service Worker para Rservasroma
 
-const CACHE_NAME = 'rservasroma-v142';
+const CACHE_NAME = 'rservasroma-v143';
 const BASE = '/rservasroma';
 
 const urlsToCache = [
@@ -30,7 +30,7 @@ const urlsToCache = [
   `${BASE}/utils/native-push-notifications.js?v=20260722-platform-v4`,
   `${BASE}/utils/offline-panel.js`,
   `${BASE}/utils/config-negocio-master.js?v=20261008-espera1`,
-  `${BASE}/utils/i18n.js?v=20261018-anticipo2`,
+  `${BASE}/utils/i18n.js?v=20261019-compartir1`,
   `${BASE}/utils/cuba-geo.js?v=20260727-wizard-ubicacion1`,
   `${BASE}/utils/phone-utils.js?v=20261012-eeuu1`,
   `${BASE}/utils/profesionales.js?v=20261018-elimprof2`,
@@ -50,6 +50,7 @@ const urlsToCache = [
   `${BASE}/utils/roma-theme.js?v=20260731-tipografia`,
   `${BASE}/utils/fidelizacion.js?v=20260912-fidelidad1`,
   `${BASE}/utils/cumpleanos.js?v=20261018-cumple2`,
+  `${BASE}/utils/compartir-servicios.js?v=20261019-compartir1`,
   `${BASE}/utils/cobro-moneda.js?v=20261010-cobro1`,
   `${BASE}/utils/lista-espera.js?v=20261008-espera1`,
   `${BASE}/utils/clientes-conocidos.js?v=20260913-conocidos1`,
@@ -83,7 +84,7 @@ const urlsToCache = [
   `${BASE}/compiled/components/admin/ClientasNuevasPanel.js?v=20261012-bienvenida2`,
   `${BASE}/compiled/components/admin/ProfesionalesPanel.js?v=20261018-elimprof2`,
   `${BASE}/compiled/components/admin/ImportarServicios.js?v=20260723-jsx1`,
-  `${BASE}/compiled/components/admin/ServiciosPanelCategorias.js?v=20260926-generico1`,
+  `${BASE}/compiled/components/admin/ServiciosPanelCategorias.js?v=20261019-compartir1`,
   `${BASE}/compiled/components/admin/SetupWizard.js?v=20260926-generico1`,
 
   // Vendors (sin babel.min.js: ya no se transpila en el navegador)

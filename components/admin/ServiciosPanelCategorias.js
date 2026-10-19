@@ -86,6 +86,48 @@ function ServiciosPanel() {
             .catch(() => setProfesionalesDelNegocio([]));
     }, [mostrarImportar]);
     const formularioRef = React.useRef(null);
+    const [compartiendo, setCompartiendo] = React.useState(false);
+
+    // Imagen (o varias) con los servicios activos y sus precios para un estado de WhatsApp o para
+    // mandarla a una clienta. Siempre sale todo el catalogo activo, no solo lo que se ve filtrado.
+    const compartirPrecios = async () => {
+        const activos = servicios.filter(s => s.activo !== false);
+        if (!activos.length) {
+            alert(t('Aún no tienes servicios activos para compartir.'));
+            return;
+        }
+        setCompartiendo(true);
+        try {
+            const config = (await window.cargarConfiguracionNegocio?.()) || {};
+            const grupos = categorias
+                .filter(c => c.activo !== false)
+                .concat([{ id: 'otros', nombre: 'Otros', icono: '⭐' }])
+                .filter((c, i, lista) => lista.findIndex(x => categoriaId(x) === categoriaId(c)) === i)
+                .map(c => ({
+                    nombre: categoriaNombre(c),
+                    icono: categoriaIcono(c),
+                    servicios: activos
+                        .filter(s => categoriaId(getCategoriaServicio(s, categorias)) === categoriaId(c))
+                        .map(s => ({
+                            nombre: s.nombre,
+                            precio: (window.getPrecioServicioBase?.(s) > 0 ? window.formatearPrecioServicio(s) : t('Consultar'))
+                        }))
+                }))
+                .filter(g => g.servicios.length);
+            const resultado = await window.compartirServiciosYPrecios(grupos, {
+                nombre: config.nombre || localStorage.getItem('negocioNombre') || '',
+                color: config.color_primario,
+                logo: config.logo_url,
+                enlace: window.construirUrlClientesNegocio?.(config) || ''
+            });
+            if (resultado === false) alert(t('No se pudo preparar la imagen. Inténtalo de nuevo.'));
+        } catch (error) {
+            console.error('Error compartiendo servicios y precios:', error);
+            alert(t('No se pudo preparar la imagen. Inténtalo de nuevo.'));
+        } finally {
+            setCompartiendo(false);
+        }
+    };
 
     React.useEffect(() => {
         cargarDatos();
@@ -225,6 +267,9 @@ function ServiciosPanel() {
                     <div className="flex flex-col sm:flex-row gap-2">
                         <button onClick={() => setMostrarImportar(true)} className="border border-amber-300 text-amber-700 px-4 py-3 rounded-lg hover:bg-amber-50 font-semibold" title={t('Pega tu lista de servicios y se crean solos')}>
                             📋 {t('Importar lista')}
+                        </button>
+                        <button onClick={compartirPrecios} disabled={compartiendo} className="border border-green-300 text-green-700 px-4 py-3 rounded-lg hover:bg-green-50 font-semibold disabled:opacity-50" title={t('Genera una imagen con tus servicios y precios para tu estado de WhatsApp o para enviarla a tus clientas')}>
+                            📤 {compartiendo ? t('Preparando…') : t('Compartir precios')}
                         </button>
                         <button onClick={() => setMostrarCategorias(!mostrarCategorias)} className="border border-pink-200 text-pink-700 px-4 py-3 rounded-lg hover:bg-pink-50 font-semibold">
                             ⚙️ {t('Categorías')}

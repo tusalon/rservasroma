@@ -61,6 +61,38 @@ function ServiciosPanel() {
     window.salonProfesionales?.getAll(true).then((p) => setProfesionalesDelNegocio(p || [])).catch(() => setProfesionalesDelNegocio([]));
   }, [mostrarImportar]);
   const formularioRef = React.useRef(null);
+  const [compartiendo, setCompartiendo] = React.useState(false);
+  const compartirPrecios = async () => {
+    const activos = servicios.filter((s) => s.activo !== false);
+    if (!activos.length) {
+      alert(t("Aún no tienes servicios activos para compartir."));
+      return;
+    }
+    setCompartiendo(true);
+    try {
+      const config = await window.cargarConfiguracionNegocio?.() || {};
+      const grupos = categorias.filter((c) => c.activo !== false).concat([{ id: "otros", nombre: "Otros", icono: "⭐" }]).filter((c, i, lista) => lista.findIndex((x) => categoriaId(x) === categoriaId(c)) === i).map((c) => ({
+        nombre: categoriaNombre(c),
+        icono: categoriaIcono(c),
+        servicios: activos.filter((s) => categoriaId(getCategoriaServicio(s, categorias)) === categoriaId(c)).map((s) => ({
+          nombre: s.nombre,
+          precio: window.getPrecioServicioBase?.(s) > 0 ? window.formatearPrecioServicio(s) : t("Consultar")
+        }))
+      })).filter((g) => g.servicios.length);
+      const resultado = await window.compartirServiciosYPrecios(grupos, {
+        nombre: config.nombre || localStorage.getItem("negocioNombre") || "",
+        color: config.color_primario,
+        logo: config.logo_url,
+        enlace: window.construirUrlClientesNegocio?.(config) || ""
+      });
+      if (resultado === false) alert(t("No se pudo preparar la imagen. Inténtalo de nuevo."));
+    } catch (error) {
+      console.error("Error compartiendo servicios y precios:", error);
+      alert(t("No se pudo preparar la imagen. Inténtalo de nuevo."));
+    } finally {
+      setCompartiendo(false);
+    }
+  };
   React.useEffect(() => {
     cargarDatos();
     const refresh = () => cargarDatos();
@@ -159,7 +191,7 @@ function ServiciosPanel() {
   if (cargando) {
     return /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-xl shadow-sm p-6 text-center py-12" }, /* @__PURE__ */ React.createElement("div", { className: "animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500 mx-auto" }), /* @__PURE__ */ React.createElement("p", { className: "text-gray-500 mt-4" }, t("Cargando servicios...")));
   }
-  return /* @__PURE__ */ React.createElement("div", { className: "space-y-5" }, /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-xl shadow-sm border border-gray-100 p-5" }, /* @__PURE__ */ React.createElement("div", { className: "flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h2", { className: "text-2xl font-bold text-gray-900 flex items-center gap-2" }, /* @__PURE__ */ React.createElement("span", null, "✨"), " ", t("Servicios")), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500 mt-1" }, t("Controla servicios, categorías, precios, duración y profesionales."))), /* @__PURE__ */ React.createElement("div", { className: "flex flex-col sm:flex-row gap-2" }, /* @__PURE__ */ React.createElement("button", { onClick: () => setMostrarImportar(true), className: "border border-amber-300 text-amber-700 px-4 py-3 rounded-lg hover:bg-amber-50 font-semibold", title: t("Pega tu lista de servicios y se crean solos") }, "📋 ", t("Importar lista")), /* @__PURE__ */ React.createElement("button", { onClick: () => setMostrarCategorias(!mostrarCategorias), className: "border border-pink-200 text-pink-700 px-4 py-3 rounded-lg hover:bg-pink-50 font-semibold" }, "⚙️ ", t("Categorías")), /* @__PURE__ */ React.createElement("button", { onClick: () => abrirFormularioServicio(), className: "bg-pink-600 text-white px-4 py-3 rounded-full hover:bg-pink-700 font-semibold shadow-sm" }, "+ ", t("Nuevo servicio")))), /* @__PURE__ */ React.createElement("div", { className: "mt-5 flex flex-col md:flex-row gap-3" }, /* @__PURE__ */ React.createElement(
+  return /* @__PURE__ */ React.createElement("div", { className: "space-y-5" }, /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-xl shadow-sm border border-gray-100 p-5" }, /* @__PURE__ */ React.createElement("div", { className: "flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h2", { className: "text-2xl font-bold text-gray-900 flex items-center gap-2" }, /* @__PURE__ */ React.createElement("span", null, "✨"), " ", t("Servicios")), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500 mt-1" }, t("Controla servicios, categorías, precios, duración y profesionales."))), /* @__PURE__ */ React.createElement("div", { className: "flex flex-col sm:flex-row gap-2" }, /* @__PURE__ */ React.createElement("button", { onClick: () => setMostrarImportar(true), className: "border border-amber-300 text-amber-700 px-4 py-3 rounded-lg hover:bg-amber-50 font-semibold", title: t("Pega tu lista de servicios y se crean solos") }, "📋 ", t("Importar lista")), /* @__PURE__ */ React.createElement("button", { onClick: compartirPrecios, disabled: compartiendo, className: "border border-green-300 text-green-700 px-4 py-3 rounded-lg hover:bg-green-50 font-semibold disabled:opacity-50", title: t("Genera una imagen con tus servicios y precios para tu estado de WhatsApp o para enviarla a tus clientas") }, "📤 ", compartiendo ? t("Preparando…") : t("Compartir precios")), /* @__PURE__ */ React.createElement("button", { onClick: () => setMostrarCategorias(!mostrarCategorias), className: "border border-pink-200 text-pink-700 px-4 py-3 rounded-lg hover:bg-pink-50 font-semibold" }, "⚙️ ", t("Categorías")), /* @__PURE__ */ React.createElement("button", { onClick: () => abrirFormularioServicio(), className: "bg-pink-600 text-white px-4 py-3 rounded-full hover:bg-pink-700 font-semibold shadow-sm" }, "+ ", t("Nuevo servicio")))), /* @__PURE__ */ React.createElement("div", { className: "mt-5 flex flex-col md:flex-row gap-3" }, /* @__PURE__ */ React.createElement(
     "input",
     {
       type: "search",
