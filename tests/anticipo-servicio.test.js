@@ -137,7 +137,7 @@ console.log('anticipo-servicio.test.js OK');
 // Alta manual desde el panel: se pide anticipo igual que a la clienta, no solo si la duena marca la casilla.
 {
     const global = { requiere_anticipo: true, tipo_anticipo: 'fijo', valor_anticipo: 500 };
-    const sel = { esMultiple: false, servicios: [{ nombre: 'Corte', precio: 1000 }] };
+    const sel = [{ nombre: 'Corte', precio: 1000 }];
 
     assert.deepEqual({ ...decidirAnticipoManual({ requiere_anticipo: false }, sel, { esAdmin: true, quiereAdmin: true }) }, { requiere: false, sinMonto: false }, 'si el salon no pide anticipo, no hay pedido de pago');
     assert.equal(decidirAnticipoManual(global, sel, { esAdmin: true, quiereAdmin: true }).requiere, true, 'la duena con la casilla marcada');
@@ -146,7 +146,17 @@ console.log('anticipo-servicio.test.js OK');
 
     // Por servicio y sin monto: la duena debe corregirlo; a la profesional no se le bloquea (igual que BookingForm).
     const porServicio = { requiere_anticipo: true, anticipos_por_servicio: true, tipo_anticipo: 'fijo', valor_anticipo: 0 };
-    const sinMonto = { esMultiple: false, servicios: [{ nombre: 'Corte', precio: 1000, requiere_anticipo: false }] };
+    const sinMonto = [{ nombre: 'Corte', precio: 1000, requiere_anticipo: false }];
     assert.deepEqual({ ...decidirAnticipoManual(porServicio, sinMonto, { esAdmin: true, quiereAdmin: true }) }, { requiere: true, sinMonto: true });
     assert.deepEqual({ ...decidirAnticipoManual(porServicio, sinMonto, { esAdmin: false }) }, { requiere: false, sinMonto: true });
+}
+
+// Caso Bellalys (18-10-2026): anticipo por servicio, sin global, y el servicio SI tiene anticipo propio.
+// El alta manual bloqueaba con "no tiene anticipo configurado" porque le pasaba mal la seleccion.
+{
+    const bellalys = { requiere_anticipo: true, anticipos_por_servicio: true, tipo_anticipo: 'fijo', valor_anticipo: null };
+    const conAnticipo = { nombre: 'Corte', precio: 1000, requiere_anticipo: true, tipo_anticipo: 'fijo', valor_anticipo: 300 };
+    const otro = { nombre: 'Tinte', precio: 2000, requiere_anticipo: true, tipo_anticipo: 'fijo', valor_anticipo: 500 };
+    assert.deepEqual({ ...decidirAnticipoManual(bellalys, [conAnticipo], { esAdmin: true, quiereAdmin: true }) }, { requiere: true, sinMonto: false }, 'un servicio con anticipo propio no es "sin monto"');
+    assert.deepEqual({ ...decidirAnticipoManual(bellalys, [conAnticipo, otro], { esAdmin: true, quiereAdmin: true }) }, { requiere: true, sinMonto: false }, 'varios servicios');
 }

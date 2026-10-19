@@ -2570,10 +2570,8 @@ function AdminApp() {
             // Al reprogramar no se toca el anticipo (solo cambia fecha/hora).
             const anticipoManual = reservaEditando
                 ? { requiere: false, sinMonto: false }
-                : window.decidirAnticipoManual(configNegocio, {
-                    esMultiple: serviciosSeleccionados.length > 1,
-                    servicios: serviciosSeleccionados
-                }, { esAdmin: userRole === 'admin', quiereAdmin: nuevaReservaData.requiereAnticipo });
+                : window.decidirAnticipoManual(configNegocio, serviciosSeleccionados,
+                    { esAdmin: userRole === 'admin', quiereAdmin: nuevaReservaData.requiereAnticipo });
             if (anticipoManual.requiere && anticipoManual.sinMonto) {
                 alert(t('Este servicio no tiene anticipo configurado. Ponle un monto en Servicios o un anticipo global en Editar negocio, o desmarca requerir anticipo.'));
                 return;

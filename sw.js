@@ -1,6 +1,6 @@
 ﻿// sw.js - Service Worker para Rservasroma
 
-const CACHE_NAME = 'rservasroma-v143';
+const CACHE_NAME = 'rservasroma-v144';
 const BASE = '/rservasroma';
 
 const urlsToCache = [
@@ -17,7 +17,7 @@ const urlsToCache = [
 
   // App principal (JSX pre-compilado en compiled/ â€” ver scripts/build-jsx.sh)
   `${BASE}/compiled/client-app.js?v=20261018-cumple2`,
-  `${BASE}/compiled/admin-app.js?v=20261018-anticipo1`,
+  `${BASE}/compiled/admin-app.js?v=20261019-anticipo3`,
 
   // Utils
   `${BASE}/utils/api.js?v=20261008-espera1`,
@@ -36,7 +36,7 @@ const urlsToCache = [
   `${BASE}/utils/profesionales.js?v=20261018-elimprof2`,
   `${BASE}/utils/push-config.js?v=20260717-push-activo`,
   `${BASE}/utils/push-notifications.js?v=20260722-platform-v4`,
-  `${BASE}/utils/servicios.js?v=20261018-anticipo2`,
+  `${BASE}/utils/servicios.js?v=20261019-anticipo3`,
   `${BASE}/utils/storage.js?v=20260905-soporte1`,
   `${BASE}/utils/catalogo.js?v=20260906-negocioid1`,
   `${BASE}/utils/suscripcion.js?v=20260904-recordar1`,
