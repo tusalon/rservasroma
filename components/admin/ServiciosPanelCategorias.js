@@ -415,11 +415,12 @@ function ServiciosPanel() {
 function CategoriasServiciosManager({ categorias, servicios, onChange }) {
     window.useIdioma();
     const t = window.t;
-    const [form, setForm] = React.useState({ nombre: '', icono: '✨', orden: 99 });
+    // Orden 90: una categoria nueva sale antes de "Otros" (99) y despues de las de siempre.
+    const [form, setForm] = React.useState({ nombre: '', icono: '✨', orden: 90 });
     const [editando, setEditando] = React.useState(null);
 
     const reset = () => {
-        setForm({ nombre: '', icono: '✨', orden: 99 });
+        setForm({ nombre: '', icono: '✨', orden: 90 });
         setEditando(null);
     };
 
@@ -445,6 +446,10 @@ function CategoriasServiciosManager({ categorias, servicios, onChange }) {
         if (!result) {
             alert(t('No se pudo guardar la categoría. Revisa si ya corriste el SQL de categorías.'));
             return;
+        }
+        // El nombre ya existia (mismo slug): no se crea otra; se avisa en vez de parecer que se creo.
+        if (result.yaExistia && !editando) {
+            alert(t('Ya tienes una categoría con ese nombre.'));
         }
 
         reset();

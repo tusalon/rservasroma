@@ -183,7 +183,7 @@ function ProfesionalForm({ profesional, onGuardar, onCancelar }) {
   const niveles = [
     { value: 1, label: "🔰 " + t("Básico - Solo ver reservas"), desc: t("Acceso limitado a reservas") },
     { value: 2, label: "⭐ " + t("Intermedio - Reservas + Configuración propia + Clientes"), desc: t("Puede ver configuración (solo sus horarios) y clientes") },
-    { value: 3, label: "👑 " + t("Avanzado - Acceso total"), desc: t("Puede gestionar todo como el dueño") }
+    { value: 3, label: "👑 " + t("Avanzado - Acceso total"), desc: t("Puede gestionar todo como el dueño, menos Finanzas y la activación de RomaHub") }
   ];
   const handleSubmit = (e) => {
     e.preventDefault();

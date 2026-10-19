@@ -316,6 +316,8 @@
         'Marca "No se hace" para que este servicio no se pueda reservar ese día.': 'Check "Not offered" so this service cannot be booked that day.',
         'No se hace este día': 'Not offered this day',
         'No se hace': 'Not offered',
+        'Ya tienes una categoría con ese nombre.': 'You already have a category with that name.',
+        'Puede gestionar todo como el dueño, menos Finanzas y la activación de RomaHub': 'Can manage everything like the owner, except Finances and RomaHub activation',
         'Lunes': 'Monday',
         'Martes': 'Tuesday',
         'Miércoles': 'Wednesday',

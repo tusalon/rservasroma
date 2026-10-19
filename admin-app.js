@@ -506,9 +506,14 @@ function AdminApp() {
         } catch (e) {}
     };
 
-    const [userRole, setUserRole] = React.useState(profesionalInicial ? 'profesional' : 'admin');
+    // Un profesional AVANZADO (nivel 3) tiene el mismo panel que la dueña: en todo este archivo "admin" significa
+    // "la dueña o un profesional de nivel 3". Lo que es solo de la dueña (Finanzas y activar RomaHub piden SU
+    // contrasena) cuelga de esDuenaReal.
+    const rolDePanel = (prof) => (prof && (prof.nivel || 1) < 3 ? 'profesional' : 'admin');
+    const [userRole, setUserRole] = React.useState(rolDePanel(profesionalInicial));
     const [userNivel, setUserNivel] = React.useState(profesionalInicial?.nivel || 3);
     const [profesional, setProfesional] = React.useState(profesionalInicial);
+    const esDuenaReal = !profesional;
     const [nombreNegocio, setNombreNegocio] = React.useState(
         localStorage.getItem('negocioNombre') || 'Mi Negocio'
     );
@@ -1129,7 +1134,7 @@ function AdminApp() {
     React.useEffect(() => {
         const profesionalAuth = window.getProfesionalAutenticado?.();
         if (profesionalAuth) {
-            setUserRole('profesional');
+            setUserRole(rolDePanel(profesionalAuth));
             setProfesional(profesionalAuth);
             setUserNivel(profesionalAuth.nivel || 1);
             setProfesionalSeleccionadoDispo(profesionalAuth.id);
@@ -4743,7 +4748,7 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
         // disponible" (Nails Gretel, 25-09-2026).
         // Solo se comprueba que tenga acceso; si esta vencido lo dice ella,
         // que es donde vive esa regla. No se duplica aqui.
-        if (userRole === 'admin' && config?.acceso_finanzas) {
+        if (userRole === 'admin' && esDuenaReal && config?.acceso_finanzas) {
             tabs.push({ id: 'finanzas', icono: '💰', label: t('Finanzas'), url: 'finanzas/index.html?desde=panel' });
         }
 
@@ -5728,7 +5733,7 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
 
                 {tabActivo === 'configuracion' && (
                     <div className="space-y-4">
-                        {userRole === 'admin' && <RomaHubActivacion />}
+                        {userRole === 'admin' && esDuenaReal && <RomaHubActivacion />}
                         <ConfigPanel
                             profesionalId={userRole === 'profesional' ? profesional?.id : null}
                             modoRestringido={userRole === 'profesional' && userNivel === 2}

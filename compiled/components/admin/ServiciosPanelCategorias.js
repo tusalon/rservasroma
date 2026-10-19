@@ -269,10 +269,10 @@ function ServiciosPanel() {
 function CategoriasServiciosManager({ categorias, servicios, onChange }) {
   window.useIdioma();
   const t = window.t;
-  const [form, setForm] = React.useState({ nombre: "", icono: "✨", orden: 99 });
+  const [form, setForm] = React.useState({ nombre: "", icono: "✨", orden: 90 });
   const [editando, setEditando] = React.useState(null);
   const reset = () => {
-    setForm({ nombre: "", icono: "✨", orden: 99 });
+    setForm({ nombre: "", icono: "✨", orden: 90 });
     setEditando(null);
   };
   const guardar = async (e) => {
@@ -292,6 +292,9 @@ function CategoriasServiciosManager({ categorias, servicios, onChange }) {
     if (!result) {
       alert(t("No se pudo guardar la categoría. Revisa si ya corriste el SQL de categorías."));
       return;
+    }
+    if (result.yaExistia && !editando) {
+      alert(t("Ya tienes una categoría con ese nombre."));
     }
     reset();
     await onChange();

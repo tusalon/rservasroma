@@ -523,6 +523,53 @@ async function cargarCategoriasServiciosDesdeDB() {
     }
 }
 
+// Un salon nuevo no tiene filas en categorias_servicios: la app le ensena las categorias por defecto
+// (manicura, pedicura...) pero solo "en pantalla". En cuanto se guarda UNA categoria de verdad, la lista
+// pasa a ser solo lo que hay en la base y las demas desaparecen (sus servicios caian a "Otros").
+// Esto las guarda de verdad ANTES de crear o tocar una, solo si el salon no tiene ninguna.
+async function asegurarCategoriasBase() {
+    try {
+        const negocioId = getNegocioId();
+        const cabeceras = {
+            'apikey': window.SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${window.SUPABASE_ANON_KEY}`,
+            'Content-Type': 'application/json'
+        };
+        const hay = await fetch(
+            `${window.SUPABASE_URL}/rest/v1/categorias_servicios?negocio_id=eq.${negocioId}&select=id&limit=1`,
+            { headers: cabeceras }
+        );
+        if (!hay.ok) return false;
+        if ((await hay.json()).length > 0) return true;
+        const filas = CATEGORIAS_SERVICIOS_DEFAULT.map(c => ({
+            negocio_id: negocioId, nombre: c.nombre, slug: c.id, icono: c.icono, orden: c.orden, activo: true
+        }));
+        const insertado = await fetch(
+            `${window.SUPABASE_URL}/rest/v1/categorias_servicios?on_conflict=negocio_id,slug`,
+            { method: 'POST', headers: { ...cabeceras, 'Prefer': 'resolution=ignore-duplicates,return=minimal' }, body: JSON.stringify(filas) }
+        );
+        if (insertado.ok) categoriasServiciosCache = await cargarCategoriasServiciosDesdeDB();
+        return insertado.ok;
+    } catch (error) {
+        console.warn('No se pudieron guardar las categorias base:', error);
+        return false;
+    }
+}
+
+// Una categoria por defecto que aun no esta en la base tiene id de texto ('manicura'): se pasa a su fila real.
+async function idRealCategoria(id) {
+    if (/^\d+$/.test(String(id))) return id;
+    if (!await asegurarCategoriasBase()) return null;
+    const negocioId = getNegocioId();
+    const res = await fetch(
+        `${window.SUPABASE_URL}/rest/v1/categorias_servicios?negocio_id=eq.${negocioId}&slug=eq.${encodeURIComponent(String(id))}&select=id&limit=1`,
+        { headers: { 'apikey': window.SUPABASE_ANON_KEY, 'Authorization': `Bearer ${window.SUPABASE_ANON_KEY}` } }
+    );
+    if (!res.ok) return null;
+    const filas = await res.json();
+    return filas[0] ? filas[0].id : null;
+}
+
 window.salonCategoriasServicios = {
     defaults: CATEGORIAS_SERVICIOS_DEFAULT,
 
@@ -538,6 +585,7 @@ window.salonCategoriasServicios = {
     crear: async function(categoria) {
         try {
             const negocioId = getNegocioId();
+            await asegurarCategoriasBase();
             const payload = {
                 negocio_id: negocioId,
                 nombre: categoria.nombre,
@@ -576,7 +624,7 @@ window.salonCategoriasServicios = {
                         const existentes = await existenteResponse.json();
                         if (existentes[0]) {
                             console.warn('La categoria ya existia. Usando la categoria existente:', existentes[0]);
-                            return existentes[0];
+                            return { ...existentes[0], yaExistia: true };
                         }
                     }
                 }
@@ -598,6 +646,8 @@ window.salonCategoriasServicios = {
     actualizar: async function(id, cambios) {
         try {
             const negocioId = getNegocioId();
+            id = await idRealCategoria(id);
+            if (!id) return null;
             const datos = {};
             if (cambios.nombre !== undefined) datos.nombre = cambios.nombre;
             if (cambios.slug !== undefined) datos.slug = cambios.slug || slugCategoriaServicio(cambios.nombre);
@@ -637,6 +687,8 @@ window.salonCategoriasServicios = {
     eliminar: async function(id) {
         try {
             const negocioId = getNegocioId();
+            id = await idRealCategoria(id);
+            if (!id) return false;
             const response = await fetch(
                 `${window.SUPABASE_URL}/rest/v1/categorias_servicios?negocio_id=eq.${negocioId}&id=eq.${id}`,
                 {

@@ -1,6 +1,6 @@
 ﻿// sw.js - Service Worker para Rservasroma
 
-const CACHE_NAME = 'rservasroma-v146';
+const CACHE_NAME = 'rservasroma-v147';
 const BASE = '/rservasroma';
 
 const urlsToCache = [
@@ -17,7 +17,7 @@ const urlsToCache = [
 
   // App principal (JSX pre-compilado en compiled/ â€” ver scripts/build-jsx.sh)
   `${BASE}/compiled/client-app.js?v=20261018-cumple2`,
-  `${BASE}/compiled/admin-app.js?v=20261019-horarios2`,
+  `${BASE}/compiled/admin-app.js?v=20261019-categorias1`,
 
   // Utils
   `${BASE}/utils/api.js?v=20261008-espera1`,
@@ -30,13 +30,13 @@ const urlsToCache = [
   `${BASE}/utils/native-push-notifications.js?v=20260722-platform-v4`,
   `${BASE}/utils/offline-panel.js`,
   `${BASE}/utils/config-negocio-master.js?v=20261008-espera1`,
-  `${BASE}/utils/i18n.js?v=20261019-horarios2`,
+  `${BASE}/utils/i18n.js?v=20261019-categorias1`,
   `${BASE}/utils/cuba-geo.js?v=20260727-wizard-ubicacion1`,
   `${BASE}/utils/phone-utils.js?v=20261012-eeuu1`,
   `${BASE}/utils/profesionales.js?v=20261018-elimprof2`,
   `${BASE}/utils/push-config.js?v=20260717-push-activo`,
   `${BASE}/utils/push-notifications.js?v=20260722-platform-v4`,
-  `${BASE}/utils/servicios.js?v=20261019-horarios2`,
+  `${BASE}/utils/servicios.js?v=20261019-categorias1`,
   `${BASE}/utils/storage.js?v=20260905-soporte1`,
   `${BASE}/utils/catalogo.js?v=20260906-negocioid1`,
   `${BASE}/utils/suscripcion.js?v=20260904-recordar1`,
@@ -82,9 +82,9 @@ const urlsToCache = [
   `${BASE}/compiled/components/admin/HorariosExcepcionPanel.js?v=20260723-jsx1`,
   `${BASE}/compiled/components/admin/ListaEsperaPanel.js?v=20261008-espera1`,
   `${BASE}/compiled/components/admin/ClientasNuevasPanel.js?v=20261012-bienvenida2`,
-  `${BASE}/compiled/components/admin/ProfesionalesPanel.js?v=20261018-elimprof2`,
+  `${BASE}/compiled/components/admin/ProfesionalesPanel.js?v=20261019-categorias1`,
   `${BASE}/compiled/components/admin/ImportarServicios.js?v=20260723-jsx1`,
-  `${BASE}/compiled/components/admin/ServiciosPanelCategorias.js?v=20261019-horarios2`,
+  `${BASE}/compiled/components/admin/ServiciosPanelCategorias.js?v=20261019-categorias1`,
   `${BASE}/compiled/components/admin/SetupWizard.js?v=20260926-generico1`,
 
   // Vendors (sin babel.min.js: ya no se transpila en el navegador)
@@ -254,7 +254,7 @@ self.addEventListener('fetch', event => {
   // version aqui no bastaba para que una admin con el SW ya instalado
   // recibiera el archivo nuevo hasta que la cache vieja se vaciara sola).
   const esAssetCriticoAdmin = [
-    `${BASE}/compiled/admin-app.js?v=20261019-horarios2`,
+    `${BASE}/compiled/admin-app.js?v=20261019-categorias1`,
     `${BASE}/compiled/components/admin/EditarNegocio.js`,
     `${BASE}/utils/config-negocio-master.js`,
     `${BASE}/utils/native-push-notifications.js`,
