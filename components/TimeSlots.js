@@ -214,7 +214,7 @@ function TimeSlots({ service, date, profesional, cliente, onTimeSelect, selected
                 const occupiedMap = {};
                 const esReservaOcupada = (booking) => {
                     const estado = String(booking.estado || '').toLowerCase();
-                    return estado !== 'cancelado' && estado !== 'cancelada' && estado !== 'completado' && estado !== 'completada' && estado !== 'ausente';
+                    return !booking.bloqueo_espacios && estado !== 'cancelado' && estado !== 'cancelada' && estado !== 'completado' && estado !== 'completada' && estado !== 'ausente';
                 };
                 const agregarTurnoOcupado = (booking) => {
                     if (!booking?.hora_inicio || !esReservaOcupada(booking)) return;

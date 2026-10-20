@@ -68,7 +68,9 @@ async function getBookingsByDateAndProfesional(dateStr, profesionalId) {
         if (!response.ok) throw new Error('Error fetching bookings');
         
         const data = await response.json();
-        return Array.isArray(data) ? data : [];
+        const propias = Array.isArray(data) ? data : [];
+        // Con espacios activos suma los tramos en que todos sus espacios estan tomados (utils/espacios.js).
+        return (await window.espacios?.reservasConEspacios(profesionalId, dateStr, dateStr, propias)) ?? propias;
     } catch (error) {
         console.error('Error fetching bookings:', error);
         return [];

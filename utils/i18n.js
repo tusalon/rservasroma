@@ -781,6 +781,7 @@
         'Este servicio no tiene anticipo configurado. Ponle un monto en Servicios o un anticipo global en Editar negocio, o desmarca requerir anticipo.': 'This service has no deposit set up. Set an amount in Services or a global deposit in Edit business, or uncheck require deposit.',
         'Reserva creada, pero hubo un error al enviar el mensaje al cliente.': 'Booking created, but there was an error sending the message to the client.',
         'Error al crear la reserva: {error}': 'Error creating the booking: {error}',
+        'Ese horario ya no está libre: la profesional tiene otra cita o no queda un espacio libre.': 'That time is no longer free: the professional has another booking or there is no free space left.',
         'Error desconocido': 'Unknown error',
         'No tienes permiso para importar clientes.': 'You do not have permission to import clients.',
         'No se encontraron clientes validos. Usa columnas nombre,whatsapp.': 'No valid clients found. Use columns name,whatsapp.',

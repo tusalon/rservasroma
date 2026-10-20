@@ -281,6 +281,9 @@ function ConfigPanel({ profesionalId, modoRestringido, profesionalInicial = null
 
                     {/* NUEVO: DÍAS CERRADOS GLOBALES - SIN DEPENDENCIA EXTERNA */}
                     <DiasCerradosGlobalesPanel />
+
+                    {/* Espacios del salon: opcional, plegado en "Opciones avanzadas" */}
+                    <EspaciosPanel />
                 </>
             )}
             

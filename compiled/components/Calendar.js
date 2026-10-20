@@ -40,7 +40,8 @@ function Calendar({ onDateSelect, selectedDate, profesional, profesionalCompleto
         }
       }
     );
-    const reservas = response.ok ? await response.json() : [];
+    const propias = response.ok ? await response.json() : [];
+    const reservas = await window.espacios?.reservasConEspacios(profesionalId, fechaInicio, fechaFin, propias) ?? propias;
     return (reservas || []).reduce((acc, reserva) => {
       if (!acc[reserva.fecha]) acc[reserva.fecha] = [];
       acc[reserva.fecha].push(reserva);

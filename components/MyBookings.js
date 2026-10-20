@@ -190,7 +190,9 @@ function MyBookings({ cliente, onVolver }) {
         const resRes = await fetch(
             `${window.SUPABASE_URL}/rest/v1/reservas?negocio_id=eq.${negocioId}&fecha=eq.${fecha}&profesional_id=eq.${booking.profesional_id}&estado=neq.Cancelado&select=id,hora_inicio,hora_fin`,
             { headers: { 'apikey': window.SUPABASE_ANON_KEY, 'Authorization': `Bearer ${window.SUPABASE_ANON_KEY}` } });
-        const reservas = resRes.ok ? await resRes.json() : [];
+        const propias = resRes.ok ? await resRes.json() : [];
+        // Con espacios activos suma los tramos en que todos sus espacios estan tomados (utils/espacios.js).
+        const reservas = (await window.espacios?.reservasConEspacios(booking.profesional_id, fecha, fecha, propias, booking.id)) ?? propias;
         const minFechaPermitida = new Date(Date.now() + minHoras * 3600000);
 
         let baseSlots = indicesDelDia.map(indiceToHoraLegible);

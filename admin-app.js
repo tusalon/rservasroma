@@ -277,6 +277,8 @@ async function createBooking(bookingData) {
         if (!res.ok) {
             const error = await res.text();
             console.error('Error al crear reserva:', error);
+            // 409 (23P01): la base rechaza la cita si la profesional ya tiene otra o si no queda un espacio libre.
+            if (res.status === 409) return { success: false, error: t('Ese horario ya no está libre: la profesional tiene otra cita o no queda un espacio libre.') };
             return { success: false, error };
         }
         
@@ -1408,7 +1410,8 @@ function AdminApp() {
         );
 
         if (!response.ok) throw new Error(await response.text());
-        const reservas = (await response.json()).filter(reserva => reserva.id !== reservaEditando?.id);
+        const reservasPropias = (await response.json()).filter(reserva => reserva.id !== reservaEditando?.id);
+        const reservas = (await window.espacios?.reservasConEspacios(profesionalId, fecha, fecha, reservasPropias, reservaEditando?.id)) ?? reservasPropias;
         const hoy = new Date();
         hoy.setHours(0, 0, 0, 0);
         const diffDias = Math.ceil((new Date(year, month - 1, day) - hoy) / (1000 * 60 * 60 * 24));
@@ -1512,7 +1515,8 @@ function AdminApp() {
             );
             
             if (!response.ok) throw new Error(await response.text());
-            const reservas = (await response.json()).filter(reserva => reserva.id !== reservaEditando?.id);
+            const reservasPropias = (await response.json()).filter(reserva => reserva.id !== reservaEditando?.id);
+            const reservas = (await window.espacios?.reservasConEspacios(profesionalId, fechaInicio, fechaFin, reservasPropias, reservaEditando?.id)) ?? reservasPropias;
             
             const reservasPorFecha = {};
             (reservas || []).forEach(r => {
@@ -1648,7 +1652,8 @@ function AdminApp() {
             );
             
             if (!response.ok) throw new Error(await response.text());
-            const reservas = await response.json();
+            const reservasPropias = await response.json();
+            const reservas = (await window.espacios?.reservasConEspacios(profesionalId, fechaInicio, fechaFin, reservasPropias)) ?? reservasPropias;
             
             const reservasPorFecha = {};
             (reservas || []).forEach(r => {
@@ -1778,7 +1783,8 @@ function AdminApp() {
             );
 
             if (!response.ok) throw new Error(await response.text());
-            const reservas = await response.json();
+            const reservasPropias = await response.json();
+            const reservas = (await window.espacios?.reservasConEspacios(profesionalId, fechaInicio, fechaFin, reservasPropias)) ?? reservasPropias;
             const reservasPorFecha = {};
             (reservas || []).forEach(r => {
                 if (!reservasPorFecha[r.fecha]) reservasPorFecha[r.fecha] = [];
@@ -2503,7 +2509,8 @@ function AdminApp() {
             return { ok: false, mensaje: await response.text() };
         }
 
-        const reservas = (await response.json()).filter(reserva => reserva.id !== reservaEditando?.id);
+        const reservasPropias = (await response.json()).filter(reserva => reserva.id !== reservaEditando?.id);
+        const reservas = (await window.espacios?.reservasConEspacios(profesionalId, fecha, fecha, reservasPropias, reservaEditando?.id)) ?? reservasPropias;
         const conflicto = reservas.find(reserva => {
             const reservaStart = timeToMinutes(reserva.hora_inicio);
             const reservaEnd = timeToMinutes(reserva.hora_fin);
