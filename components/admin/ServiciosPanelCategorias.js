@@ -126,6 +126,11 @@ function ServiciosPanel() {
                 enlace: window.construirUrlClientesNegocio?.(config) || ''
             });
             if (resultado === false) alert(t('No se pudo preparar la imagen. Inténtalo de nuevo.'));
+            // Cayó al texto de WhatsApp: se dice por qué, para poder arreglarlo y no quedarse con un fallo mudo.
+            if (resultado === 'texto') {
+                alert(t('No se pudo compartir la imagen. Se abrirá WhatsApp con la lista en texto.') + '\n\n' + t('Motivo técnico:') + ' ' + (window.compartirServiciosYPrecios.ultimoMotivo || '—'));
+                window.open(`https://wa.me/?text=${encodeURIComponent(window.compartirServiciosYPrecios.ultimoTexto || '')}`, '_blank');
+            }
         } catch (error) {
             console.error('Error compartiendo servicios y precios:', error);
             alert(t('No se pudo preparar la imagen. Inténtalo de nuevo.'));

@@ -320,6 +320,8 @@
         'Puede gestionar todo como el dueño, menos Finanzas y la activación de RomaHub': 'Can manage everything like the owner, except Finances and RomaHub activation',
         'Abrir ficha de la clienta': 'Open client record',
         'Dueña': 'Owner',
+        'No se pudo compartir la imagen. Se abrirá WhatsApp con la lista en texto.': 'The image could not be shared. WhatsApp will open with the list as text.',
+        'Motivo técnico:': 'Technical reason:',
         'Lunes': 'Monday',
         'Martes': 'Tuesday',
         'Miércoles': 'Wednesday',

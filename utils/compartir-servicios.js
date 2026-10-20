@@ -178,27 +178,62 @@
         lector.readAsDataURL(blob);
     });
 
+    // Texto corto de un error para poder mostrarlo (los de Capacitor traen message y code).
+    function describirError(error) {
+        if (!error) return 'sin detalle';
+        const partes = [error.message, error.code, error.name].filter(Boolean);
+        return (partes.length ? partes.join(' / ') : String(error)).slice(0, 160);
+    }
+
+    // La uri que devuelve Filesystem tiene que empezar por file: (el plugin Share no acepta otra cosa).
+    function uriDeArchivo(uri) {
+        const u = String(uri || '');
+        if (!u) return '';
+        if (/^file:/i.test(u)) return u;
+        return u.startsWith('/') ? 'file://' + u : u;
+    }
+
+    // Devuelve { ok, motivo }. En la APK se guarda cada imagen en la cache y se abre el menu nativo de compartir.
+    // Se intenta dos veces: primero con texto y titulo; si el sistema lo rechaza, solo con las imagenes.
+    // "motivo" explica por que fallo, para que no quede en un fallo mudo.
     async function compartirImagenes(canvases, titulo, texto) {
         const blobs = (await Promise.all(canvases.map(aBlob))).filter(Boolean);
-        if (!blobs.length) return false;
+        if (!blobs.length) return { ok: false, motivo: 'el lienzo no devolvio imagen (toBlob vacio)' };
         const nombres = blobs.map((_, i) => `servicios-y-precios-${i + 1}.png`);
+        let motivo = '';
 
         const plugins = (window.Capacitor && window.Capacitor.Plugins) || {};
         const { Filesystem, Share } = plugins;
         if (Filesystem && Filesystem.writeFile && Share && Share.share) {
+            let uris = [];
             try {
                 const directorio = (Filesystem.Directory && Filesystem.Directory.Cache) || 'CACHE';
-                const uris = [];
                 for (let i = 0; i < blobs.length; i++) {
                     const guardado = await Filesystem.writeFile({ path: nombres[i], data: await aBase64(blobs[i]), directory: directorio, recursive: true });
-                    uris.push(guardado.uri);
+                    uris.push(uriDeArchivo(guardado && guardado.uri));
                 }
-                await Share.share({ title: titulo, text: texto, files: uris });
-                return true;
             } catch (error) {
-                if (error && /cancel/i.test(String(error.message || error))) return true;
-                console.warn('[Compartir servicios] Capacitor Share fallo, probando Web Share:', error);
+                motivo = 'no se pudo guardar la imagen: ' + describirError(error);
+                uris = [];
             }
+            if (uris.length) {
+                const intentos = [
+                    { title: titulo, text: texto, files: uris, dialogTitle: titulo },
+                    { files: uris, dialogTitle: titulo }
+                ];
+                for (const opciones of intentos) {
+                    try {
+                        await Share.share(opciones);
+                        return { ok: true, motivo: '' };
+                    } catch (error) {
+                        // Cerrar el menu de compartir no es un fallo.
+                        if (error && /cancel/i.test(String(error.message || error))) return { ok: true, motivo: '' };
+                        motivo = 'el menu de compartir fallo: ' + describirError(error);
+                    }
+                }
+            }
+        } else {
+            motivo = 'faltan los plugins nativos (' + (Filesystem ? '' : 'Filesystem ') + (Share ? '' : 'Share') + ')';
         }
 
         const archivos = blobs.map((b, i) => new File([b], nombres[i], { type: 'image/png' }));
@@ -206,16 +241,18 @@
             try {
                 await navigator.share({ title: titulo, text: texto, files: archivos });
             } catch (error) {
-                if (!error || error.name !== 'AbortError') throw error;   // cerrar el menu no es un error
+                if (!error || error.name !== 'AbortError') return { ok: false, motivo: 'navigator.share fallo: ' + describirError(error) };
             }
-            return true;
+            return { ok: true, motivo: '' };
         }
-        return false;
+        return { ok: false, motivo: motivo || 'este telefono no puede compartir imagenes' };
     }
 
     // grupos: ver paginarGrupos. negocio: { nombre, color, logo, enlace }.
     // Devuelve 'imagen' si se abrio el menu de compartir, 'texto' si se cayo a WhatsApp, o false si no hay nada que compartir.
+    // Si cae al texto, el motivo queda en compartirServiciosYPrecios.ultimoMotivo y la lista en .ultimoTexto.
     async function compartirServiciosYPrecios(grupos, negocio) {
+        compartirServiciosYPrecios.ultimoMotivo = '';
         const paginas = paginarGrupos(grupos);
         if (!paginas.length) return false;
         const texto = textoServicios(negocio.nombre, grupos, negocio.enlace);
@@ -223,11 +260,15 @@
             const logo = await cargarLogo(negocio.logo);
             const canvases = paginas.map((pagina, i) => dibujarPagina(pagina, i + 1, paginas.length, negocio, logo));
             const caption = `${negocio.nombre || ''} · Servicios y precios${negocio.enlace ? '\nReserva tu cita: ' + negocio.enlace : ''}`.trim();
-            if (await compartirImagenes(canvases, 'Servicios y precios', caption)) return 'imagen';
+            const resultado = await compartirImagenes(canvases, 'Servicios y precios', caption);
+            if (resultado.ok) return 'imagen';
+            compartirServiciosYPrecios.ultimoMotivo = resultado.motivo;
         } catch (error) {
+            compartirServiciosYPrecios.ultimoMotivo = 'no se pudo generar la imagen: ' + describirError(error);
             console.warn('[Compartir servicios] No se pudo generar la imagen, se envia en texto:', error);
         }
-        window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, '_blank');
+        // El panel avisa del motivo y abre WhatsApp con este texto (asi el aviso se ve ANTES de salir de la app).
+        compartirServiciosYPrecios.ultimoTexto = texto;
         return 'texto';
     }
 
