@@ -39,6 +39,9 @@ Object.assign(window.__I18N_EN__ = window.__I18N_EN__ || {}, {
   "¿Eliminar esta visita y sus fotos? No se puede deshacer.": "Delete this visit and its photos? This cannot be undone.",
   "Las fichas todavía no están activadas en la base de datos. Avisa a soporte.": "Records are not yet enabled in the database. Contact support.",
   "Tu sesión caducó. Cierra y vuelve a abrir la ficha.": "Your session expired. Close and reopen the record.",
+  "No se pudo abrir la ficha.": "The record could not be opened.",
+  "Motivo técnico:": "Technical reason:",
+  "Reintentar": "Retry",
   "No se pudo guardar. Inténtalo de nuevo.": "Could not save. Please try again.",
   "La visita se guardó, pero {n} foto(s) no se pudieron subir.": "The visit was saved, but {n} photo(s) could not be uploaded.",
   "Estos datos son privados: solo los ven la dueña y las profesionales de nivel Avanzado.": "This data is private: only the owner and Advanced-level professionals can see it."
@@ -55,6 +58,7 @@ function FichaClientaPanel({ cliente, reservas, serviciosList, profesionalesList
     }
   })();
   const [estado, setEstado] = React.useState("cargando");
+  const [detalleError, setDetalleError] = React.useState("");
   const [ficha, setFicha] = React.useState({ alergias: "", condiciones: "", medicamentos: "", notas_generales: "" });
   const [visitas, setVisitas] = React.useState([]);
   const [fotos, setFotos] = React.useState([]);
@@ -73,24 +77,31 @@ function FichaClientaPanel({ cliente, reservas, serviciosList, profesionalesList
     if (respuesta.status === 401) {
       const detalle = await respuesta.clone().text().catch(() => "");
       window.panelSesion.limpiar();
-      throw new Error(/expired/i.test(detalle) ? "CADUCADA" : "NOACTIVADA");
+      const fallo = new Error(/expired/i.test(detalle) ? "CADUCADA" : "RECHAZADA");
+      fallo.detalle = `401 ${detalle.slice(0, 200)}`;
+      throw fallo;
     }
     return respuesta;
   };
   const filtro = `negocio_id=eq.${encodeURIComponent(negocioId)}&whatsapp=eq.${encodeURIComponent(whatsapp)}`;
   const cargar = async () => {
+    setEstado("cargando");
+    setDetalleError("");
     try {
-      const [rf, rv, rp] = await Promise.all([
+      const respuestas = await Promise.all([
         llamar(`/rest/v1/fichas_clientas?${filtro}&select=*`),
         llamar(`/rest/v1/fichas_visitas?${filtro}&select=*&order=fecha.desc,id.desc`),
         llamar(`/rest/v1/fichas_fotos?${filtro}&select=*&order=created_at.asc`)
       ]);
-      if ([rf, rv, rp].some((r) => r.status === 404 || r.status === 403)) {
-        setEstado("noActivada");
+      const malas = respuestas.filter((r) => !r.ok);
+      if (malas.length) {
+        const textos = await Promise.all(malas.map(async (r) => `${r.status} ${(await r.clone().text().catch(() => "")).slice(0, 200)}`));
+        const faltaTabla = textos.some((x) => /PGRST205|42P01|Could not find the table|does not exist/i.test(x));
+        setDetalleError(textos[0]);
+        setEstado(faltaTabla ? "noActivada" : "error");
         return;
       }
-      if (![rf, rv, rp].every((r) => r.ok)) throw new Error("CARGA");
-      const [filasFicha, filasVisitas, filasFotos] = await Promise.all([rf.json(), rv.json(), rp.json()]);
+      const [filasFicha, filasVisitas, filasFotos] = await Promise.all(respuestas.map((r) => r.json()));
       const f = filasFicha[0] || {};
       setFicha({ alergias: f.alergias || "", condiciones: f.condiciones || "", medicamentos: f.medicamentos || "", notas_generales: f.notas_generales || "" });
       setVisitas(filasVisitas);
@@ -101,7 +112,12 @@ function FichaClientaPanel({ cliente, reservas, serviciosList, profesionalesList
         onCerrar();
         return;
       }
-      setEstado(error.message === "CADUCADA" ? "caducada" : "noActivada");
+      if (error.message === "CADUCADA") {
+        setEstado("caducada");
+        return;
+      }
+      setDetalleError(error.detalle || `${error.name || "Error"}: ${error.message || ""}`);
+      setEstado("error");
     }
   };
   React.useEffect(() => {
@@ -246,7 +262,7 @@ function FichaClientaPanel({ cliente, reservas, serviciosList, profesionalesList
     const nombreTipo = { antes: t("Antes"), despues: t("Después"), otra: t("Foto") };
     return /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-3 gap-2 mt-3" }, lista.map((foto) => /* @__PURE__ */ React.createElement("figure", { key: foto.id, className: "relative aspect-square rounded-lg overflow-hidden bg-gray-100 border" }, urls[foto.ruta] ? /* @__PURE__ */ React.createElement("img", { src: urls[foto.ruta], alt: nombreTipo[foto.tipo], className: "w-full h-full object-cover", loading: "lazy" }) : /* @__PURE__ */ React.createElement("div", { className: "w-full h-full animate-pulse" }), /* @__PURE__ */ React.createElement("figcaption", { className: "absolute left-1 bottom-1 px-1.5 py-0.5 rounded bg-black/60 text-white text-[10px] font-semibold" }, nombreTipo[foto.tipo]))));
   };
-  return /* @__PURE__ */ React.createElement("div", { className: "fixed inset-0 bg-black/60 z-[95] flex items-end sm:items-center justify-center p-0 sm:p-4", onClick: onCerrar }, /* @__PURE__ */ React.createElement("div", { className: "bg-white w-full sm:max-w-2xl max-h-[92vh] rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col", onClick: (ev) => ev.stopPropagation() }, /* @__PURE__ */ React.createElement("div", { className: "p-5 border-b bg-gradient-to-r from-white to-pink-50 flex items-start justify-between gap-4 shrink-0" }, /* @__PURE__ */ React.createElement("div", { className: "min-w-0" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold uppercase text-pink-500 tracking-wide" }, "🩺 ", t("Ficha de la clienta")), /* @__PURE__ */ React.createElement("h3", { className: "text-2xl font-bold text-gray-900 truncate" }, cliente?.nombre || t("Cliente")), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500" }, "+", whatsapp)), /* @__PURE__ */ React.createElement("button", { onClick: onCerrar, "aria-label": t("Cerrar"), className: "w-10 h-10 rounded-full bg-white border text-gray-500 hover:text-gray-900 text-xl leading-none" }, "×")), /* @__PURE__ */ React.createElement("div", { className: "overflow-y-auto p-5 space-y-5" }, estado === "cargando" && /* @__PURE__ */ React.createElement("p", { className: "text-center text-pink-500 py-8" }, t("Cargando la ficha...")), estado === "noActivada" && /* @__PURE__ */ React.createElement("p", { role: "alert", className: "text-center text-amber-800 bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm" }, t("Las fichas todavía no están activadas en la base de datos. Avisa a soporte.")), estado === "caducada" && /* @__PURE__ */ React.createElement("p", { role: "alert", className: "text-center text-amber-800 bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm" }, t("Tu sesión caducó. Cierra y vuelve a abrir la ficha.")), estado === "listo" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500" }, "🔒 ", t("Estos datos son privados: solo los ven la dueña y las profesionales de nivel Avanzado.")), alertas.length > 0 && /* @__PURE__ */ React.createElement("div", { role: "alert", className: "rounded-xl border border-red-200 bg-red-50 p-4" }, alertas.map((a) => /* @__PURE__ */ React.createElement("p", { key: a.campo, className: "text-sm text-red-800" }, /* @__PURE__ */ React.createElement("strong", null, "⚠️ ", t(a.etiqueta), ":"), " ", a.texto))), /* @__PURE__ */ React.createElement("section", { className: "rounded-xl border border-gray-100 bg-gray-50 p-4 space-y-3" }, /* @__PURE__ */ React.createElement("h4", { className: "font-bold text-gray-900" }, t("Salud y alergias")), /* @__PURE__ */ React.createElement("label", { className: "block" }, /* @__PURE__ */ React.createElement("span", { className: etiqueta }, t("Alergias")), /* @__PURE__ */ React.createElement("textarea", { rows: "2", className: campo, value: ficha.alergias, placeholder: t("Ej: látex, acetona, tintes con PPD"), onChange: (ev) => {
+  return /* @__PURE__ */ React.createElement("div", { className: "fixed inset-0 bg-black/60 z-[95] flex items-end sm:items-center justify-center p-0 sm:p-4", onClick: onCerrar }, /* @__PURE__ */ React.createElement("div", { className: "bg-white w-full sm:max-w-2xl max-h-[92vh] rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col", onClick: (ev) => ev.stopPropagation() }, /* @__PURE__ */ React.createElement("div", { className: "p-5 border-b bg-gradient-to-r from-white to-pink-50 flex items-start justify-between gap-4 shrink-0" }, /* @__PURE__ */ React.createElement("div", { className: "min-w-0" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold uppercase text-pink-500 tracking-wide" }, "🩺 ", t("Ficha de la clienta")), /* @__PURE__ */ React.createElement("h3", { className: "text-2xl font-bold text-gray-900 truncate" }, cliente?.nombre || t("Cliente")), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500" }, "+", whatsapp)), /* @__PURE__ */ React.createElement("button", { onClick: onCerrar, "aria-label": t("Cerrar"), className: "w-10 h-10 rounded-full bg-white border text-gray-500 hover:text-gray-900 text-xl leading-none" }, "×")), /* @__PURE__ */ React.createElement("div", { className: "overflow-y-auto p-5 space-y-5" }, estado === "cargando" && /* @__PURE__ */ React.createElement("p", { className: "text-center text-pink-500 py-8" }, t("Cargando la ficha...")), estado === "noActivada" && /* @__PURE__ */ React.createElement("p", { role: "alert", className: "text-center text-amber-800 bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm" }, t("Las fichas todavía no están activadas en la base de datos. Avisa a soporte."), /* @__PURE__ */ React.createElement("br", null), /* @__PURE__ */ React.createElement("span", { className: "text-xs opacity-80" }, t("Motivo técnico:"), " ", detalleError)), estado === "error" && /* @__PURE__ */ React.createElement("div", { role: "alert", className: "text-center text-amber-800 bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm" }, /* @__PURE__ */ React.createElement("p", { className: "font-semibold" }, t("No se pudo abrir la ficha.")), /* @__PURE__ */ React.createElement("p", { className: "text-xs mt-2 break-words" }, t("Motivo técnico:"), " ", detalleError || "—"), /* @__PURE__ */ React.createElement("button", { type: "button", onClick: cargar, className: "mt-3 px-4 py-2 rounded-lg bg-pink-600 text-white text-sm font-bold" }, t("Reintentar"))), estado === "caducada" && /* @__PURE__ */ React.createElement("p", { role: "alert", className: "text-center text-amber-800 bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm" }, t("Tu sesión caducó. Cierra y vuelve a abrir la ficha.")), estado === "listo" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500" }, "🔒 ", t("Estos datos son privados: solo los ven la dueña y las profesionales de nivel Avanzado.")), alertas.length > 0 && /* @__PURE__ */ React.createElement("div", { role: "alert", className: "rounded-xl border border-red-200 bg-red-50 p-4" }, alertas.map((a) => /* @__PURE__ */ React.createElement("p", { key: a.campo, className: "text-sm text-red-800" }, /* @__PURE__ */ React.createElement("strong", null, "⚠️ ", t(a.etiqueta), ":"), " ", a.texto))), /* @__PURE__ */ React.createElement("section", { className: "rounded-xl border border-gray-100 bg-gray-50 p-4 space-y-3" }, /* @__PURE__ */ React.createElement("h4", { className: "font-bold text-gray-900" }, t("Salud y alergias")), /* @__PURE__ */ React.createElement("label", { className: "block" }, /* @__PURE__ */ React.createElement("span", { className: etiqueta }, t("Alergias")), /* @__PURE__ */ React.createElement("textarea", { rows: "2", className: campo, value: ficha.alergias, placeholder: t("Ej: látex, acetona, tintes con PPD"), onChange: (ev) => {
     setSaludGuardada(false);
     setFicha({ ...ficha, alergias: ev.target.value });
   } })), /* @__PURE__ */ React.createElement("label", { className: "block" }, /* @__PURE__ */ React.createElement("span", { className: etiqueta }, t("Condiciones o enfermedades")), /* @__PURE__ */ React.createElement("textarea", { rows: "2", className: campo, value: ficha.condiciones, placeholder: t("Ej: diabetes, embarazo, piel sensible"), onChange: (ev) => {

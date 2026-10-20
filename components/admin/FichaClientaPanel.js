@@ -49,6 +49,9 @@ Object.assign((window.__I18N_EN__ = window.__I18N_EN__ || {}), {
     '¿Eliminar esta visita y sus fotos? No se puede deshacer.': 'Delete this visit and its photos? This cannot be undone.',
     'Las fichas todavía no están activadas en la base de datos. Avisa a soporte.': 'Records are not yet enabled in the database. Contact support.',
     'Tu sesión caducó. Cierra y vuelve a abrir la ficha.': 'Your session expired. Close and reopen the record.',
+    'No se pudo abrir la ficha.': 'The record could not be opened.',
+    'Motivo técnico:': 'Technical reason:',
+    'Reintentar': 'Retry',
     'No se pudo guardar. Inténtalo de nuevo.': 'Could not save. Please try again.',
     'La visita se guardó, pero {n} foto(s) no se pudieron subir.': 'The visit was saved, but {n} photo(s) could not be uploaded.',
     'Estos datos son privados: solo los ven la dueña y las profesionales de nivel Avanzado.': 'This data is private: only the owner and Advanced-level professionals can see it.'
@@ -62,7 +65,8 @@ function FichaClientaPanel({ cliente, reservas, serviciosList, profesionalesList
         try { return JSON.parse(localStorage.getItem('profesionalAuth') || 'null')?.nombre || t('Dueña'); } catch (e) { return t('Dueña'); }
     })();
 
-    const [estado, setEstado] = React.useState('cargando'); // cargando | listo | noActivada | caducada
+    const [estado, setEstado] = React.useState('cargando'); // cargando | listo | noActivada | caducada | error
+    const [detalleError, setDetalleError] = React.useState('');
     const [ficha, setFicha] = React.useState({ alergias: '', condiciones: '', medicamentos: '', notas_generales: '' });
     const [visitas, setVisitas] = React.useState([]);
     const [fotos, setFotos] = React.useState([]);
@@ -84,7 +88,9 @@ function FichaClientaPanel({ cliente, reservas, serviciosList, profesionalesList
             // "JWT expired" = el token caduco. Cualquier otro 401 (p. ej. el rol panel_salon no existe aun) = SQL sin correr.
             const detalle = await respuesta.clone().text().catch(() => '');
             window.panelSesion.limpiar();
-            throw new Error(/expired/i.test(detalle) ? 'CADUCADA' : 'NOACTIVADA');
+            const fallo = new Error(/expired/i.test(detalle) ? 'CADUCADA' : 'RECHAZADA');
+            fallo.detalle = `401 ${detalle.slice(0, 200)}`;
+            throw fallo;
         }
         return respuesta;
     };
@@ -92,18 +98,24 @@ function FichaClientaPanel({ cliente, reservas, serviciosList, profesionalesList
     const filtro = `negocio_id=eq.${encodeURIComponent(negocioId)}&whatsapp=eq.${encodeURIComponent(whatsapp)}`;
 
     const cargar = async () => {
+        setEstado('cargando');
+        setDetalleError('');
         try {
-            const [rf, rv, rp] = await Promise.all([
+            const respuestas = await Promise.all([
                 llamar(`/rest/v1/fichas_clientas?${filtro}&select=*`),
                 llamar(`/rest/v1/fichas_visitas?${filtro}&select=*&order=fecha.desc,id.desc`),
                 llamar(`/rest/v1/fichas_fotos?${filtro}&select=*&order=created_at.asc`)
             ]);
-            if ([rf, rv, rp].some(r => r.status === 404 || r.status === 403)) {
-                setEstado('noActivada');
+            const malas = respuestas.filter(r => !r.ok);
+            if (malas.length) {
+                const textos = await Promise.all(malas.map(async r => `${r.status} ${(await r.clone().text().catch(() => '')).slice(0, 200)}`));
+                // Solo se dice "no activadas" cuando de verdad faltan las tablas; el resto se muestra con su motivo.
+                const faltaTabla = textos.some(x => /PGRST205|42P01|Could not find the table|does not exist/i.test(x));
+                setDetalleError(textos[0]);
+                setEstado(faltaTabla ? 'noActivada' : 'error');
                 return;
             }
-            if (![rf, rv, rp].every(r => r.ok)) throw new Error('CARGA');
-            const [filasFicha, filasVisitas, filasFotos] = await Promise.all([rf.json(), rv.json(), rp.json()]);
+            const [filasFicha, filasVisitas, filasFotos] = await Promise.all(respuestas.map(r => r.json()));
             const f = filasFicha[0] || {};
             setFicha({ alergias: f.alergias || '', condiciones: f.condiciones || '', medicamentos: f.medicamentos || '', notas_generales: f.notas_generales || '' });
             setVisitas(filasVisitas);
@@ -111,7 +123,9 @@ function FichaClientaPanel({ cliente, reservas, serviciosList, profesionalesList
             setEstado('listo');
         } catch (error) {
             if (error.message === 'SIN_SESION') { onCerrar(); return; }
-            setEstado(error.message === 'CADUCADA' ? 'caducada' : 'noActivada');
+            if (error.message === 'CADUCADA') { setEstado('caducada'); return; }
+            setDetalleError(error.detalle || `${error.name || 'Error'}: ${error.message || ''}`);
+            setEstado('error');
         }
     };
 
@@ -279,7 +293,14 @@ function FichaClientaPanel({ cliente, reservas, serviciosList, profesionalesList
 
                 <div className="overflow-y-auto p-5 space-y-5">
                     {estado === 'cargando' && <p className="text-center text-pink-500 py-8">{t('Cargando la ficha...')}</p>}
-                    {estado === 'noActivada' && <p role="alert" className="text-center text-amber-800 bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm">{t('Las fichas todavía no están activadas en la base de datos. Avisa a soporte.')}</p>}
+                    {estado === 'noActivada' && <p role="alert" className="text-center text-amber-800 bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm">{t('Las fichas todavía no están activadas en la base de datos. Avisa a soporte.')}<br /><span className="text-xs opacity-80">{t('Motivo técnico:')} {detalleError}</span></p>}
+                    {estado === 'error' && (
+                        <div role="alert" className="text-center text-amber-800 bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm">
+                            <p className="font-semibold">{t('No se pudo abrir la ficha.')}</p>
+                            <p className="text-xs mt-2 break-words">{t('Motivo técnico:')} {detalleError || '—'}</p>
+                            <button type="button" onClick={cargar} className="mt-3 px-4 py-2 rounded-lg bg-pink-600 text-white text-sm font-bold">{t('Reintentar')}</button>
+                        </div>
+                    )}
                     {estado === 'caducada' && <p role="alert" className="text-center text-amber-800 bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm">{t('Tu sesión caducó. Cierra y vuelve a abrir la ficha.')}</p>}
 
                     {estado === 'listo' && (

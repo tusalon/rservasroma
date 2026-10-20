@@ -1,6 +1,6 @@
 ﻿// sw.js - Service Worker para Rservasroma
 
-const CACHE_NAME = 'rservasroma-v149';
+const CACHE_NAME = 'rservasroma-v150';
 const BASE = '/rservasroma';
 
 const urlsToCache = [
@@ -87,7 +87,7 @@ const urlsToCache = [
   `${BASE}/compiled/components/admin/ProfesionalesPanel.js?v=20261019-categorias1`,
   `${BASE}/compiled/components/admin/ImportarServicios.js?v=20260723-jsx1`,
   `${BASE}/compiled/components/admin/ServiciosPanelCategorias.js?v=20261019-compartirapk1`,
-  `${BASE}/compiled/components/admin/FichaClientaPanel.js?v=20261019-ficha1`,
+  `${BASE}/compiled/components/admin/FichaClientaPanel.js?v=20261020-ficha2`,
   `${BASE}/compiled/components/admin/SetupWizard.js?v=20260926-generico1`,
 
   // Vendors (sin babel.min.js: ya no se transpila en el navegador)
