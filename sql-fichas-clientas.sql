@@ -32,12 +32,14 @@ grant panel_salon to authenticator;
 grant usage on schema public to panel_salon;
 
 -- 2) Quien es quien pregunta (sale del JWT) --------------------------------------------------------------
+-- Se lee request.jwt.claims directamente y NO con auth.jwt(): el rol panel_salon no tiene permiso sobre el
+-- esquema auth y la politica fallaba con "permission denied for schema auth" (19-10-2026).
 create or replace function public.panel_negocio()
 returns uuid
 language sql
 stable
 as $$
-    select nullif(auth.jwt() ->> 'negocio_id', '')::uuid
+    select nullif((nullif(current_setting('request.jwt.claims', true), '')::jsonb) ->> 'negocio_id', '')::uuid
 $$;
 
 create or replace function public.panel_nivel()
@@ -45,7 +47,7 @@ returns integer
 language sql
 stable
 as $$
-    select coalesce(nullif(auth.jwt() ->> 'nivel', '')::integer, 0)
+    select coalesce(nullif((nullif(current_setting('request.jwt.claims', true), '')::jsonb) ->> 'nivel', '')::integer, 0)
 $$;
 
 grant execute on function public.panel_negocio() to panel_salon;
