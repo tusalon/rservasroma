@@ -649,6 +649,10 @@ function AdminApp() {
     const [creandoReservaManual, setCreandoReservaManual] = React.useState(false);
     const creandoReservaManualRef = React.useRef(false);
     const [reservaEditando, setReservaEditando] = React.useState(null);
+    // Turno de varios servicios que se esta editando (utils/turnos.js). Con un solo servicio se edita como siempre.
+    const [turnoEditando, setTurnoEditando] = React.useState(null);
+    const [anadiendoServicioTurno, setAnadiendoServicioTurno] = React.useState(false);
+    const [quitandoServicioTurno, setQuitandoServicioTurno] = React.useState(false);
     const [nuevaReservaData, setNuevaReservaData] = React.useState({
         cliente_nombre: '',
         cliente_whatsapp: '',
@@ -1448,6 +1452,18 @@ function AdminApp() {
 
     React.useEffect(() => {
         const cargarHorarios = async () => {
+            if (turnoEditando) {
+                setModoHorarioManualCompleto(false);
+                if (!nuevaReservaData.fecha) { setHorariosDisponibles([]); return; }
+                try {
+                    const { horas } = await window.turnos.horasLibresParaTurno(turnoEditando, nuevaReservaData.fecha, { esAdmin: userRole === 'admin' });
+                    setHorariosDisponibles(horas);
+                } catch (error) {
+                    console.error('Error cargando horarios del turno:', error);
+                    setHorariosDisponibles([]);
+                }
+                return;
+            }
             if (!nuevaReservaData.profesional_id || !nuevaReservaData.fecha || !nuevaReservaData.servicio) {
                 setHorariosDisponibles([]);
                 setModoHorarioManualCompleto(false);
@@ -1476,10 +1492,10 @@ function AdminApp() {
         };
 
         cargarHorarios();
-    }, [nuevaReservaData.profesional_id, nuevaReservaData.fecha, nuevaReservaData.servicio, nuevaReservaData.duracion_personalizada, nuevaReservaData.hora_inicio, nuevaReservaData.hora_fin, serviciosManualSeleccionados, serviciosList, reservaEditando]);
+    }, [nuevaReservaData.profesional_id, nuevaReservaData.fecha, nuevaReservaData.servicio, nuevaReservaData.duracion_personalizada, nuevaReservaData.hora_inicio, nuevaReservaData.hora_fin, serviciosManualSeleccionados, serviciosList, reservaEditando, turnoEditando]);
     
     const cargarDisponibilidadMes = async (fecha, profesionalId) => {
-        if (!profesionalId) return;
+        if (!profesionalId || turnoEditando) return;
         
         try {
             const year = fecha.getFullYear();
@@ -1887,6 +1903,9 @@ function AdminApp() {
         if (fechaStr < hoy) {
             return false;
         }
+
+        // Un turno entero: los horarios de cada profesional se miran al elegir el dia.
+        if (turnoEditando) return true;
 
         if (userRole === 'admin') {
             return true;
@@ -2526,6 +2545,53 @@ function AdminApp() {
 
         return { ok: true };
     };
+    const quitarServicioDelTurno = async (item) => {
+        if (!turnoEditando || quitandoServicioTurno) return;
+        if (!confirm(`${t('¿Quitar este servicio del turno?')}\n\n${item.nombre}`)) return;
+        setQuitandoServicioTurno(true);
+        try {
+            await window.turnos.quitarServicio(turnoEditando, item, { esAdmin: userRole === 'admin' });
+            setShowNuevaReservaModal(false);
+            setReservaEditando(null);
+            setTurnoEditando(null);
+            alert(t('Servicio quitado.'));
+            fetchBookings();
+        } catch (error) {
+            alert(error && error.message ? error.message : t('No se pudo quitar el servicio. Intenta de nuevo.'));
+        } finally {
+            setQuitandoServicioTurno(false);
+        }
+    };
+
+    // Guardar un turno de varios servicios: se mueve entero (cada fila conserva su distancia y su profesional).
+    const guardarCambioDeTurno = async () => {
+        const nuevaHora = String(nuevaReservaData.hora_inicio || '').slice(0, 5);
+        const { horas } = await window.turnos.horasLibresParaTurno(turnoEditando, nuevaReservaData.fecha, { esAdmin: userRole === 'admin' });
+        if (!horas.includes(nuevaHora)) {
+            setHorariosDisponibles(horas);
+            alert(t('Ese horario ya no está disponible. Elige otro.'));
+            return;
+        }
+        const igual = nuevaReservaData.fecha === turnoEditando.fecha && nuevaHora === String(turnoEditando.hora_inicio).slice(0, 5);
+        if (!igual) {
+            await window.turnos.moverTurno(turnoEditando, nuevaReservaData.fecha, nuevaHora);
+            try {
+                const datos = { ...turnoEditando, fecha: nuevaReservaData.fecha, hora_inicio: nuevaHora, hora_fin: window.turnos.aHora(window.turnos.aMin(nuevaHora) + turnoEditando.duracion) };
+                const fechaConDia = window.formatFechaCompleta ? window.formatFechaCompleta(datos.fecha) : datos.fecha;
+                const horaFormateada = window.formatTo12Hour ? window.formatTo12Hour(datos.hora_inicio) : datos.hora_inicio;
+                const lineaCalendario = typeof generarLineaCalendarioCliente === 'function' ? generarLineaCalendarioCliente(datos) : '';
+                window.enviarWhatsApp(datos.cliente_whatsapp, `Hola *${datos.cliente_nombre}*, tu turno fue reprogramado.\n\n*Servicio:* ${datos.servicio}\n*Fecha:* ${fechaConDia}\n*Hora:* ${horaFormateada}\n*Profesional:* ${datos.profesional_nombre}\n${lineaCalendario}\nTe esperamos.`);
+            } catch (whatsappError) {
+                console.error('Error enviando WhatsApp:', whatsappError);
+            }
+        }
+        setShowNuevaReservaModal(false);
+        setReservaEditando(null);
+        setTurnoEditando(null);
+        alert(t('Cambios guardados.'));
+        fetchBookings();
+    };
+
     const handleCrearReservaManual = async () => {
         if (!puedeGestionarReservas) {
             alert(t('Tu nivel de acceso solo permite ver reservas.'));
@@ -2544,6 +2610,14 @@ function AdminApp() {
         setCreandoReservaManual(true);
 
         try {
+            if (turnoEditando) {
+                try {
+                    await guardarCambioDeTurno();
+                } catch (errorTurno) {
+                    alert(t('No se pudieron guardar los cambios: {error}', { error: errorTurno && errorTurno.message ? errorTurno.message : t('Error desconocido') }));
+                }
+                return;
+            }
             const serviciosSeleccionados = getServiciosManualSeleccionados();
             if (serviciosSeleccionados.length === 0) {
                 alert(t('Servicio no encontrado'));
@@ -2608,33 +2682,26 @@ function AdminApp() {
             
             let result;
             if (reservaEditando) {
-                const response = await fetch(
-                    `${window.SUPABASE_URL}/rest/v1/reservas?negocio_id=eq.${getNegocioId()}&id=eq.${reservaEditando.id}`,
-                    {
-                        method: 'PATCH',
-                        headers: {
-                            'apikey': window.SUPABASE_ANON_KEY,
-                            'Authorization': `Bearer ${window.SUPABASE_ANON_KEY}`,
-                            'Content-Type': 'application/json',
-                            'Prefer': 'return=representation'
-                        },
-                        body: JSON.stringify({
-                            servicio: bookingData.servicio,
-                            duracion: bookingData.duracion,
-                            profesional_id: bookingData.profesional_id,
-                            profesional_nombre: bookingData.profesional_nombre,
-                            fecha: bookingData.fecha,
-                            hora_inicio: bookingData.hora_inicio,
-                            hora_fin: bookingData.hora_fin
-                        })
-                    }
-                );
-
-                if (!response.ok) {
-                    result = { success: false, error: await response.text() };
-                } else {
-                    const data = await response.json();
-                    result = { success: true, data: Array.isArray(data) ? data[0] : data };
+                try {
+                    const cambioDeHorario = reservaEditando.fecha !== bookingData.fecha
+                        || String(reservaEditando.hora_inicio).slice(0, 5) !== String(bookingData.hora_inicio).slice(0, 5)
+                        || Number(reservaEditando.profesional_id) !== Number(bookingData.profesional_id);
+                    const actualizada = await window.turnos.patchFila(reservaEditando.id, {
+                        servicio: bookingData.servicio,
+                        duracion: bookingData.duracion,
+                        profesional_id: bookingData.profesional_id,
+                        profesional_nombre: bookingData.profesional_nombre,
+                        fecha: bookingData.fecha,
+                        hora_inicio: bookingData.hora_inicio,
+                        hora_fin: bookingData.hora_fin,
+                        // Si cambia el dia u hora, la clienta vuelve a recibir sus recordatorios.
+                        ...(cambioDeHorario ? window.turnos.reiniciarAvisos : {})
+                    });
+                    result = { success: true, data: actualizada };
+                    // El horario viejo queda libre: que la lista de espera se entere.
+                    if (cambioDeHorario) await window.notificarListaEsperaTurnoLiberado?.(reservaEditando);
+                } catch (errorEdicion) {
+                    result = { success: false, error: errorEdicion && errorEdicion.message };
                 }
             } else if (usaDuracionPersonalizada || serviciosSeleccionados.length === 1) {
                 const reservaServicio = {
@@ -2703,7 +2770,9 @@ function AdminApp() {
 
                 alert(result.parcial
                     ? t('Se crearon algunos servicios, pero uno falló. Revisa la agenda.')
-                    : t('Reserva creada exitosamente como "{estado}"', { estado: t(result.data.estado) }));
+                    : reservaEditando
+                        ? t('Cambios guardados.')
+                        : t('Reserva creada exitosamente como "{estado}"', { estado: t(result.data.estado) }));
                 
                 try {
                     if (reservaEditando) {
@@ -2739,6 +2808,7 @@ function AdminApp() {
                 
                 setShowNuevaReservaModal(false);
                 setReservaEditando(null);
+                setTurnoEditando(null);
                 setNuevaReservaData({
                     cliente_nombre: '',
                     cliente_whatsapp: '',
@@ -2756,7 +2826,9 @@ function AdminApp() {
                 
                 fetchBookings();
             } else {
-                alert(t('Error al crear la reserva: {error}', { error: result.error || t('Error desconocido') }));
+                alert(reservaEditando
+                    ? t('No se pudieron guardar los cambios: {error}', { error: result.error || t('Error desconocido') })
+                    : t('Error al crear la reserva: {error}', { error: result.error || t('Error desconocido') }));
             }
         } catch (error) {
             console.error('Error creando reserva:', error);
@@ -4771,6 +4843,7 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
             return;
         }
         setReservaEditando(null);
+        setTurnoEditando(null);
         setNuevaReservaData({
             cliente_nombre: '',
             cliente_whatsapp: '',
@@ -4801,6 +4874,39 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
             alert(t('Solo puedes editar tus propias reservas.'));
             return;
         }
+        // Un combo (varias filas seguidas de la misma clienta) se edita ENTERO: moverlo mueve todas sus filas.
+        const turnosDelGrupo = booking._reservasGrupo && booking._reservasGrupo.length > 1
+            ? window.turnos.agruparTurnos(booking._reservasGrupo) : [];
+        if (turnosDelGrupo.length === 1) {
+            const turnoDelGrupo = turnosDelGrupo[0];
+            if (userRole === 'profesional' && profesional && turnoDelGrupo.filas.some(fila => Number(fila.profesional_id) !== Number(profesional.id))) {
+                alert(t('Solo puedes editar tus propias reservas.'));
+                return;
+            }
+            setAgendaDetalleBooking(null);
+            setReservaEditando(booking);
+            setTurnoEditando(turnoDelGrupo);
+            setNuevaReservaData({
+                cliente_nombre: booking.cliente_nombre || '',
+                cliente_whatsapp: normalizarTelefonoLocalSeguro(booking.cliente_whatsapp),
+                cliente_codigo_pais: '',
+                servicio: turnoDelGrupo.servicio,
+                profesional_id: booking.profesional_id || '',
+                fecha: booking.fecha || '',
+                hora_inicio: String(booking.hora_inicio || '').slice(0, 5),
+                hora_fin: '',
+                duracion_personalizada: '',
+                requiereAnticipo: false
+            });
+            setCurrentDate(booking.fecha ? new Date(`${booking.fecha}T00:00:00`) : new Date());
+            setDiasLaborales([]);
+            setFechasConHorarios({});
+            setServiciosManualSeleccionados([]);
+            setBusquedaClienteManual('');
+            setShowNuevaReservaModal(true);
+            return;
+        }
+        setTurnoEditando(null);
         const servicio = serviciosList.find(s => s.nombre === booking.servicio);
         setAgendaDetalleBooking(null);
         setReservaEditando(booking);
@@ -5109,14 +5215,31 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                     />
                 )}
 
+                {anadiendoServicioTurno && turnoEditando && (
+                    <AnadirServicioTurno
+                        turno={turnoEditando}
+                        esAdmin={userRole === 'admin'}
+                        onCerrar={() => setAnadiendoServicioTurno(false)}
+                        onError={(mensaje) => alert(mensaje)}
+                        onListo={async () => {
+                            setAnadiendoServicioTurno(false);
+                            setShowNuevaReservaModal(false);
+                            setReservaEditando(null);
+                            setTurnoEditando(null);
+                            alert(t('Servicio añadido.'));
+                            fetchBookings();
+                        }}
+                    />
+                )}
+
                 {/* MODAL NUEVA RESERVA */}
                 {showNuevaReservaModal && (
                     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                         <div className="bg-white rounded-xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
                             <div className="flex justify-between items-center mb-4">
-                                <h3 className="text-xl font-bold">{t('Nueva Reserva Manual')}</h3>
+                                <h3 className="text-xl font-bold">{reservaEditando ? t('Editar cita') : t('Nueva Reserva Manual')}</h3>
                                     <button
-                                        onClick={() => setShowNuevaReservaModal(false)}
+                                        onClick={() => { setShowNuevaReservaModal(false); setReservaEditando(null); setTurnoEditando(null); setServiciosManualSeleccionados([]); }}
                                         disabled={creandoReservaManual}
                                         className="text-gray-500 hover:text-gray-700 text-2xl disabled:opacity-50 disabled:cursor-not-allowed"
                                     >×</button>
@@ -5178,13 +5301,15 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                                 )}
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">{t('Nombre del Cliente *')}</label>
-                                    <input type="text" value={nuevaReservaData.cliente_nombre} onChange={(e) => setNuevaReservaData({...nuevaReservaData, cliente_nombre: e.target.value})} className="w-full border rounded-lg px-3 py-2" placeholder={t('Ej: Juan Pérez')} />
+                                    <input type="text" value={nuevaReservaData.cliente_nombre} onChange={(e) => setNuevaReservaData({...nuevaReservaData, cliente_nombre: e.target.value})} disabled={!!reservaEditando} className="w-full border rounded-lg px-3 py-2 disabled:bg-gray-100 disabled:text-gray-500" placeholder={t('Ej: Juan Pérez')} />
+                                    {reservaEditando && <p className="text-xs text-gray-500 mt-1">{t('Los datos de la clienta no se cambian desde aquí.')}</p>}
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">{t('WhatsApp del Cliente *')}</label>
                                     <div className="flex">
                                         <select
                                             value={codigoPaisClienteManual}
+                                            disabled={!!reservaEditando}
                                             onChange={(e) => {
                                                 const nuevoCodigo = e.target.value;
                                                 setNuevaReservaData({
@@ -5199,7 +5324,7 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                                                 <option key={pais.id} value={pais.codigo}>{pais.bandera} +{pais.codigo}</option>
                                             ))}
                                         </select>
-                                        <input type="tel" value={nuevaReservaData.cliente_whatsapp} onChange={(e) => escribirTelefonoManual(e.target.value)} className="w-full px-4 py-2 rounded-r-lg border border-gray-300" placeholder={paisTelefono.ejemplo || '55002272'} />
+                                        <input type="tel" value={nuevaReservaData.cliente_whatsapp} onChange={(e) => escribirTelefonoManual(e.target.value)} disabled={!!reservaEditando} className="w-full px-4 py-2 rounded-r-lg border border-gray-300 disabled:bg-gray-100 disabled:text-gray-500" placeholder={paisTelefono.ejemplo || '55002272'} />
                                     </div>
                                     {clienteReconocido && (
                                         <p className="text-xs text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-lg px-2.5 py-1.5 mt-1.5">
@@ -5213,14 +5338,36 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        {!reservaEditando ? t('Servicios *') : t('Servicio *')}
+                                        {turnoEditando ? t('Servicios de este turno') : !reservaEditando ? t('Servicios *') : t('Servicio *')}
                                     </label>
-                                    {reservaEditando ? (
+                                    {turnoEditando ? (
+                                        <div>
+                                            <ul className="space-y-2">
+                                                {turnoEditando.items.map((item, indice) => (
+                                                    <li key={`${item.filaId}-${indice}`} className="flex items-center justify-between gap-3 border rounded-lg px-3 py-2 bg-gray-50">
+                                                        <div className="min-w-0">
+                                                            <p className="font-medium text-gray-800 truncate">{item.nombre}</p>
+                                                            {item.profesional_nombre && <p className="text-xs text-gray-500 truncate">{t('Atiende: {nombre}', { nombre: item.profesional_nombre })}</p>}
+                                                        </div>
+                                                        <button type="button" onClick={() => quitarServicioDelTurno(item)} disabled={quitandoServicioTurno || creandoReservaManual}
+                                                            className="shrink-0 text-xs font-semibold text-red-600 bg-white border border-red-200 rounded-full px-3 py-1 hover:bg-red-50 disabled:opacity-50">
+                                                            {t('Quitar')}
+                                                        </button>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                            <button type="button" onClick={() => setAnadiendoServicioTurno(true)} disabled={creandoReservaManual}
+                                                className="mt-2 text-sm font-semibold text-pink-600 underline disabled:opacity-50">
+                                                ➕ {t('Añadir un servicio')}
+                                            </button>
+                                            <p className="text-xs text-gray-500 mt-2">{t('Al cambiar la fecha u hora se mueve todo el turno, con sus servicios.')}</p>
+                                        </div>
+                                    ) : reservaEditando ? (
                                         <select
                                             value={nuevaReservaData.servicio}
                                             onChange={(e) => {
                                                 setServiciosManualSeleccionados([e.target.value].filter(Boolean));
-                                                setNuevaReservaData({...nuevaReservaData, servicio: e.target.value, fecha: '', hora_inicio: '', hora_fin: ''});
+                                                setNuevaReservaData({...nuevaReservaData, servicio: e.target.value, fecha: '', hora_inicio: '', hora_fin: '', duracion_personalizada: ''});
                                             }}
                                             className="w-full border rounded-lg px-3 py-2"
                                         >
@@ -5258,7 +5405,7 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                                         </p>
                                     )}
                                 </div>
-                                {userRole === 'admin' && nuevaReservaData.servicio && (
+                                {userRole === 'admin' && nuevaReservaData.servicio && !turnoEditando && (
                                     <div className="rounded-xl border border-pink-100 bg-pink-50 p-3">
                                         <label className="block text-sm font-medium text-pink-800 mb-1">{t('Duracion para esta cita (min)')}</label>
                                         <input
@@ -5286,7 +5433,7 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                                         )}
                                     </div>
                                 )}
-                                <div>
+                                <div className={turnoEditando ? 'hidden' : undefined}>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">{t('Profesional *')}</label>
                                     <select value={nuevaReservaData.profesional_id} onChange={(e) => setNuevaReservaData({...nuevaReservaData, profesional_id: e.target.value})} className="w-full border rounded-lg px-3 py-2">
                                         <option value="">{t('Seleccionar profesional')}</option>
@@ -5349,7 +5496,7 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                                 {nuevaReservaData.fecha && (
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-2">{t('Horario de la cita *')}</label>
-                                        <div className="grid grid-cols-2 gap-3 mb-3">
+                                        <div className={turnoEditando ? 'hidden' : 'grid grid-cols-2 gap-3 mb-3'}>
                                             <div>
                                                 <label className="block text-xs font-semibold text-gray-500 mb-1">{t('Inicio')}</label>
                                                 <input
@@ -5376,7 +5523,7 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                                                 />
                                             </div>
                                         </div>
-                                        {nuevaReservaData.hora_inicio && (
+                                        {nuevaReservaData.hora_inicio && !turnoEditando && (
                                             <p className="text-xs text-gray-500 mb-3">
                                                 {nuevaReservaData.hora_fin
                                                     ? t('Duracion calculada: {min} min segun inicio y fin.', { min: getDuracionManualTotal(getServiciosManualSeleccionados()) })
@@ -5401,7 +5548,7 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                                 )}
                                 <div className="flex gap-3 pt-4">
                                     <button
-                                        onClick={() => { setShowNuevaReservaModal(false); setReservaEditando(null); setServiciosManualSeleccionados([]); }}
+                                        onClick={() => { setShowNuevaReservaModal(false); setReservaEditando(null); setTurnoEditando(null); setServiciosManualSeleccionados([]); }}
                                         disabled={creandoReservaManual}
                                         className="flex-1 px-4 py-2 border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
                                     >

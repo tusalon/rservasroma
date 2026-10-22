@@ -159,15 +159,16 @@ begin
         return new;
     end if;
 
-    -- Cambio que no mueve la cita (confirmar, cobrar, notas...): conserva lo que tenia, aunque no tuviera
-    -- espacio. Asi una cita anterior a activar la funcion no se bloquea al confirmarla.
+    -- Cambio que no mueve la cita ni cambia su servicio (confirmar, cobrar, notas...): conserva lo que tenia,
+    -- aunque no tuviera espacio. Asi una cita anterior a activar la funcion no se bloquea al confirmarla.
     if tg_op = 'UPDATE'
        and lower(trim(coalesce(old.estado, ''))) <> 'cancelado'
        and new.negocio_id is not distinct from old.negocio_id
        and new.profesional_id is not distinct from old.profesional_id
        and new.fecha is not distinct from old.fecha
        and new.hora_inicio is not distinct from old.hora_inicio
-       and new.hora_fin is not distinct from old.hora_fin then
+       and new.hora_fin is not distinct from old.hora_fin
+       and new.servicio is not distinct from old.servicio then
         new.espacio := old.espacio;
         return new;
     end if;
@@ -199,7 +200,7 @@ $$;
 
 drop trigger if exists reservas_asignar_espacio on public.reservas;
 create trigger reservas_asignar_espacio
-    before insert or update of negocio_id, profesional_id, fecha, hora_inicio, hora_fin, estado, espacio
+    before insert or update of negocio_id, profesional_id, fecha, hora_inicio, hora_fin, servicio, estado, espacio
     on public.reservas
     for each row execute function public.asignar_espacio_reserva();
 

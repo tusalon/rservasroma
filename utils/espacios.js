@@ -35,16 +35,17 @@
 
     // Tramos en que TODOS los espacios de la profesional estan tomados por citas de otras.
     // `reservasSalon`: citas activas del salon con { fecha, hora_inicio, hora_fin, profesional_id, espacio }.
-    // `excluirId`: una cita que se esta moviendo, para que su propio espacio no la bloquee.
+    // `excluirId`: una cita (o una lista de ellas) que se esta moviendo, para que su propio espacio no la bloquee.
     // Devuelve citas "virtuales" con la misma forma que las reales, listas para sumarlas a las suyas.
     function bloqueosPorEspacios(profesionalId, espaciosProf, reservasSalon, excluirId) {
         if (!espaciosProf || !espaciosProf.length) return [];
         const mios = new Set(espaciosProf);
+        const excluidas = excluirId == null ? [] : (Array.isArray(excluirId) ? excluirId : [excluirId]).map(String);
         const porFecha = {};
         (reservasSalon || []).forEach(r => {
             if (r.espacio == null || !mios.has(Number(r.espacio))) return;
             if (String(r.profesional_id) === String(profesionalId)) return;
-            if (excluirId != null && String(r.id) === String(excluirId)) return;
+            if (excluidas.includes(String(r.id))) return;
             const ini = aMinutos(r.hora_inicio);
             const fin = aMinutos(r.hora_fin);
             if (fin <= ini) return;

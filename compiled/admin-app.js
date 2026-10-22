@@ -510,6 +510,9 @@ function AdminApp() {
   const [creandoReservaManual, setCreandoReservaManual] = React.useState(false);
   const creandoReservaManualRef = React.useRef(false);
   const [reservaEditando, setReservaEditando] = React.useState(null);
+  const [turnoEditando, setTurnoEditando] = React.useState(null);
+  const [anadiendoServicioTurno, setAnadiendoServicioTurno] = React.useState(false);
+  const [quitandoServicioTurno, setQuitandoServicioTurno] = React.useState(false);
   const [nuevaReservaData, setNuevaReservaData] = React.useState({
     cliente_nombre: "",
     cliente_whatsapp: "",
@@ -1153,6 +1156,21 @@ function AdminApp() {
   };
   React.useEffect(() => {
     const cargarHorarios = async () => {
+      if (turnoEditando) {
+        setModoHorarioManualCompleto(false);
+        if (!nuevaReservaData.fecha) {
+          setHorariosDisponibles([]);
+          return;
+        }
+        try {
+          const { horas } = await window.turnos.horasLibresParaTurno(turnoEditando, nuevaReservaData.fecha, { esAdmin: userRole === "admin" });
+          setHorariosDisponibles(horas);
+        } catch (error) {
+          console.error("Error cargando horarios del turno:", error);
+          setHorariosDisponibles([]);
+        }
+        return;
+      }
       if (!nuevaReservaData.profesional_id || !nuevaReservaData.fecha || !nuevaReservaData.servicio) {
         setHorariosDisponibles([]);
         setModoHorarioManualCompleto(false);
@@ -1177,9 +1195,9 @@ function AdminApp() {
       }
     };
     cargarHorarios();
-  }, [nuevaReservaData.profesional_id, nuevaReservaData.fecha, nuevaReservaData.servicio, nuevaReservaData.duracion_personalizada, nuevaReservaData.hora_inicio, nuevaReservaData.hora_fin, serviciosManualSeleccionados, serviciosList, reservaEditando]);
+  }, [nuevaReservaData.profesional_id, nuevaReservaData.fecha, nuevaReservaData.servicio, nuevaReservaData.duracion_personalizada, nuevaReservaData.hora_inicio, nuevaReservaData.hora_fin, serviciosManualSeleccionados, serviciosList, reservaEditando, turnoEditando]);
   const cargarDisponibilidadMes = async (fecha, profesionalId) => {
-    if (!profesionalId) return;
+    if (!profesionalId || turnoEditando) return;
     try {
       const year = fecha.getFullYear();
       const month = fecha.getMonth();
@@ -1509,6 +1527,7 @@ function AdminApp() {
     if (fechaStr < hoy) {
       return false;
     }
+    if (turnoEditando) return true;
     if (userRole === "admin") {
       return true;
     }
@@ -2042,6 +2061,59 @@ function AdminApp() {
     }
     return { ok: true };
   };
+  const quitarServicioDelTurno = async (item) => {
+    if (!turnoEditando || quitandoServicioTurno) return;
+    if (!confirm(`${t2("¿Quitar este servicio del turno?")}
+
+${item.nombre}`)) return;
+    setQuitandoServicioTurno(true);
+    try {
+      await window.turnos.quitarServicio(turnoEditando, item, { esAdmin: userRole === "admin" });
+      setShowNuevaReservaModal(false);
+      setReservaEditando(null);
+      setTurnoEditando(null);
+      alert(t2("Servicio quitado."));
+      fetchBookings();
+    } catch (error) {
+      alert(error && error.message ? error.message : t2("No se pudo quitar el servicio. Intenta de nuevo."));
+    } finally {
+      setQuitandoServicioTurno(false);
+    }
+  };
+  const guardarCambioDeTurno = async () => {
+    const nuevaHora = String(nuevaReservaData.hora_inicio || "").slice(0, 5);
+    const { horas } = await window.turnos.horasLibresParaTurno(turnoEditando, nuevaReservaData.fecha, { esAdmin: userRole === "admin" });
+    if (!horas.includes(nuevaHora)) {
+      setHorariosDisponibles(horas);
+      alert(t2("Ese horario ya no está disponible. Elige otro."));
+      return;
+    }
+    const igual = nuevaReservaData.fecha === turnoEditando.fecha && nuevaHora === String(turnoEditando.hora_inicio).slice(0, 5);
+    if (!igual) {
+      await window.turnos.moverTurno(turnoEditando, nuevaReservaData.fecha, nuevaHora);
+      try {
+        const datos = { ...turnoEditando, fecha: nuevaReservaData.fecha, hora_inicio: nuevaHora, hora_fin: window.turnos.aHora(window.turnos.aMin(nuevaHora) + turnoEditando.duracion) };
+        const fechaConDia = window.formatFechaCompleta ? window.formatFechaCompleta(datos.fecha) : datos.fecha;
+        const horaFormateada = window.formatTo12Hour ? window.formatTo12Hour(datos.hora_inicio) : datos.hora_inicio;
+        const lineaCalendario = typeof generarLineaCalendarioCliente === "function" ? generarLineaCalendarioCliente(datos) : "";
+        window.enviarWhatsApp(datos.cliente_whatsapp, `Hola *${datos.cliente_nombre}*, tu turno fue reprogramado.
+
+*Servicio:* ${datos.servicio}
+*Fecha:* ${fechaConDia}
+*Hora:* ${horaFormateada}
+*Profesional:* ${datos.profesional_nombre}
+${lineaCalendario}
+Te esperamos.`);
+      } catch (whatsappError) {
+        console.error("Error enviando WhatsApp:", whatsappError);
+      }
+    }
+    setShowNuevaReservaModal(false);
+    setReservaEditando(null);
+    setTurnoEditando(null);
+    alert(t2("Cambios guardados."));
+    fetchBookings();
+  };
   const handleCrearReservaManual = async () => {
     if (!puedeGestionarReservas) {
       alert(t2("Tu nivel de acceso solo permite ver reservas."));
@@ -2055,6 +2127,14 @@ function AdminApp() {
     creandoReservaManualRef.current = true;
     setCreandoReservaManual(true);
     try {
+      if (turnoEditando) {
+        try {
+          await guardarCambioDeTurno();
+        } catch (errorTurno) {
+          alert(t2("No se pudieron guardar los cambios: {error}", { error: errorTurno && errorTurno.message ? errorTurno.message : t2("Error desconocido") }));
+        }
+        return;
+      }
       const serviciosSeleccionados = getServiciosManualSeleccionados();
       if (serviciosSeleccionados.length === 0) {
         alert(t2("Servicio no encontrado"));
@@ -2115,32 +2195,23 @@ function AdminApp() {
       };
       let result;
       if (reservaEditando) {
-        const response = await fetch(
-          `${window.SUPABASE_URL}/rest/v1/reservas?negocio_id=eq.${getNegocioId()}&id=eq.${reservaEditando.id}`,
-          {
-            method: "PATCH",
-            headers: {
-              "apikey": window.SUPABASE_ANON_KEY,
-              "Authorization": `Bearer ${window.SUPABASE_ANON_KEY}`,
-              "Content-Type": "application/json",
-              "Prefer": "return=representation"
-            },
-            body: JSON.stringify({
-              servicio: bookingData.servicio,
-              duracion: bookingData.duracion,
-              profesional_id: bookingData.profesional_id,
-              profesional_nombre: bookingData.profesional_nombre,
-              fecha: bookingData.fecha,
-              hora_inicio: bookingData.hora_inicio,
-              hora_fin: bookingData.hora_fin
-            })
-          }
-        );
-        if (!response.ok) {
-          result = { success: false, error: await response.text() };
-        } else {
-          const data = await response.json();
-          result = { success: true, data: Array.isArray(data) ? data[0] : data };
+        try {
+          const cambioDeHorario = reservaEditando.fecha !== bookingData.fecha || String(reservaEditando.hora_inicio).slice(0, 5) !== String(bookingData.hora_inicio).slice(0, 5) || Number(reservaEditando.profesional_id) !== Number(bookingData.profesional_id);
+          const actualizada = await window.turnos.patchFila(reservaEditando.id, {
+            servicio: bookingData.servicio,
+            duracion: bookingData.duracion,
+            profesional_id: bookingData.profesional_id,
+            profesional_nombre: bookingData.profesional_nombre,
+            fecha: bookingData.fecha,
+            hora_inicio: bookingData.hora_inicio,
+            hora_fin: bookingData.hora_fin,
+            // Si cambia el dia u hora, la clienta vuelve a recibir sus recordatorios.
+            ...cambioDeHorario ? window.turnos.reiniciarAvisos : {}
+          });
+          result = { success: true, data: actualizada };
+          if (cambioDeHorario) await window.notificarListaEsperaTurnoLiberado?.(reservaEditando);
+        } catch (errorEdicion) {
+          result = { success: false, error: errorEdicion && errorEdicion.message };
         }
       } else if (usaDuracionPersonalizada || serviciosSeleccionados.length === 1) {
         const reservaServicio = {
@@ -2200,7 +2271,7 @@ function AdminApp() {
             console.error("Error registrando cliente manual:", clienteError);
           }
         }
-        alert(result.parcial ? t2("Se crearon algunos servicios, pero uno falló. Revisa la agenda.") : t2('Reserva creada exitosamente como "{estado}"', { estado: t2(result.data.estado) }));
+        alert(result.parcial ? t2("Se crearon algunos servicios, pero uno falló. Revisa la agenda.") : reservaEditando ? t2("Cambios guardados.") : t2('Reserva creada exitosamente como "{estado}"', { estado: t2(result.data.estado) }));
         try {
           if (reservaEditando) {
             const fechaConDia = window.formatFechaCompleta ? window.formatFechaCompleta(result.data.fecha) : result.data.fecha;
@@ -2244,6 +2315,7 @@ Te esperamos.`;
         }
         setShowNuevaReservaModal(false);
         setReservaEditando(null);
+        setTurnoEditando(null);
         setNuevaReservaData({
           cliente_nombre: "",
           cliente_whatsapp: "",
@@ -2260,7 +2332,7 @@ Te esperamos.`;
         setBusquedaClienteManual("");
         fetchBookings();
       } else {
-        alert(t2("Error al crear la reserva: {error}", { error: result.error || t2("Error desconocido") }));
+        alert(reservaEditando ? t2("No se pudieron guardar los cambios: {error}", { error: result.error || t2("Error desconocido") }) : t2("Error al crear la reserva: {error}", { error: result.error || t2("Error desconocido") }));
       }
     } catch (error) {
       console.error("Error creando reserva:", error);
@@ -3772,6 +3844,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
       return;
     }
     setReservaEditando(null);
+    setTurnoEditando(null);
     setNuevaReservaData({
       cliente_nombre: "",
       cliente_whatsapp: "",
@@ -3801,6 +3874,37 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
       alert(t2("Solo puedes editar tus propias reservas."));
       return;
     }
+    const turnosDelGrupo = booking._reservasGrupo && booking._reservasGrupo.length > 1 ? window.turnos.agruparTurnos(booking._reservasGrupo) : [];
+    if (turnosDelGrupo.length === 1) {
+      const turnoDelGrupo = turnosDelGrupo[0];
+      if (userRole === "profesional" && profesional && turnoDelGrupo.filas.some((fila) => Number(fila.profesional_id) !== Number(profesional.id))) {
+        alert(t2("Solo puedes editar tus propias reservas."));
+        return;
+      }
+      setAgendaDetalleBooking(null);
+      setReservaEditando(booking);
+      setTurnoEditando(turnoDelGrupo);
+      setNuevaReservaData({
+        cliente_nombre: booking.cliente_nombre || "",
+        cliente_whatsapp: normalizarTelefonoLocalSeguro(booking.cliente_whatsapp),
+        cliente_codigo_pais: "",
+        servicio: turnoDelGrupo.servicio,
+        profesional_id: booking.profesional_id || "",
+        fecha: booking.fecha || "",
+        hora_inicio: String(booking.hora_inicio || "").slice(0, 5),
+        hora_fin: "",
+        duracion_personalizada: "",
+        requiereAnticipo: false
+      });
+      setCurrentDate(booking.fecha ? /* @__PURE__ */ new Date(`${booking.fecha}T00:00:00`) : /* @__PURE__ */ new Date());
+      setDiasLaborales([]);
+      setFechasConHorarios({});
+      setServiciosManualSeleccionados([]);
+      setBusquedaClienteManual("");
+      setShowNuevaReservaModal(true);
+      return;
+    }
+    setTurnoEditando(null);
     const servicio = serviciosList.find((s) => s.nombre === booking.servicio);
     setAgendaDetalleBooking(null);
     setReservaEditando(booking);
@@ -4007,10 +4111,31 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
         await arreglarAviso(id, () => asignarParesServicioProfesional(pares));
       }
     }
-  ), showNuevaReservaModal && /* @__PURE__ */ React.createElement("div", { className: "fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" }, /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto" }, /* @__PURE__ */ React.createElement("div", { className: "flex justify-between items-center mb-4" }, /* @__PURE__ */ React.createElement("h3", { className: "text-xl font-bold" }, t2("Nueva Reserva Manual")), /* @__PURE__ */ React.createElement(
+  ), anadiendoServicioTurno && turnoEditando && /* @__PURE__ */ React.createElement(
+    AnadirServicioTurno,
+    {
+      turno: turnoEditando,
+      esAdmin: userRole === "admin",
+      onCerrar: () => setAnadiendoServicioTurno(false),
+      onError: (mensaje) => alert(mensaje),
+      onListo: async () => {
+        setAnadiendoServicioTurno(false);
+        setShowNuevaReservaModal(false);
+        setReservaEditando(null);
+        setTurnoEditando(null);
+        alert(t2("Servicio añadido."));
+        fetchBookings();
+      }
+    }
+  ), showNuevaReservaModal && /* @__PURE__ */ React.createElement("div", { className: "fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" }, /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto" }, /* @__PURE__ */ React.createElement("div", { className: "flex justify-between items-center mb-4" }, /* @__PURE__ */ React.createElement("h3", { className: "text-xl font-bold" }, reservaEditando ? t2("Editar cita") : t2("Nueva Reserva Manual")), /* @__PURE__ */ React.createElement(
     "button",
     {
-      onClick: () => setShowNuevaReservaModal(false),
+      onClick: () => {
+        setShowNuevaReservaModal(false);
+        setReservaEditando(null);
+        setTurnoEditando(null);
+        setServiciosManualSeleccionados([]);
+      },
       disabled: creandoReservaManual,
       className: "text-gray-500 hover:text-gray-700 text-2xl disabled:opacity-50 disabled:cursor-not-allowed"
     },
@@ -4039,10 +4164,11 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
     },
     /* @__PURE__ */ React.createElement("span", { className: "min-w-0" }, /* @__PURE__ */ React.createElement("span", { className: "block font-medium text-gray-800 truncate" }, cliente.nombre || t2("Cliente sin nombre")), /* @__PURE__ */ React.createElement("span", { className: "block text-xs text-gray-500" }, "+", String(cliente.whatsapp || "").replace(/\D/g, ""))),
     /* @__PURE__ */ React.createElement("span", { className: "text-xs text-pink-600 font-semibold shrink-0" }, t2("Usar"))
-  )))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, t2("Nombre del Cliente *")), /* @__PURE__ */ React.createElement("input", { type: "text", value: nuevaReservaData.cliente_nombre, onChange: (e) => setNuevaReservaData({ ...nuevaReservaData, cliente_nombre: e.target.value }), className: "w-full border rounded-lg px-3 py-2", placeholder: t2("Ej: Juan Pérez") })), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, t2("WhatsApp del Cliente *")), /* @__PURE__ */ React.createElement("div", { className: "flex" }, /* @__PURE__ */ React.createElement(
+  )))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, t2("Nombre del Cliente *")), /* @__PURE__ */ React.createElement("input", { type: "text", value: nuevaReservaData.cliente_nombre, onChange: (e) => setNuevaReservaData({ ...nuevaReservaData, cliente_nombre: e.target.value }), disabled: !!reservaEditando, className: "w-full border rounded-lg px-3 py-2 disabled:bg-gray-100 disabled:text-gray-500", placeholder: t2("Ej: Juan Pérez") }), reservaEditando && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-1" }, t2("Los datos de la clienta no se cambian desde aquí."))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, t2("WhatsApp del Cliente *")), /* @__PURE__ */ React.createElement("div", { className: "flex" }, /* @__PURE__ */ React.createElement(
     "select",
     {
       value: codigoPaisClienteManual,
+      disabled: !!reservaEditando,
       onChange: (e) => {
         const nuevoCodigo = e.target.value;
         setNuevaReservaData({
@@ -4054,17 +4180,36 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
       className: "w-32 px-2 rounded-l-lg border border-r-0 border-gray-300 bg-gray-50 text-sm"
     },
     paisesTelefono.map((pais) => /* @__PURE__ */ React.createElement("option", { key: pais.id, value: pais.codigo }, pais.bandera, " +", pais.codigo))
-  ), /* @__PURE__ */ React.createElement("input", { type: "tel", value: nuevaReservaData.cliente_whatsapp, onChange: (e) => escribirTelefonoManual(e.target.value), className: "w-full px-4 py-2 rounded-r-lg border border-gray-300", placeholder: paisTelefono.ejemplo || "55002272" })), clienteReconocido && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-lg px-2.5 py-1.5 mt-1.5" }, t2("Ya vino antes: {nombre} · {n} turno{s}", {
+  ), /* @__PURE__ */ React.createElement("input", { type: "tel", value: nuevaReservaData.cliente_whatsapp, onChange: (e) => escribirTelefonoManual(e.target.value), disabled: !!reservaEditando, className: "w-full px-4 py-2 rounded-r-lg border border-gray-300 disabled:bg-gray-100 disabled:text-gray-500", placeholder: paisTelefono.ejemplo || "55002272" })), clienteReconocido && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-lg px-2.5 py-1.5 mt-1.5" }, t2("Ya vino antes: {nombre} · {n} turno{s}", {
     nombre: clienteReconocido.nombre,
     n: clienteReconocido.turnos,
     s: clienteReconocido.turnos === 1 ? "" : "s"
-  }))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, !reservaEditando ? t2("Servicios *") : t2("Servicio *")), reservaEditando ? /* @__PURE__ */ React.createElement(
+  }))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, turnoEditando ? t2("Servicios de este turno") : !reservaEditando ? t2("Servicios *") : t2("Servicio *")), turnoEditando ? /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("ul", { className: "space-y-2" }, turnoEditando.items.map((item, indice) => /* @__PURE__ */ React.createElement("li", { key: `${item.filaId}-${indice}`, className: "flex items-center justify-between gap-3 border rounded-lg px-3 py-2 bg-gray-50" }, /* @__PURE__ */ React.createElement("div", { className: "min-w-0" }, /* @__PURE__ */ React.createElement("p", { className: "font-medium text-gray-800 truncate" }, item.nombre), item.profesional_nombre && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 truncate" }, t2("Atiende: {nombre}", { nombre: item.profesional_nombre }))), /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      type: "button",
+      onClick: () => quitarServicioDelTurno(item),
+      disabled: quitandoServicioTurno || creandoReservaManual,
+      className: "shrink-0 text-xs font-semibold text-red-600 bg-white border border-red-200 rounded-full px-3 py-1 hover:bg-red-50 disabled:opacity-50"
+    },
+    t2("Quitar")
+  )))), /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      type: "button",
+      onClick: () => setAnadiendoServicioTurno(true),
+      disabled: creandoReservaManual,
+      className: "mt-2 text-sm font-semibold text-pink-600 underline disabled:opacity-50"
+    },
+    "➕ ",
+    t2("Añadir un servicio")
+  ), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-2" }, t2("Al cambiar la fecha u hora se mueve todo el turno, con sus servicios."))) : reservaEditando ? /* @__PURE__ */ React.createElement(
     "select",
     {
       value: nuevaReservaData.servicio,
       onChange: (e) => {
         setServiciosManualSeleccionados([e.target.value].filter(Boolean));
-        setNuevaReservaData({ ...nuevaReservaData, servicio: e.target.value, fecha: "", hora_inicio: "", hora_fin: "" });
+        setNuevaReservaData({ ...nuevaReservaData, servicio: e.target.value, fecha: "", hora_inicio: "", hora_fin: "", duracion_personalizada: "" });
       },
       className: "w-full border rounded-lg px-3 py-2"
     },
@@ -4083,7 +4228,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
       /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between gap-3" }, /* @__PURE__ */ React.createElement("span", { className: "font-medium" }, s.nombre), /* @__PURE__ */ React.createElement("span", { className: `w-5 h-5 rounded border flex items-center justify-center text-xs ${seleccionado ? "bg-pink-500 border-pink-500 text-white" : "border-gray-300"}` }, seleccionado ? "✓" : "")),
       /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-1" }, s.duracion, " min - ", window.formatearPrecioServicio ? window.formatearPrecioServicio(s) : `$${s.precio}`)
     );
-  })), !reservaEditando && serviciosManualSeleccionados.length > 0 && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-pink-600 mt-2" }, t2("{n} servicio{s} - {min} min", { n: serviciosManualSeleccionados.length, s: serviciosManualSeleccionados.length === 1 ? "" : "s", min: getServiciosManualSeleccionados().reduce((total, s) => total + Number(s.duracion || 60), 0) }))), userRole === "admin" && nuevaReservaData.servicio && /* @__PURE__ */ React.createElement("div", { className: "rounded-xl border border-pink-100 bg-pink-50 p-3" }, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-pink-800 mb-1" }, t2("Duracion para esta cita (min)")), /* @__PURE__ */ React.createElement(
+  })), !reservaEditando && serviciosManualSeleccionados.length > 0 && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-pink-600 mt-2" }, t2("{n} servicio{s} - {min} min", { n: serviciosManualSeleccionados.length, s: serviciosManualSeleccionados.length === 1 ? "" : "s", min: getServiciosManualSeleccionados().reduce((total, s) => total + Number(s.duracion || 60), 0) }))), userRole === "admin" && nuevaReservaData.servicio && !turnoEditando && /* @__PURE__ */ React.createElement("div", { className: "rounded-xl border border-pink-100 bg-pink-50 p-3" }, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-pink-800 mb-1" }, t2("Duracion para esta cita (min)")), /* @__PURE__ */ React.createElement(
     "input",
     {
       type: "number",
@@ -4100,7 +4245,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
       className: "w-full border border-pink-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-pink-300 focus:border-pink-400",
       placeholder: t2("Usar {min} min", { min: getDuracionManualConfigurada(getServiciosManualSeleccionados()) })
     }
-  ), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-pink-700 mt-1" }, t2("Dejalo vacio para usar la duracion configurada. Si escribes un tiempo, solo aplica a esta cita.")), tieneDuracionManualPersonalizada() && /* @__PURE__ */ React.createElement("p", { className: "text-xs font-semibold text-pink-800 mt-1" }, t2("Esta reserva se calculara con {min} min.", { min: getDuracionManualTotal(getServiciosManualSeleccionados()) }))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, t2("Profesional *")), /* @__PURE__ */ React.createElement("select", { value: nuevaReservaData.profesional_id, onChange: (e) => setNuevaReservaData({ ...nuevaReservaData, profesional_id: e.target.value }), className: "w-full border rounded-lg px-3 py-2" }, /* @__PURE__ */ React.createElement("option", { value: "" }, t2("Seleccionar profesional")), profesionalesManualFiltrados.map((p) => /* @__PURE__ */ React.createElement("option", { key: p.id, value: p.id }, p.nombre, " - ", p.especialidad))), nuevaReservaData.servicio && profesionalesManualFiltrados.length === 0 && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-red-500 mt-1" }, t2("No hay profesionales asignados a este servicio."))), userRole === "admin" && salonPideAnticipo && !reservaEditando && /* @__PURE__ */ React.createElement("div", { className: "bg-yellow-50 p-3 rounded-lg" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3" }, /* @__PURE__ */ React.createElement("input", { type: "checkbox", id: "requiereAnticipo", checked: nuevaReservaData.requiereAnticipo, onChange: (e) => setNuevaReservaData({ ...nuevaReservaData, requiereAnticipo: e.target.checked }) }), /* @__PURE__ */ React.createElement("label", { htmlFor: "requiereAnticipo", className: "text-sm font-medium text-yellow-800" }, t2("Requerir anticipo al cliente"))), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-yellow-800 mt-1" }, nuevaReservaData.requiereAnticipo ? t2("La reserva queda pendiente y se le manda el pedido de anticipo por WhatsApp. Se confirma cuando recibas el pago.") : t2("Sin anticipo: la reserva queda confirmada al guardar."))), nuevaReservaData.servicio && nuevaReservaData.profesional_id && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-2" }, t2("Fecha *")), /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-xl border" }, /* @__PURE__ */ React.createElement("div", { className: "flex justify-between p-3 bg-gray-50 border-b" }, /* @__PURE__ */ React.createElement("button", { onClick: () => cambiarMes(-1) }, "›"), /* @__PURE__ */ React.createElement("span", { className: "font-bold" }, monthNames[currentDate.getMonth()], " ", currentDate.getFullYear()), /* @__PURE__ */ React.createElement("button", { onClick: () => cambiarMes(1) }, "›")), /* @__PURE__ */ React.createElement("div", { className: "p-3" }, /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-7 mb-2 text-center text-xs text-gray-400" }, (idioma === "en" ? ["S", "M", "T", "W", "T", "F", "S"] : ["D", "L", "M", "M", "J", "V", "S"]).map((d, i) => /* @__PURE__ */ React.createElement("div", { key: i }, d))), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-7 gap-1" }, days.map((date, idx) => {
+  ), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-pink-700 mt-1" }, t2("Dejalo vacio para usar la duracion configurada. Si escribes un tiempo, solo aplica a esta cita.")), tieneDuracionManualPersonalizada() && /* @__PURE__ */ React.createElement("p", { className: "text-xs font-semibold text-pink-800 mt-1" }, t2("Esta reserva se calculara con {min} min.", { min: getDuracionManualTotal(getServiciosManualSeleccionados()) }))), /* @__PURE__ */ React.createElement("div", { className: turnoEditando ? "hidden" : void 0 }, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, t2("Profesional *")), /* @__PURE__ */ React.createElement("select", { value: nuevaReservaData.profesional_id, onChange: (e) => setNuevaReservaData({ ...nuevaReservaData, profesional_id: e.target.value }), className: "w-full border rounded-lg px-3 py-2" }, /* @__PURE__ */ React.createElement("option", { value: "" }, t2("Seleccionar profesional")), profesionalesManualFiltrados.map((p) => /* @__PURE__ */ React.createElement("option", { key: p.id, value: p.id }, p.nombre, " - ", p.especialidad))), nuevaReservaData.servicio && profesionalesManualFiltrados.length === 0 && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-red-500 mt-1" }, t2("No hay profesionales asignados a este servicio."))), userRole === "admin" && salonPideAnticipo && !reservaEditando && /* @__PURE__ */ React.createElement("div", { className: "bg-yellow-50 p-3 rounded-lg" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3" }, /* @__PURE__ */ React.createElement("input", { type: "checkbox", id: "requiereAnticipo", checked: nuevaReservaData.requiereAnticipo, onChange: (e) => setNuevaReservaData({ ...nuevaReservaData, requiereAnticipo: e.target.checked }) }), /* @__PURE__ */ React.createElement("label", { htmlFor: "requiereAnticipo", className: "text-sm font-medium text-yellow-800" }, t2("Requerir anticipo al cliente"))), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-yellow-800 mt-1" }, nuevaReservaData.requiereAnticipo ? t2("La reserva queda pendiente y se le manda el pedido de anticipo por WhatsApp. Se confirma cuando recibas el pago.") : t2("Sin anticipo: la reserva queda confirmada al guardar."))), nuevaReservaData.servicio && nuevaReservaData.profesional_id && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-2" }, t2("Fecha *")), /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-xl border" }, /* @__PURE__ */ React.createElement("div", { className: "flex justify-between p-3 bg-gray-50 border-b" }, /* @__PURE__ */ React.createElement("button", { onClick: () => cambiarMes(-1) }, "›"), /* @__PURE__ */ React.createElement("span", { className: "font-bold" }, monthNames[currentDate.getMonth()], " ", currentDate.getFullYear()), /* @__PURE__ */ React.createElement("button", { onClick: () => cambiarMes(1) }, "›")), /* @__PURE__ */ React.createElement("div", { className: "p-3" }, /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-7 mb-2 text-center text-xs text-gray-400" }, (idioma === "en" ? ["S", "M", "T", "W", "T", "F", "S"] : ["D", "L", "M", "M", "J", "V", "S"]).map((d, i) => /* @__PURE__ */ React.createElement("div", { key: i }, d))), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-7 gap-1" }, days.map((date, idx) => {
     if (!date) return /* @__PURE__ */ React.createElement("div", { key: idx, className: "h-10" });
     const fechaStr = formatDate(date);
     const available = isDateAvailable(date);
@@ -4115,7 +4260,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
     else if (adminPuedeForzarFecha && esCerrado) className += " text-amber-700 hover:bg-amber-50 cursor-pointer border border-amber-200";
     else className += " text-gray-700 hover:bg-pink-50 cursor-pointer";
     return /* @__PURE__ */ React.createElement("button", { key: idx, onClick: () => handleDateSelect(date), disabled: fechaDeshabilitada, className, title: esCerrado ? t2("Dia cerrado, disponible para admin") : esPasado ? t2("Fecha pasada") : "" }, date.getDate());
-  }))))), nuevaReservaData.fecha && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-2" }, t2("Horario de la cita *")), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 gap-3 mb-3" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-xs font-semibold text-gray-500 mb-1" }, t2("Inicio")), /* @__PURE__ */ React.createElement(
+  }))))), nuevaReservaData.fecha && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-2" }, t2("Horario de la cita *")), /* @__PURE__ */ React.createElement("div", { className: turnoEditando ? "hidden" : "grid grid-cols-2 gap-3 mb-3" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-xs font-semibold text-gray-500 mb-1" }, t2("Inicio")), /* @__PURE__ */ React.createElement(
     "input",
     {
       type: "time",
@@ -4138,12 +4283,13 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
       }),
       className: "w-full border rounded-lg px-3 py-2"
     }
-  ))), nuevaReservaData.hora_inicio && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mb-3" }, nuevaReservaData.hora_fin ? t2("Duracion calculada: {min} min segun inicio y fin.", { min: getDuracionManualTotal(getServiciosManualSeleccionados()) }) : t2("Duracion calculada: {min} min segun el servicio o la duracion personalizada.", { min: getDuracionManualTotal(getServiciosManualSeleccionados()) })), modoHorarioManualCompleto && horariosDisponibles.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "mb-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800" }, t2("Modo admin: este dia no tiene horario normal para el profesional. Puedes elegir cualquier hora libre del dia, siempre que no choque con otra cita.")), horariosDisponibles.length > 0 ? /* @__PURE__ */ React.createElement("div", { className: `${modoHorarioManualCompleto ? "max-h-64 overflow-y-auto pr-1" : ""} grid grid-cols-3 gap-2` }, horariosDisponibles.map((hora) => /* @__PURE__ */ React.createElement("button", { key: hora, type: "button", onClick: () => setNuevaReservaData({ ...nuevaReservaData, hora_inicio: hora }), className: `py-2 px-3 rounded-lg text-sm font-medium ${nuevaReservaData.hora_inicio === hora ? "bg-pink-500 text-white" : "bg-gray-100 hover:bg-gray-200"}` }, formatTo12Hour(hora)))) : /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500" }, t2("No hay horarios disponibles"))), /* @__PURE__ */ React.createElement("div", { className: "flex gap-3 pt-4" }, /* @__PURE__ */ React.createElement(
+  ))), nuevaReservaData.hora_inicio && !turnoEditando && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mb-3" }, nuevaReservaData.hora_fin ? t2("Duracion calculada: {min} min segun inicio y fin.", { min: getDuracionManualTotal(getServiciosManualSeleccionados()) }) : t2("Duracion calculada: {min} min segun el servicio o la duracion personalizada.", { min: getDuracionManualTotal(getServiciosManualSeleccionados()) })), modoHorarioManualCompleto && horariosDisponibles.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "mb-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800" }, t2("Modo admin: este dia no tiene horario normal para el profesional. Puedes elegir cualquier hora libre del dia, siempre que no choque con otra cita.")), horariosDisponibles.length > 0 ? /* @__PURE__ */ React.createElement("div", { className: `${modoHorarioManualCompleto ? "max-h-64 overflow-y-auto pr-1" : ""} grid grid-cols-3 gap-2` }, horariosDisponibles.map((hora) => /* @__PURE__ */ React.createElement("button", { key: hora, type: "button", onClick: () => setNuevaReservaData({ ...nuevaReservaData, hora_inicio: hora }), className: `py-2 px-3 rounded-lg text-sm font-medium ${nuevaReservaData.hora_inicio === hora ? "bg-pink-500 text-white" : "bg-gray-100 hover:bg-gray-200"}` }, formatTo12Hour(hora)))) : /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500" }, t2("No hay horarios disponibles"))), /* @__PURE__ */ React.createElement("div", { className: "flex gap-3 pt-4" }, /* @__PURE__ */ React.createElement(
     "button",
     {
       onClick: () => {
         setShowNuevaReservaModal(false);
         setReservaEditando(null);
+        setTurnoEditando(null);
         setServiciosManualSeleccionados([]);
       },
       disabled: creandoReservaManual,
