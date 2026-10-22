@@ -1411,7 +1411,7 @@ function AdminApp() {
 
         if (!response.ok) throw new Error(await response.text());
         const reservasPropias = (await response.json()).filter(reserva => reserva.id !== reservaEditando?.id);
-        const reservas = (await window.espacios?.reservasConEspacios(profesionalId, fecha, fecha, reservasPropias, reservaEditando?.id)) ?? reservasPropias;
+        const reservas = (await window.espacios?.reservasConEspacios(profesionalId, fecha, fecha, reservasPropias, reservaEditando?.id, serviciosSeleccionados)) ?? reservasPropias;
         const hoy = new Date();
         hoy.setHours(0, 0, 0, 0);
         const diffDias = Math.ceil((new Date(year, month - 1, day) - hoy) / (1000 * 60 * 60 * 24));
@@ -1516,7 +1516,7 @@ function AdminApp() {
             
             if (!response.ok) throw new Error(await response.text());
             const reservasPropias = (await response.json()).filter(reserva => reserva.id !== reservaEditando?.id);
-            const reservas = (await window.espacios?.reservasConEspacios(profesionalId, fechaInicio, fechaFin, reservasPropias, reservaEditando?.id)) ?? reservasPropias;
+            const reservas = (await window.espacios?.reservasConEspacios(profesionalId, fechaInicio, fechaFin, reservasPropias, reservaEditando?.id, serviciosSeleccionados)) ?? reservasPropias;
             
             const reservasPorFecha = {};
             (reservas || []).forEach(r => {
@@ -2472,7 +2472,7 @@ function AdminApp() {
         }
     };
 
-    const validarRangoReservaManual = async ({ fecha, profesionalId, horaInicio, horaFin }) => {
+    const validarRangoReservaManual = async ({ fecha, profesionalId, horaInicio, horaFin, servicios }) => {
         if (!fecha || !profesionalId || !horaInicio || !horaFin) {
             return { ok: false, mensaje: 'Completa fecha, hora de inicio y hora de fin.' };
         }
@@ -2510,7 +2510,7 @@ function AdminApp() {
         }
 
         const reservasPropias = (await response.json()).filter(reserva => reserva.id !== reservaEditando?.id);
-        const reservas = (await window.espacios?.reservasConEspacios(profesionalId, fecha, fecha, reservasPropias, reservaEditando?.id)) ?? reservasPropias;
+        const reservas = (await window.espacios?.reservasConEspacios(profesionalId, fecha, fecha, reservasPropias, reservaEditando?.id, servicios)) ?? reservasPropias;
         const conflicto = reservas.find(reserva => {
             const reservaStart = timeToMinutes(reserva.hora_inicio);
             const reservaEnd = timeToMinutes(reserva.hora_fin);
@@ -2568,7 +2568,8 @@ function AdminApp() {
                 fecha: nuevaReservaData.fecha,
                 profesionalId: nuevaReservaData.profesional_id,
                 horaInicio: nuevaReservaData.hora_inicio,
-                horaFin: endTime
+                horaFin: endTime,
+                servicios: serviciosSeleccionados
             });
             if (!validacionRango.ok) {
                 const horariosVigentes = await calcularHorariosDisponiblesManual(

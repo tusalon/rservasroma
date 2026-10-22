@@ -170,7 +170,7 @@ function MyBookings({ cliente, onVolver }) {
       { headers: { "apikey": window.SUPABASE_ANON_KEY, "Authorization": `Bearer ${window.SUPABASE_ANON_KEY}` } }
     );
     const propias = resRes.ok ? await resRes.json() : [];
-    const reservas = await window.espacios?.reservasConEspacios(booking.profesional_id, fecha, fecha, propias, booking.id) ?? propias;
+    const reservas = await window.espacios?.reservasConEspacios(booking.profesional_id, fecha, fecha, propias, booking.id, booking.servicio) ?? propias;
     const minFechaPermitida = new Date(Date.now() + minHoras * 36e5);
     let baseSlots = indicesDelDia.map(indiceToHoraLegible);
     if (servicioRestringeHorarios(servicio, diaSemana)) baseSlots = baseSlots.filter((s) => servicioPermiteHorario(servicio, s, diaSemana));

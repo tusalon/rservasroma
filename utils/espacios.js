@@ -82,7 +82,64 @@
         }));
     }
 
-    const api = { aMinutos, estaActivo, espaciosDe, bloqueosPorEspacios };
+    // Nombres de servicio de una cita, como los guarda la base: en minusculas y sin espacios sobrantes.
+    // Acepta un texto ("Corte + Barba": varios servicios en una cita), un servicio ({ nombre }) o una lista.
+    function nombresDeServicio(servicio) {
+        const partes = Array.isArray(servicio) ? servicio : [servicio];
+        return partes
+            .flatMap(item => String(item && typeof item === 'object' ? item.nombre : item || '').split(' + '))
+            .map(nombre => nombre.trim().toLowerCase())
+            .filter(Boolean);
+    }
+
+    // Espacios del servicio. `porNombre`: { 'corte': [1, 2] } solo con los servicios que tienen espacios.
+    // Con varios nombres se usan los espacios comunes; si no hay ninguno en comun (o ninguno tiene espacios)
+    // devuelve null = sin restriccion de servicio (mejor no bloquear un combo raro).
+    function espaciosDelServicio(servicio, porNombre) {
+        let comunes = null;
+        nombresDeServicio(servicio).forEach(nombre => {
+            const suyos = porNombre && porNombre[nombre];
+            if (!suyos || !suyos.length) return;
+            comunes = comunes === null ? suyos : comunes.filter(n => suyos.includes(n));
+        });
+        return comunes && comunes.length ? comunes : null;
+    }
+
+    // Espacios que puede usar una cita: los de la profesional Y los del servicio.
+    // null = sin restriccion; [] = hay restriccion pero ningun espacio sirve (esa profesional no hace ese servicio).
+    // Debe decir lo mismo que espacios_permitidos() en sql-espacios.sql.
+    function espaciosPermitidos(espaciosProf, espaciosServicio) {
+        const prof = espaciosProf && espaciosProf.length ? espaciosProf : null;
+        const serv = espaciosServicio && espaciosServicio.length ? espaciosServicio : null;
+        if (!prof && !serv) return null;
+        if (!prof) return serv;
+        if (!serv) return prof;
+        return prof.filter(n => serv.includes(n));
+    }
+
+    // Cuando ningun espacio sirve, esa profesional no puede hacer el servicio en ningun momento:
+    // un bloqueo de dia completo por cada fecha pedida (maximo 62 dias).
+    function bloqueosDiaCompleto(profesionalId, fechaInicio, fechaFin) {
+        const bloqueos = [];
+        const dia = new Date(`${fechaInicio}T12:00:00Z`);
+        const ultimo = new Date(`${fechaFin || fechaInicio}T12:00:00Z`);
+        for (let i = 0; i < 62 && dia <= ultimo; i++, dia.setUTCDate(dia.getUTCDate() + 1)) {
+            bloqueos.push({
+                id: null,
+                fecha: dia.toISOString().slice(0, 10),
+                hora_inicio: '00:00:00',
+                hora_fin: '23:59:00',
+                profesional_id: profesionalId,
+                estado: 'Bloqueado',
+                cliente_nombre: 'Sin espacio para este servicio',
+                servicio: 'Sin espacio libre',
+                bloqueo_espacios: true
+            });
+        }
+        return bloqueos;
+    }
+
+    const api = { aMinutos, estaActivo, espaciosDe, bloqueosPorEspacios, nombresDeServicio, espaciosDelServicio, espaciosPermitidos, bloqueosDiaCompleto };
 
     if (typeof module !== 'undefined' && module.exports) module.exports = api;
     if (typeof window === 'undefined') return;
@@ -104,7 +161,7 @@
     async function cargarConfig(forzar) {
         const id = negocioId();
         if (!forzar && cache && cache.id === id && Date.now() - cache.hora < CACHE_MS) return cache.valor;
-        let valor = { activo: false, cantidad: 0, porProfesional: {} };
+        let valor = { activo: false, cantidad: 0, porProfesional: {}, porServicio: {} };
         try {
             const resConfig = await fetch(
                 `${window.SUPABASE_URL}/rest/v1/configuracion?negocio_id=eq.${id}&select=espacios_activos,espacios_cantidad`,
@@ -120,8 +177,17 @@
                     );
                     const profs = resProf.ok ? await resProf.json() : [];
                     const cantidad = parseInt(cfg.espacios_cantidad, 10) || 0;
-                    valor = { activo: true, cantidad, porProfesional: {} };
+                    valor = { activo: true, cantidad, porProfesional: {}, porServicio: {} };
                     (profs || []).forEach(p => { valor.porProfesional[String(p.id)] = espaciosDe(p, cantidad); });
+                    // Espacios por servicio; si no se pueden leer, los servicios quedan sin restriccion.
+                    const resServ = await fetch(
+                        `${window.SUPABASE_URL}/rest/v1/servicios?negocio_id=eq.${id}&select=nombre,espacios`,
+                        { headers: cabeceras() }
+                    );
+                    ((resServ.ok ? await resServ.json() : []) || []).forEach(servicio => {
+                        const suyos = espaciosDe(servicio, cantidad);
+                        if (suyos.length) valor.porServicio[String(servicio.nombre || '').trim().toLowerCase()] = suyos;
+                    });
                 }
             }
         } catch (error) {
@@ -131,14 +197,20 @@
         return valor;
     }
 
-    // Suma a las citas de la profesional los tramos bloqueados por espacios. Sin la funcion
-    // activa devuelve las citas tal cual, asi que es seguro llamarla siempre.
-    async function reservasConEspacios(profesionalId, fechaInicio, fechaFin, reservasProfesional, excluirId) {
+    // Suma a las citas de la profesional los tramos bloqueados por espacios. `servicio` (nombre, servicio o
+    // lista) es el que se quiere reservar: sus espacios tambien cuentan; sin el solo cuentan los de la
+    // profesional. Sin la funcion activa devuelve las citas tal cual, asi que es seguro llamarla siempre.
+    async function reservasConEspacios(profesionalId, fechaInicio, fechaFin, reservasProfesional, excluirId, servicio) {
         const propias = Array.isArray(reservasProfesional) ? reservasProfesional : [];
         try {
             const cfg = await cargarConfig();
-            const suyos = cfg.activo ? cfg.porProfesional[String(profesionalId)] : null;
-            if (!suyos || !suyos.length) return propias;
+            if (!cfg.activo) return propias;
+            const suyos = espaciosPermitidos(
+                cfg.porProfesional[String(profesionalId)],
+                espaciosDelServicio(servicio, cfg.porServicio)
+            );
+            if (suyos === null) return propias;
+            if (suyos.length === 0) return propias.concat(bloqueosDiaCompleto(profesionalId, fechaInicio, fechaFin));
             const res = await fetch(
                 `${window.SUPABASE_URL}/rest/v1/reservas?negocio_id=eq.${negocioId()}&fecha=gte.${fechaInicio}&fecha=lte.${fechaFin || fechaInicio}&espacio=not.is.null&estado=neq.Cancelado&select=id,fecha,hora_inicio,hora_fin,profesional_id,espacio`,
                 { headers: cabeceras(), cache: 'no-store' }
@@ -197,5 +269,8 @@
         cache = null;
     }
 
-    raiz.espacios = { ...api, cargarConfig, reservasConEspacios, asignarCitasFuturas, guardarConfig, guardarEspaciosProfesional };
+    // Crear o editar un servicio avisa con este evento (utils/servicios.js): lo leido de sus espacios ya no vale.
+    if (typeof window.addEventListener === 'function') window.addEventListener('serviciosActualizados', () => { cache = null; });
+
+    raiz.espacios = { ...api, cargarConfig, reservasConEspacios, asignarCitasFuturas, guardarConfig, guardarEspaciosProfesional, limpiarCache: () => { cache = null; } };
 })(typeof window !== 'undefined' ? window : globalThis);

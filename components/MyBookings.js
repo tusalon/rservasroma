@@ -192,7 +192,7 @@ function MyBookings({ cliente, onVolver }) {
             { headers: { 'apikey': window.SUPABASE_ANON_KEY, 'Authorization': `Bearer ${window.SUPABASE_ANON_KEY}` } });
         const propias = resRes.ok ? await resRes.json() : [];
         // Con espacios activos suma los tramos en que todos sus espacios estan tomados (utils/espacios.js).
-        const reservas = (await window.espacios?.reservasConEspacios(booking.profesional_id, fecha, fecha, propias, booking.id)) ?? propias;
+        const reservas = (await window.espacios?.reservasConEspacios(booking.profesional_id, fecha, fecha, propias, booking.id, booking.servicio)) ?? propias;
         const minFechaPermitida = new Date(Date.now() + minHoras * 3600000);
 
         let baseSlots = indicesDelDia.map(indiceToHoraLegible);

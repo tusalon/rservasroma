@@ -65,6 +65,48 @@ assert.deepEqual(e.bloqueosPorEspacios(JUANA, [1, 2], [cita(ROMA, 2, '10:00', '1
 assert.deepEqual(e.bloqueosPorEspacios(JUANA, [1, 2], [cita(ROMA, 3, '10:00', '11:00'), cita(SOFIA, 1, '10:00', '11:00')]),
     [], 'el 3 no es de Juana');
 
+
+// --- Espacios por servicio: la cita usa solo los espacios de la profesional Y del servicio
+assert.deepEqual(e.nombresDeServicio('Corte + Barba'), ['corte', 'barba'], 'varios servicios en una cita');
+assert.deepEqual(e.nombresDeServicio('  PEDICURA '), ['pedicura'], 'sin mayusculas ni espacios');
+assert.deepEqual(e.nombresDeServicio({ nombre: 'Manicura' }), ['manicura'], 'acepta un servicio');
+assert.deepEqual(e.nombresDeServicio([{ nombre: 'Axilas' }, 'Bikini + Cejas']), ['axilas', 'bikini', 'cejas'], 'acepta una lista');
+assert.deepEqual(e.nombresDeServicio(undefined), []);
+assert.deepEqual(e.nombresDeServicio(null), []);
+
+const porNombre = { manicura: [1, 2], pedicura: [3], axilas: [1, 2], bikini: [2, 3] };
+assert.deepEqual(e.espaciosDelServicio('Manicura', porNombre), [1, 2]);
+assert.equal(e.espaciosDelServicio('Corte', porNombre), null, 'un servicio sin espacios no restringe');
+assert.deepEqual(e.espaciosDelServicio('Axilas + Bikini', porNombre), [2], 'varios: los espacios comunes');
+assert.equal(e.espaciosDelServicio('Manicura + Pedicura', porNombre), null, 'sin espacios comunes no se bloquea el combo');
+assert.deepEqual(e.espaciosDelServicio('Pedicura + Corte', porNombre), [3], 'un servicio sin espacios no estorba al otro');
+assert.equal(e.espaciosDelServicio(undefined, porNombre), null);
+assert.equal(e.espaciosDelServicio('Manicura', undefined), null);
+
+assert.equal(e.espaciosPermitidos([], []), null, 'ni la profesional ni el servicio tienen espacios: sin restriccion');
+assert.equal(e.espaciosPermitidos(undefined, null), null);
+assert.deepEqual(e.espaciosPermitidos([1, 2], null), [1, 2], 'solo la profesional');
+assert.deepEqual(e.espaciosPermitidos([], [3]), [3], 'profesional sin espacios: manda el servicio');
+assert.deepEqual(e.espaciosPermitidos([2, 3], [1, 2]), [2], 'los comunes');
+assert.deepEqual(e.espaciosPermitidos([1, 2], [3]), [], 'nada en comun: esa profesional no hace ese servicio');
+
+const diaCompleto = e.bloqueosDiaCompleto(7, '2026-10-30', '2026-11-01');
+assert.deepEqual(diaCompleto.map(b => b.fecha), ['2026-10-30', '2026-10-31', '2026-11-01'], 'un bloqueo por dia, tambien al cambiar de mes');
+assert.equal(diaCompleto[0].hora_inicio, '00:00:00');
+assert.equal(diaCompleto[0].hora_fin, '23:59:00');
+assert.equal(diaCompleto[0].bloqueo_espacios, true);
+assert.equal(e.bloqueosDiaCompleto(7, '2026-10-30').length, 1, 'sin fecha final es solo ese dia');
+assert.equal(e.bloqueosDiaCompleto(7, '2026-01-01', '2026-12-31').length, 62, 'tope de 62 dias');
+
+// El caso del salon con servicios: la Pedicura solo en el espacio 3
+// Roma {2,3} hace Pedicura en el 3; Sofia {1,2,3} tambien (3); Juana {1,2} no comparte espacio
+const soloPedicura = e.espaciosPermitidos([2, 3], [3]);
+assert.deepEqual(e.bloqueosPorEspacios(SOFIA, e.espaciosPermitidos([1, 2, 3], [3]), [cita(ROMA, 3, '12:00', '13:00')]).map(b => b.hora_inicio),
+    ['12:00:00'], 'Pedicura: con el 3 ocupado por Roma, Sofia no puede');
+assert.deepEqual(e.bloqueosPorEspacios(SOFIA, e.espaciosPermitidos([1, 2, 3], [1, 2]), [cita(ROMA, 3, '12:00', '13:00')]), [],
+    'Manicura {1,2}: a Sofia no le afecta que el 3 este ocupado');
+assert.deepEqual(soloPedicura, [3]);
+
 // --- Lo que ve la pantalla, con una Supabase simulada
 const fs = require('node:fs');
 const path = require('node:path');
@@ -94,6 +136,7 @@ const propias = [{ id: 7, fecha: '2026-10-21', hora_inicio: '09:00', hora_fin: '
     let p = pantalla((url) => {
         if (url.includes('/configuracion')) return { json: [{ espacios_activos: true, espacios_cantidad: 3 }] };
         if (url.includes('/profesionales')) return { json: [{ id: 1, espacios: [1, 2] }, { id: 2, espacios: [2, 3] }, { id: 3, espacios: [1, 2, 3] }] };
+        if (url.includes('/servicios')) return { json: [] };
         if (url.includes('/reservas')) return { json: [cita(ROMA, 2, '10:00', '11:00'), cita(SOFIA, 1, '10:00', '11:00')] };
         throw new Error('url inesperada ' + url);
     });
@@ -127,6 +170,7 @@ const propias = [{ id: 7, fecha: '2026-10-21', hora_inicio: '09:00', hora_fin: '
     p = pantalla((url) => {
         if (url.includes('/configuracion')) return { json: [{ espacios_activos: true, espacios_cantidad: 3 }] };
         if (url.includes('/profesionales')) return { json: [{ id: 1, espacios: [] }] };
+        if (url.includes('/servicios')) return { json: [] };
         throw new Error('no debia consultar ' + url);
     });
     assert.equal(await p.w.reservasConEspacios(1, '2026-10-21', '2026-10-21', propias), propias, 'sin espacios marcados');
@@ -135,6 +179,7 @@ const propias = [{ id: 7, fecha: '2026-10-21', hora_inicio: '09:00', hora_fin: '
     p = pantalla((url) => {
         if (url.includes('/configuracion')) return { json: [{ espacios_activos: true, espacios_cantidad: 2 }] };
         if (url.includes('/profesionales')) return { json: [{ id: 1, espacios: [1, 2] }, { id: 2, espacios: [1, 2] }] };
+        if (url.includes('/servicios')) return { json: [] };
         return { json: [{ id: 50, fecha: '2026-10-21', hora_inicio: '10:00', hora_fin: '11:00', profesional_id: 2, espacio: 1 },
                         { id: 51, fecha: '2026-10-21', hora_inicio: '10:00', hora_fin: '11:00', profesional_id: 3, espacio: 2 }] };
     });
@@ -147,6 +192,61 @@ const propias = [{ id: 7, fecha: '2026-10-21', hora_inicio: '09:00', hora_fin: '
     assert.equal(rep.sinCupo.length, 1);
     assert.ok(p.llamadas[0].url.endsWith('/rpc/asignar_espacios_futuros'));
     assert.equal(JSON.parse(p.llamadas[0].cuerpo).p_negocio, 'N1');
+
+    // --- Espacios por servicio, con la Supabase simulada
+    const supabaseConServicios = (servicios) => pantalla((url) => {
+        if (url.includes('/configuracion')) return { json: [{ espacios_activos: true, espacios_cantidad: 3 }] };
+        if (url.includes('/profesionales')) return { json: [{ id: 1, espacios: [1, 2] }, { id: 2, espacios: [2, 3] }, { id: 3, espacios: [1, 2, 3] }, { id: 4, espacios: [] }] };
+        if (url.includes('/servicios')) return { json: servicios };
+        if (url.includes('/reservas')) return { json: [cita(ROMA, 3, '12:00', '13:00'), cita(SOFIA, 1, '14:00', '15:00')] };
+        throw new Error('url inesperada ' + url);
+    });
+    const servicios = [
+        { nombre: 'Manicura', espacios: [1, 2] },
+        { nombre: 'Pedicura', espacios: [3] },
+        { nombre: 'Corte', espacios: [] },
+        { nombre: 'Axilas', espacios: [1, 2] },
+        { nombre: 'Bikini', espacios: [2, 3] }
+    ];
+
+    p = supabaseConServicios(servicios);
+    // Pedicura solo en el 3: Juana {1,2} no comparte espacio -> no puede hacerla nunca (dia completo)
+    let r = await p.w.reservasConEspacios(1, '2026-10-21', '2026-10-22', [], null, 'Pedicura');
+    assert.equal(r.length, 2, 'un bloqueo por cada dia pedido');
+    assert.ok(r.every(b => b.hora_inicio === '00:00:00' && b.hora_fin === '23:59:00' && b.bloqueo_espacios));
+    // Sofia {1,2,3}: Pedicura solo en el 3 y Roma lo tiene de 12 a 13
+    r = await p.w.reservasConEspacios(3, '2026-10-21', '2026-10-21', [], null, { nombre: 'Pedicura' });
+    assert.deepEqual(r.map(b => `${b.hora_inicio}-${b.hora_fin}`), ['12:00:00-13:00:00'], 'se bloquea cuando el 3 esta ocupado');
+    // Sofia con una Manicura {1,2}: el 1 esta ocupado de 14 a 15 pero el 2 esta libre
+    assert.equal((await p.w.reservasConEspacios(3, '2026-10-21', '2026-10-21', [], null, 'Manicura')).length, 0, 'queda el 2');
+    // Un servicio sin espacios marcados: solo cuentan los de la profesional (Roma {2,3}: el 3 ocupado, el 2 libre)
+    assert.equal((await p.w.reservasConEspacios(2, '2026-10-21', '2026-10-21', [], null, 'Corte')).length, 0);
+    // Servicio que no existe o no se indica: como antes (solo la profesional)
+    assert.equal((await p.w.reservasConEspacios(2, '2026-10-21', '2026-10-21', [], null)).length, 0);
+    assert.equal((await p.w.reservasConEspacios(2, '2026-10-21', '2026-10-21', [], null, 'Algo que no existe')).length, 0);
+    // Profesional sin espacios y servicio con espacios: manda el servicio (Pedicura {3}, ocupado 12-13 por Roma)
+    r = await p.w.reservasConEspacios(4, '2026-10-21', '2026-10-21', [], null, 'Pedicura');
+    assert.deepEqual(r.map(b => b.hora_inicio), ['12:00:00'], 'sin espacios propios, mandan los del servicio');
+    // Profesional sin espacios y servicio sin espacios: no se toca nada ni se piden las citas
+    p = pantalla((url) => {
+        if (url.includes('/configuracion')) return { json: [{ espacios_activos: true, espacios_cantidad: 3 }] };
+        if (url.includes('/profesionales')) return { json: [{ id: 4, espacios: [] }] };
+        if (url.includes('/servicios')) return { json: [{ nombre: 'Corte', espacios: [] }] };
+        throw new Error('no debia consultar ' + url);
+    });
+    assert.equal(await p.w.reservasConEspacios(4, '2026-10-21', '2026-10-21', propias, null, 'Corte'), propias);
+    // Varios servicios en una cita: Axilas {1,2} + Bikini {2,3} -> solo el 2
+    p = supabaseConServicios(servicios);
+    r = await p.w.reservasConEspacios(1, '2026-10-21', '2026-10-21', [], null, 'Axilas + Bikini');
+    assert.equal(r.length, 0, 'Juana {1,2} con comun {2}: el 2 esta libre');
+    // Si no se pueden leer los servicios, los servicios quedan sin restriccion y todo sigue funcionando
+    p = pantalla((url) => {
+        if (url.includes('/configuracion')) return { json: [{ espacios_activos: true, espacios_cantidad: 3 }] };
+        if (url.includes('/profesionales')) return { json: [{ id: 1, espacios: [1, 2] }] };
+        if (url.includes('/servicios')) return { ok: false, status: 400, json: { code: '42703' } };
+        return { json: [] };
+    });
+    assert.equal((await p.w.reservasConEspacios(1, '2026-10-21', '2026-10-21', propias, null, 'Pedicura')).length, 1, 'sin lectura de servicios: solo cuentan los de la profesional');
 
     console.log('espacios: ok');
 })().catch(e => { console.error(e); process.exit(1); });

@@ -558,6 +558,16 @@ function ServicioFormCategorias({ servicio, categorias, onGuardar, onCancelar })
         horarios_permitidos: servicio?.horarios_permitidos || []
     });
     const [horariosStr, setHorariosStr] = React.useState(servicio?.horarios_permitidos ? servicio.horarios_permitidos.join(', ') : '');
+    // Espacios del salon (utils/espacios.js): solo se muestran si la funcion esta activa en este salon.
+    const [cfgEspacios, setCfgEspacios] = React.useState({ activo: false, cantidad: 0 });
+    const [espaciosServicio, setEspaciosServicio] = React.useState(Array.isArray(servicio?.espacios) ? servicio.espacios : []);
+    React.useEffect(() => {
+        let vivo = true;
+        Promise.resolve(window.espacios?.cargarConfig?.()).then(cfg => {
+            if (vivo && cfg) setCfgEspacios({ activo: !!cfg.activo, cantidad: cfg.cantidad || 0 });
+        }).catch(() => {});
+        return () => { vivo = false; };
+    }, []);
     // Horas propias por dia de la semana: { miercoles: '13:00, 13:30' }. Un dia con horas manda sobre la lista general SOLO ese dia.
     const [horariosDiaStr, setHorariosDiaStr] = React.useState(() => Object.fromEntries(
         DIAS_HORARIOS_SERVICIO.map(([clave]) => {
@@ -639,7 +649,9 @@ function ServicioFormCategorias({ servicio, categorias, onGuardar, onCancelar })
             requiere_anticipo: form.requiere_anticipo,
             tipo_anticipo: form.tipo_anticipo === 'porcentaje' ? 'porcentaje' : 'fijo',
             valor_anticipo: form.requiere_anticipo ? valorAnticipo : null,
-            horarios_permitidos: horarios
+            horarios_permitidos: horarios,
+            // Sin la funcion activa no se manda el campo: el servicio se guarda igual que siempre.
+            ...(cfgEspacios.activo ? { espacios: espaciosServicio.filter(n => n >= 1 && n <= cfgEspacios.cantidad) } : {})
         });
     };
 
@@ -738,6 +750,26 @@ function ServicioFormCategorias({ servicio, categorias, onGuardar, onCancelar })
                     </div>
                     <input value={horariosStr} onChange={(e) => setHorariosStr(e.target.value)} className="w-full border border-gray-200 rounded-lg px-3 py-2" placeholder={t('Horarios permitidos: 09:00, 11:00')} />
                     <p className="text-xs text-gray-400">{t('Déjalo vacío para usar todos los horarios del profesional.')}</p>
+                    {cfgEspacios.activo && (
+                        <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                            <p className="text-sm font-semibold text-gray-700">{t('Espacios donde se hace este servicio')}</p>
+                            <p className="text-xs text-gray-500 mt-1">{t('Marca los espacios en los que se puede hacer. Si no marcas ninguno, se puede hacer en cualquiera.')}</p>
+                            <div className="flex flex-wrap gap-2 mt-2">
+                                {Array.from({ length: cfgEspacios.cantidad }, (_, i) => i + 1).map(n => (
+                                    <label key={n} className={`px-3 py-1.5 rounded-lg border text-sm cursor-pointer ${espaciosServicio.includes(n) ? 'bg-amber-600 text-white border-amber-600' : 'bg-white text-gray-700'}`}>
+                                        <input
+                                            type="checkbox"
+                                            className="sr-only"
+                                            checked={espaciosServicio.includes(n)}
+                                            onChange={() => setEspaciosServicio(actual => actual.includes(n) ? actual.filter(x => x !== n) : [...actual, n].sort((a, b) => a - b))}
+                                        />
+                                        {t('Espacio {n}', { n })}
+                                    </label>
+                                ))}
+                            </div>
+                            <p className="text-xs text-gray-500 mt-2">{t('Si una profesional no tiene ninguno de estos espacios, no podrá hacer este servicio.')}</p>
+                        </div>
+                    )}
                     <details className="rounded-lg border border-gray-200 bg-gray-50 p-3" open={Object.values(horariosDiaStr).some(Boolean) || Object.values(diasApagados).some(Boolean)}>
                         <summary className="text-sm font-semibold text-gray-700 cursor-pointer">{t('Horarios distintos según el día de la semana (opcional)')}</summary>
                         <p className="text-xs text-gray-500 mt-2">{t('Ej: el miércoles solo 13:00, 13:30. Ese día usa estas horas; los demás días siguen con los horarios de arriba.')}</p>

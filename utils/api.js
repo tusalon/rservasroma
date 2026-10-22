@@ -47,7 +47,7 @@ async function getBookingsByDate(dateStr) {
 /**
  * Fetch bookings for a specific date AND profesional
  */
-async function getBookingsByDateAndProfesional(dateStr, profesionalId) {
+async function getBookingsByDateAndProfesional(dateStr, profesionalId, servicio) {
     try {
         const negocioId = getNegocioId();
         console.log(`🌐 Solicitando turnos para ${dateStr} del profesional ${profesionalId} (negocio: ${negocioId})`);
@@ -70,7 +70,7 @@ async function getBookingsByDateAndProfesional(dateStr, profesionalId) {
         const data = await response.json();
         const propias = Array.isArray(data) ? data : [];
         // Con espacios activos suma los tramos en que todos sus espacios estan tomados (utils/espacios.js).
-        return (await window.espacios?.reservasConEspacios(profesionalId, dateStr, dateStr, propias)) ?? propias;
+        return (await window.espacios?.reservasConEspacios(profesionalId, dateStr, dateStr, propias, null, servicio)) ?? propias;
     } catch (error) {
         console.error('Error fetching bookings:', error);
         return [];

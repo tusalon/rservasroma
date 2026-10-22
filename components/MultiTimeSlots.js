@@ -54,7 +54,7 @@ function MultiTimeSlots({ service, date, profesional, onTimeSelect, selectedTime
                     const descansos = window.salonConfig.getDescansosPorDia
                         ? await window.salonConfig.getDescansosPorDia(item.profesional.id)
                         : {};
-                    const bookings = await getBookingsByDateAndProfesional(date, item.profesional.id);
+                    const bookings = await getBookingsByDateAndProfesional(date, item.profesional.id, item.servicio);
                     return { ...item, horarios, descansos, bookings };
                 }));
 

@@ -81,7 +81,7 @@ function BookingForm({ service, profesional, date, time, onSubmit, onCancel, cli
                     const item = profesional.asignaciones[index];
                     const servicioItem = item.servicio;
                     const profesionalItem = item.profesional;
-                    const bookings = await getBookingsByDateAndProfesional(date, profesionalItem.id);
+                    const bookings = await getBookingsByDateAndProfesional(date, profesionalItem.id, servicioItem);
                     const horarioFecha = await window.salonConfig.getHorariosProfesionalParaFecha(profesionalItem.id, date);
                     const horariosPorDia = horarioFecha.horariosPorDia || {};
                     const descansosPorDia = horarioFecha.descansosPorDia || {};
@@ -172,7 +172,7 @@ function BookingForm({ service, profesional, date, time, onSubmit, onCancel, cli
                 return;
             }
 
-            const bookings = await getBookingsByDateAndProfesional(date, profesional.id);
+            const bookings = await getBookingsByDateAndProfesional(date, profesional.id, service);
             const baseSlots = [time];
             const available = filterAvailableSlots(baseSlots, service.duracion, bookings);
 

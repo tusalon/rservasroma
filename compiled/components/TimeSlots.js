@@ -146,7 +146,7 @@ function TimeSlots({ service, date, profesional, cliente, onTimeSelect, selected
           `${Math.floor(minAllowedMinutes / 60)}:${minAllowedMinutes % 60}`
         );
         console.log("📅 Fecha seleccionada:", date, "es hoy?", esHoy);
-        let bookings = await getBookingsByDateAndProfesional(date, profesional.id);
+        let bookings = await getBookingsByDateAndProfesional(date, profesional.id, service);
         if (bookings.length === 0 && window.getBookingsByDate) {
           const reservasDia = await window.getBookingsByDate(date);
           const nombreProfesional = String(profesional.nombre || "").trim().toLowerCase();

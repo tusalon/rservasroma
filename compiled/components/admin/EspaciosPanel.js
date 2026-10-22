@@ -10,6 +10,9 @@ Object.assign(window.__I18N_EN__ = window.__I18N_EN__ || {}, {
   "Guardar espacios": "Save spaces",
   "Esta opción todavía no está activada en la base de datos. Avisa a soporte.": "This option is not yet enabled in the database. Contact support.",
   "Espacios guardados.": "Spaces saved.",
+  "Espacios donde se hace este servicio": "Spaces where this service is done",
+  "Marca los espacios en los que se puede hacer. Si no marcas ninguno, se puede hacer en cualquiera.": "Mark the spaces where it can be done. If you mark none, it can be done in any of them.",
+  "Si una profesional no tiene ninguno de estos espacios, no podrá hacer este servicio.": "If a professional has none of these spaces, she will not be able to do this service.",
   "No se pudieron guardar los espacios.": "The spaces could not be saved.",
   "Estas citas ya coincidían en el tiempo y no caben en los espacios; siguen en tu agenda sin espacio:": "These bookings already overlapped and do not fit in the spaces; they stay in your calendar without a space:",
   "Con la función activada, una cita ocupa un espacio mientras dura. Si todos los espacios de la profesional están ocupados, ese horario no se ofrece.": "With this on, a booking uses a space while it lasts. If all of the professional's spaces are taken, that time is not offered."

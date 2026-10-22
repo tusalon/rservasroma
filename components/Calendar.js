@@ -45,7 +45,7 @@ function Calendar({ onDateSelect, selectedDate, profesional, profesionalCompleto
     // undefined que motivó mantener el timeToMinutes local de este archivo.
     // crearBloquesTrabajo se eliminó: no tenía ningún sitio de llamada (código muerto).
 
-    const getReservasPorFechaProfesional = async (negocioId, profesionalId, fechaInicio, fechaFin) => {
+    const getReservasPorFechaProfesional = async (negocioId, profesionalId, fechaInicio, fechaFin, servicio) => {
         const response = await fetch(
             `${window.SUPABASE_URL}/rest/v1/reservas?negocio_id=eq.${negocioId}&fecha=gte.${fechaInicio}&fecha=lte.${fechaFin}&profesional_id=eq.${profesionalId}&estado=neq.Cancelado&select=fecha,hora_inicio,hora_fin`,
             {
@@ -58,7 +58,7 @@ function Calendar({ onDateSelect, selectedDate, profesional, profesionalCompleto
 
         const propias = response.ok ? await response.json() : [];
         // Con espacios activos suma los tramos en que todos sus espacios estan tomados (utils/espacios.js).
-        const reservas = (await window.espacios?.reservasConEspacios(profesionalId, fechaInicio, fechaFin, propias)) ?? propias;
+        const reservas = (await window.espacios?.reservasConEspacios(profesionalId, fechaInicio, fechaFin, propias, null, servicio)) ?? propias;
         return (reservas || []).reduce((acc, reserva) => {
             if (!acc[reserva.fecha]) acc[reserva.fecha] = [];
             acc[reserva.fecha].push(reserva);
@@ -176,7 +176,7 @@ function Calendar({ onDateSelect, selectedDate, profesional, profesionalCompleto
             const datosMultiples = asignacionesMultiples.length > 0
                 ? await Promise.all(asignacionesMultiples.map(async item => {
                     const [reservasItem, horariosPorFechaItem] = await Promise.all([
-                        getReservasPorFechaProfesional(negocioId, item.profesional.id, fechaInicio, fechaFin),
+                        getReservasPorFechaProfesional(negocioId, item.profesional.id, fechaInicio, fechaFin, item.servicio),
                         window.salonConfig.getHorariosProfesionalParaFechas(item.profesional.id, fechasDelMes)
                     ]);
                     return { ...item, reservasPorFecha: reservasItem || {}, horariosPorFecha: horariosPorFechaItem || {} };
@@ -186,7 +186,7 @@ function Calendar({ onDateSelect, selectedDate, profesional, profesionalCompleto
             const [reservasPorFecha, horariosPorFechaProfesional] = asignacionesMultiples.length > 0
                 ? [{}, {}]
                 : await Promise.all([
-                    getReservasPorFechaProfesional(negocioId, profesional.id, fechaInicio, fechaFin),
+                    getReservasPorFechaProfesional(negocioId, profesional.id, fechaInicio, fechaFin, service),
                     window.salonConfig.getHorariosProfesionalParaFechas(profesional.id, fechasDelMes)
                 ]);
             

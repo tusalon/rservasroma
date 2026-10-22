@@ -35,7 +35,7 @@ function MultiTimeSlots({ service, date, profesional, onTimeSelect, selectedTime
         const datos = await Promise.all(asignaciones.map(async (item) => {
           const horarios = await window.salonConfig.getHorariosPorDia(item.profesional.id);
           const descansos = window.salonConfig.getDescansosPorDia ? await window.salonConfig.getDescansosPorDia(item.profesional.id) : {};
-          const bookings = await getBookingsByDateAndProfesional(date, item.profesional.id);
+          const bookings = await getBookingsByDateAndProfesional(date, item.profesional.id, item.servicio);
           return { ...item, horarios, descansos, bookings };
         }));
         if (datos.length !== asignaciones.length) {

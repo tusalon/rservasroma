@@ -12,6 +12,16 @@
 --   * Pasa por la base y no por la app a proposito: asi vale igual para la clienta, la reserva manual,
 --     reprogramar y cualquier otra via, y dos clientas a la vez no pueden quedarse con el mismo espacio.
 --   * Una profesional sin espacios marcados no tiene restriccion. Con la funcion apagada nada cambia.
+--   * Cada SERVICIO tambien puede limitarse a ciertos espacios (ej.: la pedicura solo en el 3). Una cita puede
+--     usar solo los espacios que cumplan las dos cosas: los de la profesional Y los del servicio. Un servicio sin
+--     espacios marcados se puede hacer en cualquiera. Si una profesional no tiene ninguno de los espacios del
+--     servicio, ese servicio no se le ofrece a ella (la pantalla de servicios lo avisa).
+--   * La cita guarda el servicio como texto (a veces varios: "Corte + Barba"); aqui se reconoce por el nombre.
+--     Con varios servicios en una cita se usan los espacios comunes; si no hay ninguno en comun, mandan solo los
+--     de la profesional (mejor no bloquear un combo raro que dejarlo sin reservar).
+--
+-- VERSION: 21-10-2026 anade espacios por servicio. Si ya corriste la version anterior, vuelve a correr ESTE archivo
+-- completo: reemplaza las funciones y no toca las citas ni lo que ya marcaste.
 --
 -- ORDEN
 --   1) Este SQL.   2) Publicar la app (hasta entonces las apps ignoran estas columnas y no se rompe nada).
@@ -22,6 +32,7 @@ alter table public.configuracion add column if not exists espacios_activos boole
 alter table public.configuracion add column if not exists espacios_cantidad integer not null default 0;
 alter table public.profesionales add column if not exists espacios integer[] not null default '{}';
 alter table public.reservas add column if not exists espacio integer;
+alter table public.servicios add column if not exists espacios integer[] not null default '{}';
 
 do $$
 begin
@@ -32,13 +43,11 @@ begin
 end
 $$;
 
--- 2) Primer espacio libre de una profesional en un horario ----------------------------------------------------
--- Devuelve null si la funcion esta apagada, si la profesional no tiene espacios o si no queda ninguno libre.
--- La usan el trigger de abajo y el reparto de citas ya existentes.
-create or replace function public.espacio_libre_para(
-    p_negocio uuid, p_profesional bigint, p_fecha date, p_inicio time, p_fin time, p_excluir bigint
-)
-returns integer
+-- 2) Espacios que puede usar una cita: los de la profesional Y los del servicio ------------------------------------
+-- Devuelve null si no hay restriccion (funcion apagada, o ni la profesional ni el servicio tienen espacios),
+-- y un arreglo vacio si hay restriccion pero ningun espacio sirve.
+create or replace function public.espacios_permitidos(p_negocio uuid, p_profesional bigint, p_servicio text)
+returns integer[]
 language plpgsql
 stable
 security definer
@@ -46,8 +55,10 @@ set search_path = public
 as $$
 declare
     v_cantidad integer;
-    v_espacios integer[];
-    e integer;
+    v_prof integer[];
+    v_serv integer[];
+    v_esp integer[];
+    v_parte text;
 begin
     select case when c.espacios_activos then c.espacios_cantidad else 0 end
       into v_cantidad
@@ -57,10 +68,56 @@ begin
     if coalesce(v_cantidad, 0) <= 0 then return null; end if;
 
     select array(select distinct n from unnest(p.espacios) n where n between 1 and v_cantidad order by n)
-      into v_espacios
+      into v_prof
       from public.profesionales p
      where p.id = p_profesional and p.negocio_id = p_negocio;
-    if v_espacios is null or cardinality(v_espacios) = 0 then return null; end if;
+
+    -- Espacios del servicio; con varios nombres en una cita se juntan los que tienen en comun.
+    v_serv := null;
+    foreach v_parte in array string_to_array(coalesce(p_servicio, ''), ' + ') loop
+        v_esp := null;
+        select array(select distinct n from unnest(s.espacios) n where n between 1 and v_cantidad order by n)
+          into v_esp
+          from public.servicios s
+         where s.negocio_id = p_negocio
+           and lower(trim(s.nombre)) = lower(trim(v_parte))
+           and cardinality(s.espacios) > 0
+         limit 1;
+        if v_esp is not null and cardinality(v_esp) > 0 then
+            if v_serv is null then
+                v_serv := v_esp;
+            else
+                v_serv := array(select x from (select unnest(v_serv) as x intersect select unnest(v_esp)) t order by x);
+            end if;
+        end if;
+    end loop;
+    if v_serv is not null and cardinality(v_serv) = 0 then v_serv := null; end if;
+
+    if coalesce(cardinality(v_prof), 0) = 0 and v_serv is null then return null; end if;
+    if coalesce(cardinality(v_prof), 0) = 0 then return v_serv; end if;
+    if v_serv is null then return v_prof; end if;
+    return array(select x from (select unnest(v_prof) as x intersect select unnest(v_serv)) t order by x);
+end
+$$;
+
+-- Primer espacio libre en un horario. Devuelve null si no hay restriccion y -1 si no queda ninguno.
+-- La usan el trigger de abajo y el reparto de citas ya existentes.
+drop function if exists public.espacio_libre_para(uuid, bigint, date, time, time, bigint);
+create or replace function public.espacio_libre_para(
+    p_negocio uuid, p_profesional bigint, p_fecha date, p_inicio time, p_fin time, p_excluir bigint, p_servicio text default null
+)
+returns integer
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+declare
+    v_espacios integer[];
+    e integer;
+begin
+    v_espacios := public.espacios_permitidos(p_negocio, p_profesional, p_servicio);
+    if v_espacios is null then return null; end if;
 
     foreach e in array v_espacios loop
         if not exists (
@@ -77,7 +134,7 @@ begin
         end if;
     end loop;
 
-    return -1; -- hay espacios pero todos estan ocupados
+    return -1; -- hay restriccion pero no queda ningun espacio libre (o ninguno sirve)
 end
 $$;
 
@@ -130,7 +187,7 @@ begin
     -- Un candado por salon y dia: dos citas a la vez no pueden elegir el mismo espacio.
     perform pg_advisory_xact_lock(hashtextextended(new.negocio_id::text || new.fecha::text, 0));
 
-    v_espacio := public.espacio_libre_para(new.negocio_id, new.profesional_id, new.fecha, new.hora_inicio, new.hora_fin, new.id);
+    v_espacio := public.espacio_libre_para(new.negocio_id, new.profesional_id, new.fecha, new.hora_inicio, new.hora_fin, new.id, new.servicio);
     if v_espacio = -1 then
         raise exception 'No queda un espacio libre para ese horario'
             using errcode = '23P01', detail = 'Todos los espacios de la profesional estan ocupados';
@@ -180,7 +237,7 @@ begin
     perform pg_advisory_xact_lock(hashtextextended(p_negocio::text, 1));
     perform set_config('espacios.reparto', '1', true);
     for r in
-        select x.id, x.profesional_id, x.fecha, x.hora_inicio, x.hora_fin, x.cliente_nombre
+        select x.id, x.profesional_id, x.fecha, x.hora_inicio, x.hora_fin, x.cliente_nombre, x.servicio
           from public.reservas x
          where x.negocio_id = p_negocio
            and x.fecha >= current_date
@@ -190,9 +247,9 @@ begin
            and x.hora_fin > x.hora_inicio
          order by x.fecha, x.hora_inicio, x.id
     loop
-        v_espacio := public.espacio_libre_para(p_negocio, r.profesional_id, r.fecha, r.hora_inicio, r.hora_fin, r.id);
+        v_espacio := public.espacio_libre_para(p_negocio, r.profesional_id, r.fecha, r.hora_inicio, r.hora_fin, r.id, r.servicio);
         if v_espacio is null then
-            continue; -- la profesional no usa espacios
+            continue; -- sin restriccion de espacios
         elsif v_espacio = -1 then
             id := r.id; fecha := r.fecha; hora_inicio := r.hora_inicio; cliente_nombre := r.cliente_nombre;
             return next;
