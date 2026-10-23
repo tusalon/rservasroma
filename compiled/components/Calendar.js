@@ -181,6 +181,7 @@ function Calendar({ onDateSelect, selectedDate, profesional, profesionalCompleto
             let cursor = timeToMinutes(slotStr);
             const fechaHoraSlot = new Date(year, month, d, Math.floor(cursor / 60), cursor % 60, 0);
             if (fechaHoraSlot < minFechaPermitida) continue;
+            if (primerServicioSinHorario(datosMultiples.map((item) => item.servicio), cursor, diaSemana)) continue;
             let slotCompletoDisponible = true;
             for (const item of datosMultiples) {
               const horarioItem = item.horariosPorFecha[fechaStr] || {};

@@ -1,6 +1,6 @@
 ﻿// sw.js - Service Worker para Rservasroma
 
-const CACHE_NAME = 'rservasroma-v153';
+const CACHE_NAME = 'rservasroma-v154';
 const BASE = '/rservasroma';
 
 const urlsToCache = [
@@ -17,7 +17,7 @@ const urlsToCache = [
 
   // App principal (JSX pre-compilado en compiled/ â€” ver scripts/build-jsx.sh)
   `${BASE}/compiled/client-app.js?v=20261018-cumple2`,
-  `${BASE}/compiled/admin-app.js?v=20261021-turnos1`,
+  `${BASE}/compiled/admin-app.js?v=20261023-combo1`,
 
   // Utils
   `${BASE}/utils/api.js?v=20261021-espacios2`,
@@ -41,16 +41,16 @@ const urlsToCache = [
   `${BASE}/utils/catalogo.js?v=20260906-negocioid1`,
   `${BASE}/utils/suscripcion.js?v=20260904-recordar1`,
   `${BASE}/utils/supabase-config.js?v=20260723-fotos`,
-  `${BASE}/utils/timeLogic.js?v=20261019-horarios2`,
+  `${BASE}/utils/timeLogic.js?v=20261023-combo1`,
   `${BASE}/utils/espacios.js?v=20261021-turnos1`,
-  `${BASE}/utils/turnos.js?v=20261021-turnos1`,
+  `${BASE}/utils/turnos.js?v=20261023-combo1`,
   `${BASE}/utils/whatsapp-helper.js?v=20261012-bienvenida2`,
   `${BASE}/utils/bienvenida.js?v=20261012-bienvenida2`,
   `${BASE}/utils/soporte.js?v=20260906-soporteA1`,
   `${BASE}/utils/legacy-ios-fallback.css?v=20260904-bordes1`,
   `${BASE}/utils/roma-typography.css?v=20260731-tipografia`,
   `${BASE}/utils/roma-theme.js?v=20260731-tipografia`,
-  `${BASE}/utils/fidelizacion.js?v=20260912-fidelidad1`,
+  `${BASE}/utils/fidelizacion.js?v=20261023-combo1`,
   `${BASE}/utils/cumpleanos.js?v=20261018-cumple2`,
   `${BASE}/utils/compartir-servicios.js?v=20261019-compartirapk1`,
   `${BASE}/utils/panel-sesion.js?v=20261019-ficha1`,
@@ -61,15 +61,15 @@ const urlsToCache = [
   `${BASE}/utils/frases-motivacionales.js?v=20260826-frases1`,
 
   // Componentes cliente (compilados)
-  `${BASE}/compiled/components/BookingForm.js?v=20261021-espacios2`,
+  `${BASE}/compiled/components/BookingForm.js?v=20261023-combo1`,
   `${BASE}/compiled/components/Catalogo.js?v=20260926-generico1`,
-  `${BASE}/compiled/components/Calendar.js?v=20261021-espacios2`,
+  `${BASE}/compiled/components/Calendar.js?v=20261023-combo1`,
   `${BASE}/compiled/components/ClientAuthScreen.js?v=20261018-cumple2`,
   `${BASE}/compiled/components/Confirmation.js?v=20261012-bienvenida2`,
   `${BASE}/compiled/components/Header.js?v=20260731-marca`,
   `${BASE}/compiled/components/InstallButton.js?v=20260723-jsx1`,
   `${BASE}/compiled/components/MultiProfesionalSelector.js?v=20260926-generico1`,
-  `${BASE}/compiled/components/MultiTimeSlots.js?v=20261021-espacios2`,
+  `${BASE}/compiled/components/MultiTimeSlots.js?v=20261023-combo1`,
   `${BASE}/compiled/components/AnadirServicioTurno.js?v=20261021-turnos1`,
   `${BASE}/compiled/components/MyBookings.js?v=20261021-turnos1`,
   `${BASE}/compiled/components/ProfesionalSelector.js?v=20260926-generico1`,
@@ -261,7 +261,7 @@ self.addEventListener('fetch', event => {
   // version aqui no bastaba para que una admin con el SW ya instalado
   // recibiera el archivo nuevo hasta que la cache vieja se vaciara sola).
   const esAssetCriticoAdmin = [
-    `${BASE}/compiled/admin-app.js?v=20261021-turnos1`,
+    `${BASE}/compiled/admin-app.js?v=20261023-combo1`,
     `${BASE}/compiled/components/admin/EditarNegocio.js`,
     `${BASE}/utils/config-negocio-master.js`,
     `${BASE}/utils/native-push-notifications.js`,

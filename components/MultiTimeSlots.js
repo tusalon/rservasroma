@@ -76,6 +76,8 @@ function MultiTimeSlots({ service, date, profesional, onTimeSelect, selectedTime
                 const disponibles = baseSlots.filter(slot => {
                     let cursor = timeToMinutes(slot);
                     if (esHoy && cursor < minAllowed) return false;
+                    // Cada servicio del combo debe aceptar la hora en que le toca empezar, no solo el primero.
+                    if (primerServicioSinHorario(datos.map(item => item.servicio), cursor, diaSemana)) return false;
 
                     for (let index = 0; index < datos.length; index++) {
                         const item = datos[index];
@@ -84,10 +86,6 @@ function MultiTimeSlots({ service, date, profesional, onTimeSelect, selectedTime
                         const fin = inicio + duracion;
                         const indicesDelDia = item.horarios[diaSemana] || [];
                         if (indicesDelDia.length === 0) return false;
-                        // En una reserva multiple, solo la primera hora la elige la clienta.
-                        // Los servicios siguientes empiezan automaticamente al terminar el anterior.
-                        if (index === 0 && !servicioPermiteHorario(item.servicio, minutesToTime(inicio))) return false;
-
                         if (slotTieneDescanso(inicio, fin, item.descansos[diaSemana] || [])) return false;
 
                         const conflicto = item.bookings.some(booking => {

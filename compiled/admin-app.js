@@ -788,6 +788,7 @@ function AdminApp() {
     if (!nuevaReservaData.hora_inicio) return "";
     return calculateEndTime(nuevaReservaData.hora_inicio, getDuracionManualTotal(serviciosSeleccionados));
   };
+  const serviciosEnSecuenciaManual = (servicios) => tieneDuracionManualPersonalizada() ? servicios.slice(0, 1) : servicios;
   const tieneDuracionManualPersonalizada = () => {
     const personalizada = parseInt(nuevaReservaData.duracion_personalizada, 10);
     return Boolean(nuevaReservaData.hora_fin) || !Number.isNaN(personalizada) && personalizada > 0;
@@ -1140,6 +1141,7 @@ function AdminApp() {
       const fechaHoraSlot = new Date(year, month - 1, day, horas, minutos, 0);
       if (usarHorarioManualCompleto && slotEnd > 24 * 60) return false;
       if (respetarLimitesAntelacion && fechaHoraSlot < minFechaPermitida) return false;
+      if (!usarHorarioManualCompleto && primerServicioSinHorario(serviciosEnSecuenciaManual(serviciosSeleccionados), slotStart, diaSemana)) return false;
       if (!usarHorarioManualCompleto && slotTieneDescanso(slotStart, slotEnd, descansosDelDia)) {
         return false;
       }
@@ -1288,6 +1290,9 @@ function AdminApp() {
           const slotStart = timeToMinutes(slotStr);
           const slotEnd = slotStart + duracion;
           const fechaHoraSlot = new Date(year, month, d, Math.floor(slotStart / 60), slotStart % 60, 0);
+          if (primerServicioSinHorario(serviciosEnSecuenciaManual(serviciosSeleccionados), slotStart, diaSemana)) {
+            return false;
+          }
           if (respetarLimitesAntelacion && fechaHoraSlot < minFechaPermitida) {
             return false;
           }
@@ -3380,14 +3385,16 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
       ultima
     };
   };
+  const getCitasCompletadasCliente = (clienteWhatsapp) => {
+    const phone = normalizePhone(clienteWhatsapp);
+    if (!phone) return [];
+    const filas = bookings.filter((b) => b.estado === "Completado" && normalizePhone(b.cliente_whatsapp) === phone).map((b) => ({ ...b, cliente_whatsapp: phone }));
+    return window.turnos?.agruparTurnos ? window.turnos.agruparTurnos(filas) : filas.map((fila) => ({ id: fila.id, filas: [fila] }));
+  };
   const getPosicionCitaFidelizacion = (clienteWhatsapp, reservaId) => {
     const phone = normalizePhone(clienteWhatsapp);
     if (!phone) return 0;
-    const completadasOrdenadas = bookings.filter((b) => b.estado === "Completado" && normalizePhone(b.cliente_whatsapp) === phone).sort((a, b) => `${a.fecha || ""} ${a.hora_inicio || ""}`.localeCompare(`${b.fecha || ""} ${b.hora_inicio || ""}`));
-    const index = completadasOrdenadas.findIndex((b) => b.id === reservaId);
-    if (index === -1) return 0;
-    const descontadas = Math.min(completadasOrdenadas.length, ajustesFidelizacion[phone] || 0);
-    return Math.max(0, index + 1 - descontadas);
+    return window.posicionDeCita(getCitasCompletadasCliente(phone), reservaId, ajustesFidelizacion[phone] || 0);
   };
   const cambiarAjusteFidelizacion = async (whatsapp, nuevoAjuste) => {
     const phone = normalizePhone(whatsapp);
@@ -4488,20 +4495,23 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
     if (!fid.activa) return null;
     const phone = normalizePhone(clienteDetalle.cliente.whatsapp);
     const ajuste = ajustesFidelizacion[phone] || 0;
+    const citas = getCitasCompletadasCliente(clienteDetalle.cliente.whatsapp);
+    const citasQueCuentan = window.citasContadas(citas, ajuste);
+    const citasFuera = citas.length - citasQueCuentan.length;
     const completadas = clienteDetalle.score.completadas;
-    const p = window.progresoFidelizacion(completadas, ajuste, fid.ciclo);
+    const p = window.progresoFidelizacion(citasQueCuentan.length, 0, fid.ciclo);
     return /* @__PURE__ */ React.createElement("div", { className: `mx-5 mt-4 p-4 rounded-xl border ${p.premiada ? "bg-amber-50 border-amber-200" : "bg-pink-50 border-pink-100"}` }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between gap-3" }, /* @__PURE__ */ React.createElement("span", { className: `text-sm font-semibold ${p.premiada ? "text-amber-800" : "text-pink-700"}` }, t2("Fidelidad")), /* @__PURE__ */ React.createElement("span", { className: `text-2xl font-bold tabular-nums ${p.premiada ? "text-amber-700" : "text-pink-600"}` }, p.enCiclo, "/", p.ciclo)), /* @__PURE__ */ React.createElement("div", { className: "flex gap-1.5 mt-2.5" }, Array.from({ length: p.ciclo }, (_, i) => /* @__PURE__ */ React.createElement(
       "span",
       {
         key: i,
         className: `h-2 flex-1 rounded-full ${i < p.enCiclo ? p.premiada ? "bg-amber-500" : "bg-pink-500" : "bg-white border border-gray-200"}`
       }
-    ))), /* @__PURE__ */ React.createElement("p", { className: `text-xs mt-2.5 ${p.premiada ? "text-amber-800" : "text-pink-700"}` }, p.premiada ? t2("🎁 Su próxima cita tiene {pct}% de descuento de fidelidad.", { pct: fid.pct }) : t2("Le faltan {n} citas completadas para su próximo descuento ({pct}%).", { n: p.faltan, pct: fid.pct })), ajuste > 0 && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-1" }, t2("No se están contando {n} citas completadas.", { n: ajuste })), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-2 mt-3" }, /* @__PURE__ */ React.createElement(
+    ))), /* @__PURE__ */ React.createElement("p", { className: `text-xs mt-2.5 ${p.premiada ? "text-amber-800" : "text-pink-700"}` }, p.premiada ? t2("🎁 Su próxima cita tiene {pct}% de descuento de fidelidad.", { pct: fid.pct }) : t2("Le faltan {n} citas completadas para su próximo descuento ({pct}%).", { n: p.faltan, pct: fid.pct })), citasFuera > 0 && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-1" }, t2("No se están contando {n} citas completadas.", { n: citasFuera })), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-2 mt-3" }, /* @__PURE__ */ React.createElement(
       "button",
       {
         onClick: () => cambiarAjusteFidelizacion(
           clienteDetalle.cliente.whatsapp,
-          window.ajusteQuitandoUna(completadas, ajuste)
+          window.ajusteQuitandoUnaCita(citas, ajuste)
         ),
         disabled: guardandoAjusteFid || p.efectivas === 0,
         className: "px-3 py-2 rounded-lg bg-white border border-gray-200 text-gray-700 text-sm font-bold disabled:opacity-40 disabled:cursor-not-allowed",

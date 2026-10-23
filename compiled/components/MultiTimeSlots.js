@@ -53,6 +53,7 @@ function MultiTimeSlots({ service, date, profesional, onTimeSelect, selectedTime
         const disponibles = baseSlots.filter((slot) => {
           let cursor = timeToMinutes(slot);
           if (esHoy && cursor < minAllowed) return false;
+          if (primerServicioSinHorario(datos.map((item) => item.servicio), cursor, diaSemana)) return false;
           for (let index = 0; index < datos.length; index++) {
             const item = datos[index];
             const duracion = parseInt(item.servicio.duracion, 10) || 60;
@@ -60,7 +61,6 @@ function MultiTimeSlots({ service, date, profesional, onTimeSelect, selectedTime
             const fin = inicio + duracion;
             const indicesDelDia = item.horarios[diaSemana] || [];
             if (indicesDelDia.length === 0) return false;
-            if (index === 0 && !servicioPermiteHorario(item.servicio, minutesToTime(inicio))) return false;
             if (slotTieneDescanso(inicio, fin, item.descansos[diaSemana] || [])) return false;
             const conflicto = item.bookings.some((booking) => {
               const bStart = timeToMinutes(booking.hora_inicio);

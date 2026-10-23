@@ -240,9 +240,26 @@
         return elegidas;
     }
 
+    // ---- Horarios permitidos de cada servicio del turno ----------------------------------------------
+    // Al mover el turno entero, TODAS sus filas tienen que caer en una hora que su servicio acepte (cada una
+    // con su distancia a la primera), no solo la primera. Devuelve `hora => boolean`. `servicios`: { nombre
+    // normalizado: servicio }; `permite(servicio, hora, dia)` es servicioPermiteHorario de utils/timeLogic.js.
+    // Una fila con "A + B" (duracion puesta a mano) es un solo bloque: manda el primero.
+    function aceptanTodosLosServicios(filasOrdenadas, servicios, fecha, permite) {
+        const dia = DIAS[new Date(`${fecha}T12:00:00`).getDay()];
+        const base = aMin(filasOrdenadas[0].hora_inicio);
+        const partes = filasOrdenadas
+            .map((fila) => ({
+                servicio: servicios[normalizar(String(fila.servicio || '').split(' + ')[0])],
+                offset: aMin(fila.hora_inicio) - base
+            }))
+            .filter((parte) => parte.servicio);
+        return (hora) => partes.every((parte) => permite(parte.servicio, aHora(aMin(hora) + parte.offset), dia));
+    }
+
     const api = {
         aMin, aHora, normalizar, duracionDeFila, agruparTurnos, planMoverTurno, planQuitarServicio,
-        cabeEnProfesional, horasLibresTurno, huecosParaServicio, clasificarSugerencias
+        cabeEnProfesional, horasLibresTurno, huecosParaServicio, clasificarSugerencias, aceptanTodosLosServicios
     };
 
     if (typeof module !== 'undefined' && module.exports) module.exports = api;
@@ -379,11 +396,15 @@
         const base = aMin(ordenadas[0].hora_inicio);
         const servicios = await serviciosPorNombre();
         const primerNombre = String(ordenadas[0].servicio || '').split(' + ')[0];
+        const antelacion = reglasDeAntelacion(config, esAdmin, primerNombre, fecha, servicios);
+        const aceptanServicios = typeof window.servicioPermiteHorario === 'function'
+            ? aceptanTodosLosServicios(ordenadas, servicios, fecha, window.servicioPermiteHorario)
+            : () => true;
         const horas = horasLibresTurno({
             filas: ordenadas.map((fila) => ({ profesionalId: fila.profesional_id, offset: aMin(fila.hora_inicio) - base, dur: duracionDeFila(fila) })),
             contextos,
             ignorarIds: ordenadas.map((fila) => fila.id),
-            permiteInicio: reglasDeAntelacion(config, esAdmin, primerNombre, fecha, servicios)
+            permiteInicio: (hora) => antelacion(hora) && aceptanServicios(hora)
         });
         return { horas, mensaje: horas.length ? '' : t('No hay horarios disponibles para esa fecha.') };
     }

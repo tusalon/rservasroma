@@ -995,6 +995,12 @@ function AdminApp() {
         return calculateEndTime(nuevaReservaData.hora_inicio, getDuracionManualTotal(serviciosSeleccionados));
     };
 
+    // Servicios cuyo horario permitido hay que comprobar: cada uno de la secuencia, porque se reservan uno tras
+    // otro. Con duracion o fin puestos a mano es una sola fila y solo manda el primero.
+    const serviciosEnSecuenciaManual = (servicios) => (
+        tieneDuracionManualPersonalizada() ? servicios.slice(0, 1) : servicios
+    );
+
     const tieneDuracionManualPersonalizada = () => {
         const personalizada = parseInt(nuevaReservaData.duracion_personalizada, 10);
         return Boolean(nuevaReservaData.hora_fin) || (!Number.isNaN(personalizada) && personalizada > 0);
@@ -1431,6 +1437,7 @@ function AdminApp() {
 
             if (usarHorarioManualCompleto && slotEnd > 24 * 60) return false;
             if (respetarLimitesAntelacion && fechaHoraSlot < minFechaPermitida) return false;
+            if (!usarHorarioManualCompleto && primerServicioSinHorario(serviciosEnSecuenciaManual(serviciosSeleccionados), slotStart, diaSemana)) return false;
 
             if (!usarHorarioManualCompleto && slotTieneDescanso(slotStart, slotEnd, descansosDelDia)) {
                 return false;
@@ -1603,6 +1610,10 @@ function AdminApp() {
                     const slotStart = timeToMinutes(slotStr);
                     const slotEnd = slotStart + duracion;
                     const fechaHoraSlot = new Date(year, month, d, Math.floor(slotStart / 60), slotStart % 60, 0);
+
+                    if (primerServicioSinHorario(serviciosEnSecuenciaManual(serviciosSeleccionados), slotStart, diaSemana)) {
+                        return false;
+                    }
 
                     if (respetarLimitesAntelacion && fechaHoraSlot < minFechaPermitida) {
                         return false;
@@ -4108,22 +4119,30 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
         };
     };
 
-    // Posicion (1-based) de una reserva Completada dentro del historial de
-    // citas completadas de esa clienta, ordenado del turno mas viejo al mas
-    // nuevo. 0 si la reserva no aparece (no completada, o sin telefono).
+    // Citas completadas de la clienta, de la mas vieja a la mas nueva. Una cita
+    // es una visita: un combo de 3 servicios son 3 filas pero cuenta UNA vez
+    // (mismo criterio que juntar los turnos en la agenda).
+    const getCitasCompletadasCliente = (clienteWhatsapp) => {
+        const phone = normalizePhone(clienteWhatsapp);
+        if (!phone) return [];
+        const filas = bookings
+            .filter(b => b.estado === 'Completado' && normalizePhone(b.cliente_whatsapp) === phone)
+            .map(b => ({ ...b, cliente_whatsapp: phone }));
+        return window.turnos?.agruparTurnos
+            ? window.turnos.agruparTurnos(filas)
+            : filas.map(fila => ({ id: fila.id, filas: [fila] }));
+    };
+
+    // Posicion (1-based) de la cita que contiene esta reserva Completada entre
+    // las citas que cuentan de esa clienta. 0 si no aparece (no completada, o
+    // sin telefono) o si su cita esta descontada.
     const getPosicionCitaFidelizacion = (clienteWhatsapp, reservaId) => {
         const phone = normalizePhone(clienteWhatsapp);
         if (!phone) return 0;
-        const completadasOrdenadas = bookings
-            .filter(b => b.estado === 'Completado' && normalizePhone(b.cliente_whatsapp) === phone)
-            .sort((a, b) => `${a.fecha || ''} ${a.hora_inicio || ''}`.localeCompare(`${b.fecha || ''} ${b.hora_inicio || ''}`));
-        const index = completadasOrdenadas.findIndex(b => b.id === reservaId);
-        if (index === -1) return 0;
         // El mismo ajuste que se ve en la ficha de la clienta. Sin esto, el
         // contador diria "2/6" y al cobrar la cita saldria marcada como
         // premiada igual: dos cuentas distintas para lo mismo.
-        const descontadas = Math.min(completadasOrdenadas.length, ajustesFidelizacion[phone] || 0);
-        return Math.max(0, index + 1 - descontadas);
+        return window.posicionDeCita(getCitasCompletadasCliente(phone), reservaId, ajustesFidelizacion[phone] || 0);
     };
 
     // Guarda el nuevo ajuste y lo refleja al momento. Se pinta primero y se
@@ -6190,8 +6209,12 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                                 if (!fid.activa) return null;
                                 const phone = normalizePhone(clienteDetalle.cliente.whatsapp);
                                 const ajuste = ajustesFidelizacion[phone] || 0;
+                                // Se cuenta por cita (visita), no por servicio. El ajuste guardado va en filas.
+                                const citas = getCitasCompletadasCliente(clienteDetalle.cliente.whatsapp);
+                                const citasQueCuentan = window.citasContadas(citas, ajuste);
+                                const citasFuera = citas.length - citasQueCuentan.length;
                                 const completadas = clienteDetalle.score.completadas;
-                                const p = window.progresoFidelizacion(completadas, ajuste, fid.ciclo);
+                                const p = window.progresoFidelizacion(citasQueCuentan.length, 0, fid.ciclo);
                                 return (
                                     <div className={`mx-5 mt-4 p-4 rounded-xl border ${p.premiada ? 'bg-amber-50 border-amber-200' : 'bg-pink-50 border-pink-100'}`}>
                                         <div className="flex items-center justify-between gap-3">
@@ -6222,9 +6245,9 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                                                 : t('Le faltan {n} citas completadas para su próximo descuento ({pct}%).', { n: p.faltan, pct: fid.pct })}
                                         </p>
 
-                                        {ajuste > 0 && (
+                                        {citasFuera > 0 && (
                                             <p className="text-xs text-gray-500 mt-1">
-                                                {t('No se están contando {n} citas completadas.', { n: ajuste })}
+                                                {t('No se están contando {n} citas completadas.', { n: citasFuera })}
                                             </p>
                                         )}
 
@@ -6232,7 +6255,7 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                                             <button
                                                 onClick={() => cambiarAjusteFidelizacion(
                                                     clienteDetalle.cliente.whatsapp,
-                                                    window.ajusteQuitandoUna(completadas, ajuste)
+                                                    window.ajusteQuitandoUnaCita(citas, ajuste)
                                                 )}
                                                 disabled={guardandoAjusteFid || p.efectivas === 0}
                                                 className="px-3 py-2 rounded-lg bg-white border border-gray-200 text-gray-700 text-sm font-bold disabled:opacity-40 disabled:cursor-not-allowed"

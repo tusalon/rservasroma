@@ -60,6 +60,38 @@ function ajusteQuitandoUna(completadas, ajuste) {
     return Math.min(total, Math.max(0, parseInt(ajuste, 10) || 0) + 1);
 }
 
+// ─── Contar por CITA, no por servicio ───────────────────────────────────────
+// Una cita es una visita: un combo de 3 servicios son 3 filas en `reservas` pero cuenta UNA vez. `citas` viene
+// de turnos.agruparTurnos(filas completadas de la clienta): de la mas vieja a la mas nueva, cada una con sus
+// `filas`. El ajuste guardado sigue en FILAS (asi valen los ajustes que ya existen): son las filas mas viejas
+// que no cuentan. Una cita queda fuera si todas sus filas cayeron dentro del ajuste.
+function citasContadas(citas, ajusteFilas) {
+    let saltar = Math.max(0, parseInt(ajusteFilas, 10) || 0);
+    const contadas = [];
+    (citas || []).forEach((cita) => {
+        const filas = cita.filas || [cita];
+        if (saltar >= filas.length) { saltar -= filas.length; return; }
+        contadas.push(saltar > 0 ? { ...cita, filas: filas.slice(saltar) } : cita);
+        saltar = 0;
+    });
+    return contadas;
+}
+
+// Posicion (1-based) de la cita que contiene la reserva `reservaId` entre las citas que cuentan; 0 si no esta
+// o si su cita no cuenta. Es la que decide si el cobro lleva el descuento de fidelidad.
+function posicionDeCita(citas, reservaId, ajusteFilas) {
+    const index = citasContadas(citas, ajusteFilas)
+        .findIndex((cita) => (cita.filas || [cita]).some((fila) => String(fila.id) === String(reservaId)));
+    return index + 1;
+}
+
+// "-1 cita": descuenta la cita contada mas vieja, o sea sube el ajuste con sus filas.
+function ajusteQuitandoUnaCita(citas, ajusteFilas) {
+    const ajuste = Math.max(0, parseInt(ajusteFilas, 10) || 0);
+    const primera = citasContadas(citas, ajuste)[0];
+    return primera ? ajuste + (primera.filas || [primera]).length : ajuste;
+}
+
 // ─── Acceso a datos (tabla fidelizacion_ajustes) ────────────────────────────
 // Separado a proposito de las funciones de arriba: esas son cuentas puras y
 // tienen prueba en tests/fidelizacion.test.js; estas hablan con la red.
@@ -134,6 +166,9 @@ if (typeof window !== 'undefined') {
     window.progresoFidelizacion = progresoFidelizacion;
     window.ajusteParaReiniciar = ajusteParaReiniciar;
     window.ajusteQuitandoUna = ajusteQuitandoUna;
+    window.citasContadas = citasContadas;
+    window.posicionDeCita = posicionDeCita;
+    window.ajusteQuitandoUnaCita = ajusteQuitandoUnaCita;
 }
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
@@ -142,6 +177,9 @@ if (typeof module !== 'undefined' && module.exports) {
         faltanParaPremio,
         progresoFidelizacion,
         ajusteParaReiniciar,
-        ajusteQuitandoUna
+        ajusteQuitandoUna,
+        citasContadas,
+        posicionDeCita,
+        ajusteQuitandoUnaCita
     };
 }

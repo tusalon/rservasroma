@@ -65,7 +65,7 @@ function BookingForm({ service, profesional, date, time, onSubmit, onCancel, cli
             const bookingEnd = timeToMinutes(booking.hora_fin);
             return inicioMin < bookingEnd && finMin > bookingStart;
           });
-          const horarioPermitido = index > 0 || servicioPermiteHorario(servicioItem, cursor);
+          const horarioPermitido = servicioPermiteHorario(servicioItem, String(cursor).slice(0, 5), diaSemana);
           if (!trabajaEseDia || tocaDescanso || tieneConflicto || !horarioPermitido) {
             setError(t("El horario de {servicio} con {nombre} ya no está disponible.", { servicio: servicioItem.nombre, nombre: profesionalItem.nombre }));
             setSubmitting(false);

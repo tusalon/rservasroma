@@ -57,6 +57,20 @@ function servicioPermiteHorario(servicio, slot, diaSemana) {
     return normalizados.has(slot);
 }
 
+// Un combo se reserva en secuencia: cada servicio empieza cuando termina el anterior, y cada uno tiene que
+// aceptar SU hora de inicio (no solo el primero, que es el que elige la clienta). `servicios` va en orden y
+// cada uno trae `duracion`. Devuelve el primero que no acepta su hora ({ indice, servicio, hora }) o null.
+function primerServicioSinHorario(servicios, inicioMin, diaSemana) {
+    let cursor = inicioMin;
+    for (let indice = 0; indice < (servicios || []).length; indice++) {
+        const servicio = servicios[indice];
+        const hora = minutesToTime(cursor);
+        if (!servicioPermiteHorario(servicio, hora, diaSemana)) return { indice, servicio, hora };
+        cursor += parseInt(servicio?.duracion, 10) || 60;
+    }
+    return null;
+}
+
 // Si el rango [slotStart, slotEnd) se solapa con algún descanso del día
 function slotTieneDescanso(slotStart, slotEnd, descansosDelDia = []) {
     return descansosDelDia.some(descanso => {

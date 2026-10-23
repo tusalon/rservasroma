@@ -238,6 +238,8 @@ function Calendar({ onDateSelect, selectedDate, profesional, profesionalCompleto
                         let cursor = timeToMinutes(slotStr);
                         const fechaHoraSlot = new Date(year, month, d, Math.floor(cursor / 60), cursor % 60, 0);
                         if (fechaHoraSlot < minFechaPermitida) continue;
+                        // Cada servicio del combo debe aceptar la hora en que le toca empezar, no solo el primero.
+                        if (primerServicioSinHorario(datosMultiples.map(item => item.servicio), cursor, diaSemana)) continue;
 
                         let slotCompletoDisponible = true;
                         for (const item of datosMultiples) {
