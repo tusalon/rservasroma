@@ -1418,7 +1418,7 @@ function AdminApp() {
       );
       if (!response.ok) throw new Error(await response.text());
       const reservasPropias = await response.json();
-      const reservas = await window.espacios?.reservasConEspacios(profesionalId, fechaInicio, fechaFin, reservasPropias) ?? reservasPropias;
+      const reservas = await window.espacios?.reservasConEspacios(profesionalId, fechaInicio, fechaFin, reservasPropias, null, { duracion: 60 }) ?? reservasPropias;
       const reservasPorFecha = {};
       (reservas || []).forEach((r) => {
         if (!reservasPorFecha[r.fecha]) {
@@ -1523,7 +1523,7 @@ function AdminApp() {
       );
       if (!response.ok) throw new Error(await response.text());
       const reservasPropias = await response.json();
-      const reservas = await window.espacios?.reservasConEspacios(profesionalId, fechaInicio, fechaFin, reservasPropias) ?? reservasPropias;
+      const reservas = await window.espacios?.reservasConEspacios(profesionalId, fechaInicio, fechaFin, reservasPropias, null, { duracion: 60 }) ?? reservasPropias;
       const reservasPorFecha = {};
       (reservas || []).forEach((r) => {
         if (!reservasPorFecha[r.fecha]) reservasPorFecha[r.fecha] = [];

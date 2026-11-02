@@ -1,6 +1,6 @@
 ﻿// sw.js - Service Worker para Rservasroma
 
-const CACHE_NAME = 'rservasroma-v156';
+const CACHE_NAME = 'rservasroma-v157';
 const BASE = '/rservasroma';
 
 const urlsToCache = [
@@ -17,7 +17,7 @@ const urlsToCache = [
 
   // App principal (JSX pre-compilado en compiled/ â€” ver scripts/build-jsx.sh)
   `${BASE}/compiled/client-app.js?v=20261018-cumple2`,
-  `${BASE}/compiled/admin-app.js?v=20261026-profs1`,
+  `${BASE}/compiled/admin-app.js?v=20261102-espacios60`,
 
   // Utils
   `${BASE}/utils/api.js?v=20261021-espacios2`,
@@ -261,7 +261,7 @@ self.addEventListener('fetch', event => {
   // version aqui no bastaba para que una admin con el SW ya instalado
   // recibiera el archivo nuevo hasta que la cache vieja se vaciara sola).
   const esAssetCriticoAdmin = [
-    `${BASE}/compiled/admin-app.js?v=20261026-profs1`,
+    `${BASE}/compiled/admin-app.js?v=20261102-espacios60`,
     `${BASE}/compiled/components/admin/EditarNegocio.js`,
     `${BASE}/utils/config-negocio-master.js`,
     `${BASE}/utils/native-push-notifications.js`,

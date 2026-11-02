@@ -1781,7 +1781,8 @@ function AdminApp() {
             
             if (!response.ok) throw new Error(await response.text());
             const reservasPropias = await response.json();
-            const reservas = (await window.espacios?.reservasConEspacios(profesionalId, fechaInicio, fechaFin, reservasPropias)) ?? reservasPropias;
+            // Huecos de 60 min: con esa duracion los espacios se miran como la base (una misma cabina libre toda la hora).
+            const reservas = (await window.espacios?.reservasConEspacios(profesionalId, fechaInicio, fechaFin, reservasPropias, null, { duracion: 60 })) ?? reservasPropias;
             
             const reservasPorFecha = {};
             (reservas || []).forEach(r => {
@@ -1912,7 +1913,8 @@ function AdminApp() {
 
             if (!response.ok) throw new Error(await response.text());
             const reservasPropias = await response.json();
-            const reservas = (await window.espacios?.reservasConEspacios(profesionalId, fechaInicio, fechaFin, reservasPropias)) ?? reservasPropias;
+            // Huecos de 60 min: con esa duracion los espacios se miran como la base (una misma cabina libre toda la hora).
+            const reservas = (await window.espacios?.reservasConEspacios(profesionalId, fechaInicio, fechaFin, reservasPropias, null, { duracion: 60 })) ?? reservasPropias;
             const reservasPorFecha = {};
             (reservas || []).forEach(r => {
                 if (!reservasPorFecha[r.fecha]) reservasPorFecha[r.fecha] = [];
