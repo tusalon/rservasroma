@@ -123,7 +123,7 @@ function pantalla({ reservas = [], profesionales = [{ id: 1, nombre: 'Juana', fe
             const cuerpo = opts.body ? JSON.parse(opts.body) : null;
             llamadas.push({ url: String(url), metodo, cuerpo });
             if (metodo === 'GET' && url.includes('/profesionales')) return { ok: true, status: 200, json: async () => profesionales, text: async () => '' };
-            if (metodo === 'GET' && url.includes('/reservas')) return { ok: true, status: 200, json: async () => reservas, text: async () => '' };
+            if (metodo === 'GET' && url.includes('/reservas')) return { ok: true, status: 200, json: async () => (typeof reservas === 'function' ? reservas(String(url)) : reservas), text: async () => '' };
             const motivo = falla(metodo, url, cuerpo, llamadas);
             if (motivo) return { ok: false, status: motivo, json: async () => ({}), text: async () => (motivo === 409 ? '{"code":"23P01"}' : 'error') };
             return { ok: true, status: 200, json: async () => [{ id: Number(String(url).split('id=eq.')[1]) || 99, ...(cuerpo || {}) }], text: async () => '' };
@@ -153,6 +153,26 @@ const patches = (llamadas) => llamadas.filter((l) => l.metodo === 'PATCH');
     assert.equal(r.horas.length, 0);
     assert.ok(r.mensaje.includes('libre'), 'si la profesional tiene libre ese dia lo dice');
     assert.equal((await p.w.horasLibresParaTurno(turno, '2099-06-13', { esAdmin: true })).horas.length > 0, true, 'la duena puede igualmente');
+
+    // --- Reserva manual con una profesional por servicio: el servicio 2 lo hace OTRA profesional y se mira su agenda
+    {
+        const corte = { id: 11, nombre: 'Corte', duracion: 60 };
+        const tinte = { id: 12, nombre: 'Tinte', duracion: 30 };
+        const ocupadaLaDos = (url) => (url.includes('profesional_id=eq.2')
+            ? [{ id: 70, fecha: '2099-06-11', hora_inicio: '11:00', hora_fin: '12:00' }] : []);
+        const pm = pantalla({ servicios: [corte, tinte], profesionales: [{ id: 1, nombre: 'Juana', fechas_libres: [] }, { id: 2, nombre: 'Sofia', fechas_libres: [] }], reservas: ocupadaLaDos });
+        const nuevo = {
+            filas: [
+                { id: 'nuevo-0', servicio: 'Corte', profesional_id: '1', hora_inicio: '00:00', hora_fin: '01:00', duracion: 60 },
+                { id: 'nuevo-1', servicio: 'Tinte', profesional_id: '2', hora_inicio: '01:00', hora_fin: '01:30', duracion: 30 }
+            ]
+        };
+        const horas = (await pm.w.horasLibresParaTurno(nuevo, '2099-06-11', { esAdmin: true })).horas;
+        assert.ok(horas.includes('09:00'), 'Corte 9-10 con Juana, Tinte 10-10:30 con Sofia (libre)');
+        assert.ok(!horas.includes('10:00'), 'el Tinte caeria a las 11:00, justo cuando Sofia esta ocupada');
+        assert.ok(!horas.includes('10:30'), 'el Tinte caeria a las 11:30, dentro de la cita de Sofia');
+        assert.ok(horas.includes('11:00'), 'el Tinte a las 12:00 ya es libre');
+    }
 
     // --- Mover el turno entero
     p = pantalla();
@@ -257,6 +277,7 @@ const patches = (llamadas) => llamadas.filter((l) => l.metodo === 'PATCH');
     const interfaz = leer('components/AnadirServicioTurno.js');
     assert.ok(interfaz.includes('window.turnos.anadirServicio') && interfaz.includes('window.turnos.sugerirParaServicio'));
 
+    assert.ok(panel.includes('esModoVariosProfesionales()') && panel.includes('armarTurnoManual()') && panel.includes('asignada.id'), 'la reserva manual de varios servicios usa una profesional por servicio');
     console.log('turnos: ok');
 })().catch((e) => { console.error(e); process.exit(1); });
 

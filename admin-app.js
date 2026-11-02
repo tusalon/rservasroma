@@ -680,6 +680,10 @@ function AdminApp() {
         return () => { vigente = false; };
     }, [showNuevaReservaModal, reservaEditando]);
     const [serviciosManualSeleccionados, setServiciosManualSeleccionados] = React.useState([]);
+    // Con 2 o mas servicios, cada uno puede hacerlo una profesional distinta: nombre del servicio -> id de la profesional.
+    const [profesionalesPorServicio, setProfesionalesPorServicio] = React.useState({});
+    // servicio.id -> ids de las profesionales que lo hacen (lista vacia = sin restriccion).
+    const [profesionalesPermitidosPorServicio, setProfesionalesPermitidosPorServicio] = React.useState({});
     
     // Estado para el modal de disponibilidad
     const [showDisponibilidadModal, setShowDisponibilidadModal] = React.useState(false);
@@ -1006,12 +1010,60 @@ function AdminApp() {
         return Boolean(nuevaReservaData.hora_fin) || (!Number.isNaN(personalizada) && personalizada > 0);
     };
 
+    // Varios servicios seguidos, sin duracion puesta a mano: cada uno con su profesional. Con la duracion a mano
+    // es una sola reserva y manda la profesional unica de siempre.
+    const esModoVariosProfesionales = () => !reservaEditando && !turnoEditando
+        && getServiciosManualSeleccionados().length > 1 && !tieneDuracionManualPersonalizada();
+
+    // [{ servicio, profesionalId }] en el orden de la reserva; profesionalId vacio si falta elegirla.
+    const getAsignacionesManual = () => getServiciosManualSeleccionados().map(servicio => ({
+        servicio,
+        profesionalId: profesionalesPorServicio[servicio.nombre] || ''
+    }));
+    const asignacionesManualCompletas = () => getAsignacionesManual().every(a => a.profesionalId);
+
+    // Los servicios de la reserva como un turno de mentira (uno tras otro desde las 00:00), para pedirle a
+    // utils/turnos.js las horas en que caben todos, cada uno con su profesional.
+    const armarTurnoManual = () => {
+        let cursor = 0;
+        const filas = getAsignacionesManual().map(({ servicio, profesionalId }, indice) => {
+            const duracion = parseInt(servicio.duracion, 10) || 60;
+            const fila = {
+                id: `nuevo-${indice}`,
+                servicio: servicio.nombre,
+                profesional_id: profesionalId,
+                hora_inicio: window.turnos.aHora(cursor),
+                hora_fin: window.turnos.aHora(cursor + duracion),
+                duracion
+            };
+            cursor += duracion;
+            return fila;
+        });
+        return { filas };
+    };
+
+    const profesionalHaceServicio = (servicio, profesionalId) => {
+        const ids = profesionalesPermitidosPorServicio[servicio?.id] || [];
+        return ids.length === 0 || ids.includes(Number(profesionalId));
+    };
+
+    const elegirProfesionalDeServicio = (nombreServicio, profesionalId) => {
+        setProfesionalesPorServicio(prev => ({ ...prev, [nombreServicio]: profesionalId }));
+        setNuevaReservaData(data => ({ ...data, fecha: '', hora_inicio: '', hora_fin: '' }));
+    };
+
     const toggleServicioManual = (nombreServicio) => {
         const existe = serviciosManualSeleccionados.includes(nombreServicio);
         const actualizados = existe
             ? serviciosManualSeleccionados.filter(nombre => nombre !== nombreServicio)
             : [...serviciosManualSeleccionados, nombreServicio];
 
+        // Cada servicio nuevo parte de la profesional ya elegida, si ella lo hace.
+        setProfesionalesPorServicio(prev => Object.fromEntries(actualizados.map(nombre => {
+            const servicio = serviciosList.find(s => s.nombre === nombre);
+            const base = nuevaReservaData.profesional_id;
+            return [nombre, prev[nombre] || (base && profesionalHaceServicio(servicio, base) ? String(base) : '')];
+        })));
         setServiciosManualSeleccionados(actualizados);
         setNuevaReservaData(data => ({
             ...data,
@@ -1187,6 +1239,17 @@ function AdminApp() {
         cargarDatosModal();
     }, []);
 
+    // La lista se llena al montar: si la dueña marca un día libre en Configuración, "Ver disponibilidad" y
+    // "Nueva reserva" seguían viendo las fechas_libres viejas y ofrecían turnos ese día hasta recargar.
+    React.useEffect(() => {
+        const refrescar = async () => {
+            const profesionales = await window.salonProfesionales?.getAll(true);
+            if (profesionales) setProfesionalesList(profesionales);
+        };
+        window.addEventListener('profesionalesActualizados', refrescar);
+        return () => window.removeEventListener('profesionalesActualizados', refrescar);
+    }, []);
+
     // Conteo propio y explicito de servicios/profesionales para el aviso de
     // configuracion pendiente. No se reutiliza serviciosList/profesionalesList
     // porque esas se llenan al montar, cuando config-negocio-master todavia
@@ -1277,6 +1340,7 @@ function AdminApp() {
         const filtrarProfesionalesManual = async () => {
             if (!nuevaReservaData.servicio) {
                 setProfesionalesManualFiltrados(profesionalesList);
+                setProfesionalesPermitidosPorServicio({});
                 return;
             }
 
@@ -1284,6 +1348,7 @@ function AdminApp() {
                 const serviciosSeleccionados = getServiciosManualSeleccionados();
                 if (!window.getProfesionalesPorServicio || serviciosSeleccionados.length === 0) {
                     setProfesionalesManualFiltrados(profesionalesList);
+                    setProfesionalesPermitidosPorServicio({});
                     return;
                 }
 
@@ -1291,6 +1356,18 @@ function AdminApp() {
                     const profesionalesDelServicio = await window.getProfesionalesPorServicio(servicio.id);
                     return profesionalesDelServicio.map(prof => Number(prof.id)).filter(Boolean);
                 }));
+
+                // Quien hace cada servicio, para elegir una profesional por servicio. Si una ya elegida no lo hace, se quita.
+                const permitidos = Object.fromEntries(serviciosSeleccionados.map((servicio, indice) => [servicio.id, idsPorServicio[indice]]));
+                setProfesionalesPermitidosPorServicio(permitidos);
+                setProfesionalesPorServicio(prev => {
+                    const limpio = { ...prev };
+                    serviciosSeleccionados.forEach(servicio => {
+                        const ids = permitidos[servicio.id] || [];
+                        if (limpio[servicio.nombre] && ids.length > 0 && !ids.includes(Number(limpio[servicio.nombre]))) limpio[servicio.nombre] = '';
+                    });
+                    return JSON.stringify(limpio) === JSON.stringify(prev) ? prev : limpio;
+                });
 
                 const idsConRestriccion = idsPorServicio.filter(ids => ids.length > 0);
                 const idsPermitidos = idsConRestriccion.length > 0
@@ -1301,7 +1378,8 @@ function AdminApp() {
                     : profesionalesList;
                 setProfesionalesManualFiltrados(filtrados);
 
-                if (nuevaReservaData.profesional_id && !filtrados.some(prof => prof.id === parseInt(nuevaReservaData.profesional_id))) {
+                // Con una profesional por servicio no hace falta que una sola haga todos.
+                if (!esModoVariosProfesionales() && nuevaReservaData.profesional_id && !filtrados.some(prof => prof.id === parseInt(nuevaReservaData.profesional_id))) {
                     setNuevaReservaData(prev => ({
                         ...prev,
                         profesional_id: '',
@@ -1317,7 +1395,21 @@ function AdminApp() {
         };
 
         filtrarProfesionalesManual();
-    }, [nuevaReservaData.servicio, serviciosManualSeleccionados, profesionalesList, serviciosList]);
+    }, [nuevaReservaData.servicio, serviciosManualSeleccionados, profesionalesList, serviciosList, nuevaReservaData.duracion_personalizada]);
+
+    // La profesional "principal" de la reserva es la del primer servicio: de ahi salen los dias que trabaja.
+    React.useEffect(() => {
+        if (!esModoVariosProfesionales()) return;
+        const primero = getServiciosManualSeleccionados()[0];
+        const id = primero ? (profesionalesPorServicio[primero.nombre] || '') : '';
+        if (String(nuevaReservaData.profesional_id || '') !== String(id)) {
+            setNuevaReservaData(data => ({ ...data, profesional_id: id }));
+        }
+    }, [profesionalesPorServicio, serviciosManualSeleccionados, nuevaReservaData.duracion_personalizada]);
+
+    React.useEffect(() => {
+        if (!showNuevaReservaModal) setProfesionalesPorServicio({});
+    }, [showNuevaReservaModal]);
 
     // CARGAR DÍAS CERRADOS AL INICIO
     React.useEffect(() => {
@@ -1363,6 +1455,15 @@ function AdminApp() {
         if (!fecha || !profesionalId || serviciosSeleccionados.length === 0) {
             setModoHorarioManualCompleto(false);
             return [];
+        }
+
+        // Varios servicios con una profesional cada uno: las horas en que caben todos seguidos, como al mover un turno.
+        // Aqui no hay "modo admin" de hora libre: si hace falta forzar un dia sin horario, se usa la duracion a mano.
+        if (esModoVariosProfesionales()) {
+            setModoHorarioManualCompleto(false);
+            if (!asignacionesManualCompletas()) return [];
+            const { horas } = await window.turnos.horasLibresParaTurno(armarTurnoManual(), fecha, { esAdmin: userRole === 'admin' });
+            return horas;
         }
 
         const profesionalObj = profesionalesList.find(p => p.id === parseInt(profesionalId));
@@ -1499,10 +1600,10 @@ function AdminApp() {
         };
 
         cargarHorarios();
-    }, [nuevaReservaData.profesional_id, nuevaReservaData.fecha, nuevaReservaData.servicio, nuevaReservaData.duracion_personalizada, nuevaReservaData.hora_inicio, nuevaReservaData.hora_fin, serviciosManualSeleccionados, serviciosList, reservaEditando, turnoEditando]);
+    }, [nuevaReservaData.profesional_id, nuevaReservaData.fecha, nuevaReservaData.servicio, nuevaReservaData.duracion_personalizada, nuevaReservaData.hora_inicio, nuevaReservaData.hora_fin, serviciosManualSeleccionados, profesionalesPorServicio, serviciosList, reservaEditando, turnoEditando]);
     
     const cargarDisponibilidadMes = async (fecha, profesionalId) => {
-        if (!profesionalId || turnoEditando) return;
+        if (!profesionalId || turnoEditando || esModoVariosProfesionales()) return;
         
         try {
             const year = fecha.getFullYear();
@@ -1915,8 +2016,9 @@ function AdminApp() {
             return false;
         }
 
-        // Un turno entero: los horarios de cada profesional se miran al elegir el dia.
-        if (turnoEditando) return true;
+        // Un turno entero, o varios servicios con una profesional cada uno: los horarios de cada
+        // profesional se miran al elegir el dia.
+        if (turnoEditando || esModoVariosProfesionales()) return true;
 
         if (userRole === 'admin') {
             return true;
@@ -2610,6 +2712,11 @@ function AdminApp() {
         }
         if (creandoReservaManualRef.current) return;
 
+        if (esModoVariosProfesionales() && !asignacionesManualCompletas()) {
+            alert(t('Elige el profesional de cada servicio.'));
+            return;
+        }
+
         if (!nuevaReservaData.cliente_nombre || !nuevaReservaData.cliente_whatsapp || 
             !nuevaReservaData.servicio || !nuevaReservaData.profesional_id || 
             !nuevaReservaData.fecha || !nuevaReservaData.hora_inicio) {
@@ -2649,13 +2756,31 @@ function AdminApp() {
                 return;
             }
             const endTime = getHoraFinManual(serviciosSeleccionados);
-            const validacionRango = await validarRangoReservaManual({
-                fecha: nuevaReservaData.fecha,
-                profesionalId: nuevaReservaData.profesional_id,
-                horaInicio: nuevaReservaData.hora_inicio,
-                horaFin: endTime,
-                servicios: serviciosSeleccionados
-            });
+
+            // Varios servicios con una profesional cada uno: se comprueba que quepan todos seguidos, cada uno con la suya.
+            const variosProfesionales = esModoVariosProfesionales();
+            const asignaciones = variosProfesionales
+                ? getAsignacionesManual().map(a => ({ servicio: a.servicio, profesional: profesionalesList.find(p => String(p.id) === String(a.profesionalId)) }))
+                : null;
+            if (asignaciones && asignaciones.some(a => !a.profesional)) {
+                alert(t('Profesional no encontrado'));
+                return;
+            }
+            let validacionRango = { ok: true };
+            if (variosProfesionales) {
+                const { horas } = await window.turnos.horasLibresParaTurno(armarTurnoManual(), nuevaReservaData.fecha, { esAdmin: userRole === 'admin' });
+                if (!horas.includes(String(nuevaReservaData.hora_inicio).slice(0, 5))) {
+                    validacionRango = { ok: false, mensaje: t('Ese horario ya no está disponible. Elige otro.') };
+                }
+            } else {
+                validacionRango = await validarRangoReservaManual({
+                    fecha: nuevaReservaData.fecha,
+                    profesionalId: nuevaReservaData.profesional_id,
+                    horaInicio: nuevaReservaData.hora_inicio,
+                    horaFin: endTime,
+                    servicios: serviciosSeleccionados
+                });
+            }
             if (!validacionRango.ok) {
                 const horariosVigentes = await calcularHorariosDisponiblesManual(
                     nuevaReservaData.fecha,
@@ -2728,10 +2853,14 @@ function AdminApp() {
                 const reservasCreadas = [];
                 let horaActual = nuevaReservaData.hora_inicio;
 
-                for (const servicioSeleccionado of serviciosSeleccionados) {
+                for (let indiceServicio = 0; indiceServicio < serviciosSeleccionados.length; indiceServicio++) {
+                    const servicioSeleccionado = serviciosSeleccionados[indiceServicio];
+                    const asignada = asignaciones?.[indiceServicio]?.profesional || profesional;
                     const horaFin = calculateEndTime(horaActual, servicioSeleccionado.duracion);
                     const reservaServicio = {
                         ...bookingData,
+                        profesional_id: asignada.id,
+                        profesional_nombre: asignada.nombre,
                         servicio: servicioSeleccionado.nombre,
                         duracion: servicioSeleccionado.duracion,
                         hora_inicio: horaActual,
@@ -2757,6 +2886,10 @@ function AdminApp() {
                             duracion: duracionTotal,
                             hora_inicio: reservasCreadas[0].hora_inicio,
                             hora_fin: reservasCreadas[reservasCreadas.length - 1].hora_fin,
+                            // Si cada servicio lo hace una profesional distinta, el mensaje a la clienta dice cual hace cual.
+                            profesional_nombre: new Set(reservasCreadas.map(reserva => reserva.profesional_id)).size > 1
+                                ? reservasCreadas.map(reserva => `${reserva.servicio}: ${reserva.profesional_nombre}`).join(' | ')
+                                : reservasCreadas[0].profesional_nombre,
                             precio_original: totalServiciosManual,
                             precio_final: totalServiciosManual,
                             total_pagar: totalServiciosManual,
@@ -2804,12 +2937,25 @@ function AdminApp() {
                             const cfg = configNegocio || {};
                             const fecha = window.formatFechaCompleta ? window.formatFechaCompleta(result.data.fecha) : result.data.fecha;
                             const hora = window.formatTo12Hour ? window.formatTo12Hour(result.data.hora_inicio) : result.data.hora_inicio;
-                            window.enviarNotificacionPush(
-                                `${cfg.nombre || 'Salon'} - Reserva manual`,
-                                `👤 ${result.data.cliente_nombre}\n✨ ${result.data.servicio}\n📅 ${fecha} ${hora}`,
-                                'calendar', 'default',
-                                { profesionalId: result.data.profesional_id || result.data.trabajador_id || result.data.barbero_id }
-                            ).catch(e => console.warn('ntfy:', e));
+                            // Cada profesional recibe el aviso de SUS servicios y de la hora en que empieza el primero.
+                            const filasAviso = result.data._reservasGrupo?.length ? result.data._reservasGrupo : [result.data];
+                            const filasPorProfesional = new Map();
+                            filasAviso.forEach(fila => {
+                                const id = fila.profesional_id || fila.trabajador_id || fila.barbero_id;
+                                if (!filasPorProfesional.has(id)) filasPorProfesional.set(id, []);
+                                filasPorProfesional.get(id).push(fila);
+                            });
+                            const variasProfesionales = filasPorProfesional.size > 1;
+                            filasPorProfesional.forEach((filas, profesionalId) => {
+                                const horaAviso = variasProfesionales && window.formatTo12Hour ? window.formatTo12Hour(filas[0].hora_inicio) : hora;
+                                const serviciosAviso = variasProfesionales ? filas.map(f => f.servicio).join(' + ') : result.data.servicio;
+                                window.enviarNotificacionPush(
+                                    `${cfg.nombre || 'Salon'} - Reserva manual`,
+                                    `👤 ${result.data.cliente_nombre}\n✨ ${serviciosAviso}\n📅 ${fecha} ${horaAviso}`,
+                                    'calendar', 'default',
+                                    { profesionalId }
+                                ).catch(e => console.warn('ntfy:', e));
+                            });
                         }
                     }
                 } catch (whatsappError) {
@@ -5452,7 +5598,31 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                                         )}
                                     </div>
                                 )}
-                                <div className={turnoEditando ? 'hidden' : undefined}>
+                                {esModoVariosProfesionales() && (
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('Profesional de cada servicio *')}</label>
+                                        <p className="text-xs text-gray-500 mb-2">{t('Cada servicio lo puede hacer una profesional distinta. Se reservan uno tras otro.')}</p>
+                                        <div className="space-y-3">
+                                            {getServiciosManualSeleccionados().map(s => {
+                                                const ids = profesionalesPermitidosPorServicio[s.id] || [];
+                                                const opciones = ids.length > 0 ? profesionalesList.filter(p => ids.includes(Number(p.id))) : profesionalesList;
+                                                return (
+                                                    <div key={s.id}>
+                                                        <label className="block text-xs font-semibold text-gray-500 mb-1">{s.nombre} ({s.duracion} min)</label>
+                                                        <select value={profesionalesPorServicio[s.nombre] || ''} onChange={(e) => elegirProfesionalDeServicio(s.nombre, e.target.value)} className="w-full border rounded-lg px-3 py-2">
+                                                            <option value="">{t('Seleccionar profesional')}</option>
+                                                            {opciones.map(p => (<option key={p.id} value={p.id}>{p.nombre} - {p.especialidad}</option>))}
+                                                        </select>
+                                                        {opciones.length === 0 && (
+                                                            <p className="text-xs text-red-500 mt-1">{t('No hay profesionales asignados a {servicio}.', { servicio: s.nombre })}</p>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
+                                <div className={(turnoEditando || esModoVariosProfesionales()) ? 'hidden' : undefined}>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">{t('Profesional *')}</label>
                                     <select value={nuevaReservaData.profesional_id} onChange={(e) => setNuevaReservaData({...nuevaReservaData, profesional_id: e.target.value})} className="w-full border rounded-lg px-3 py-2">
                                         <option value="">{t('Seleccionar profesional')}</option>
@@ -5471,7 +5641,7 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                                         <p className="text-xs text-yellow-800 mt-1">{nuevaReservaData.requiereAnticipo ? t('La reserva queda pendiente y se le manda el pedido de anticipo por WhatsApp. Se confirma cuando recibas el pago.') : t('Sin anticipo: la reserva queda confirmada al guardar.')}</p>
                                     </div>
                                 )}
-                                {nuevaReservaData.servicio && nuevaReservaData.profesional_id && (
+                                {nuevaReservaData.servicio && (esModoVariosProfesionales() ? asignacionesManualCompletas() : nuevaReservaData.profesional_id) && (
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-2">{t('Fecha *')}</label>
                                         <div className="bg-white rounded-xl border">
@@ -5515,7 +5685,7 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                                 {nuevaReservaData.fecha && (
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-2">{t('Horario de la cita *')}</label>
-                                        <div className={turnoEditando ? 'hidden' : 'grid grid-cols-2 gap-3 mb-3'}>
+                                        <div className={(turnoEditando || esModoVariosProfesionales()) ? 'hidden' : 'grid grid-cols-2 gap-3 mb-3'}>
                                             <div>
                                                 <label className="block text-xs font-semibold text-gray-500 mb-1">{t('Inicio')}</label>
                                                 <input
@@ -5542,7 +5712,7 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                                                 />
                                             </div>
                                         </div>
-                                        {nuevaReservaData.hora_inicio && !turnoEditando && (
+                                        {nuevaReservaData.hora_inicio && !turnoEditando && !esModoVariosProfesionales() && (
                                             <p className="text-xs text-gray-500 mb-3">
                                                 {nuevaReservaData.hora_fin
                                                     ? t('Duracion calculada: {min} min segun inicio y fin.', { min: getDuracionManualTotal(getServiciosManualSeleccionados()) })
