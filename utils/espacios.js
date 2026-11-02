@@ -37,7 +37,10 @@
     // `reservasSalon`: citas activas del salon con { fecha, hora_inicio, hora_fin, profesional_id, espacio }.
     // `excluirId`: una cita (o una lista de ellas) que se esta moviendo, para que su propio espacio no la bloquee.
     // Devuelve citas "virtuales" con la misma forma que las reales, listas para sumarlas a las suyas.
-    function bloqueosPorEspacios(profesionalId, espaciosProf, reservasSalon, excluirId) {
+    // `duracion` (minutos de la cita que se quiere poner): con ella se aplica la regla de la base, que pide UN
+    // mismo espacio libre durante toda la cita. Sin ella solo se mira si queda alguno libre en cada momento, y con
+    // citas escalonadas la pantalla ofrecia horas que la base rechazaba ("Ese horario acaba de ser tomado").
+    function bloqueosPorEspacios(profesionalId, espaciosProf, reservasSalon, excluirId, duracion) {
         if (!espaciosProf || !espaciosProf.length) return [];
         const mios = new Set(espaciosProf);
         const excluidas = excluirId == null ? [] : (Array.isArray(excluirId) ? excluirId : [excluirId]).map(String);
@@ -53,7 +56,30 @@
         });
 
         const bloqueos = [];
-        Object.keys(porFecha).sort().forEach(fecha => {
+        const d = parseInt(duracion, 10) || 0;
+        if (d > 0) {
+            // Minuto a minuto: una cita que empieza en `s` no cabe si cada espacio tiene alguna cita que pisa [s, s+d).
+            // Cada racha de minutos malos [x0, x1] se vuelve un tramo bloqueado que la pantalla, al comprobar si
+            // [s, s+d) lo pisa, rechaza justo esos minutos: [x0+d-1, x1+1). Puede quedar de largo cero (dos citas
+            // que se tocan) y sirve igual: las pantallas comparan con inicio < fin_bloqueo && fin > inicio_bloqueo.
+            // Si la racha es mas corta que eso no hay tramo exacto: se deja de largo cero en x0+d-1 y tapa unos
+            // minutos de mas despues (mejor no ofrecer una hora que si cabia que una que la base va a rechazar).
+            Object.keys(porFecha).sort().forEach(fecha => {
+                const citas = porFecha[fecha];
+                const malo = s => espaciosProf.every(e => citas.some(c => c.espacio === e && c.ini < s + d && c.fin > s));
+                const desde = Math.max(0, Math.min(...citas.map(c => c.ini)) - d);
+                const hasta = Math.max(...citas.map(c => c.fin));
+                let x0 = null;
+                for (let s = desde; s <= hasta; s++) {
+                    if (malo(s)) { if (x0 === null) x0 = s; continue; }
+                    if (x0 === null) continue;
+                    const x1 = s - 1;
+                    const abierto = { ini: x0 + d - 1, fin: Math.max(x0 + d - 1, x1 + 1) };
+                    bloqueos.push({ fecha, abierto });
+                    x0 = null;
+                }
+            });
+        } else Object.keys(porFecha).sort().forEach(fecha => {
             const citas = porFecha[fecha];
             const cortes = [...new Set(citas.flatMap(c => [c.ini, c.fin]))].sort((a, b) => a - b);
             let abierto = null;
@@ -140,7 +166,18 @@
         return bloqueos;
     }
 
-    const api = { aMinutos, estaActivo, espaciosDe, bloqueosPorEspacios, nombresDeServicio, espaciosDelServicio, espaciosPermitidos, bloqueosDiaCompleto };
+    // Minutos de lo que se quiere reservar: la suma de sus servicios (los de un combo van seguidos). Un servicio
+    // ({ duracion }) trae la suya; un nombre se busca en `porNombre`. 0 = no se sabe (se usa la regla sin duracion).
+    function duracionDe(servicio, porNombre) {
+        const partes = (Array.isArray(servicio) ? servicio : [servicio]).filter(Boolean);
+        return partes.reduce((total, item) => {
+            const propia = item && typeof item === 'object' ? parseInt(item.duracion, 10) : NaN;
+            if (propia > 0) return total + propia;
+            return total + nombresDeServicio(item).reduce((suma, nombre) => suma + ((porNombre && porNombre[nombre]) || 0), 0);
+        }, 0);
+    }
+
+    const api = { aMinutos, duracionDe, estaActivo, espaciosDe, bloqueosPorEspacios, nombresDeServicio, espaciosDelServicio, espaciosPermitidos, bloqueosDiaCompleto };
 
     if (typeof module !== 'undefined' && module.exports) module.exports = api;
     if (typeof window === 'undefined') return;
@@ -162,7 +199,7 @@
     async function cargarConfig(forzar) {
         const id = negocioId();
         if (!forzar && cache && cache.id === id && Date.now() - cache.hora < CACHE_MS) return cache.valor;
-        let valor = { activo: false, cantidad: 0, porProfesional: {}, porServicio: {} };
+        let valor = { activo: false, cantidad: 0, porProfesional: {}, porServicio: {}, duracionPorNombre: {} };
         try {
             const resConfig = await fetch(
                 `${window.SUPABASE_URL}/rest/v1/configuracion?negocio_id=eq.${id}&select=espacios_activos,espacios_cantidad`,
@@ -178,16 +215,18 @@
                     );
                     const profs = resProf.ok ? await resProf.json() : [];
                     const cantidad = parseInt(cfg.espacios_cantidad, 10) || 0;
-                    valor = { activo: true, cantidad, porProfesional: {}, porServicio: {} };
+                    valor = { activo: true, cantidad, porProfesional: {}, porServicio: {}, duracionPorNombre: {} };
                     (profs || []).forEach(p => { valor.porProfesional[String(p.id)] = espaciosDe(p, cantidad); });
                     // Espacios por servicio; si no se pueden leer, los servicios quedan sin restriccion.
                     const resServ = await fetch(
-                        `${window.SUPABASE_URL}/rest/v1/servicios?negocio_id=eq.${id}&select=nombre,espacios`,
+                        `${window.SUPABASE_URL}/rest/v1/servicios?negocio_id=eq.${id}&select=nombre,espacios,duracion`,
                         { headers: cabeceras() }
                     );
                     ((resServ.ok ? await resServ.json() : []) || []).forEach(servicio => {
                         const suyos = espaciosDe(servicio, cantidad);
-                        if (suyos.length) valor.porServicio[String(servicio.nombre || '').trim().toLowerCase()] = suyos;
+                        const nombre = String(servicio.nombre || '').trim().toLowerCase();
+                        if (suyos.length) valor.porServicio[nombre] = suyos;
+                        valor.duracionPorNombre[nombre] = parseInt(servicio.duracion, 10) || 0;
                     });
                 }
             }
@@ -217,7 +256,7 @@
                 { headers: cabeceras(), cache: 'no-store' }
             );
             if (!res.ok) return propias;
-            return propias.concat(bloqueosPorEspacios(profesionalId, suyos, await res.json(), excluirId));
+            return propias.concat(bloqueosPorEspacios(profesionalId, suyos, await res.json(), excluirId, duracionDe(servicio, cfg.duracionPorNombre)));
         } catch (error) {
             console.warn('Espacios: no se pudieron revisar las citas del salon', error);
             return propias;

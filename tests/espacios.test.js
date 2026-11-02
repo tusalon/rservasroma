@@ -43,6 +43,21 @@ assert.equal(parcial[0].hora_fin, '11:00:00');
 
 const seguidas = [cita(ROMA, 2, '10:00', '11:00'), cita(SOFIA, 1, '10:00', '11:00'),
     cita(ROMA, 2, '11:00', '12:00'), cita(SOFIA, 1, '11:00', '12:00')];
+// Con la duracion, misma regla que la base: UN espacio libre toda la cita. Cada hora de inicio se compara
+// con lo que haria espacio_libre_para() en sql-espacios.sql (sin duracion, a las 9:30 parecia que cabia).
+{
+    const esc = [cita(ROMA, 1, '09:00', '10:00'), cita(SOFIA, 2, '10:00', '11:00')];
+    const m = e.aMinutos;
+    for (const d of [30, 45, 60, 90]) {
+        const bl = e.bloqueosPorEspacios(JUANA, [1, 2], esc, null, d);
+        for (let s = 8 * 60; s <= 12 * 60; s += 5) {
+            const pantalla = !bl.some(b => m(b.hora_inicio) < s + d && m(b.hora_fin) > s);
+            const base = [1, 2].some(n => !esc.some(c => c.espacio === n && m(c.hora_inicio) < s + d && m(c.hora_fin) > s));
+            assert.ok(!pantalla || base, `d=${d} a las ${s}: la pantalla no ofrece lo que la base rechaza`);
+            if (d === 60) assert.equal(pantalla, base, `d=60 a las ${s}: exacto`);
+        }
+    }
+}
 const unida = e.bloqueosPorEspacios(JUANA, [1, 2], seguidas);
 assert.equal(unida.length, 1, 'dos tramos pegados se unen en uno');
 assert.equal(unida[0].hora_inicio, '10:00:00');
