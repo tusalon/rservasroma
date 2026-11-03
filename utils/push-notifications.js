@@ -682,17 +682,20 @@ function instalarIndicadorPushAdmin() {
                     60% { transform: rotate(-7deg); }
                     75% { transform: rotate(4deg); }
                 }
+                /* Abajo, junto al botón de soporte y por encima de la barra de secciones
+                   del panel: arriba a la derecha tapaba "Actualizar / Salir / ES". Con los
+                   avisos ya activos se oculta, como en la app de clientas. */
                 #rservas-push-indicator {
                     position: fixed;
-                    top: calc(env(safe-area-inset-top, 0px) + 14px);
-                    right: 14px;
-                    width: 46px;
-                    height: 46px;
+                    bottom: calc(env(safe-area-inset-bottom, 0px) + 76px);
+                    left: 72px;
+                    width: 48px;
+                    height: 48px;
                     border: 0;
                     border-radius: 999px;
                     background: #fff;
                     color: #111827;
-                    box-shadow: 0 10px 30px rgba(15,23,42,.22);
+                    box-shadow: 0 4px 8px rgba(17,12,46,.04), 0 12px 28px rgba(17,12,46,.10);
                     display: inline-flex;
                     align-items: center;
                     justify-content: center;
@@ -711,9 +714,7 @@ function instalarIndicadorPushAdmin() {
                     transform-origin: 50% 0;
                 }
                 #rservas-push-indicator.is-active {
-                    background: #16a34a;
-                    color: #fff;
-                    box-shadow: 0 10px 30px rgba(22,163,74,.34);
+                    display: none;
                 }
                 #rservas-push-indicator.is-active i {
                     animation: rservasBellRing 1.35s ease-in-out infinite;

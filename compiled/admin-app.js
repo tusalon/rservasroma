@@ -724,7 +724,7 @@ function AdminApp() {
           texto: t2("Poner horario"),
           onClick: () => {
             setProfesionalHorarioInicial(p.id);
-            setTabActivo("configuracion");
+            setTabActivo("horarios");
             setTimeout(() => document.getElementById("configuracion-profesional")?.scrollIntoView({ behavior: "smooth", block: "start" }), 300);
           }
         }]
@@ -3939,7 +3939,10 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
       tabs.push({ id: "estadisticas", icono: "📊", label: t2("Estadísticas") });
     }
     if (userRole === "admin" || userRole === "profesional" && userNivel >= 2) {
-      tabs.push({ id: "configuracion", icono: "⚙️", label: t2("Configuración") });
+      tabs.push({ id: "horarios", icono: "🕐", label: t2("Horarios y días libres") });
+      if (!(userRole === "profesional" && userNivel === 2)) {
+        tabs.push({ id: "configuracion", icono: "⚙️", label: t2("Ajustes de reservas") });
+      }
       tabs.push({ id: "clientes", icono: "👥", label: t2("Clientes") });
       tabs.push({ id: "lista-espera", icono: "⏳", label: t2("Lista de espera") + (esperaLibres.length ? ` (${esperaLibres.length})` : "") });
       if (clientasNuevasInfo.disponible) {
@@ -4064,25 +4067,41 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
     cargarDisponibilidadDelMes(fechaActual, profesionalId);
   };
   const tabsDisponibles = getTabsDisponibles();
+  const SECCIONES = [
+    { id: "hoy", label: t2("Hoy"), icono: "icon-sun", ids: ["reservas"] },
+    { id: "agenda", label: t2("Agenda"), icono: "icon-calendar-days", ids: ["agenda"] },
+    { id: "clientas", label: t2("Clientas"), icono: "icon-users", ids: ["clientes", "lista-espera", "clientas-nuevas"] },
+    { id: "salon", label: t2("Mi salón"), icono: "icon-store", ids: ["horarios", "servicios", "catalogo", "profesionales", "configuracion"] },
+    { id: "numeros", label: t2("Números"), icono: "icon-trending-up", ids: ["estadisticas", "finanzas"] }
+  ].map((sec) => ({ ...sec, hijos: sec.ids.map((id) => tabsDisponibles.find((tab) => tab.id === id)).filter(Boolean) })).filter((sec) => sec.hijos.length > 0);
+  const seccionActiva = SECCIONES.find((sec) => sec.hijos.some((h) => h.id === tabActivo)) || SECCIONES[0];
+  const copiarEnlaceClientas = async () => {
+    try {
+      await navigator.clipboard.writeText(urlCliente);
+      window.avisar(t2("Enlace copiado"));
+    } catch (e) {
+      await window.pedirTexto(t2("Copia tu enlace:"), urlCliente, { si: t2("Listo") });
+    }
+  };
   const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
   const days = getDaysInMonth(currentDate);
   const disponibilidadDays = getDaysInMonth(disponibilidadFecha);
-  return /* @__PURE__ */ React.createElement("div", { className: "min-h-screen bg-pink-50 p-3 sm:p-6" }, /* @__PURE__ */ React.createElement("div", { className: "max-w-6xl mx-auto space-y-4" }, /* @__PURE__ */ React.createElement("div", { className: "bg-white p-4 rounded-xl shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-l-4 border-pink-500" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3" }, logoNegocio ? /* @__PURE__ */ React.createElement(
+  return /* @__PURE__ */ React.createElement("div", { className: "min-h-screen bg-pink-50 p-3 sm:p-6 pb-28 sm:pb-28" }, /* @__PURE__ */ React.createElement("div", { className: "max-w-6xl mx-auto space-y-4" }, /* @__PURE__ */ React.createElement("div", { className: "bg-white px-4 py-3 rounded-xl shadow-sm flex flex-row justify-between items-center gap-3 border-l-4 border-pink-500" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3 min-w-0" }, logoNegocio ? /* @__PURE__ */ React.createElement(
     "img",
     {
       src: logoNegocio,
       alt: nombreNegocio,
-      className: "w-12 h-12 object-contain rounded-xl shadow-lg ring-2 ring-pink-300 bg-white p-1",
+      className: "w-10 h-10 object-contain rounded-xl shadow-lg ring-2 ring-pink-300 bg-white p-1",
       onError: (e) => {
         e.target.onerror = null;
         e.target.style.display = "none";
         const parent = e.target.parentElement;
         if (parent) {
-          parent.innerHTML = '<div class="w-12 h-12 bg-gradient-to-br from-pink-500 to-pink-600 rounded-xl shadow-lg flex items-center justify-center"><span class="text-2xl text-white"><i class="icon-calendar"></i></span></div>';
+          parent.innerHTML = '<div class="w-10 h-10 bg-gradient-to-br from-pink-500 to-pink-600 rounded-xl shadow-lg flex items-center justify-center"><span class="text-2xl text-white"><i class="icon-calendar"></i></span></div>';
         }
       }
     }
-  ) : /* @__PURE__ */ React.createElement("div", { className: "w-12 h-12 bg-gradient-to-br from-pink-500 to-pink-600 rounded-xl shadow-lg flex items-center justify-center" }, /* @__PURE__ */ React.createElement("span", { className: "text-2xl text-white" }, "✨")), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h1", { className: "text-xl font-bold text-pink-800" }, nombreNegocio), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-pink-500" }, t2("Panel de Administración")))), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-1.5 self-start sm:self-auto sm:order-last" }, /* @__PURE__ */ React.createElement(
+  ) : /* @__PURE__ */ React.createElement("div", { className: "w-10 h-10 bg-gradient-to-br from-pink-500 to-pink-600 rounded-xl shadow-lg flex items-center justify-center" }, /* @__PURE__ */ React.createElement("span", { className: "text-2xl text-white" }, "✨")), /* @__PURE__ */ React.createElement("div", { className: "min-w-0" }, /* @__PURE__ */ React.createElement("h1", { className: "text-lg font-bold text-pink-800 leading-tight line-clamp-2 break-words" }, nombreNegocio), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-pink-500" }, t2("Panel de Administración")))), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-1 shrink-0" }, /* @__PURE__ */ React.createElement(
     "button",
     {
       onClick: () => {
@@ -4104,47 +4123,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
     },
     /* @__PURE__ */ React.createElement("i", { className: "icon-log-out text-lg" }),
     /* @__PURE__ */ React.createElement("span", { className: "text-[11px] font-semibold" }, t2("Salir"))
-  ), /* @__PURE__ */ React.createElement(window.LanguageToggle, { compacto: true })), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap items-center gap-2 w-full sm:w-auto" }, /* @__PURE__ */ React.createElement(
-    "button",
-    {
-      onClick: abrirModalNuevaReserva,
-      className: `${puedeGestionarReservas ? "flex" : "hidden"} items-center justify-center gap-2 bg-pink-500 text-white px-5 py-2.5 rounded-full font-bold shadow-md flex-1 sm:flex-none`
-    },
-    /* @__PURE__ */ React.createElement("i", { className: "icon-plus" }),
-    /* @__PURE__ */ React.createElement("span", null, t2("Nueva Reserva"))
-  ), /* @__PURE__ */ React.createElement(
-    "button",
-    {
-      onClick: abrirModalDisponibilidad,
-      className: "flex items-center justify-center gap-2 bg-white text-gray-800 border border-gray-200 px-4 py-2.5 rounded-full font-semibold flex-1 sm:flex-none",
-      title: t2("Ver disponibilidad mensual")
-    },
-    /* @__PURE__ */ React.createElement("i", { className: "icon-calendar" }),
-    /* @__PURE__ */ React.createElement("span", null, t2("Ver Disponibilidad"))
-  ), /* @__PURE__ */ React.createElement(
-    "button",
-    {
-      onClick: abrirEdicionNegocio,
-      className: `${puedeGestionarAvanzado ? "flex" : "hidden"} items-center justify-center gap-2 bg-white text-gray-800 border border-gray-200 px-4 py-2.5 rounded-full font-semibold flex-1 sm:flex-none`
-    },
-    /* @__PURE__ */ React.createElement("i", { className: "icon-store" }),
-    /* @__PURE__ */ React.createElement("span", null, t2("Editar Negocio"))
-  )), urlCliente && /* @__PURE__ */ React.createElement("div", { className: "w-full flex items-center gap-2 rounded-xl bg-gray-50 px-3 py-2" }, /* @__PURE__ */ React.createElement("span", { className: "text-xs font-semibold text-gray-600 whitespace-nowrap" }, t2("Tu enlace para clientas")), /* @__PURE__ */ React.createElement("span", { className: "text-xs text-gray-800 truncate flex-1 min-w-0" }, urlCliente), /* @__PURE__ */ React.createElement(
-    "button",
-    {
-      type: "button",
-      onClick: async () => {
-        try {
-          await navigator.clipboard.writeText(urlCliente);
-          window.avisar(t2("Enlace copiado"));
-        } catch (e) {
-          await window.pedirTexto(t2("Copia tu enlace:"), urlCliente, { si: t2("Listo") });
-        }
-      },
-      className: "shrink-0 px-3 py-1.5 rounded-full bg-white border border-gray-200 text-xs font-bold text-gray-800"
-    },
-    t2("Copiar")
-  ))), fraseDelDia && /* @__PURE__ */ React.createElement("div", { className: "bg-white border-l-4 border-pink-400 text-gray-700 px-4 py-3 rounded-xl shadow-sm flex items-center justify-between gap-3" }, /* @__PURE__ */ React.createElement("p", { className: "text-sm italic" }, fraseDelDia), /* @__PURE__ */ React.createElement(
+  ), /* @__PURE__ */ React.createElement(window.LanguageToggle, { compacto: true }))), fraseDelDia && /* @__PURE__ */ React.createElement("div", { className: "bg-white border-l-4 border-pink-400 text-gray-700 px-4 py-3 rounded-xl shadow-sm flex items-center justify-between gap-3" }, /* @__PURE__ */ React.createElement("p", { className: "text-sm italic" }, fraseDelDia), /* @__PURE__ */ React.createElement(
     "button",
     {
       onClick: cerrarFraseDelDia,
@@ -4468,13 +4447,31 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
     else if (disponible) className += " bg-white text-gray-800 border-gray-200 hover:bg-gray-50";
     else className += " bg-gray-100 text-gray-400 border-gray-200";
     return /* @__PURE__ */ React.createElement("div", { key: idx, className, title: esCerrado ? t2("Día cerrado") : esPasado ? t2("Fecha pasada") : disponible ? t2("{n} horario(s) disponible(s)", { n: disponiblesDia }) : t2("Sin horarios disponibles") }, /* @__PURE__ */ React.createElement("span", { className: "text-base leading-tight" }, date.getDate()), !esCerrado && !esPasado && /* @__PURE__ */ React.createElement("span", { className: `mt-0.5 min-w-5 px-1.5 py-0.5 rounded-full border text-[11px] font-bold leading-none ${tonoConteo}` }, disponiblesDia), esCerrado && /* @__PURE__ */ React.createElement("span", { className: "text-xs" }, "x"));
-  }))), modoDisponibilidad === "mes" && /* @__PURE__ */ React.createElement("div", { className: "mt-4 p-3 bg-gray-50 rounded-lg text-xs" }, /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-4" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2" }, /* @__PURE__ */ React.createElement("div", { className: "w-5 h-5 bg-green-100 border border-green-300 rounded-full flex items-center justify-center text-[10px] font-bold text-green-700" }, "6"), /* @__PURE__ */ React.createElement("span", null, t2("4+ tranquilo"))), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2" }, /* @__PURE__ */ React.createElement("div", { className: "w-5 h-5 bg-yellow-100 border border-yellow-300 rounded-full flex items-center justify-center text-[10px] font-bold text-yellow-700" }, "3"), /* @__PURE__ */ React.createElement("span", null, t2("3 medio"))), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2" }, /* @__PURE__ */ React.createElement("div", { className: "w-5 h-5 bg-red-100 border border-red-300 rounded-full flex items-center justify-center text-[10px] font-bold text-red-700" }, "2"), /* @__PURE__ */ React.createElement("span", null, t2("1-2 urgente"))), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2" }, /* @__PURE__ */ React.createElement("div", { className: "w-5 h-5 bg-gray-100 border border-gray-200 rounded-full flex items-center justify-center text-[10px] font-bold text-gray-400" }, "0"), /* @__PURE__ */ React.createElement("span", null, t2("Sin horarios"))))))), esperaLibres.length > 0 && tabActivo !== "lista-espera" && avisoEsperaCerrado !== esperaLibres.length && /* @__PURE__ */ React.createElement("div", { role: "status", className: "bg-green-50 border border-green-300 rounded-xl p-3 flex flex-wrap items-center gap-3" }, /* @__PURE__ */ React.createElement("span", { className: "flex-1 min-w-[200px] text-sm text-green-900" }, esperaLibres.length === 1 ? t2("Se liberó un horario y {nombre} está en lista de espera.", { nombre: esperaLibres[0].cliente_nombre || "" }) : t2("Se liberaron {n} horarios con clientas en lista de espera.", { n: esperaLibres.length })), /* @__PURE__ */ React.createElement("button", { type: "button", onClick: () => setTabActivo("lista-espera"), className: "px-4 min-h-11 rounded-lg bg-green-600 text-white text-sm font-semibold hover:bg-green-700" }, t2("Ver lista de espera")), /* @__PURE__ */ React.createElement("button", { type: "button", "aria-label": t2("Cerrar aviso"), onClick: () => setAvisoEsperaCerrado(esperaLibres.length), className: "min-h-11 min-w-11 rounded-lg text-green-900 hover:bg-green-100" }, "✕")), /* @__PURE__ */ React.createElement("div", { className: "bg-white p-2 rounded-xl shadow-sm flex flex-wrap gap-2" }, tabsDisponibles.map((tab) => /* @__PURE__ */ React.createElement("button", { key: tab.id, onClick: () => tab.url ? window.location.href = tab.url : setTabActivo(tab.id), className: `px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 ${tabActivo === tab.id ? "bg-pink-500 text-white shadow-md" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}` }, /* @__PURE__ */ React.createElement("span", null, tab.icono), /* @__PURE__ */ React.createElement("span", null, tab.label)))), tabActivo === "estadisticas" && renderEstadisticas(), tabActivo === "configuracion" && /* @__PURE__ */ React.createElement("div", { className: "space-y-4" }, userRole === "admin" && esDuenaReal && /* @__PURE__ */ React.createElement(RomaHubActivacion, null), /* @__PURE__ */ React.createElement(
+  }))), modoDisponibilidad === "mes" && /* @__PURE__ */ React.createElement("div", { className: "mt-4 p-3 bg-gray-50 rounded-lg text-xs" }, /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-4" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2" }, /* @__PURE__ */ React.createElement("div", { className: "w-5 h-5 bg-green-100 border border-green-300 rounded-full flex items-center justify-center text-[10px] font-bold text-green-700" }, "6"), /* @__PURE__ */ React.createElement("span", null, t2("4+ tranquilo"))), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2" }, /* @__PURE__ */ React.createElement("div", { className: "w-5 h-5 bg-yellow-100 border border-yellow-300 rounded-full flex items-center justify-center text-[10px] font-bold text-yellow-700" }, "3"), /* @__PURE__ */ React.createElement("span", null, t2("3 medio"))), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2" }, /* @__PURE__ */ React.createElement("div", { className: "w-5 h-5 bg-red-100 border border-red-300 rounded-full flex items-center justify-center text-[10px] font-bold text-red-700" }, "2"), /* @__PURE__ */ React.createElement("span", null, t2("1-2 urgente"))), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2" }, /* @__PURE__ */ React.createElement("div", { className: "w-5 h-5 bg-gray-100 border border-gray-200 rounded-full flex items-center justify-center text-[10px] font-bold text-gray-400" }, "0"), /* @__PURE__ */ React.createElement("span", null, t2("Sin horarios"))))))), esperaLibres.length > 0 && tabActivo !== "lista-espera" && avisoEsperaCerrado !== esperaLibres.length && /* @__PURE__ */ React.createElement("div", { role: "status", className: "bg-green-50 border border-green-300 rounded-xl p-3 flex flex-wrap items-center gap-3" }, /* @__PURE__ */ React.createElement("span", { className: "flex-1 min-w-[200px] text-sm text-green-900" }, esperaLibres.length === 1 ? t2("Se liberó un horario y {nombre} está en lista de espera.", { nombre: esperaLibres[0].cliente_nombre || "" }) : t2("Se liberaron {n} horarios con clientas en lista de espera.", { n: esperaLibres.length })), /* @__PURE__ */ React.createElement("button", { type: "button", onClick: () => setTabActivo("lista-espera"), className: "px-4 min-h-11 rounded-lg bg-green-600 text-white text-sm font-semibold hover:bg-green-700" }, t2("Ver lista de espera")), /* @__PURE__ */ React.createElement("button", { type: "button", "aria-label": t2("Cerrar aviso"), onClick: () => setAvisoEsperaCerrado(esperaLibres.length), className: "min-h-11 min-w-11 rounded-lg text-green-900 hover:bg-green-100" }, "✕")), seccionActiva && seccionActiva.hijos.length > 1 && /* @__PURE__ */ React.createElement("div", { className: "flex gap-2 overflow-x-auto pb-1 -mx-1 px-1", role: "tablist" }, seccionActiva.hijos.map((tab) => /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      key: tab.id,
+      role: "tab",
+      "aria-selected": tabActivo === tab.id,
+      onClick: () => tab.url ? window.location.href = tab.url : setTabActivo(tab.id),
+      className: `shrink-0 px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap ${tabActivo === tab.id ? "bg-gray-900 text-white" : "bg-white text-gray-700 shadow-sm"}`
+    },
+    tab.label
+  ))), seccionActiva && seccionActiva.id === "salon" && /* @__PURE__ */ React.createElement("div", { className: "space-y-2" }, puedeGestionarAvanzado && /* @__PURE__ */ React.createElement("button", { onClick: abrirEdicionNegocio, className: "w-full flex items-center gap-3 bg-white rounded-2xl shadow-sm px-4 py-3 text-left" }, /* @__PURE__ */ React.createElement("i", { className: "icon-store text-xl text-pink-600" }), /* @__PURE__ */ React.createElement("span", { className: "flex-1" }, /* @__PURE__ */ React.createElement("span", { className: "block font-bold text-gray-900" }, t2("Datos del negocio")), /* @__PURE__ */ React.createElement("span", { className: "block text-xs text-gray-500" }, t2("Nombre, colores, WhatsApp, anticipos y premios"))), /* @__PURE__ */ React.createElement("span", { className: "text-gray-400 text-xl" }, "›")), urlCliente && /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2 rounded-2xl bg-white shadow-sm px-4 py-3" }, /* @__PURE__ */ React.createElement("span", { className: "flex-1 min-w-0" }, /* @__PURE__ */ React.createElement("span", { className: "block font-bold text-gray-900" }, t2("Tu enlace para clientas")), /* @__PURE__ */ React.createElement("span", { className: "block text-xs text-gray-500 truncate" }, urlCliente)), /* @__PURE__ */ React.createElement("button", { type: "button", onClick: copiarEnlaceClientas, className: "shrink-0 px-3 py-1.5 rounded-full bg-gray-100 text-xs font-bold text-gray-800" }, t2("Copiar")))), tabActivo === "estadisticas" && renderEstadisticas(), tabActivo === "horarios" && /* @__PURE__ */ React.createElement(
     ConfigPanel,
     {
+      vista: "horarios",
       profesionalId: userRole === "profesional" ? profesional?.id : null,
       modoRestringido: userRole === "profesional" && userNivel === 2,
       profesionalInicial: profesionalHorarioInicial,
       onProfesionalInicialUsado: () => setProfesionalHorarioInicial(null)
+    }
+  ), tabActivo === "configuracion" && /* @__PURE__ */ React.createElement("div", { className: "space-y-4" }, userRole === "admin" && esDuenaReal && /* @__PURE__ */ React.createElement(RomaHubActivacion, null), /* @__PURE__ */ React.createElement(
+    ConfigPanel,
+    {
+      vista: "ajustes",
+      profesionalId: userRole === "profesional" ? profesional?.id : null,
+      modoRestringido: userRole === "profesional" && userNivel === 2
     }
   )), tabActivo === "lista-espera" && puedeVerListaEspera && /* @__PURE__ */ React.createElement(
     ListaEsperaPanel,
@@ -4833,7 +4830,15 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
       className: "w-full border rounded-lg px-3 py-2 min-h-24",
       placeholder: t2("Ej: ajuste por diseño extra, descuento, propina...")
     }
-  )), cobroEditando._grupoVisual && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500" }, t2("Esta cita tiene varios servicios. El monto se distribuirá entre ellos para que las estadísticas sumen correctamente."))), /* @__PURE__ */ React.createElement("div", { className: "flex gap-3 mt-5" }, /* @__PURE__ */ React.createElement("button", { onClick: () => setCobroEditando(null), disabled: guardandoCobro, className: "flex-1 px-4 py-2 border rounded-lg disabled:opacity-50" }, t2("Cancelar")), /* @__PURE__ */ React.createElement("button", { onClick: guardarCobroReal, disabled: guardandoCobro, className: "flex-1 px-4 py-2 bg-emerald-600 text-white rounded-lg font-bold disabled:opacity-60" }, guardandoCobro ? t2("Guardando...") : t2("Guardar cobro"))))), tabActivo === "reservas" && /* @__PURE__ */ React.createElement(React.Fragment, null, userRole === "profesional" && profesional && /* @__PURE__ */ React.createElement("div", { className: "bg-pink-50 border border-pink-200 rounded-lg p-4" }, /* @__PURE__ */ React.createElement("p", { className: "text-pink-800 font-medium" }, t2("Hola {nombre} - Mostrando tus reservas ({n})", { nombre: profesional.nombre, n: filteredVisualBookings.length }))), !loading && /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-xl shadow-sm border-l-4 border-l-amber-400 overflow-hidden" }, /* @__PURE__ */ React.createElement("div", { className: "p-4 bg-gradient-to-r from-amber-50 to-white border-b border-amber-100" }, /* @__PURE__ */ React.createElement("h3", { className: "font-bold text-gray-900 flex items-center gap-2" }, /* @__PURE__ */ React.createElement("span", { className: "text-xl" }, "🔔"), t2("Citas de mañana ({n})", { n: turnosManana.length })), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-1" }, turnosManana.length > 0 ? t2("Envía el recordatorio por WhatsApp con un toque. Quedará marcado como recordado en este dispositivo.") : esProfesionalPanel ? t2("Mañana no tienes citas. Cuando tengas, aquí podrás recordárselas por WhatsApp con un toque.") : t2("Mañana no hay citas. Cuando las haya, aquí podrás recordárselas por WhatsApp con un toque."))), /* @__PURE__ */ React.createElement("div", { className: "divide-y divide-gray-100" }, turnosManana.map((b) => {
+  )), cobroEditando._grupoVisual && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500" }, t2("Esta cita tiene varios servicios. El monto se distribuirá entre ellos para que las estadísticas sumen correctamente."))), /* @__PURE__ */ React.createElement("div", { className: "flex gap-3 mt-5" }, /* @__PURE__ */ React.createElement("button", { onClick: () => setCobroEditando(null), disabled: guardandoCobro, className: "flex-1 px-4 py-2 border rounded-lg disabled:opacity-50" }, t2("Cancelar")), /* @__PURE__ */ React.createElement("button", { onClick: guardarCobroReal, disabled: guardandoCobro, className: "flex-1 px-4 py-2 bg-emerald-600 text-white rounded-lg font-bold disabled:opacity-60" }, guardandoCobro ? t2("Guardando...") : t2("Guardar cobro"))))), tabActivo === "reservas" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "grid gap-2", style: { gridTemplateColumns: "repeat(3, minmax(0, 1fr))" } }, /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      onClick: abrirModalNuevaReserva,
+      className: `${puedeGestionarReservas ? "flex" : "hidden"} col-span-3 items-center justify-center gap-2 bg-pink-500 text-white py-3 rounded-full font-bold shadow-md`
+    },
+    /* @__PURE__ */ React.createElement("i", { className: "icon-plus" }),
+    /* @__PURE__ */ React.createElement("span", null, t2("Nueva Reserva"))
+  ), /* @__PURE__ */ React.createElement("button", { onClick: abrirModalDisponibilidad, className: "flex flex-col items-center gap-1 bg-white rounded-2xl shadow-sm py-3 text-xs font-bold text-gray-800" }, /* @__PURE__ */ React.createElement("i", { className: "icon-clock text-xl text-pink-600" }), t2("Ver huecos")), /* @__PURE__ */ React.createElement("button", { onClick: copiarEnlaceClientas, className: `${urlCliente ? "flex" : "hidden"} flex-col items-center gap-1 bg-white rounded-2xl shadow-sm py-3 text-xs font-bold text-gray-800` }, /* @__PURE__ */ React.createElement("i", { className: "icon-link text-xl text-pink-600" }), t2("Copiar mi enlace")), /* @__PURE__ */ React.createElement("button", { onClick: () => setTabActivo("horarios"), className: `${userRole === "admin" || userNivel >= 2 ? "flex" : "hidden"} flex-col items-center gap-1 bg-white rounded-2xl shadow-sm py-3 text-xs font-bold text-gray-800` }, /* @__PURE__ */ React.createElement("i", { className: "icon-calendar-off text-xl text-pink-600" }), t2("Cerrar un día"))), userRole === "profesional" && profesional && /* @__PURE__ */ React.createElement("div", { className: "bg-pink-50 border border-pink-200 rounded-lg p-4" }, /* @__PURE__ */ React.createElement("p", { className: "text-pink-800 font-medium" }, t2("Hola {nombre} - Mostrando tus reservas ({n})", { nombre: profesional.nombre, n: filteredVisualBookings.length }))), !loading && /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-xl shadow-sm border-l-4 border-l-amber-400 overflow-hidden" }, /* @__PURE__ */ React.createElement("div", { className: "p-4 bg-gradient-to-r from-amber-50 to-white border-b border-amber-100" }, /* @__PURE__ */ React.createElement("h3", { className: "font-bold text-gray-900 flex items-center gap-2" }, /* @__PURE__ */ React.createElement("span", { className: "text-xl" }, "🔔"), t2("Citas de mañana ({n})", { n: turnosManana.length })), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-1" }, turnosManana.length > 0 ? t2("Envía el recordatorio por WhatsApp con un toque. Quedará marcado como recordado en este dispositivo.") : esProfesionalPanel ? t2("Mañana no tienes citas. Cuando tengas, aquí podrás recordárselas por WhatsApp con un toque.") : t2("Mañana no hay citas. Cuando las haya, aquí podrás recordárselas por WhatsApp con un toque."))), /* @__PURE__ */ React.createElement("div", { className: "divide-y divide-gray-100" }, turnosManana.map((b) => {
     const claveId = String(b._grupoVisualId || b.id);
     const yaRecordado = recordatoriosEnviados.has(claveId);
     return /* @__PURE__ */ React.createElement("div", { key: claveId, className: "p-3 sm:p-4 flex flex-wrap sm:flex-nowrap items-center gap-3" }, /* @__PURE__ */ React.createElement("span", { className: "shrink-0 text-sm font-bold bg-pink-100 text-pink-700 px-2.5 py-1 rounded-full" }, formatTo12Hour(b.hora_inicio)), /* @__PURE__ */ React.createElement("div", { className: "min-w-0 flex-1" }, /* @__PURE__ */ React.createElement("p", { className: "font-semibold text-gray-900 truncate" }, b.cliente_nombre, marcaCumple(b)), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 truncate" }, b.servicio, b.profesional_nombre || b.trabajador_nombre ? ` · ${b.profesional_nombre || b.trabajador_nombre}` : "")), /* @__PURE__ */ React.createElement(
@@ -4845,7 +4850,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
       },
       yaRecordado ? "✅ " + t2("Recordado") : "💬 " + t2("Recordar")
     ));
-  }))), /* @__PURE__ */ React.createElement("div", { className: "bg-white p-4 rounded-xl shadow-sm space-y-3" }, esAdminPanel && profesionalesList.length > 1 && /* @__PURE__ */ React.createElement("div", { className: "space-y-2" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs uppercase tracking-wide text-gray-500 font-bold" }, t2("Ver citas de")), /* @__PURE__ */ React.createElement(
+  }))), /* @__PURE__ */ React.createElement("div", { className: "bg-white p-3 rounded-xl shadow-sm space-y-3" }, /* @__PURE__ */ React.createElement("details", null, /* @__PURE__ */ React.createElement("summary", { className: "list-none cursor-pointer flex items-center justify-between gap-2 select-none" }, /* @__PURE__ */ React.createElement("span", { className: "font-bold text-gray-800 flex items-center gap-2" }, /* @__PURE__ */ React.createElement("i", { className: "icon-sliders-horizontal" }), t2("Filtros"), (filtroProfesionalAdmin || filterDate) && /* @__PURE__ */ React.createElement("span", { className: "px-2 py-0.5 rounded-full bg-pink-500 text-white text-xs" }, (filtroProfesionalAdmin ? 1 : 0) + (filterDate ? 1 : 0))), /* @__PURE__ */ React.createElement("span", { className: "text-xs text-gray-500" }, filterDate ? window.formatFechaCompleta ? window.formatFechaCompleta(filterDate) : filterDate : t2("Todos los días"))), /* @__PURE__ */ React.createElement("div", { className: "space-y-3 pt-3" }, esAdminPanel && profesionalesList.length > 1 && /* @__PURE__ */ React.createElement("div", { className: "space-y-2" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs uppercase tracking-wide text-gray-500 font-bold" }, t2("Ver citas de")), /* @__PURE__ */ React.createElement(
     "select",
     {
       value: filtroProfesionalAdmin,
@@ -4864,7 +4869,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
       className: "col-span-2 sm:col-span-1 border border-gray-300 bg-white text-gray-900 rounded-lg px-3 py-2 text-sm font-semibold shadow-sm min-h-[42px]",
       style: { colorScheme: "light" }
     }
-  ), /* @__PURE__ */ React.createElement("button", { onClick: () => setFilterDate(getCurrentLocalDate()), className: `px-3 py-2 rounded-lg text-sm font-bold border ${filterDate === getCurrentLocalDate() ? "bg-pink-500 text-white border-pink-500" : "bg-gray-100 text-gray-800 border-gray-200"}` }, t2("Hoy")), /* @__PURE__ */ React.createElement("button", { onClick: () => setFilterDate(formatDate(addDays(/* @__PURE__ */ new Date(), 1))), className: `px-3 py-2 rounded-lg text-sm font-bold border ${filterDate === formatDate(addDays(/* @__PURE__ */ new Date(), 1)) ? "bg-pink-500 text-white border-pink-500" : "bg-gray-100 text-gray-800 border-gray-200"}` }, t2("Mañana")), /* @__PURE__ */ React.createElement("button", { onClick: () => setFilterDate(""), className: `px-3 py-2 rounded-lg text-sm font-bold border ${!filterDate ? "bg-gray-900 text-white border-gray-900" : "bg-gray-100 text-gray-800 border-gray-200"}` }, t2("Todas")))), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-2 items-center" }, /* @__PURE__ */ React.createElement("button", { onClick: () => setStatusFilter("activas"), className: `px-4 py-2 rounded-lg text-sm font-medium ${statusFilter === "activas" ? "bg-pink-500 text-white" : "bg-gray-100 text-gray-700"}` }, t2("Activas ({n})", { n: activasCount })), /* @__PURE__ */ React.createElement("button", { onClick: () => setStatusFilter("pendientes"), className: `px-4 py-2 rounded-lg text-sm font-medium ${statusFilter === "pendientes" ? "bg-yellow-500 text-white" : "bg-gray-100 text-gray-700"}` }, t2("Pendientes ({n})", { n: pendientesCount })), /* @__PURE__ */ React.createElement("button", { onClick: () => setStatusFilter("completadas"), className: `px-4 py-2 rounded-lg text-sm font-medium ${statusFilter === "completadas" ? "bg-pink-500 text-white" : "bg-gray-100 text-gray-700"}` }, t2("Completadas ({n})", { n: completadasCount })), /* @__PURE__ */ React.createElement("button", { onClick: () => setStatusFilter("ausentes"), className: `px-4 py-2 rounded-lg text-sm font-medium ${statusFilter === "ausentes" ? "bg-slate-600 text-white" : "bg-gray-100 text-gray-700"}` }, t2("Ausentes ({n})", { n: ausentesCount })), /* @__PURE__ */ React.createElement("button", { onClick: () => setStatusFilter("canceladas"), className: `px-4 py-2 rounded-lg text-sm font-medium ${statusFilter === "canceladas" ? "bg-pink-500 text-white" : "bg-gray-100 text-gray-700"}` }, t2("Canceladas ({n})", { n: canceladasCount })), /* @__PURE__ */ React.createElement("button", { onClick: () => setStatusFilter("todas"), className: `px-4 py-2 rounded-lg text-sm font-medium ${statusFilter === "todas" ? "bg-pink-500 text-white" : "bg-gray-100 text-gray-700"}` }, t2("Todas ({n})", { n: bookingsVisiblesPorRol.length })), puedeGestionarAvanzado && statusFilter === "canceladas" && /* @__PURE__ */ React.createElement("button", { onClick: borrarCanceladas, className: "px-4 py-2 bg-red-700 text-white rounded-lg text-sm" }, "🗑️ ", t2("Borrar todas")))), loading ? /* @__PURE__ */ React.createElement("div", { className: "text-center py-12" }, /* @__PURE__ */ React.createElement("div", { className: "animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500 mx-auto" }), /* @__PURE__ */ React.createElement("p", { className: "text-pink-500 mt-4" }, t2("Cargando reservas..."))) : /* @__PURE__ */ React.createElement("div", { className: "space-y-3" }, filteredVisualBookings.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "text-center py-12 bg-white rounded-xl" }, /* @__PURE__ */ React.createElement("p", { className: "text-gray-500" }, t2("No hay reservas para mostrar"))) : filteredVisualBookings.map((b) => /* @__PURE__ */ React.createElement("div", { key: b._grupoVisualId || b.id, className: `bg-white p-4 rounded-xl shadow-sm border-l-4 ${b.estado === "Reservado" ? "border-l-pink-500" : b.estado === "Pendiente" ? "border-l-yellow-500" : b.estado === "Completado" ? "border-l-green-500" : b.estado === "Ausente" ? "border-l-slate-500" : "border-l-red-500"}` }, /* @__PURE__ */ React.createElement("div", { className: "flex justify-between mb-2" }, /* @__PURE__ */ React.createElement("span", { className: "font-semibold" }, window.formatFechaCompleta ? window.formatFechaCompleta(b.fecha) : b.fecha), /* @__PURE__ */ React.createElement("span", { className: "text-sm bg-pink-100 text-pink-700 px-2 py-1 rounded-full" }, formatTo12Hour(b.hora_inicio), b._grupoVisual ? ` - ${formatTo12Hour(b.hora_fin)}` : "")), /* @__PURE__ */ React.createElement("div", { className: "text-sm space-y-1" }, /* @__PURE__ */ React.createElement("p", null, /* @__PURE__ */ React.createElement("span", { className: "font-medium" }, t2("Cliente:")), " ", b.cliente_nombre), /* @__PURE__ */ React.createElement("p", null, /* @__PURE__ */ React.createElement("span", { className: "font-medium" }, "WhatsApp:"), " ", /* @__PURE__ */ React.createElement(
+  ), /* @__PURE__ */ React.createElement("button", { onClick: () => setFilterDate(getCurrentLocalDate()), className: `px-3 py-2 rounded-lg text-sm font-bold border ${filterDate === getCurrentLocalDate() ? "bg-pink-500 text-white border-pink-500" : "bg-gray-100 text-gray-800 border-gray-200"}` }, t2("Hoy")), /* @__PURE__ */ React.createElement("button", { onClick: () => setFilterDate(formatDate(addDays(/* @__PURE__ */ new Date(), 1))), className: `px-3 py-2 rounded-lg text-sm font-bold border ${filterDate === formatDate(addDays(/* @__PURE__ */ new Date(), 1)) ? "bg-pink-500 text-white border-pink-500" : "bg-gray-100 text-gray-800 border-gray-200"}` }, t2("Mañana")), /* @__PURE__ */ React.createElement("button", { onClick: () => setFilterDate(""), className: `px-3 py-2 rounded-lg text-sm font-bold border ${!filterDate ? "bg-gray-900 text-white border-gray-900" : "bg-gray-100 text-gray-800 border-gray-200"}` }, t2("Todas")))))), /* @__PURE__ */ React.createElement("div", { className: "flex gap-2 items-center overflow-x-auto pb-1 -mx-1 px-1" }, /* @__PURE__ */ React.createElement("button", { onClick: () => setStatusFilter("activas"), className: `shrink-0 whitespace-nowrap px-4 py-2 rounded-full text-sm font-bold ${statusFilter === "activas" ? "bg-pink-500 text-white" : "bg-gray-100 text-gray-700"}` }, t2("Activas ({n})", { n: activasCount })), /* @__PURE__ */ React.createElement("button", { onClick: () => setStatusFilter("pendientes"), className: `shrink-0 whitespace-nowrap px-4 py-2 rounded-full text-sm font-bold ${statusFilter === "pendientes" ? "bg-yellow-500 text-white" : "bg-gray-100 text-gray-700"}` }, t2("Pendientes ({n})", { n: pendientesCount })), /* @__PURE__ */ React.createElement("button", { onClick: () => setStatusFilter("completadas"), className: `shrink-0 whitespace-nowrap px-4 py-2 rounded-full text-sm font-bold ${statusFilter === "completadas" ? "bg-pink-500 text-white" : "bg-gray-100 text-gray-700"}` }, t2("Completadas ({n})", { n: completadasCount })), /* @__PURE__ */ React.createElement("button", { onClick: () => setStatusFilter("ausentes"), className: `shrink-0 whitespace-nowrap px-4 py-2 rounded-full text-sm font-bold ${statusFilter === "ausentes" ? "bg-slate-600 text-white" : "bg-gray-100 text-gray-700"}` }, t2("Ausentes ({n})", { n: ausentesCount })), /* @__PURE__ */ React.createElement("button", { onClick: () => setStatusFilter("canceladas"), className: `shrink-0 whitespace-nowrap px-4 py-2 rounded-full text-sm font-bold ${statusFilter === "canceladas" ? "bg-pink-500 text-white" : "bg-gray-100 text-gray-700"}` }, t2("Canceladas ({n})", { n: canceladasCount })), /* @__PURE__ */ React.createElement("button", { onClick: () => setStatusFilter("todas"), className: `shrink-0 whitespace-nowrap px-4 py-2 rounded-full text-sm font-bold ${statusFilter === "todas" ? "bg-pink-500 text-white" : "bg-gray-100 text-gray-700"}` }, t2("Todas ({n})", { n: bookingsVisiblesPorRol.length })), puedeGestionarAvanzado && statusFilter === "canceladas" && /* @__PURE__ */ React.createElement("button", { onClick: borrarCanceladas, className: "px-4 py-2 bg-red-700 text-white rounded-lg text-sm" }, "🗑️ ", t2("Borrar todas")))), loading ? /* @__PURE__ */ React.createElement("div", { className: "text-center py-12" }, /* @__PURE__ */ React.createElement("div", { className: "animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500 mx-auto" }), /* @__PURE__ */ React.createElement("p", { className: "text-pink-500 mt-4" }, t2("Cargando reservas..."))) : /* @__PURE__ */ React.createElement("div", { className: "space-y-3" }, filteredVisualBookings.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "text-center py-12 bg-white rounded-xl" }, /* @__PURE__ */ React.createElement("p", { className: "text-gray-500" }, t2("No hay reservas para mostrar"))) : filteredVisualBookings.map((b) => /* @__PURE__ */ React.createElement("div", { key: b._grupoVisualId || b.id, className: `bg-white p-4 rounded-xl shadow-sm border-l-4 ${b.estado === "Reservado" ? "border-l-pink-500" : b.estado === "Pendiente" ? "border-l-yellow-500" : b.estado === "Completado" ? "border-l-green-500" : b.estado === "Ausente" ? "border-l-slate-500" : "border-l-red-500"}` }, /* @__PURE__ */ React.createElement("div", { className: "flex justify-between mb-2" }, /* @__PURE__ */ React.createElement("span", { className: "font-semibold" }, window.formatFechaCompleta ? window.formatFechaCompleta(b.fecha) : b.fecha), /* @__PURE__ */ React.createElement("span", { className: "text-sm bg-pink-100 text-pink-700 px-2 py-1 rounded-full" }, formatTo12Hour(b.hora_inicio), b._grupoVisual ? ` - ${formatTo12Hour(b.hora_fin)}` : "")), /* @__PURE__ */ React.createElement("div", { className: "text-sm space-y-1" }, /* @__PURE__ */ React.createElement("p", null, /* @__PURE__ */ React.createElement("span", { className: "font-medium" }, t2("Cliente:")), " ", b.cliente_nombre), /* @__PURE__ */ React.createElement("p", null, /* @__PURE__ */ React.createElement("span", { className: "font-medium" }, "WhatsApp:"), " ", /* @__PURE__ */ React.createElement(
     "button",
     {
       type: "button",
@@ -4905,7 +4910,28 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
       },
       a.texto
     )))));
-  })())))))));
+  })())))))), /* @__PURE__ */ React.createElement(
+    "nav",
+    {
+      "aria-label": t2("Secciones"),
+      className: "fixed bottom-0 inset-x-0 z-40 bg-white border-t border-gray-200",
+      style: { paddingBottom: "env(safe-area-inset-bottom, 0px)" }
+    },
+    /* @__PURE__ */ React.createElement("div", { className: "max-w-xl mx-auto grid", style: { gridTemplateColumns: `repeat(${SECCIONES.length}, minmax(0, 1fr))` } }, SECCIONES.map((sec) => {
+      const activa = seccionActiva && seccionActiva.id === sec.id;
+      return /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          key: sec.id,
+          onClick: () => setTabActivo(sec.hijos.some((h) => h.id === tabActivo) ? tabActivo : sec.hijos[0].id),
+          "aria-current": activa ? "page" : void 0,
+          className: `flex flex-col items-center gap-0.5 py-2.5 text-[11px] font-bold ${activa ? "text-pink-600" : "text-gray-500"}`
+        },
+        /* @__PURE__ */ React.createElement("i", { className: `${sec.icono} text-xl` }),
+        /* @__PURE__ */ React.createElement("span", { className: "whitespace-nowrap", style: { fontSize: "11px", lineHeight: 1.2 } }, sec.label)
+      );
+    }))
+  ));
 }
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(/* @__PURE__ */ React.createElement(AdminApp, null));

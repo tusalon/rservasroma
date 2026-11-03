@@ -1,7 +1,9 @@
 // components/admin/ConfigPanel.js - Versión con Fechas Libres y Días Cerrados Globales
 // SIN DEPENDENCIA DE dias-cerrados.js
 
-function ConfigPanel({ profesionalId, modoRestringido, profesionalInicial = null, onProfesionalInicialUsado }) {
+// vista: 'horarios' (horario de cada profesional, días libres y cierres del salón),
+// 'ajustes' (duración, intervalo, antelación, 24 h y espacios) o, sin ella, todo junto.
+function ConfigPanel({ profesionalId, modoRestringido, profesionalInicial = null, onProfesionalInicialUsado, vista = null }) {
     const idioma = window.useIdioma();
     const t = window.t;
     const [profesionales, setProfesionales] = React.useState([]);
@@ -129,13 +131,17 @@ function ConfigPanel({ profesionalId, modoRestringido, profesionalInicial = null
         );
     }
 
+    const verAjustes = vista !== 'horarios';
+    const verHorarios = vista !== 'ajustes';
+    const titulo = vista === 'horarios' ? t('Horarios y días libres')
+        : vista === 'ajustes' ? t('Ajustes de reservas')
+        : (modoRestringido ? t('Mi Configuración') : t('Configuración de {nombre}', { nombre: nombreNegocio }));
+
     return (
         <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6">
-            <h2 className="text-xl font-bold mb-6">
-                {modoRestringido ? '⚙️ ' + t('Mi Configuración') : '⚙️ ' + t('Configuración de {nombre}', { nombre: nombreNegocio })}
-            </h2>
+            <h2 className="text-xl font-bold mb-6">{titulo}</h2>
 
-            {!modoRestringido && (
+            {!modoRestringido && verAjustes && (
                 <>
                     {/* CONFIGURACIÓN GENERAL */}
                     <div className="mb-6 p-4 bg-gray-50 rounded-lg border">
@@ -279,15 +285,16 @@ function ConfigPanel({ profesionalId, modoRestringido, profesionalInicial = null
                         </button>
                     </div>
 
-                    {/* NUEVO: DÍAS CERRADOS GLOBALES - SIN DEPENDENCIA EXTERNA */}
-                    <DiasCerradosGlobalesPanel />
-
                     {/* Espacios del salon: opcional, plegado en "Opciones avanzadas" */}
                     <EspaciosPanel />
                 </>
             )}
+
+            {/* CIERRES DEL SALÓN (feriados, vacaciones del local) */}
+            {!modoRestringido && verHorarios && <DiasCerradosGlobalesPanel />}
             
             {/* SECCIÓN DEL PROFESIONAL */}
+            {verHorarios && (
             <div id="configuracion-profesional" className="mb-6 p-4 border rounded-xl bg-white shadow-sm mt-6 scroll-mt-4">
                 <h3 className="font-semibold text-lg mb-4">👥 {t('Configuración del Profesional')}</h3>
 
@@ -344,6 +351,7 @@ function ConfigPanel({ profesionalId, modoRestringido, profesionalInicial = null
                     />
                 )}
             </div>
+            )}
             
             {/* Modal para editor por día */}
             {mostrarEditorPorDia && profesionalSeleccionado && (

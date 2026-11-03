@@ -910,7 +910,7 @@ function AdminApp() {
                         texto: t('Poner horario'),
                         onClick: () => {
                             setProfesionalHorarioInicial(p.id);
-                            setTabActivo('configuracion');
+                            setTabActivo('horarios');
                             setTimeout(() => document.getElementById('configuracion-profesional')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 300);
                         }
                     }]
@@ -4972,7 +4972,12 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
             tabs.push({ id: 'estadisticas', icono: '📊', label: t('Estadísticas') });
         }
         if (userRole === 'admin' || (userRole === 'profesional' && userNivel >= 2)) {
-            tabs.push({ id: 'configuracion', icono: '⚙️', label: t('Configuración') });
+            // "Horarios y días libres" es lo que se toca cada semana y vive aparte de
+            // los ajustes técnicos. Una profesional de nivel 2 solo ve sus horarios.
+            tabs.push({ id: 'horarios', icono: '🕐', label: t('Horarios y días libres') });
+            if (!(userRole === 'profesional' && userNivel === 2)) {
+                tabs.push({ id: 'configuracion', icono: '⚙️', label: t('Ajustes de reservas') });
+            }
             tabs.push({ id: 'clientes', icono: '👥', label: t('Clientes') });
             tabs.push({ id: 'lista-espera', icono: '⏳', label: t('Lista de espera') + (esperaLibres.length ? ` (${esperaLibres.length})` : '') });
             if (clientasNuevasInfo.disponible) {
@@ -5118,45 +5123,67 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
     };
 
     const tabsDisponibles = getTabsDisponibles();
+    // Las pantallas que ya existían, agrupadas en cinco áreas. Cada área solo
+    // aparece si el rol de quien entra puede ver alguna de sus pantallas.
+    const SECCIONES = [
+        { id: 'hoy', label: t('Hoy'), icono: 'icon-sun', ids: ['reservas'] },
+        { id: 'agenda', label: t('Agenda'), icono: 'icon-calendar-days', ids: ['agenda'] },
+        { id: 'clientas', label: t('Clientas'), icono: 'icon-users', ids: ['clientes', 'lista-espera', 'clientas-nuevas'] },
+        { id: 'salon', label: t('Mi salón'), icono: 'icon-store', ids: ['horarios', 'servicios', 'catalogo', 'profesionales', 'configuracion'] },
+        { id: 'numeros', label: t('Números'), icono: 'icon-trending-up', ids: ['estadisticas', 'finanzas'] }
+    ].map(sec => ({ ...sec, hijos: sec.ids.map(id => tabsDisponibles.find(tab => tab.id === id)).filter(Boolean) }))
+     .filter(sec => sec.hijos.length > 0);
+    const seccionActiva = SECCIONES.find(sec => sec.hijos.some(h => h.id === tabActivo)) || SECCIONES[0];
+    const copiarEnlaceClientas = async () => {
+        // Sin el aviso, si el teléfono no dejaba copiar no pasaba nada y la dueña
+        // creía que sí se había copiado.
+        try {
+            await navigator.clipboard.writeText(urlCliente);
+            window.avisar(t('Enlace copiado'));
+        } catch (e) {
+            await window.pedirTexto(t('Copia tu enlace:'), urlCliente, { si: t('Listo') });
+        }
+    };
     const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
     const days = getDaysInMonth(currentDate);
     const disponibilidadDays = getDaysInMonth(disponibilidadFecha);
 
     return (
-        <div className="min-h-screen bg-pink-50 p-3 sm:p-6">
+        <div className="min-h-screen bg-pink-50 p-3 sm:p-6 pb-28 sm:pb-28">
             <div className="max-w-6xl mx-auto space-y-4">
                 
                 {/* HEADER CON LOGO */}
-                <div className="bg-white p-4 rounded-xl shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-l-4 border-pink-500">
-                    <div className="flex items-center gap-3">
+                <div className="bg-white px-4 py-3 rounded-xl shadow-sm flex flex-row justify-between items-center gap-3 border-l-4 border-pink-500">
+                    <div className="flex items-center gap-3 min-w-0">
                         {logoNegocio ? (
                             <img 
                                 src={logoNegocio} 
                                 alt={nombreNegocio} 
-                                className="w-12 h-12 object-contain rounded-xl shadow-lg ring-2 ring-pink-300 bg-white p-1"
+                                className="w-10 h-10 object-contain rounded-xl shadow-lg ring-2 ring-pink-300 bg-white p-1"
                                 onError={(e) => {
                                     e.target.onerror = null;
                                     e.target.style.display = 'none';
                                     const parent = e.target.parentElement;
                                     if (parent) {
-                                        parent.innerHTML = '<div class="w-12 h-12 bg-gradient-to-br from-pink-500 to-pink-600 rounded-xl shadow-lg flex items-center justify-center"><span class="text-2xl text-white"><i class="icon-calendar"></i></span></div>';
+                                        parent.innerHTML = '<div class="w-10 h-10 bg-gradient-to-br from-pink-500 to-pink-600 rounded-xl shadow-lg flex items-center justify-center"><span class="text-2xl text-white"><i class="icon-calendar"></i></span></div>';
                                     }
                                 }}
                             />
                         ) : (
-                            <div className="w-12 h-12 bg-gradient-to-br from-pink-500 to-pink-600 rounded-xl shadow-lg flex items-center justify-center">
+                            <div className="w-10 h-10 bg-gradient-to-br from-pink-500 to-pink-600 rounded-xl shadow-lg flex items-center justify-center">
                                 <span className="text-2xl text-white">✨</span>
                             </div>
                         )}
-                        <div>
-                            <h1 className="text-xl font-bold text-pink-800">{nombreNegocio}</h1>
+                        <div className="min-w-0">
+                            <h1 className="text-lg font-bold text-pink-800 leading-tight line-clamp-2 break-words">{nombreNegocio}</h1>
                             <p className="text-xs text-pink-500">{t('Panel de Administración')}</p>
                         </div>
                     </div>
 
-                    {/* Arriba a la derecha solo lo de la sesión: actualizar (datos del
-                        negocio y citas a la vez), salir e idioma, con su nombre. */}
-                    <div className="flex items-center gap-1.5 self-start sm:self-auto sm:order-last">
+                    {/* Solo lo de la sesión: actualizar (datos del negocio y citas a la vez),
+                        salir e idioma. "Nueva reserva", los huecos y el enlace pasaron a
+                        "Hoy" y "Mi salón". */}
+                    <div className="flex items-center gap-1 shrink-0">
                         <button
                             onClick={() => {
                                 cargarConfiguracion();
@@ -5179,56 +5206,6 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                         </button>
                         <window.LanguageToggle compacto />
                     </div>
-
-                    {/* Un solo botón fuerte (nueva cita); lo demás en blanco. Antes eran
-                        tres botones de colores distintos con emoji y nada destacaba. */}
-                    <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-                        <button
-                            onClick={abrirModalNuevaReserva}
-                            className={`${puedeGestionarReservas ? 'flex' : 'hidden'} items-center justify-center gap-2 bg-pink-500 text-white px-5 py-2.5 rounded-full font-bold shadow-md flex-1 sm:flex-none`}
-                        >
-                            <i className="icon-plus"></i>
-                            <span>{t('Nueva Reserva')}</span>
-                        </button>
-                        <button
-                            onClick={abrirModalDisponibilidad}
-                            className="flex items-center justify-center gap-2 bg-white text-gray-800 border border-gray-200 px-4 py-2.5 rounded-full font-semibold flex-1 sm:flex-none"
-                            title={t('Ver disponibilidad mensual')}
-                        >
-                            <i className="icon-calendar"></i>
-                            <span>{t('Ver Disponibilidad')}</span>
-                        </button>
-                        <button
-                            onClick={abrirEdicionNegocio}
-                            className={`${puedeGestionarAvanzado ? 'flex' : 'hidden'} items-center justify-center gap-2 bg-white text-gray-800 border border-gray-200 px-4 py-2.5 rounded-full font-semibold flex-1 sm:flex-none`}
-                        >
-                            <i className="icon-store"></i>
-                            <span>{t('Editar Negocio')}</span>
-                        </button>
-                    </div>
-
-                    {urlCliente && (
-                        <div className="w-full flex items-center gap-2 rounded-xl bg-gray-50 px-3 py-2">
-                            <span className="text-xs font-semibold text-gray-600 whitespace-nowrap">{t('Tu enlace para clientas')}</span>
-                            <span className="text-xs text-gray-800 truncate flex-1 min-w-0">{urlCliente}</span>
-                            <button
-                                type="button"
-                                onClick={async () => {
-                                    // Sin el aviso, si el teléfono no dejaba copiar no pasaba nada
-                                    // y la dueña creía que sí se había copiado.
-                                    try {
-                                        await navigator.clipboard.writeText(urlCliente);
-                                        window.avisar(t('Enlace copiado'));
-                                    } catch (e) {
-                                        await window.pedirTexto(t('Copia tu enlace:'), urlCliente, { si: t('Listo') });
-                                    }
-                                }}
-                                className="shrink-0 px-3 py-1.5 rounded-full bg-white border border-gray-200 text-xs font-bold text-gray-800"
-                            >
-                                {t('Copiar')}
-                            </button>
-                        </div>
-                    )}
                 </div>
 
                 {fraseDelDia && (
@@ -6038,29 +6015,67 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                     </div>
                 )}
 
-                {/* PESTAÑAS */}
-                <div className="bg-white p-2 rounded-xl shadow-sm flex flex-wrap gap-2">
-                    {tabsDisponibles.map(tab => (
-                        <button key={tab.id} onClick={() => tab.url ? (window.location.href = tab.url) : setTabActivo(tab.id)} className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 ${tabActivo === tab.id ? 'bg-pink-500 text-white shadow-md' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>
-                            <span>{tab.icono}</span>
-                            <span>{tab.label}</span>
-                        </button>
-                    ))}
-                </div>
+                {/* SECCIONES: la barra de abajo lleva a las cinco áreas; si el área tiene
+                    varias pantallas, se eligen aquí arriba. Antes eran diez píldoras
+                    en cinco filas. */}
+                {seccionActiva && seccionActiva.hijos.length > 1 && (
+                    <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1" role="tablist">
+                        {seccionActiva.hijos.map(tab => (
+                            <button key={tab.id} role="tab" aria-selected={tabActivo === tab.id}
+                                onClick={() => tab.url ? (window.location.href = tab.url) : setTabActivo(tab.id)}
+                                className={`shrink-0 px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap ${tabActivo === tab.id ? 'bg-gray-900 text-white' : 'bg-white text-gray-700 shadow-sm'}`}>
+                                {tab.label}
+                            </button>
+                        ))}
+                    </div>
+                )}
+
+                {seccionActiva && seccionActiva.id === 'salon' && (
+                    <div className="space-y-2">
+                        {puedeGestionarAvanzado && (
+                            <button onClick={abrirEdicionNegocio} className="w-full flex items-center gap-3 bg-white rounded-2xl shadow-sm px-4 py-3 text-left">
+                                <i className="icon-store text-xl text-pink-600"></i>
+                                <span className="flex-1">
+                                    <span className="block font-bold text-gray-900">{t('Datos del negocio')}</span>
+                                    <span className="block text-xs text-gray-500">{t('Nombre, colores, WhatsApp, anticipos y premios')}</span>
+                                </span>
+                                <span className="text-gray-400 text-xl">›</span>
+                            </button>
+                        )}
+                        {urlCliente && (
+                            <div className="flex items-center gap-2 rounded-2xl bg-white shadow-sm px-4 py-3">
+                                <span className="flex-1 min-w-0">
+                                    <span className="block font-bold text-gray-900">{t('Tu enlace para clientas')}</span>
+                                    <span className="block text-xs text-gray-500 truncate">{urlCliente}</span>
+                                </span>
+                                <button type="button" onClick={copiarEnlaceClientas} className="shrink-0 px-3 py-1.5 rounded-full bg-gray-100 text-xs font-bold text-gray-800">{t('Copiar')}</button>
+                            </div>
+                        )}
+                    </div>
+                )}
 
                 {/* CONTENIDO */}
                 {tabActivo === 'estadisticas' && (
                     renderEstadisticas()
                 )}
 
+                {tabActivo === 'horarios' && (
+                    <ConfigPanel
+                        vista="horarios"
+                        profesionalId={userRole === 'profesional' ? profesional?.id : null}
+                        modoRestringido={userRole === 'profesional' && userNivel === 2}
+                        profesionalInicial={profesionalHorarioInicial}
+                        onProfesionalInicialUsado={() => setProfesionalHorarioInicial(null)}
+                    />
+                )}
+
                 {tabActivo === 'configuracion' && (
                     <div className="space-y-4">
                         {userRole === 'admin' && esDuenaReal && <RomaHubActivacion />}
                         <ConfigPanel
+                            vista="ajustes"
                             profesionalId={userRole === 'profesional' ? profesional?.id : null}
                             modoRestringido={userRole === 'profesional' && userNivel === 2}
-                            profesionalInicial={profesionalHorarioInicial}
-                            onProfesionalInicialUsado={() => setProfesionalHorarioInicial(null)}
                         />
                     </div>
                 )}
@@ -6959,6 +6974,22 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                 {/* RESERVAS */}
                 {tabActivo === 'reservas' && (
                     <>
+                        {/* Lo que se hace cada día, a un toque. */}
+                        <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
+                            <button onClick={abrirModalNuevaReserva}
+                                className={`${puedeGestionarReservas ? 'flex' : 'hidden'} col-span-3 items-center justify-center gap-2 bg-pink-500 text-white py-3 rounded-full font-bold shadow-md`}>
+                                <i className="icon-plus"></i><span>{t('Nueva Reserva')}</span>
+                            </button>
+                            <button onClick={abrirModalDisponibilidad} className="flex flex-col items-center gap-1 bg-white rounded-2xl shadow-sm py-3 text-xs font-bold text-gray-800">
+                                <i className="icon-clock text-xl text-pink-600"></i>{t('Ver huecos')}
+                            </button>
+                            <button onClick={copiarEnlaceClientas} className={`${urlCliente ? 'flex' : 'hidden'} flex-col items-center gap-1 bg-white rounded-2xl shadow-sm py-3 text-xs font-bold text-gray-800`}>
+                                <i className="icon-link text-xl text-pink-600"></i>{t('Copiar mi enlace')}
+                            </button>
+                            <button onClick={() => setTabActivo('horarios')} className={`${(userRole === 'admin' || userNivel >= 2) ? 'flex' : 'hidden'} flex-col items-center gap-1 bg-white rounded-2xl shadow-sm py-3 text-xs font-bold text-gray-800`}>
+                                <i className="icon-calendar-off text-xl text-pink-600"></i>{t('Cerrar un día')}
+                            </button>
+                        </div>
                         {userRole === 'profesional' && profesional && (
                             <div className="bg-pink-50 border border-pink-200 rounded-lg p-4">
                                 <p className="text-pink-800 font-medium">{t('Hola {nombre} - Mostrando tus reservas ({n})', { nombre: profesional.nombre, n: filteredVisualBookings.length })}</p>
@@ -7017,7 +7048,20 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                             </div>
                         )}
 
-                        <div className="bg-white p-4 rounded-xl shadow-sm space-y-3">
+                        <div className="bg-white p-3 rounded-xl shadow-sm space-y-3">
+                            {/* Los filtros de profesional y de día van recogidos: antes ocupaban
+                                media pantalla antes de ver la primera cita. */}
+                            <details>
+                                <summary className="list-none cursor-pointer flex items-center justify-between gap-2 select-none">
+                                    <span className="font-bold text-gray-800 flex items-center gap-2">
+                                        <i className="icon-sliders-horizontal"></i>{t('Filtros')}
+                                        {(filtroProfesionalAdmin || filterDate) && (
+                                            <span className="px-2 py-0.5 rounded-full bg-pink-500 text-white text-xs">{(filtroProfesionalAdmin ? 1 : 0) + (filterDate ? 1 : 0)}</span>
+                                        )}
+                                    </span>
+                                    <span className="text-xs text-gray-500">{filterDate ? (window.formatFechaCompleta ? window.formatFechaCompleta(filterDate) : filterDate) : t('Todos los días')}</span>
+                                </summary>
+                                <div className="space-y-3 pt-3">
                             {esAdminPanel && profesionalesList.length > 1 && (
                                 <div className="space-y-2">
                                     <p className="text-xs uppercase tracking-wide text-gray-500 font-bold">{t('Ver citas de')}</p>
@@ -7056,13 +7100,16 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                                 </div>
                             </div>
 
-                            <div className="flex flex-wrap gap-2 items-center">
-                                <button onClick={() => setStatusFilter('activas')} className={`px-4 py-2 rounded-lg text-sm font-medium ${statusFilter === 'activas' ? 'bg-pink-500 text-white' : 'bg-gray-100 text-gray-700'}`}>{t('Activas ({n})', { n: activasCount })}</button>
-                                <button onClick={() => setStatusFilter('pendientes')} className={`px-4 py-2 rounded-lg text-sm font-medium ${statusFilter === 'pendientes' ? 'bg-yellow-500 text-white' : 'bg-gray-100 text-gray-700'}`}>{t('Pendientes ({n})', { n: pendientesCount })}</button>
-                                <button onClick={() => setStatusFilter('completadas')} className={`px-4 py-2 rounded-lg text-sm font-medium ${statusFilter === 'completadas' ? 'bg-pink-500 text-white' : 'bg-gray-100 text-gray-700'}`}>{t('Completadas ({n})', { n: completadasCount })}</button>
-                                <button onClick={() => setStatusFilter('ausentes')} className={`px-4 py-2 rounded-lg text-sm font-medium ${statusFilter === 'ausentes' ? 'bg-slate-600 text-white' : 'bg-gray-100 text-gray-700'}`}>{t('Ausentes ({n})', { n: ausentesCount })}</button>
-                                <button onClick={() => setStatusFilter('canceladas')} className={`px-4 py-2 rounded-lg text-sm font-medium ${statusFilter === 'canceladas' ? 'bg-pink-500 text-white' : 'bg-gray-100 text-gray-700'}`}>{t('Canceladas ({n})', { n: canceladasCount })}</button>
-                                <button onClick={() => setStatusFilter('todas')} className={`px-4 py-2 rounded-lg text-sm font-medium ${statusFilter === 'todas' ? 'bg-pink-500 text-white' : 'bg-gray-100 text-gray-700'}`}>{t('Todas ({n})', { n: bookingsVisiblesPorRol.length })}</button>
+                                </div>
+                            </details>
+
+                            <div className="flex gap-2 items-center overflow-x-auto pb-1 -mx-1 px-1">
+                                <button onClick={() => setStatusFilter('activas')} className={`shrink-0 whitespace-nowrap px-4 py-2 rounded-full text-sm font-bold ${statusFilter === 'activas' ? 'bg-pink-500 text-white' : 'bg-gray-100 text-gray-700'}`}>{t('Activas ({n})', { n: activasCount })}</button>
+                                <button onClick={() => setStatusFilter('pendientes')} className={`shrink-0 whitespace-nowrap px-4 py-2 rounded-full text-sm font-bold ${statusFilter === 'pendientes' ? 'bg-yellow-500 text-white' : 'bg-gray-100 text-gray-700'}`}>{t('Pendientes ({n})', { n: pendientesCount })}</button>
+                                <button onClick={() => setStatusFilter('completadas')} className={`shrink-0 whitespace-nowrap px-4 py-2 rounded-full text-sm font-bold ${statusFilter === 'completadas' ? 'bg-pink-500 text-white' : 'bg-gray-100 text-gray-700'}`}>{t('Completadas ({n})', { n: completadasCount })}</button>
+                                <button onClick={() => setStatusFilter('ausentes')} className={`shrink-0 whitespace-nowrap px-4 py-2 rounded-full text-sm font-bold ${statusFilter === 'ausentes' ? 'bg-slate-600 text-white' : 'bg-gray-100 text-gray-700'}`}>{t('Ausentes ({n})', { n: ausentesCount })}</button>
+                                <button onClick={() => setStatusFilter('canceladas')} className={`shrink-0 whitespace-nowrap px-4 py-2 rounded-full text-sm font-bold ${statusFilter === 'canceladas' ? 'bg-pink-500 text-white' : 'bg-gray-100 text-gray-700'}`}>{t('Canceladas ({n})', { n: canceladasCount })}</button>
+                                <button onClick={() => setStatusFilter('todas')} className={`shrink-0 whitespace-nowrap px-4 py-2 rounded-full text-sm font-bold ${statusFilter === 'todas' ? 'bg-pink-500 text-white' : 'bg-gray-100 text-gray-700'}`}>{t('Todas ({n})', { n: bookingsVisiblesPorRol.length })}</button>
                                 {puedeGestionarAvanzado && statusFilter === 'canceladas' && (
                                     <button onClick={borrarCanceladas} className="px-4 py-2 bg-red-700 text-white rounded-lg text-sm">🗑️ {t('Borrar todas')}</button>
                                 )}
@@ -7189,6 +7236,24 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                     </>
                 )}
             </div>
+
+            {/* Barra de secciones, siempre a mano abajo. */}
+            <nav aria-label={t('Secciones')} className="fixed bottom-0 inset-x-0 z-40 bg-white border-t border-gray-200"
+                style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+                <div className="max-w-xl mx-auto grid" style={{ gridTemplateColumns: `repeat(${SECCIONES.length}, minmax(0, 1fr))` }}>
+                    {SECCIONES.map(sec => {
+                        const activa = seccionActiva && seccionActiva.id === sec.id;
+                        return (
+                            <button key={sec.id} onClick={() => setTabActivo(sec.hijos.some(h => h.id === tabActivo) ? tabActivo : sec.hijos[0].id)}
+                                aria-current={activa ? 'page' : undefined}
+                                className={`flex flex-col items-center gap-0.5 py-2.5 text-[11px] font-bold ${activa ? 'text-pink-600' : 'text-gray-500'}`}>
+                                <i className={`${sec.icono} text-xl`}></i>
+                                <span className="whitespace-nowrap" style={{ fontSize: '11px', lineHeight: 1.2 }}>{sec.label}</span>
+                            </button>
+                        );
+                    })}
+                </div>
+            </nav>
         </div>
     );
 }

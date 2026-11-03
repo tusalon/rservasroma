@@ -1,4 +1,4 @@
-function ConfigPanel({ profesionalId, modoRestringido, profesionalInicial = null, onProfesionalInicialUsado }) {
+function ConfigPanel({ profesionalId, modoRestringido, profesionalInicial = null, onProfesionalInicialUsado, vista = null }) {
   const idioma = window.useIdioma();
   const t = window.t;
   const [profesionales, setProfesionales] = React.useState([]);
@@ -103,7 +103,10 @@ function ConfigPanel({ profesionalId, modoRestringido, profesionalInicial = null
   if (cargando) {
     return /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-xl shadow-sm p-6" }, /* @__PURE__ */ React.createElement("div", { className: "text-center py-12" }, /* @__PURE__ */ React.createElement("div", { className: "animate-spin rounded-full h-12 w-12 border-b-2 border-amber-500 mx-auto" }), /* @__PURE__ */ React.createElement("p", { className: "text-gray-500 mt-4" }, t("Cargando configuración..."))));
   }
-  return /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-xl shadow-sm p-4 sm:p-6" }, /* @__PURE__ */ React.createElement("h2", { className: "text-xl font-bold mb-6" }, modoRestringido ? "⚙️ " + t("Mi Configuración") : "⚙️ " + t("Configuración de {nombre}", { nombre: nombreNegocio })), !modoRestringido && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "mb-6 p-4 bg-gray-50 rounded-lg border" }, /* @__PURE__ */ React.createElement("h3", { className: "font-semibold text-lg mb-4" }, "⚙️ ", t("Configuración General")), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-2" }, t("Duración por defecto (min)")), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-3 sm:grid-cols-3 gap-2" }, opcionesDuracion.map((opcion) => /* @__PURE__ */ React.createElement(
+  const verAjustes = vista !== "horarios";
+  const verHorarios = vista !== "ajustes";
+  const titulo = vista === "horarios" ? t("Horarios y días libres") : vista === "ajustes" ? t("Ajustes de reservas") : modoRestringido ? t("Mi Configuración") : t("Configuración de {nombre}", { nombre: nombreNegocio });
+  return /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-xl shadow-sm p-4 sm:p-6" }, /* @__PURE__ */ React.createElement("h2", { className: "text-xl font-bold mb-6" }, titulo), !modoRestringido && verAjustes && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "mb-6 p-4 bg-gray-50 rounded-lg border" }, /* @__PURE__ */ React.createElement("h3", { className: "font-semibold text-lg mb-4" }, "⚙️ ", t("Configuración General")), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-2" }, t("Duración por defecto (min)")), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-3 sm:grid-cols-3 gap-2" }, opcionesDuracion.map((opcion) => /* @__PURE__ */ React.createElement(
     "button",
     {
       key: opcion.value,
@@ -192,7 +195,7 @@ function ConfigPanel({ profesionalId, modoRestringido, profesionalInicial = null
       className: "bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700 transition text-sm"
     },
     t("Guardar Configuración Global")
-  )), /* @__PURE__ */ React.createElement(DiasCerradosGlobalesPanel, null), /* @__PURE__ */ React.createElement(EspaciosPanel, null)), /* @__PURE__ */ React.createElement("div", { id: "configuracion-profesional", className: "mb-6 p-4 border rounded-xl bg-white shadow-sm mt-6 scroll-mt-4" }, /* @__PURE__ */ React.createElement("h3", { className: "font-semibold text-lg mb-4" }, "👥 ", t("Configuración del Profesional")), !modoRestringido && /* @__PURE__ */ React.createElement("div", { className: "mb-4" }, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-2" }, t("Seleccionar Profesional")), /* @__PURE__ */ React.createElement("div", { className: "flex gap-2" }, /* @__PURE__ */ React.createElement(
+  )), /* @__PURE__ */ React.createElement(EspaciosPanel, null)), !modoRestringido && verHorarios && /* @__PURE__ */ React.createElement(DiasCerradosGlobalesPanel, null), verHorarios && /* @__PURE__ */ React.createElement("div", { id: "configuracion-profesional", className: "mb-6 p-4 border rounded-xl bg-white shadow-sm mt-6 scroll-mt-4" }, /* @__PURE__ */ React.createElement("h3", { className: "font-semibold text-lg mb-4" }, "👥 ", t("Configuración del Profesional")), !modoRestringido && /* @__PURE__ */ React.createElement("div", { className: "mb-4" }, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-2" }, t("Seleccionar Profesional")), /* @__PURE__ */ React.createElement("div", { className: "flex gap-2" }, /* @__PURE__ */ React.createElement(
     "select",
     {
       value: profesionalSeleccionado || "",
