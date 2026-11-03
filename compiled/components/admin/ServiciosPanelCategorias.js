@@ -340,6 +340,49 @@ function CategoriasServiciosManager({ categorias, servicios, onChange }) {
     return /* @__PURE__ */ React.createElement("div", { key: `${categoria.id}-${id}`, className: `border rounded-lg p-3 flex items-center gap-3 ${categoria.activo === false ? "bg-gray-50 opacity-60" : "bg-white"}` }, /* @__PURE__ */ React.createElement("span", { className: "text-2xl" }, categoriaIcono(categoria)), /* @__PURE__ */ React.createElement("div", { className: "flex-1 min-w-0" }, /* @__PURE__ */ React.createElement("div", { className: "font-semibold text-gray-800 truncate" }, categoriaNombre(categoria)), /* @__PURE__ */ React.createElement("div", { className: "text-xs text-gray-500" }, t("{n} servicios · orden {orden}", { n: usados, orden: categoria.orden || 99 }))), /* @__PURE__ */ React.createElement("button", { onClick: () => editar(categoria), className: "text-blue-600 hover:bg-blue-50 rounded-lg w-8 h-8", title: t("Editar") }, "✏️"), /* @__PURE__ */ React.createElement("button", { onClick: () => toggle(categoria), className: "text-amber-600 hover:bg-amber-50 rounded-lg w-8 h-8", title: t("Activar/desactivar") }, categoria.activo === false ? "▶️" : "⏸️"), /* @__PURE__ */ React.createElement("button", { onClick: () => eliminar(categoria), className: "text-red-600 hover:bg-red-50 rounded-lg w-8 h-8", title: t("Eliminar") }, "🗑️"));
   })))));
 }
+function SelectorHoras({ valor, onCambio, deshabilitado = false, vacio }) {
+  window.useIdioma();
+  const t = window.t;
+  const [abierto, setAbierto] = React.useState(false);
+  const norm = (h) => {
+    const m = String(h).trim().match(/^([0-1]?[0-9]|2[0-3]):([0-5][0-9])$/);
+    return m ? String(m[1]).padStart(2, "0") + ":" + m[2] : null;
+  };
+  const elegidas = String(valor || "").split(",").map(norm).filter(Boolean);
+  const cuadricula = [];
+  for (let m = 6 * 60; m < 24 * 60; m += 30) {
+    cuadricula.push(String(Math.floor(m / 60)).padStart(2, "0") + ":" + String(m % 60).padStart(2, "0"));
+  }
+  const todas = Array.from(/* @__PURE__ */ new Set([...cuadricula, ...elegidas])).sort();
+  const etiqueta = (h) => window.formatTo12Hour ? window.formatTo12Hour(h) : h;
+  const alternar = (h) => {
+    const set = new Set(elegidas);
+    if (set.has(h)) set.delete(h);
+    else set.add(h);
+    onCambio(Array.from(set).sort().join(", "));
+  };
+  return /* @__PURE__ */ React.createElement("div", { className: deshabilitado ? "opacity-50 pointer-events-none" : "" }, /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      type: "button",
+      onClick: () => setAbierto(!abierto),
+      "aria-expanded": abierto,
+      className: "w-full text-left border border-gray-200 rounded-lg px-3 py-2 bg-white flex items-center justify-between gap-2"
+    },
+    /* @__PURE__ */ React.createElement("span", { className: "text-sm text-gray-800 truncate" }, elegidas.length ? elegidas.map(etiqueta).join(" · ") : vacio),
+    /* @__PURE__ */ React.createElement("span", { className: "text-xs font-bold text-pink-600 shrink-0" }, abierto ? t("Listo") : t("Elegir horas"))
+  ), abierto && /* @__PURE__ */ React.createElement("div", { className: "mt-2" }, /* @__PURE__ */ React.createElement("div", { className: "grid gap-1.5", style: { gridTemplateColumns: "repeat(4, minmax(0, 1fr))" } }, todas.map((h) => /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      key: h,
+      type: "button",
+      onClick: () => alternar(h),
+      "aria-pressed": elegidas.includes(h),
+      className: `py-2 rounded-full text-xs font-bold tabular-nums ${elegidas.includes(h) ? "bg-pink-500 text-white" : "bg-white border border-gray-200 text-gray-700"}`
+    },
+    etiqueta(h)
+  ))), elegidas.length > 0 && /* @__PURE__ */ React.createElement("button", { type: "button", onClick: () => onCambio(""), className: "mt-2 text-xs font-bold text-gray-600 underline" }, t("Quitar todas"))));
+}
 function ServicioFormCategorias({ servicio, categorias, onGuardar, onCancelar }) {
   window.useIdioma();
   const t = window.t;
@@ -473,7 +516,7 @@ function ServicioFormCategorias({ servicio, categorias, onGuardar, onCancelar })
       onChange: (e) => setForm({ ...form, requiere_anticipo: e.target.checked }),
       className: "w-5 h-5 text-amber-600"
     }
-  )), form.requiere_anticipo && /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 gap-3" }, /* @__PURE__ */ React.createElement("select", { value: form.tipo_anticipo, onChange: (e) => setForm({ ...form, tipo_anticipo: e.target.value }), className: "w-full border border-amber-200 rounded-lg px-3 py-2 bg-white" }, /* @__PURE__ */ React.createElement("option", { value: "fijo" }, t("Monto fijo")), /* @__PURE__ */ React.createElement("option", { value: "porcentaje" }, t("Porcentaje"))), /* @__PURE__ */ React.createElement("input", { value: form.valor_anticipo, onChange: (e) => setForm({ ...form, valor_anticipo: e.target.value.replace(/[^0-9.,]/g, "") }), className: "w-full border border-amber-200 rounded-lg px-3 py-2", placeholder: form.tipo_anticipo === "porcentaje" ? t("Ej: 30") : t("Ej: 500"), inputMode: "decimal" })), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-amber-700" }, t("Solo se usa si en Editar negocio activas los anticipos por servicio."))), /* @__PURE__ */ React.createElement("input", { value: horariosStr, onChange: (e) => setHorariosStr(e.target.value), className: "w-full border border-gray-200 rounded-lg px-3 py-2", placeholder: t("Horarios permitidos: 09:00, 11:00") }), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400" }, t("Déjalo vacío para usar todos los horarios del profesional.")), cfgEspacios.activo && /* @__PURE__ */ React.createElement("div", { className: "rounded-lg border border-gray-200 bg-gray-50 p-3" }, /* @__PURE__ */ React.createElement("p", { className: "text-sm font-semibold text-gray-700" }, t("Espacios donde se hace este servicio")), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-1" }, t("Marca los espacios en los que se puede hacer. Si no marcas ninguno, se puede hacer en cualquiera.")), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-2 mt-2" }, Array.from({ length: cfgEspacios.cantidad }, (_, i) => i + 1).map((n) => /* @__PURE__ */ React.createElement("label", { key: n, className: `px-3 py-1.5 rounded-lg border text-sm cursor-pointer ${espaciosServicio.includes(n) ? "bg-amber-600 text-white border-amber-600" : "bg-white text-gray-700"}` }, /* @__PURE__ */ React.createElement(
+  )), form.requiere_anticipo && /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 gap-3" }, /* @__PURE__ */ React.createElement("select", { value: form.tipo_anticipo, onChange: (e) => setForm({ ...form, tipo_anticipo: e.target.value }), className: "w-full border border-amber-200 rounded-lg px-3 py-2 bg-white" }, /* @__PURE__ */ React.createElement("option", { value: "fijo" }, t("Monto fijo")), /* @__PURE__ */ React.createElement("option", { value: "porcentaje" }, t("Porcentaje"))), /* @__PURE__ */ React.createElement("input", { value: form.valor_anticipo, onChange: (e) => setForm({ ...form, valor_anticipo: e.target.value.replace(/[^0-9.,]/g, "") }), className: "w-full border border-amber-200 rounded-lg px-3 py-2", placeholder: form.tipo_anticipo === "porcentaje" ? t("Ej: 30") : t("Ej: 500"), inputMode: "decimal" })), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-amber-700" }, t("Solo se usa si en Editar negocio activas los anticipos por servicio."))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("p", { className: "text-sm font-semibold text-gray-700 mb-1" }, t("Horarios permitidos")), /* @__PURE__ */ React.createElement(SelectorHoras, { valor: horariosStr, onCambio: setHorariosStr, vacio: t("Todos los horarios de la profesional") })), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400" }, t("Déjalo vacío para usar todos los horarios del profesional.")), cfgEspacios.activo && /* @__PURE__ */ React.createElement("div", { className: "rounded-lg border border-gray-200 bg-gray-50 p-3" }, /* @__PURE__ */ React.createElement("p", { className: "text-sm font-semibold text-gray-700" }, t("Espacios donde se hace este servicio")), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-1" }, t("Marca los espacios en los que se puede hacer. Si no marcas ninguno, se puede hacer en cualquiera.")), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-2 mt-2" }, Array.from({ length: cfgEspacios.cantidad }, (_, i) => i + 1).map((n) => /* @__PURE__ */ React.createElement("label", { key: n, className: `px-3 py-1.5 rounded-lg border text-sm cursor-pointer ${espaciosServicio.includes(n) ? "bg-amber-600 text-white border-amber-600" : "bg-white text-gray-700"}` }, /* @__PURE__ */ React.createElement(
     "input",
     {
       type: "checkbox",
@@ -481,17 +524,15 @@ function ServicioFormCategorias({ servicio, categorias, onGuardar, onCancelar })
       checked: espaciosServicio.includes(n),
       onChange: () => setEspaciosServicio((actual) => actual.includes(n) ? actual.filter((x) => x !== n) : [...actual, n].sort((a, b) => a - b))
     }
-  ), t("Espacio {n}", { n })))), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-2" }, t("Si una profesional no tiene ninguno de estos espacios, no podrá hacer este servicio."))), /* @__PURE__ */ React.createElement("details", { className: "rounded-lg border border-gray-200 bg-gray-50 p-3", open: Object.values(horariosDiaStr).some(Boolean) || Object.values(diasApagados).some(Boolean) }, /* @__PURE__ */ React.createElement("summary", { className: "text-sm font-semibold text-gray-700 cursor-pointer" }, t("Horarios distintos según el día de la semana (opcional)")), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-2" }, t("Ej: el miércoles solo 13:00, 13:30. Ese día usa estas horas; los demás días siguen con los horarios de arriba.")), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-1" }, t('Marca "No se hace" para que este servicio no se pueda reservar ese día.')), /* @__PURE__ */ React.createElement("div", { className: "space-y-2 mt-3" }, DIAS_HORARIOS_SERVICIO.map(([clave, nombreDia]) => /* @__PURE__ */ React.createElement("label", { key: clave, className: "flex items-center gap-2" }, /* @__PURE__ */ React.createElement("span", { className: "w-24 shrink-0 text-sm text-gray-700" }, t(nombreDia)), /* @__PURE__ */ React.createElement(
-    "input",
+  ), t("Espacio {n}", { n })))), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-2" }, t("Si una profesional no tiene ninguno de estos espacios, no podrá hacer este servicio."))), /* @__PURE__ */ React.createElement("details", { className: "rounded-lg border border-gray-200 bg-gray-50 p-3", open: Object.values(horariosDiaStr).some(Boolean) || Object.values(diasApagados).some(Boolean) }, /* @__PURE__ */ React.createElement("summary", { className: "text-sm font-semibold text-gray-700 cursor-pointer" }, t("Horarios distintos según el día de la semana (opcional)")), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-2" }, t("Ej: el miércoles solo 13:00, 13:30. Ese día usa estas horas; los demás días siguen con los horarios de arriba.")), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-1" }, t('Marca "No se hace" para que este servicio no se pueda reservar ese día.')), /* @__PURE__ */ React.createElement("div", { className: "space-y-2 mt-3" }, DIAS_HORARIOS_SERVICIO.map(([clave, nombreDia]) => /* @__PURE__ */ React.createElement("div", { key: clave, className: "flex items-start gap-2" }, /* @__PURE__ */ React.createElement("span", { className: "w-20 shrink-0 text-sm text-gray-700 pt-2" }, t(nombreDia)), /* @__PURE__ */ React.createElement("div", { className: "flex-1 min-w-0" }, /* @__PURE__ */ React.createElement(
+    SelectorHoras,
     {
-      value: horariosDiaStr[clave] || "",
-      onChange: (e) => setHorariosDiaStr((actual) => ({ ...actual, [clave]: e.target.value })),
-      className: "flex-1 min-w-0 border border-gray-200 rounded-lg px-3 py-2 bg-white disabled:bg-gray-100 disabled:text-gray-400",
-      placeholder: diasApagados[clave] ? t("No se hace este día") : t("Todos"),
-      inputMode: "text",
-      disabled: diasApagados[clave]
+      valor: horariosDiaStr[clave] || "",
+      onCambio: (v) => setHorariosDiaStr((actual) => ({ ...actual, [clave]: v })),
+      deshabilitado: diasApagados[clave],
+      vacio: diasApagados[clave] ? t("No se hace este día") : t("Todos")
     }
-  ), /* @__PURE__ */ React.createElement("span", { className: "flex items-center gap-1 shrink-0 text-xs text-gray-700" }, /* @__PURE__ */ React.createElement(
+  )), /* @__PURE__ */ React.createElement("label", { className: "flex items-center gap-1 shrink-0 text-xs text-gray-700 pt-2" }, /* @__PURE__ */ React.createElement(
     "input",
     {
       type: "checkbox",

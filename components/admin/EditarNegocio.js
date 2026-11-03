@@ -4,6 +4,17 @@
 function EditarNegocio() {
     window.useIdioma();
     const t = window.t;
+    // Apartados: antes era una sola página larguísima. Todos los bloques siguen
+    // montados (solo se ocultan) para no perder lo escrito al cambiar de apartado,
+    // y "Guardar" guarda todo junto.
+    const [apartado, setApartado] = React.useState('negocio');
+    const APARTADOS = [
+        ['negocio', t('Mi negocio')],
+        ['apariencia', t('Apariencia')],
+        ['pagos', t('Pagos y anticipos')],
+        ['clientas', t('Clientas y premios')],
+        ['mensajes', t('Mensajes')]
+    ];
     const [negocioId, setNegocioId] = React.useState(null);
     const [monedaEditadaManualmente, setMonedaEditadaManualmente] = React.useState(false);
     const [cargando, setCargando] = React.useState(true);
@@ -445,23 +456,24 @@ function EditarNegocio() {
                 <div className="bg-white rounded-xl shadow-sm p-6">
                     {/* Header */}
                     <div className="flex items-center justify-between mb-6 pb-4 border-b">
-                        <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 bg-amber-600 rounded-xl flex items-center justify-center">
+                        <div className="flex items-center gap-3 min-w-0">
+                            <div className="w-12 h-12 shrink-0 bg-amber-600 rounded-xl flex items-center justify-center">
                                 <i className="icon-building text-2xl text-white"></i>
                             </div>
                             <div>
-                                <h1 className="text-2xl font-bold text-gray-900">{t('Editar Negocio')}</h1>
+                                <h1 className="text-xl sm:text-2xl font-bold text-gray-900">{t('Editar Negocio')}</h1>
                                 <p className="text-sm text-gray-500">{t('Cambia los datos de tu negocio')}</p>
                             </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                            <window.LanguageToggle />
+                        <div className="flex items-center gap-2 shrink-0">
+                            <window.LanguageToggle compacto />
                             <button
                                 onClick={() => window.location.href = window.construirRutaConSlug('admin.html')}
-                                className="px-4 py-2 border rounded-lg hover:bg-gray-100 transition flex items-center gap-2"
+                                className="px-3 sm:px-4 py-2 border rounded-lg hover:bg-gray-100 transition flex items-center gap-2"
+                                aria-label={t('Cancelar')}
                             >
                                 <i className="icon-x"></i>
-                                {t('Cancelar')}
+                                <span className="hidden sm:inline">{t('Cancelar')}</span>
                             </button>
                         </div>
                     </div>
@@ -473,9 +485,18 @@ function EditarNegocio() {
                         </div>
                     )}
 
+                    <div className="flex gap-2 overflow-x-auto pb-3 mb-4 -mx-1 px-1 sticky top-0 bg-white z-10" role="tablist">
+                        {APARTADOS.map(([id, nombre]) => (
+                            <button key={id} type="button" role="tab" aria-selected={apartado === id} onClick={() => { setApartado(id); window.scrollTo({ top: 0 }); }}
+                                className={`shrink-0 whitespace-nowrap px-4 py-2 rounded-full text-sm font-bold ${apartado === id ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-700'}`}>
+                                {nombre}
+                            </button>
+                        ))}
+                    </div>
+
                     <div className="space-y-8">
                         {/* SECCIÓN 1: Datos básicos */}
-                        <div>
+                        <div className={`${apartado === 'negocio' ? '' : 'hidden'}`}>
                             <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
                                 <i className="icon-info text-amber-500"></i>
                                 {t('Datos básicos')}
@@ -644,7 +665,7 @@ function EditarNegocio() {
                         </div>
 
                         {/* SECCIÓN 2: Personalización visual */}
-                        <div className="pt-4 border-t">
+                        <div className={`${apartado === 'apariencia' ? '' : 'hidden'}`}>
                             <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
                                 <i className="icon-palette text-amber-500"></i>
                                 {t('Personalización')}
@@ -833,7 +854,7 @@ function EditarNegocio() {
                         </div>
 
                         {/* 🆕 SECCIÓN 3: Anticipos (NUEVA) */}
-                        <div className="pt-4 border-t">
+                        <div className={`${apartado === 'pagos' ? '' : 'hidden'}`}>
                             <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
                                 <i className="icon-coin-stack text-amber-500"></i>
                                 💰 {t('Anticipos')}
@@ -1031,7 +1052,7 @@ function EditarNegocio() {
                         </div>
 
                         {/* 🆕 SECCIÓN 3b: Fidelización */}
-                        <div className="pt-4 border-t">
+                        <div className={`${apartado === 'clientas' ? '' : 'hidden'}`}>
                             <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
                                 🎁 {t('Fidelización')}
                             </h2>
@@ -1093,7 +1114,7 @@ function EditarNegocio() {
                         </div>
 
                         {/* 🆕 SECCIÓN 3b-2: Cumpleaños de las clientas */}
-                        <div className="pt-4 border-t">
+                        <div className={`pt-4 border-t ${apartado === 'clientas' ? '' : 'hidden'}`}>
                             <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
                                 {t('🎂 Cumpleaños de tus clientas')}
                             </h2>
@@ -1178,7 +1199,7 @@ function EditarNegocio() {
                         </div>
 
                         {/* 🆕 SECCIÓN 3c: Aprobar clientas nuevas */}
-                        <div className="pt-4 border-t">
+                        <div className={`pt-4 border-t ${apartado === 'clientas' ? '' : 'hidden'}`}>
                             <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
                                 👥 {t('Clientas nuevas')}
                             </h2>
@@ -1209,7 +1230,7 @@ function EditarNegocio() {
                         </div>
 
                         {/* SECCIÓN 4: Mensajes */}
-                        <div className="pt-4 border-t">
+                        <div className={`${apartado === 'mensajes' ? '' : 'hidden'}`}>
                             <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
                                 <i className="icon-message-square text-amber-500"></i>
                                 {t('Mensajes')}
@@ -1359,7 +1380,7 @@ function EditarNegocio() {
                         </div>
 
                         {/* SECCIÓN 5: Redes sociales */}
-                        <div className="pt-4 border-t">
+                        <div className={`pt-4 border-t ${apartado === 'negocio' ? '' : 'hidden'}`}>
                             <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
                                 <i className="icon-share-2 text-amber-500"></i>
                                 {t('Redes sociales')}
@@ -1399,7 +1420,7 @@ function EditarNegocio() {
                     </div>
 
                     {/* Botones de acción */}
-                    <div className="flex justify-end gap-3 mt-8 pt-4 border-t">
+                    <div className="flex justify-end gap-3 mt-8 pt-4 border-t sticky bottom-0 bg-white pb-3">
                         <button
                             onClick={() => window.location.href = window.construirRutaConSlug('admin.html')}
                             className="px-6 py-2 border rounded-lg hover:bg-gray-100 transition"

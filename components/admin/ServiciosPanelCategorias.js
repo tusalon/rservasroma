@@ -539,6 +539,56 @@ function CategoriasServiciosManager({ categorias, servicios, onChange }) {
     );
 }
 
+// Selector de horas para tocar (cada 30 min). Trabaja con el mismo texto que antes
+// ("09:00, 11:30"): lo guardado y las validaciones no cambian. Una hora que no cae en
+// la cuadrícula (por ejemplo 13:15, escrita a mano antes) se conserva y se ve elegida.
+function SelectorHoras({ valor, onCambio, deshabilitado = false, vacio }) {
+    window.useIdioma();
+    const t = window.t;
+    const [abierto, setAbierto] = React.useState(false);
+    const norm = (h) => {
+        const m = String(h).trim().match(/^([0-1]?[0-9]|2[0-3]):([0-5][0-9])$/);
+        return m ? String(m[1]).padStart(2, '0') + ':' + m[2] : null;
+    };
+    const elegidas = String(valor || '').split(',').map(norm).filter(Boolean);
+    const cuadricula = [];
+    for (let m = 6 * 60; m < 24 * 60; m += 30) {
+        cuadricula.push(String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'));
+    }
+    const todas = Array.from(new Set([...cuadricula, ...elegidas])).sort();
+    const etiqueta = (h) => (window.formatTo12Hour ? window.formatTo12Hour(h) : h);
+    const alternar = (h) => {
+        const set = new Set(elegidas);
+        if (set.has(h)) set.delete(h); else set.add(h);
+        onCambio(Array.from(set).sort().join(', '));
+    };
+    return (
+        <div className={deshabilitado ? 'opacity-50 pointer-events-none' : ''}>
+            <button type="button" onClick={() => setAbierto(!abierto)} aria-expanded={abierto}
+                className="w-full text-left border border-gray-200 rounded-lg px-3 py-2 bg-white flex items-center justify-between gap-2">
+                <span className="text-sm text-gray-800 truncate">{elegidas.length ? elegidas.map(etiqueta).join(' · ') : vacio}</span>
+                <span className="text-xs font-bold text-pink-600 shrink-0">{abierto ? t('Listo') : t('Elegir horas')}</span>
+            </button>
+            {abierto && (
+                <div className="mt-2">
+                    {/* Columnas en línea: legacy-ios-fallback.css pasa grid-cols-3/4 a dos en el móvil. */}
+                    <div className="grid gap-1.5" style={{ gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }}>
+                        {todas.map(h => (
+                            <button key={h} type="button" onClick={() => alternar(h)} aria-pressed={elegidas.includes(h)}
+                                className={`py-2 rounded-full text-xs font-bold tabular-nums ${elegidas.includes(h) ? 'bg-pink-500 text-white' : 'bg-white border border-gray-200 text-gray-700'}`}>
+                                {etiqueta(h)}
+                            </button>
+                        ))}
+                    </div>
+                    {elegidas.length > 0 && (
+                        <button type="button" onClick={() => onCambio('')} className="mt-2 text-xs font-bold text-gray-600 underline">{t('Quitar todas')}</button>
+                    )}
+                </div>
+            )}
+        </div>
+    );
+}
+
 function ServicioFormCategorias({ servicio, categorias, onGuardar, onCancelar }) {
     window.useIdioma();
     const t = window.t;
@@ -748,7 +798,10 @@ function ServicioFormCategorias({ servicio, categorias, onGuardar, onCancelar })
                         )}
                         <p className="text-xs text-amber-700">{t('Solo se usa si en Editar negocio activas los anticipos por servicio.')}</p>
                     </div>
-                    <input value={horariosStr} onChange={(e) => setHorariosStr(e.target.value)} className="w-full border border-gray-200 rounded-lg px-3 py-2" placeholder={t('Horarios permitidos: 09:00, 11:00')} />
+                    <div>
+                        <p className="text-sm font-semibold text-gray-700 mb-1">{t('Horarios permitidos')}</p>
+                        <SelectorHoras valor={horariosStr} onCambio={setHorariosStr} vacio={t('Todos los horarios de la profesional')} />
+                    </div>
                     <p className="text-xs text-gray-400">{t('Déjalo vacío para usar todos los horarios del profesional.')}</p>
                     {cfgEspacios.activo && (
                         <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
@@ -776,17 +829,17 @@ function ServicioFormCategorias({ servicio, categorias, onGuardar, onCancelar })
                         <p className="text-xs text-gray-500 mt-1">{t('Marca "No se hace" para que este servicio no se pueda reservar ese día.')}</p>
                         <div className="space-y-2 mt-3">
                             {DIAS_HORARIOS_SERVICIO.map(([clave, nombreDia]) => (
-                                <label key={clave} className="flex items-center gap-2">
-                                    <span className="w-24 shrink-0 text-sm text-gray-700">{t(nombreDia)}</span>
-                                    <input
-                                        value={horariosDiaStr[clave] || ''}
-                                        onChange={(e) => setHorariosDiaStr(actual => ({ ...actual, [clave]: e.target.value }))}
-                                        className="flex-1 min-w-0 border border-gray-200 rounded-lg px-3 py-2 bg-white disabled:bg-gray-100 disabled:text-gray-400"
-                                        placeholder={diasApagados[clave] ? t('No se hace este día') : t('Todos')}
-                                        inputMode="text"
-                                        disabled={diasApagados[clave]}
-                                    />
-                                    <span className="flex items-center gap-1 shrink-0 text-xs text-gray-700">
+                                <div key={clave} className="flex items-start gap-2">
+                                    <span className="w-20 shrink-0 text-sm text-gray-700 pt-2">{t(nombreDia)}</span>
+                                    <div className="flex-1 min-w-0">
+                                        <SelectorHoras
+                                            valor={horariosDiaStr[clave] || ''}
+                                            onCambio={(v) => setHorariosDiaStr(actual => ({ ...actual, [clave]: v }))}
+                                            deshabilitado={diasApagados[clave]}
+                                            vacio={diasApagados[clave] ? t('No se hace este día') : t('Todos')}
+                                        />
+                                    </div>
+                                    <label className="flex items-center gap-1 shrink-0 text-xs text-gray-700 pt-2">
                                         <input
                                             type="checkbox"
                                             checked={diasApagados[clave] === true}
@@ -794,8 +847,8 @@ function ServicioFormCategorias({ servicio, categorias, onGuardar, onCancelar })
                                             aria-label={t('No se hace') + ' ' + t(nombreDia)}
                                         />
                                         {t('No se hace')}
-                                    </span>
-                                </label>
+                                    </label>
+                                </div>
                             ))}
                         </div>
                     </details>
