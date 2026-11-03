@@ -4087,6 +4087,12 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
     { id: "salon", label: t2("Mi salón"), icono: "icon-store", ids: ["horarios", "servicios", "catalogo", "profesionales", "configuracion"] },
     { id: "numeros", label: t2("Números"), icono: "icon-trending-up", ids: ["estadisticas", "finanzas"] }
   ].map((sec) => ({ ...sec, hijos: sec.ids.map((id) => tabsDisponibles.find((tab) => tab.id === id)).filter(Boolean) })).filter((sec) => sec.hijos.length > 0);
+  SECCIONES.forEach((sec) => {
+    if (sec.id === "salon" && sec.hijos.length >= 2) {
+      sec.hub = true;
+      sec.hijos = [{ id: "salon-inicio", label: t2("Mi salón") }, ...sec.hijos];
+    }
+  });
   const seccionActiva = SECCIONES.find((sec) => sec.hijos.some((h) => h.id === tabActivo)) || SECCIONES[0];
   const copiarEnlaceClientas = async () => {
     try {
@@ -4145,7 +4151,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
       "aria-label": t2("Cerrar")
     },
     "×"
-  )), puedeGestionarAvanzado && pendientesConfiguracion.length > 0 ? /* @__PURE__ */ React.createElement(
+  )), puedeGestionarAvanzado && pendientesConfiguracion.length > 0 && (tabActivo === "reservas" || tabActivo === "salon-inicio") ? /* @__PURE__ */ React.createElement(
     "section",
     {
       role: "alert",
@@ -4486,7 +4492,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
     else if (disponible) className += " bg-white text-gray-800 border-gray-200 hover:bg-gray-50";
     else className += " bg-gray-100 text-gray-400 border-gray-200";
     return /* @__PURE__ */ React.createElement("div", { key: idx, className, title: esCerrado ? t2("Día cerrado") : esPasado ? t2("Fecha pasada") : disponible ? t2("{n} horario(s) disponible(s)", { n: disponiblesDia }) : t2("Sin horarios disponibles") }, /* @__PURE__ */ React.createElement("span", { className: "text-base leading-tight" }, date.getDate()), !esCerrado && !esPasado && /* @__PURE__ */ React.createElement("span", { className: `mt-0.5 min-w-5 px-1.5 py-0.5 rounded-full border text-[11px] font-bold leading-none ${tonoConteo}` }, disponiblesDia), esCerrado && /* @__PURE__ */ React.createElement("span", { className: "text-xs" }, "x"));
-  }))), modoDisponibilidad === "mes" && /* @__PURE__ */ React.createElement("div", { className: "mt-4 p-3 bg-gray-50 rounded-lg text-xs" }, /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-4" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2" }, /* @__PURE__ */ React.createElement("div", { className: "w-5 h-5 bg-green-100 border border-green-300 rounded-full flex items-center justify-center text-[10px] font-bold text-green-700" }, "6"), /* @__PURE__ */ React.createElement("span", null, t2("4+ tranquilo"))), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2" }, /* @__PURE__ */ React.createElement("div", { className: "w-5 h-5 bg-yellow-100 border border-yellow-300 rounded-full flex items-center justify-center text-[10px] font-bold text-yellow-700" }, "3"), /* @__PURE__ */ React.createElement("span", null, t2("3 medio"))), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2" }, /* @__PURE__ */ React.createElement("div", { className: "w-5 h-5 bg-red-100 border border-red-300 rounded-full flex items-center justify-center text-[10px] font-bold text-red-700" }, "2"), /* @__PURE__ */ React.createElement("span", null, t2("1-2 urgente"))), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2" }, /* @__PURE__ */ React.createElement("div", { className: "w-5 h-5 bg-gray-100 border border-gray-200 rounded-full flex items-center justify-center text-[10px] font-bold text-gray-400" }, "0"), /* @__PURE__ */ React.createElement("span", null, t2("Sin horarios"))))))), esperaLibres.length > 0 && tabActivo !== "lista-espera" && avisoEsperaCerrado !== esperaLibres.length && /* @__PURE__ */ React.createElement("div", { role: "status", className: "bg-green-50 border border-green-300 rounded-xl p-3 flex flex-wrap items-center gap-3" }, /* @__PURE__ */ React.createElement("span", { className: "flex-1 min-w-[200px] text-sm text-green-900" }, esperaLibres.length === 1 ? t2("Se liberó un horario y {nombre} está en lista de espera.", { nombre: esperaLibres[0].cliente_nombre || "" }) : t2("Se liberaron {n} horarios con clientas en lista de espera.", { n: esperaLibres.length })), /* @__PURE__ */ React.createElement("button", { type: "button", onClick: () => setTabActivo("lista-espera"), className: "px-4 min-h-11 rounded-lg bg-green-600 text-white text-sm font-semibold hover:bg-green-700" }, t2("Ver lista de espera")), /* @__PURE__ */ React.createElement("button", { type: "button", "aria-label": t2("Cerrar aviso"), onClick: () => setAvisoEsperaCerrado(esperaLibres.length), className: "min-h-11 min-w-11 rounded-lg text-green-900 hover:bg-green-100" }, "✕")), seccionActiva && seccionActiva.hijos.length > 1 && /* @__PURE__ */ React.createElement("div", { className: "flex gap-2 overflow-x-auto pb-1 -mx-1 px-1", role: "tablist" }, seccionActiva.hijos.map((tab) => /* @__PURE__ */ React.createElement(
+  }))), modoDisponibilidad === "mes" && /* @__PURE__ */ React.createElement("div", { className: "mt-4 p-3 bg-gray-50 rounded-lg text-xs" }, /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-4" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2" }, /* @__PURE__ */ React.createElement("div", { className: "w-5 h-5 bg-green-100 border border-green-300 rounded-full flex items-center justify-center text-[10px] font-bold text-green-700" }, "6"), /* @__PURE__ */ React.createElement("span", null, t2("4+ tranquilo"))), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2" }, /* @__PURE__ */ React.createElement("div", { className: "w-5 h-5 bg-yellow-100 border border-yellow-300 rounded-full flex items-center justify-center text-[10px] font-bold text-yellow-700" }, "3"), /* @__PURE__ */ React.createElement("span", null, t2("3 medio"))), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2" }, /* @__PURE__ */ React.createElement("div", { className: "w-5 h-5 bg-red-100 border border-red-300 rounded-full flex items-center justify-center text-[10px] font-bold text-red-700" }, "2"), /* @__PURE__ */ React.createElement("span", null, t2("1-2 urgente"))), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2" }, /* @__PURE__ */ React.createElement("div", { className: "w-5 h-5 bg-gray-100 border border-gray-200 rounded-full flex items-center justify-center text-[10px] font-bold text-gray-400" }, "0"), /* @__PURE__ */ React.createElement("span", null, t2("Sin horarios"))))))), esperaLibres.length > 0 && tabActivo !== "lista-espera" && avisoEsperaCerrado !== esperaLibres.length && /* @__PURE__ */ React.createElement("div", { role: "status", className: "bg-green-50 border border-green-300 rounded-xl p-3 flex flex-wrap items-center gap-3" }, /* @__PURE__ */ React.createElement("span", { className: "flex-1 min-w-[200px] text-sm text-green-900" }, esperaLibres.length === 1 ? t2("Se liberó un horario y {nombre} está en lista de espera.", { nombre: esperaLibres[0].cliente_nombre || "" }) : t2("Se liberaron {n} horarios con clientas en lista de espera.", { n: esperaLibres.length })), /* @__PURE__ */ React.createElement("button", { type: "button", onClick: () => setTabActivo("lista-espera"), className: "px-4 min-h-11 rounded-lg bg-green-600 text-white text-sm font-semibold hover:bg-green-700" }, t2("Ver lista de espera")), /* @__PURE__ */ React.createElement("button", { type: "button", "aria-label": t2("Cerrar aviso"), onClick: () => setAvisoEsperaCerrado(esperaLibres.length), className: "min-h-11 min-w-11 rounded-lg text-green-900 hover:bg-green-100" }, "✕")), seccionActiva && seccionActiva.hijos.length > 1 && !seccionActiva.hub && /* @__PURE__ */ React.createElement("div", { className: "flex gap-2 overflow-x-auto pb-1 -mx-1 px-1", role: "tablist" }, seccionActiva.hijos.map((tab) => /* @__PURE__ */ React.createElement(
     "button",
     {
       key: tab.id,
@@ -4496,7 +4502,38 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
       className: `shrink-0 px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap ${tabActivo === tab.id ? "bg-gray-900 text-white" : "bg-white text-gray-700 shadow-sm"}`
     },
     tab.label
-  ))), seccionActiva && seccionActiva.id === "salon" && /* @__PURE__ */ React.createElement("div", { className: "space-y-2" }, puedeGestionarAvanzado && /* @__PURE__ */ React.createElement("button", { onClick: abrirEdicionNegocio, className: "w-full flex items-center gap-3 bg-white rounded-2xl shadow-sm px-4 py-3 text-left" }, /* @__PURE__ */ React.createElement("i", { className: "icon-store text-xl text-pink-600" }), /* @__PURE__ */ React.createElement("span", { className: "flex-1" }, /* @__PURE__ */ React.createElement("span", { className: "block font-bold text-gray-900" }, t2("Datos del negocio")), /* @__PURE__ */ React.createElement("span", { className: "block text-xs text-gray-500" }, t2("Nombre, colores, WhatsApp, anticipos y premios"))), /* @__PURE__ */ React.createElement("span", { className: "text-gray-400 text-xl" }, "›")), urlCliente && /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2 rounded-2xl bg-white shadow-sm px-4 py-3" }, /* @__PURE__ */ React.createElement("span", { className: "flex-1 min-w-0" }, /* @__PURE__ */ React.createElement("span", { className: "block font-bold text-gray-900" }, t2("Tu enlace para clientas")), /* @__PURE__ */ React.createElement("span", { className: "block text-xs text-gray-500 truncate" }, urlCliente)), /* @__PURE__ */ React.createElement("button", { type: "button", onClick: copiarEnlaceClientas, className: "shrink-0 px-3 py-1.5 rounded-full bg-gray-100 text-xs font-bold text-gray-800" }, t2("Copiar")))), tabActivo === "estadisticas" && renderEstadisticas(), tabActivo === "horarios" && /* @__PURE__ */ React.createElement(
+  ))), seccionActiva && seccionActiva.hub && tabActivo !== "salon-inicio" && /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      type: "button",
+      onClick: () => setTabActivo("salon-inicio"),
+      className: "flex items-center gap-1 text-sm font-bold text-pink-700 py-1 -mb-1"
+    },
+    /* @__PURE__ */ React.createElement("i", { className: "icon-chevron-left text-lg" }),
+    t2("Mi salón")
+  ), seccionActiva && seccionActiva.hub && tabActivo === "salon-inicio" && (() => {
+    const tiene = (id) => seccionActiva.hijos.some((h) => h.id === id);
+    const filas = [
+      { id: "horarios", icono: "icon-clock", titulo: t2("Horarios y días libres"), detalle: t2("Cuándo trabaja cada persona y los días cerrados") },
+      { id: "servicios", icono: "icon-sparkles", titulo: t2("Servicios"), detalle: serviciosList.length ? t2("{n} servicios · precios y duración", { n: serviciosList.length }) : t2("Precios, duración y quién los hace") },
+      { id: "catalogo", icono: "icon-image", titulo: t2("Catálogo"), detalle: t2("Las fotos de tu trabajo que ven tus clientas") },
+      { id: "profesionales", icono: "icon-users", titulo: t2("Profesionales"), detalle: profesionalesList.length ? t2("{n} personas atienden", { n: profesionalesList.length }) : t2("Quién atiende y con qué acceso") },
+      { id: "datos", icono: "icon-store", titulo: t2("Datos del negocio"), detalle: t2("Nombre, colores, WhatsApp, anticipos y premios"), onClick: abrirEdicionNegocio, visible: puedeGestionarAvanzado },
+      { id: "configuracion", icono: "icon-settings", titulo: t2("Ajustes de reservas"), detalle: t2("Duración, intervalo y antelación") }
+    ].filter((f) => f.visible !== void 0 ? f.visible : tiene(f.id));
+    return /* @__PURE__ */ React.createElement("div", { className: "space-y-2" }, urlCliente && /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2 rounded-2xl bg-white shadow-sm px-4 py-3" }, /* @__PURE__ */ React.createElement("i", { className: "icon-link text-xl text-pink-600" }), /* @__PURE__ */ React.createElement("span", { className: "flex-1 min-w-0" }, /* @__PURE__ */ React.createElement("span", { className: "block font-bold text-gray-900" }, t2("Tu enlace para clientas")), /* @__PURE__ */ React.createElement("span", { className: "block text-xs text-gray-500 truncate" }, urlCliente)), /* @__PURE__ */ React.createElement("button", { type: "button", onClick: copiarEnlaceClientas, className: "shrink-0 px-3 py-1.5 rounded-full bg-gray-100 text-xs font-bold text-gray-800" }, t2("Copiar"))), filas.map((f) => /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        key: f.id,
+        type: "button",
+        onClick: f.onClick || (() => setTabActivo(f.id)),
+        className: "w-full flex items-center gap-3 bg-white rounded-2xl shadow-sm px-4 py-3.5 text-left active:scale-[.99] transition-transform"
+      },
+      /* @__PURE__ */ React.createElement("span", { className: "flex items-center justify-center w-11 h-11 rounded-full shrink-0", style: { background: "rgba(255,20,147,.10)" } }, /* @__PURE__ */ React.createElement("i", { className: `${f.icono} text-xl text-pink-600` })),
+      /* @__PURE__ */ React.createElement("span", { className: "flex-1 min-w-0" }, /* @__PURE__ */ React.createElement("span", { className: "block font-bold text-gray-900" }, f.titulo), /* @__PURE__ */ React.createElement("span", { className: "block text-xs text-gray-500" }, f.detalle)),
+      /* @__PURE__ */ React.createElement("i", { className: "icon-chevron-right text-xl text-gray-400" })
+    )));
+  })(), tabActivo === "estadisticas" && renderEstadisticas(), tabActivo === "horarios" && /* @__PURE__ */ React.createElement(
     ConfigPanel,
     {
       vista: "horarios",
@@ -4505,14 +4542,14 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
       profesionalInicial: profesionalHorarioInicial,
       onProfesionalInicialUsado: () => setProfesionalHorarioInicial(null)
     }
-  ), tabActivo === "configuracion" && /* @__PURE__ */ React.createElement("div", { className: "space-y-4" }, userRole === "admin" && esDuenaReal && /* @__PURE__ */ React.createElement(RomaHubActivacion, null), /* @__PURE__ */ React.createElement(
+  ), tabActivo === "configuracion" && /* @__PURE__ */ React.createElement("div", { className: "space-y-4" }, /* @__PURE__ */ React.createElement(
     ConfigPanel,
     {
       vista: "ajustes",
       profesionalId: userRole === "profesional" ? profesional?.id : null,
       modoRestringido: userRole === "profesional" && userNivel === 2
     }
-  )), tabActivo === "lista-espera" && puedeVerListaEspera && /* @__PURE__ */ React.createElement(
+  ), userRole === "admin" && esDuenaReal && /* @__PURE__ */ React.createElement("details", { className: "bg-white rounded-xl shadow-sm" }, /* @__PURE__ */ React.createElement("summary", { className: "cursor-pointer list-none px-4 py-3.5 flex items-center justify-between gap-2 font-bold text-gray-900" }, /* @__PURE__ */ React.createElement("span", null, t2("Un mismo acceso para RservasRoma y RomaHub")), /* @__PURE__ */ React.createElement("i", { className: "icon-chevron-right text-xl text-gray-400" })), /* @__PURE__ */ React.createElement("div", { className: "px-1 pb-2" }, /* @__PURE__ */ React.createElement(RomaHubActivacion, null)))), tabActivo === "lista-espera" && puedeVerListaEspera && /* @__PURE__ */ React.createElement(
     ListaEsperaPanel,
     {
       profesionalId: userRole === "profesional" ? profesional?.id : null,
@@ -4968,7 +5005,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
           "button",
           {
             key: sec.id,
-            onClick: () => setTabActivo(sec.hijos.some((h) => h.id === tabActivo) ? tabActivo : sec.hijos[0].id),
+            onClick: () => setTabActivo(sec.hub ? "salon-inicio" : sec.hijos.some((h) => h.id === tabActivo) ? tabActivo : sec.hijos[0].id),
             "aria-current": activa ? "page" : void 0,
             className: `flex flex-col items-center gap-0.5 py-1 rounded-full transition-transform active:scale-95 ${activa ? "text-pink-700" : "text-gray-500"}`
           },

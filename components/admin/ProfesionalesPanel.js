@@ -125,14 +125,14 @@ function ProfesionalesPanel() {
 
     return (
         <div className="bg-white rounded-xl shadow-sm p-6">
-            <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-bold">👥 {t('Profesionales')}</h2>
+            <div className="flex justify-between items-center gap-3 mb-6">
+                <h2 className="text-lg font-bold whitespace-nowrap">👥 {t('Profesionales')}</h2>
                 <button
                     onClick={() => {
                         setEditando(null);
                         setMostrarForm(true);
                     }}
-                    className="bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700"
+                    className="bg-pink-500 text-white px-3 py-2 text-sm rounded-full font-bold whitespace-nowrap shrink-0"
                 >
                     + {t('Nuevo Profesional')}
                 </button>
@@ -156,62 +156,51 @@ function ProfesionalesPanel() {
                     </div>
                 ) : (
                     profesionales.map(p => (
-                        <div key={p.id} className={`border rounded-lg p-4 ${p.activo ? '' : 'opacity-50 bg-gray-50'}`}>
-                            <div className="flex justify-between items-start">
-                                <div className="flex items-center gap-3">
-                                    <div className={`w-12 h-12 ${p.color || 'bg-amber-600'} rounded-full flex items-center justify-center text-2xl`}>
-                                        {p.avatar || '👤'}
-                                    </div>
-                                    <div>
-                                        <div className="flex items-center gap-2">
-                                            <h3 className="font-semibold text-lg">{p.nombre}</h3>
-                                            <button
-                                                onClick={() => toggleActivo(p.id)}
-                                                className={`text-xs px-2 py-1 rounded-full ${
-                                                    p.activo 
-                                                        ? 'bg-green-100 text-green-700' 
-                                                        : 'bg-gray-200 text-gray-600'
-                                                }`}
-                                            >
-                                                {p.activo ? t('Activo') : t('Inactivo')}
-                                            </button>
-                                        </div>
-                                        <p className="text-sm text-gray-600">{p.especialidad}</p>
-                                        
-                                        <p className="text-xs mt-1">
-                                            <span className={`px-2 py-0.5 rounded-full ${
-                                                p.nivel === 1 ? 'bg-gray-100 text-gray-600' :
-                                                p.nivel === 2 ? 'bg-blue-100 text-blue-600' :
-                                                'bg-purple-100 text-purple-600'
-                                            }`}>
-                                                {getNivelNombre(p.nivel)}
-                                            </span>
-                                        </p>
-                                        
-                                        {p.telefono && (
-                                            <p className="text-xs text-gray-500 mt-1">
-                                                📱 {p.telefono}
-                                            </p>
-                                        )}
-                                    </div>
+                        <div key={p.id} className={`border rounded-xl p-4 ${p.activo ? '' : 'opacity-50 bg-gray-50'}`}>
+                            <div className="flex items-center gap-3">
+                                <div className={`w-12 h-12 shrink-0 ${p.color || 'bg-amber-600'} rounded-full flex items-center justify-center text-2xl`}>
+                                    {p.avatar || '👤'}
                                 </div>
-                                <div className="flex gap-2">
-                                    <button
-                                        onClick={() => {
-                                            setEditando(p);
-                                            setMostrarForm(true);
-                                        }}
-                                        className="text-blue-600 hover:text-blue-800"
-                                    >
-                                        ✏️
-                                    </button>
-                                    <button
-                                        onClick={() => handleEliminar(p.id)}
-                                        className="text-red-600 hover:text-red-800"
-                                    >
-                                        🗑️
-                                    </button>
+                                <div className="min-w-0 flex-1">
+                                    <h3 className="font-bold text-lg truncate">{p.nombre}</h3>
+                                    <p className="text-sm text-gray-600 truncate">{p.especialidad}</p>
+                                    <p className="text-xs mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+                                        <span className={`px-2 py-0.5 rounded-full ${
+                                            p.nivel === 1 ? 'bg-gray-100 text-gray-600' :
+                                            p.nivel === 2 ? 'bg-blue-100 text-blue-600' :
+                                            'bg-purple-100 text-purple-600'
+                                        }`}>
+                                            {getNivelNombre(p.nivel)}
+                                        </span>
+                                        {p.telefono && <span className="text-gray-500">📱 {p.telefono}</span>}
+                                    </p>
                                 </div>
+                                <button
+                                    onClick={() => toggleActivo(p.id)}
+                                    className={`shrink-0 text-xs font-bold px-3 py-1.5 rounded-full ${
+                                        p.activo ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-600'
+                                    }`}
+                                >
+                                    {p.activo ? t('Activo') : t('Inactivo')}
+                                </button>
+                            </div>
+                            <div className="mt-3 pt-3 border-t border-gray-100 flex items-center gap-2">
+                                <button
+                                    onClick={() => {
+                                        setEditando(p);
+                                        setMostrarForm(true);
+                                    }}
+                                    className="flex-1 py-2 rounded-full border border-gray-200 text-sm font-bold text-gray-800 hover:bg-gray-50"
+                                >
+                                    ✏️ {t('Editar')}
+                                </button>
+                                <button
+                                    onClick={() => handleEliminar(p.id)}
+                                    className="w-10 h-10 rounded-full text-red-600 hover:bg-red-50"
+                                    title={t('Eliminar')} aria-label={t('Eliminar')}
+                                >
+                                    🗑️
+                                </button>
                             </div>
                         </div>
                     ))

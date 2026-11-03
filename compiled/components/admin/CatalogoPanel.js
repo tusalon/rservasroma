@@ -7,6 +7,7 @@ function CatalogoPanel() {
   const [subiendo, setSubiendo] = React.useState(false);
   const [guardando, setGuardando] = React.useState(false);
   const [editando, setEditando] = React.useState(null);
+  const [mostrarForm, setMostrarForm] = React.useState(false);
   const formVacio = {
     titulo: "",
     descripcion: "",
@@ -134,8 +135,10 @@ function CatalogoPanel() {
     });
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
+  const formVisible = mostrarForm || !!editando || !cargando && disenos.length === 0;
   const cancelar = () => {
     setEditando(null);
+    setMostrarForm(false);
     setForm(formVacio);
   };
   const guardar = async (e) => {
@@ -195,7 +198,7 @@ function CatalogoPanel() {
       className: "px-4 py-2 rounded-lg bg-white/20 text-white text-sm font-medium hover:bg-white/30"
     },
     copiado ? t("¡Copiado!") : t("Copiar enlace")
-  ))), /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-xl shadow-sm p-6" }, /* @__PURE__ */ React.createElement("h2", { className: "text-xl font-bold mb-1" }, editando ? t("Editar foto") : t("Añadir foto al catálogo")), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500 mb-4" }, t("Tus clientas verán estas fotos y podrán pedir cita para lo que más les guste.")), /* @__PURE__ */ React.createElement("form", { onSubmit: guardar, className: "space-y-3" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-start gap-4" }, /* @__PURE__ */ React.createElement("div", { className: "w-24 h-24 rounded-xl bg-pink-50 border border-pink-100 overflow-hidden flex items-center justify-center shrink-0" }, form.imagen_url ? /* @__PURE__ */ React.createElement("img", { src: window.urlImagenCloudinary(form.imagen_url, 200), alt: "", className: "w-full h-full object-cover" }) : /* @__PURE__ */ React.createElement("span", { className: "text-2xl" }, "📸")), /* @__PURE__ */ React.createElement("div", { className: "flex-1" }, /* @__PURE__ */ React.createElement("label", { className: `inline-block px-4 py-2 rounded-lg bg-pink-500 text-white text-sm font-bold cursor-pointer hover:bg-pink-600 ${subiendo ? "opacity-60 pointer-events-none" : ""}` }, subiendo ? t("Subiendo...") : t("Elegir foto"), /* @__PURE__ */ React.createElement("input", { type: "file", accept: "image/*", onChange: subirFoto, className: "hidden", disabled: subiendo })), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 mt-2" }, t("La foto se comprime sola antes de subirse. Usa una foto clara del trabajo terminado.")))), /* @__PURE__ */ React.createElement(
+  ))), formVisible && /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-xl shadow-sm p-6" }, /* @__PURE__ */ React.createElement("h2", { className: "text-xl font-bold mb-1" }, editando ? t("Editar foto") : t("Añadir foto al catálogo")), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500 mb-4" }, t("Tus clientas verán estas fotos y podrán pedir cita para lo que más les guste.")), /* @__PURE__ */ React.createElement("form", { onSubmit: guardar, className: "space-y-3" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-start gap-4" }, /* @__PURE__ */ React.createElement("div", { className: "w-24 h-24 rounded-xl bg-pink-50 border border-pink-100 overflow-hidden flex items-center justify-center shrink-0" }, form.imagen_url ? /* @__PURE__ */ React.createElement("img", { src: window.urlImagenCloudinary(form.imagen_url, 200), alt: "", className: "w-full h-full object-cover" }) : /* @__PURE__ */ React.createElement("span", { className: "text-2xl" }, "📸")), /* @__PURE__ */ React.createElement("div", { className: "flex-1" }, /* @__PURE__ */ React.createElement("label", { className: `inline-block px-4 py-2 rounded-lg bg-pink-500 text-white text-sm font-bold cursor-pointer hover:bg-pink-600 ${subiendo ? "opacity-60 pointer-events-none" : ""}` }, subiendo ? t("Subiendo...") : t("Elegir foto"), /* @__PURE__ */ React.createElement("input", { type: "file", accept: "image/*", onChange: subirFoto, className: "hidden", disabled: subiendo })), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 mt-2" }, t("La foto se comprime sola antes de subirse. Usa una foto clara del trabajo terminado.")))), /* @__PURE__ */ React.createElement(
     "input",
     {
       type: "text",
@@ -243,7 +246,7 @@ function CatalogoPanel() {
       className: "px-5 py-2 rounded-lg bg-pink-500 text-white text-sm font-bold hover:bg-pink-600 disabled:opacity-60"
     },
     guardando ? t("Guardando...") : editando ? t("Guardar cambios") : t("Publicar foto")
-  ), editando && /* @__PURE__ */ React.createElement(
+  ), (editando || mostrarForm) && /* @__PURE__ */ React.createElement(
     "button",
     {
       type: "button",
@@ -251,7 +254,19 @@ function CatalogoPanel() {
       className: "px-5 py-2 rounded-lg bg-gray-100 text-gray-700 text-sm font-medium"
     },
     t("Cancelar")
-  )))), /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-xl shadow-sm p-6" }, /* @__PURE__ */ React.createElement("h2", { className: "text-lg font-bold mb-4" }, t("Publicados ({n})", { n: disenos.length })), cargando ? /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-400" }, t("Cargando...")) : disenos.length === 0 ? /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-400" }, t("Todavía no has subido ninguna foto. Empieza con tus 5 mejores trabajos.")) : (
+  )))), /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-xl shadow-sm p-6" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between gap-3 mb-4" }, /* @__PURE__ */ React.createElement("h2", { className: "text-lg font-bold" }, t("Publicados ({n})", { n: disenos.length })), !formVisible && /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      type: "button",
+      onClick: () => {
+        setMostrarForm(true);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      },
+      className: "shrink-0 px-4 py-2 rounded-full bg-pink-500 text-white text-sm font-bold"
+    },
+    "+ ",
+    t("Añadir foto")
+  )), cargando ? /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-400" }, t("Cargando...")) : disenos.length === 0 ? /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-400" }, t("Todavía no has subido ninguna foto. Empieza con tus 5 mejores trabajos.")) : (
     /* Agrupado igual que en la app de la clienta: así la dueña
        ve el catálogo tal como queda publicado. */
     /* @__PURE__ */ React.createElement("div", { className: "space-y-5" }, grupos.map((grupo) => /* @__PURE__ */ React.createElement("section", { key: grupo.nombre }, /* @__PURE__ */ React.createElement("div", { className: "flex items-baseline justify-between mb-2 pb-1 border-b border-gray-100" }, /* @__PURE__ */ React.createElement("h3", { className: "text-sm font-bold text-gray-700" }, grupo.nombre), /* @__PURE__ */ React.createElement("span", { className: "text-xs text-gray-400" }, grupo.disenos.length === 1 ? t("1 foto") : t("{n} fotos", { n: grupo.disenos.length }))), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-1 sm:grid-cols-2 gap-3" }, grupo.disenos.map((diseno, indice) => {

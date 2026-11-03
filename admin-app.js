@@ -5175,6 +5175,14 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
         { id: 'numeros', label: t('Números'), icono: 'icon-trending-up', ids: ['estadisticas', 'finanzas'] }
     ].map(sec => ({ ...sec, hijos: sec.ids.map(id => tabsDisponibles.find(tab => tab.id === id)).filter(Boolean) }))
      .filter(sec => sec.hijos.length > 0);
+    // "Mi salón" abre en un inicio con una tarjeta por cada cosa que se puede arreglar (en vez de una
+    // tira de pestañas con la mitad cortada). Con una sola pantalla no hace falta inicio.
+    SECCIONES.forEach(sec => {
+        if (sec.id === 'salon' && sec.hijos.length >= 2) {
+            sec.hub = true;
+            sec.hijos = [{ id: 'salon-inicio', label: t('Mi salón') }, ...sec.hijos];
+        }
+    });
     const seccionActiva = SECCIONES.find(sec => sec.hijos.some(h => h.id === tabActivo)) || SECCIONES[0];
     const copiarEnlaceClientas = async () => {
         // Sin el aviso, si el teléfono no dejaba copiar no pasaba nada y la dueña
@@ -5262,7 +5270,7 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                     </div>
                 )}
 
-                {puedeGestionarAvanzado && pendientesConfiguracion.length > 0 ? (
+                {puedeGestionarAvanzado && pendientesConfiguracion.length > 0 && (tabActivo === 'reservas' || tabActivo === 'salon-inicio') ? (
                     <section
                         role="alert"
                         className="rounded-2xl border-2 border-amber-300 bg-gradient-to-r from-amber-50 to-orange-50 p-4 sm:p-5 shadow-sm"
@@ -6081,7 +6089,7 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                 {/* SECCIONES: la barra de abajo lleva a las cinco áreas; si el área tiene
                     varias pantallas, se eligen aquí arriba. Antes eran diez píldoras
                     en cinco filas. */}
-                {seccionActiva && seccionActiva.hijos.length > 1 && (
+                {seccionActiva && seccionActiva.hijos.length > 1 && !seccionActiva.hub && (
                     <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1" role="tablist">
                         {seccionActiva.hijos.map(tab => (
                             <button key={tab.id} role="tab" aria-selected={tabActivo === tab.id}
@@ -6093,29 +6101,51 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                     </div>
                 )}
 
-                {seccionActiva && seccionActiva.id === 'salon' && (
-                    <div className="space-y-2">
-                        {puedeGestionarAvanzado && (
-                            <button onClick={abrirEdicionNegocio} className="w-full flex items-center gap-3 bg-white rounded-2xl shadow-sm px-4 py-3 text-left">
-                                <i className="icon-store text-xl text-pink-600"></i>
-                                <span className="flex-1">
-                                    <span className="block font-bold text-gray-900">{t('Datos del negocio')}</span>
-                                    <span className="block text-xs text-gray-500">{t('Nombre, colores, WhatsApp, anticipos y premios')}</span>
-                                </span>
-                                <span className="text-gray-400 text-xl">›</span>
-                            </button>
-                        )}
-                        {urlCliente && (
-                            <div className="flex items-center gap-2 rounded-2xl bg-white shadow-sm px-4 py-3">
-                                <span className="flex-1 min-w-0">
-                                    <span className="block font-bold text-gray-900">{t('Tu enlace para clientas')}</span>
-                                    <span className="block text-xs text-gray-500 truncate">{urlCliente}</span>
-                                </span>
-                                <button type="button" onClick={copiarEnlaceClientas} className="shrink-0 px-3 py-1.5 rounded-full bg-gray-100 text-xs font-bold text-gray-800">{t('Copiar')}</button>
-                            </div>
-                        )}
-                    </div>
+                {seccionActiva && seccionActiva.hub && tabActivo !== 'salon-inicio' && (
+                    <button type="button" onClick={() => setTabActivo('salon-inicio')}
+                        className="flex items-center gap-1 text-sm font-bold text-pink-700 py-1 -mb-1">
+                        <i className="icon-chevron-left text-lg"></i>{t('Mi salón')}
+                    </button>
                 )}
+
+                {seccionActiva && seccionActiva.hub && tabActivo === 'salon-inicio' && (() => {
+                    const tiene = (id) => seccionActiva.hijos.some(h => h.id === id);
+                    const filas = [
+                        { id: 'horarios', icono: 'icon-clock', titulo: t('Horarios y días libres'), detalle: t('Cuándo trabaja cada persona y los días cerrados') },
+                        { id: 'servicios', icono: 'icon-sparkles', titulo: t('Servicios'), detalle: serviciosList.length ? t('{n} servicios · precios y duración', { n: serviciosList.length }) : t('Precios, duración y quién los hace') },
+                        { id: 'catalogo', icono: 'icon-image', titulo: t('Catálogo'), detalle: t('Las fotos de tu trabajo que ven tus clientas') },
+                        { id: 'profesionales', icono: 'icon-users', titulo: t('Profesionales'), detalle: profesionalesList.length ? t('{n} personas atienden', { n: profesionalesList.length }) : t('Quién atiende y con qué acceso') },
+                        { id: 'datos', icono: 'icon-store', titulo: t('Datos del negocio'), detalle: t('Nombre, colores, WhatsApp, anticipos y premios'), onClick: abrirEdicionNegocio, visible: puedeGestionarAvanzado },
+                        { id: 'configuracion', icono: 'icon-settings', titulo: t('Ajustes de reservas'), detalle: t('Duración, intervalo y antelación') }
+                    ].filter(f => (f.visible !== undefined ? f.visible : tiene(f.id)));
+                    return (
+                        <div className="space-y-2">
+                            {urlCliente && (
+                                <div className="flex items-center gap-2 rounded-2xl bg-white shadow-sm px-4 py-3">
+                                    <i className="icon-link text-xl text-pink-600"></i>
+                                    <span className="flex-1 min-w-0">
+                                        <span className="block font-bold text-gray-900">{t('Tu enlace para clientas')}</span>
+                                        <span className="block text-xs text-gray-500 truncate">{urlCliente}</span>
+                                    </span>
+                                    <button type="button" onClick={copiarEnlaceClientas} className="shrink-0 px-3 py-1.5 rounded-full bg-gray-100 text-xs font-bold text-gray-800">{t('Copiar')}</button>
+                                </div>
+                            )}
+                            {filas.map(f => (
+                                <button key={f.id} type="button" onClick={f.onClick || (() => setTabActivo(f.id))}
+                                    className="w-full flex items-center gap-3 bg-white rounded-2xl shadow-sm px-4 py-3.5 text-left active:scale-[.99] transition-transform">
+                                    <span className="flex items-center justify-center w-11 h-11 rounded-full shrink-0" style={{ background: 'rgba(255,20,147,.10)' }}>
+                                        <i className={`${f.icono} text-xl text-pink-600`}></i>
+                                    </span>
+                                    <span className="flex-1 min-w-0">
+                                        <span className="block font-bold text-gray-900">{f.titulo}</span>
+                                        <span className="block text-xs text-gray-500">{f.detalle}</span>
+                                    </span>
+                                    <i className="icon-chevron-right text-xl text-gray-400"></i>
+                                </button>
+                            ))}
+                        </div>
+                    );
+                })()}
 
                 {/* CONTENIDO */}
                 {tabActivo === 'estadisticas' && (
@@ -6134,12 +6164,20 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
 
                 {tabActivo === 'configuracion' && (
                     <div className="space-y-4">
-                        {userRole === 'admin' && esDuenaReal && <RomaHubActivacion />}
                         <ConfigPanel
                             vista="ajustes"
                             profesionalId={userRole === 'profesional' ? profesional?.id : null}
                             modoRestringido={userRole === 'profesional' && userNivel === 2}
                         />
+                        {userRole === 'admin' && esDuenaReal && (
+                            <details className="bg-white rounded-xl shadow-sm">
+                                <summary className="cursor-pointer list-none px-4 py-3.5 flex items-center justify-between gap-2 font-bold text-gray-900">
+                                    <span>{t('Un mismo acceso para RservasRoma y RomaHub')}</span>
+                                    <i className="icon-chevron-right text-xl text-gray-400"></i>
+                                </summary>
+                                <div className="px-1 pb-2"><RomaHubActivacion /></div>
+                            </details>
+                        )}
                     </div>
                 )}
 
@@ -7309,7 +7347,7 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                     {SECCIONES.map(sec => {
                         const activa = seccionActiva && seccionActiva.id === sec.id;
                         return (
-                            <button key={sec.id} onClick={() => setTabActivo(sec.hijos.some(h => h.id === tabActivo) ? tabActivo : sec.hijos[0].id)}
+                            <button key={sec.id} onClick={() => setTabActivo(sec.hub ? 'salon-inicio' : (sec.hijos.some(h => h.id === tabActivo) ? tabActivo : sec.hijos[0].id))}
                                 aria-current={activa ? 'page' : undefined}
                                 className={`flex flex-col items-center gap-0.5 py-1 rounded-full transition-transform active:scale-95 ${activa ? 'text-pink-700' : 'text-gray-500'}`}>
                                 <span className="flex items-center justify-center rounded-full transition-all duration-200"

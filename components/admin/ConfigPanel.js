@@ -152,29 +152,26 @@ function ConfigPanel({ profesionalId, modoRestringido, profesionalInicial = null
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
                                     {t('Duración por defecto (min)')}
                                 </label>
-                                <div className="grid grid-cols-3 sm:grid-cols-3 gap-2">
+                                <div className="flex flex-wrap gap-2">
                                     {opcionesDuracion.map(opcion => (
                                         <button
                                             key={opcion.value}
                                             type="button"
                                             onClick={() => setConfigGlobal({
-                                                ...configGlobal, 
+                                                ...configGlobal,
                                                 duracion_turnos: opcion.value
                                             })}
-                                            className={`
-                                                py-2 px-1 rounded-lg text-xs font-medium transition-all flex flex-col items-center
-                                                ${configGlobal.duracion_turnos === opcion.value
-                                                    ? 'bg-amber-600 text-white shadow-md ring-2 ring-amber-300'
-                                                    : 'bg-white border border-gray-300 text-gray-700 hover:border-amber-400 hover:bg-amber-50'}
-                                            `}
+                                            aria-pressed={configGlobal.duracion_turnos === opcion.value}
+                                            className={`px-3.5 py-2 rounded-full text-sm font-bold transition-all ${configGlobal.duracion_turnos === opcion.value
+                                                ? 'bg-pink-500 text-white shadow-md'
+                                                : 'bg-white border border-gray-300 text-gray-700 hover:border-pink-300'}`}
                                         >
-                                            <span className="text-lg mb-1">{opcion.icon}</span>
-                                            <span>{opcion.label}</span>
+                                            {opcion.label}
                                         </button>
                                     ))}
                                 </div>
                             </div>
-                            
+
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
                                     {t('Intervalo entre citas (min)')}
@@ -197,29 +194,26 @@ function ConfigPanel({ profesionalId, modoRestringido, profesionalInicial = null
                             <label className="block text-sm font-medium text-gray-700 mb-2">
                                 {t('Antelación máxima para reservar')}
                             </label>
-                            <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
+                            <div className="flex flex-wrap gap-2">
                                 {opcionesAntelacion.map(opcion => (
                                     <button
                                         key={opcion.value}
                                         type="button"
                                         onClick={() => setConfigGlobal({
-                                            ...configGlobal, 
+                                            ...configGlobal,
                                             max_antelacion_dias: opcion.value
                                         })}
-                                        className={`
-                                            py-2 px-1 rounded-lg text-xs font-medium transition-all flex flex-col items-center
-                                            ${configGlobal.max_antelacion_dias === opcion.value
-                                                ? 'bg-amber-600 text-white shadow-md ring-2 ring-amber-300'
-                                                : 'bg-white border border-gray-300 text-gray-700 hover:border-amber-400 hover:bg-amber-50'}
-                                        `}
+                                        aria-pressed={configGlobal.max_antelacion_dias === opcion.value}
+                                        className={`px-3.5 py-2 rounded-full text-sm font-bold transition-all ${configGlobal.max_antelacion_dias === opcion.value
+                                            ? 'bg-pink-500 text-white shadow-md'
+                                            : 'bg-white border border-gray-300 text-gray-700 hover:border-pink-300'}`}
                                     >
-                                        <span className="text-lg mb-1">{opcion.icon}</span>
-                                        <span>{opcion.label}</span>
+                                        {opcion.label}
                                     </button>
                                 ))}
                             </div>
                         </div>
-                        
+
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -279,7 +273,7 @@ function ConfigPanel({ profesionalId, modoRestringido, profesionalInicial = null
 
                         <button
                             onClick={handleGuardarConfigGlobal}
-                            className="bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700 transition text-sm"
+                            className="w-full bg-pink-500 text-white px-4 py-3 rounded-full font-bold transition"
                         >
                             {t('Guardar Configuración Global')}
                         </button>
@@ -290,39 +284,32 @@ function ConfigPanel({ profesionalId, modoRestringido, profesionalInicial = null
                 </>
             )}
 
-            {/* CIERRES DEL SALÓN (feriados, vacaciones del local) */}
-            {!modoRestringido && verHorarios && <DiasCerradosGlobalesPanel />}
-            
-            {/* SECCIÓN DEL PROFESIONAL */}
+            {/* SECCION DEL PROFESIONAL (lo que se toca cada semana va primero) */}
             {verHorarios && (
             <div id="configuracion-profesional" className="mb-6 p-4 border rounded-xl bg-white shadow-sm mt-6 scroll-mt-4">
-                <h3 className="font-semibold text-lg mb-4">👥 {t('Configuración del Profesional')}</h3>
+                <h3 className="font-semibold text-lg mb-4">👥 {t('Horario de trabajo')}</h3>
 
                 {!modoRestringido && (
                     <div className="mb-4">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            {t('Seleccionar Profesional')}
-                        </label>
-                        <div className="flex gap-2">
-                            <select
-                                value={profesionalSeleccionado || ''}
-                                onChange={(e) => setProfesionalSeleccionado(parseInt(e.target.value))}
-                                className="flex-1 border rounded-lg px-3 py-2"
-                            >
-                                <option value="">{t('Seleccione un profesional')}</option>
-                                {profesionales.map(p => (
-                                    <option key={p.id} value={p.id}>{p.nombre}</option>
-                                ))}
-                            </select>
-
-                            <button
-                                onClick={abrirEditorPorDia}
-                                disabled={!profesionalSeleccionado}
-                                className="bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                {t('Horarios por día')}
-                            </button>
+                        <p className="block text-sm font-medium text-gray-700 mb-2">{t('Elige a quién')}</p>
+                        <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+                            {profesionales.map(p => (
+                                <button key={p.id} type="button" onClick={() => setProfesionalSeleccionado(p.id)}
+                                    aria-pressed={profesionalSeleccionado === p.id}
+                                    className={`shrink-0 px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap ${profesionalSeleccionado === p.id ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-700'}`}>
+                                    {p.nombre}
+                                </button>
+                            ))}
                         </div>
+                        <button
+                            onClick={abrirEditorPorDia}
+                            disabled={!profesionalSeleccionado}
+                            className="mt-3 w-full bg-pink-500 text-white px-4 py-3 rounded-full font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            {profesionalSeleccionado
+                                ? t('Editar horarios de {nombre}', { nombre: (profesionales.find(p => p.id === profesionalSeleccionado) || {}).nombre || '' })
+                                : t('Horarios por día')}
+                        </button>
                         {profesionales.length === 0 && !cargando && (
                             <p className="text-sm text-amber-600 mt-2">
                                 ⚠️ {t('No hay profesionales activos.')}
@@ -352,6 +339,9 @@ function ConfigPanel({ profesionalId, modoRestringido, profesionalInicial = null
                 )}
             </div>
             )}
+
+            {/* CIERRES DEL SALON (feriados, vacaciones del local) */}
+            {!modoRestringido && verHorarios && <DiasCerradosGlobalesPanel />}
             
             {/* Modal para editor por día */}
             {mostrarEditorPorDia && profesionalSeleccionado && (
@@ -434,7 +424,7 @@ function FechasLibresPanel({ profesionalId, profesionales, onActualizar }) {
                 ✈️ {t('Días Libres / Vacaciones de {nombre}', { nombre: profesional?.nombre })}
             </h3>
             <p className="text-sm text-orange-600 mb-4">
-                {t('El profesional NO recibirá citas estos días.')}
+                {t('{nombre} no recibirá citas estos días.', { nombre: profesional?.nombre || '' })}
             </p>
 
             <div className="flex flex-wrap sm:flex-nowrap gap-2 mb-4">
@@ -620,10 +610,10 @@ function DiasCerradosGlobalesPanel() {
     return (
         <div className="p-4 bg-red-50 rounded-lg border border-red-200">
             <h3 className="font-semibold text-lg text-red-800 mb-2 flex items-center gap-2">
-                🚫 {t('Días Cerrados del Local')}
+                🚫 {t('Cierres del local')}
             </h3>
             <p className="text-sm text-red-600 mb-4">
-                {t('El local completo estará cerrado estos días.')} <b>{t('Ningún profesional')}</b> {t('recibirá citas.')}
+                {t('El local completo estará cerrado estos días. Nadie recibirá citas.')}
             </p>
 
             <div className="flex flex-col sm:flex-row gap-2 mb-4 bg-white p-3 rounded shadow-sm border border-red-100">

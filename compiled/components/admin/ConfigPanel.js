@@ -106,7 +106,7 @@ function ConfigPanel({ profesionalId, modoRestringido, profesionalInicial = null
   const verAjustes = vista !== "horarios";
   const verHorarios = vista !== "ajustes";
   const titulo = vista === "horarios" ? t("Horarios y días libres") : vista === "ajustes" ? t("Ajustes de reservas") : modoRestringido ? t("Mi Configuración") : t("Configuración de {nombre}", { nombre: nombreNegocio });
-  return /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-xl shadow-sm p-4 sm:p-6" }, /* @__PURE__ */ React.createElement("h2", { className: "text-xl font-bold mb-6" }, titulo), !modoRestringido && verAjustes && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "mb-6 p-4 bg-gray-50 rounded-lg border" }, /* @__PURE__ */ React.createElement("h3", { className: "font-semibold text-lg mb-4" }, "⚙️ ", t("Configuración General")), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-2" }, t("Duración por defecto (min)")), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-3 sm:grid-cols-3 gap-2" }, opcionesDuracion.map((opcion) => /* @__PURE__ */ React.createElement(
+  return /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-xl shadow-sm p-4 sm:p-6" }, /* @__PURE__ */ React.createElement("h2", { className: "text-xl font-bold mb-6" }, titulo), !modoRestringido && verAjustes && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "mb-6 p-4 bg-gray-50 rounded-lg border" }, /* @__PURE__ */ React.createElement("h3", { className: "font-semibold text-lg mb-4" }, "⚙️ ", t("Configuración General")), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-2" }, t("Duración por defecto (min)")), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-2" }, opcionesDuracion.map((opcion) => /* @__PURE__ */ React.createElement(
     "button",
     {
       key: opcion.value,
@@ -115,13 +115,10 @@ function ConfigPanel({ profesionalId, modoRestringido, profesionalInicial = null
         ...configGlobal,
         duracion_turnos: opcion.value
       }),
-      className: `
-                                                py-2 px-1 rounded-lg text-xs font-medium transition-all flex flex-col items-center
-                                                ${configGlobal.duracion_turnos === opcion.value ? "bg-amber-600 text-white shadow-md ring-2 ring-amber-300" : "bg-white border border-gray-300 text-gray-700 hover:border-amber-400 hover:bg-amber-50"}
-                                            `
+      "aria-pressed": configGlobal.duracion_turnos === opcion.value,
+      className: `px-3.5 py-2 rounded-full text-sm font-bold transition-all ${configGlobal.duracion_turnos === opcion.value ? "bg-pink-500 text-white shadow-md" : "bg-white border border-gray-300 text-gray-700 hover:border-pink-300"}`
     },
-    /* @__PURE__ */ React.createElement("span", { className: "text-lg mb-1" }, opcion.icon),
-    /* @__PURE__ */ React.createElement("span", null, opcion.label)
+    opcion.label
   )))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, t("Intervalo entre citas (min)")), /* @__PURE__ */ React.createElement(
     "input",
     {
@@ -135,7 +132,7 @@ function ConfigPanel({ profesionalId, modoRestringido, profesionalInicial = null
       min: "0",
       step: "5"
     }
-  ))), /* @__PURE__ */ React.createElement("div", { className: "mb-4" }, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-2" }, t("Antelación máxima para reservar")), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-4 sm:grid-cols-5 gap-2" }, opcionesAntelacion.map((opcion) => /* @__PURE__ */ React.createElement(
+  ))), /* @__PURE__ */ React.createElement("div", { className: "mb-4" }, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-2" }, t("Antelación máxima para reservar")), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-2" }, opcionesAntelacion.map((opcion) => /* @__PURE__ */ React.createElement(
     "button",
     {
       key: opcion.value,
@@ -144,13 +141,10 @@ function ConfigPanel({ profesionalId, modoRestringido, profesionalInicial = null
         ...configGlobal,
         max_antelacion_dias: opcion.value
       }),
-      className: `
-                                            py-2 px-1 rounded-lg text-xs font-medium transition-all flex flex-col items-center
-                                            ${configGlobal.max_antelacion_dias === opcion.value ? "bg-amber-600 text-white shadow-md ring-2 ring-amber-300" : "bg-white border border-gray-300 text-gray-700 hover:border-amber-400 hover:bg-amber-50"}
-                                        `
+      "aria-pressed": configGlobal.max_antelacion_dias === opcion.value,
+      className: `px-3.5 py-2 rounded-full text-sm font-bold transition-all ${configGlobal.max_antelacion_dias === opcion.value ? "bg-pink-500 text-white shadow-md" : "bg-white border border-gray-300 text-gray-700 hover:border-pink-300"}`
     },
-    /* @__PURE__ */ React.createElement("span", { className: "text-lg mb-1" }, opcion.icon),
-    /* @__PURE__ */ React.createElement("span", null, opcion.label)
+    opcion.label
   )))), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, t("Antelación mínima para reservar (horas)")), /* @__PURE__ */ React.createElement(
     "input",
     {
@@ -192,27 +186,28 @@ function ConfigPanel({ profesionalId, modoRestringido, profesionalInicial = null
     "button",
     {
       onClick: handleGuardarConfigGlobal,
-      className: "bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700 transition text-sm"
+      className: "w-full bg-pink-500 text-white px-4 py-3 rounded-full font-bold transition"
     },
     t("Guardar Configuración Global")
-  )), /* @__PURE__ */ React.createElement(EspaciosPanel, null)), !modoRestringido && verHorarios && /* @__PURE__ */ React.createElement(DiasCerradosGlobalesPanel, null), verHorarios && /* @__PURE__ */ React.createElement("div", { id: "configuracion-profesional", className: "mb-6 p-4 border rounded-xl bg-white shadow-sm mt-6 scroll-mt-4" }, /* @__PURE__ */ React.createElement("h3", { className: "font-semibold text-lg mb-4" }, "👥 ", t("Configuración del Profesional")), !modoRestringido && /* @__PURE__ */ React.createElement("div", { className: "mb-4" }, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-2" }, t("Seleccionar Profesional")), /* @__PURE__ */ React.createElement("div", { className: "flex gap-2" }, /* @__PURE__ */ React.createElement(
-    "select",
+  )), /* @__PURE__ */ React.createElement(EspaciosPanel, null)), verHorarios && /* @__PURE__ */ React.createElement("div", { id: "configuracion-profesional", className: "mb-6 p-4 border rounded-xl bg-white shadow-sm mt-6 scroll-mt-4" }, /* @__PURE__ */ React.createElement("h3", { className: "font-semibold text-lg mb-4" }, "👥 ", t("Horario de trabajo")), !modoRestringido && /* @__PURE__ */ React.createElement("div", { className: "mb-4" }, /* @__PURE__ */ React.createElement("p", { className: "block text-sm font-medium text-gray-700 mb-2" }, t("Elige a quién")), /* @__PURE__ */ React.createElement("div", { className: "flex gap-2 overflow-x-auto pb-1 -mx-1 px-1" }, profesionales.map((p) => /* @__PURE__ */ React.createElement(
+    "button",
     {
-      value: profesionalSeleccionado || "",
-      onChange: (e) => setProfesionalSeleccionado(parseInt(e.target.value)),
-      className: "flex-1 border rounded-lg px-3 py-2"
+      key: p.id,
+      type: "button",
+      onClick: () => setProfesionalSeleccionado(p.id),
+      "aria-pressed": profesionalSeleccionado === p.id,
+      className: `shrink-0 px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap ${profesionalSeleccionado === p.id ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-700"}`
     },
-    /* @__PURE__ */ React.createElement("option", { value: "" }, t("Seleccione un profesional")),
-    profesionales.map((p) => /* @__PURE__ */ React.createElement("option", { key: p.id, value: p.id }, p.nombre))
-  ), /* @__PURE__ */ React.createElement(
+    p.nombre
+  ))), /* @__PURE__ */ React.createElement(
     "button",
     {
       onClick: abrirEditorPorDia,
       disabled: !profesionalSeleccionado,
-      className: "bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed"
+      className: "mt-3 w-full bg-pink-500 text-white px-4 py-3 rounded-full font-bold disabled:opacity-50 disabled:cursor-not-allowed"
     },
-    t("Horarios por día")
-  )), profesionales.length === 0 && !cargando && /* @__PURE__ */ React.createElement("p", { className: "text-sm text-amber-600 mt-2" }, "⚠️ ", t("No hay profesionales activos."))), modoRestringido && profesionalId && /* @__PURE__ */ React.createElement("div", { className: "mb-4" }, /* @__PURE__ */ React.createElement(
+    profesionalSeleccionado ? t("Editar horarios de {nombre}", { nombre: (profesionales.find((p) => p.id === profesionalSeleccionado) || {}).nombre || "" }) : t("Horarios por día")
+  ), profesionales.length === 0 && !cargando && /* @__PURE__ */ React.createElement("p", { className: "text-sm text-amber-600 mt-2" }, "⚠️ ", t("No hay profesionales activos."))), modoRestringido && profesionalId && /* @__PURE__ */ React.createElement("div", { className: "mb-4" }, /* @__PURE__ */ React.createElement(
     "button",
     {
       onClick: abrirEditorPorDia,
@@ -226,7 +221,7 @@ function ConfigPanel({ profesionalId, modoRestringido, profesionalInicial = null
       profesionales,
       onActualizar: cargarDatos
     }
-  )), mostrarEditorPorDia && profesionalSeleccionado && /* @__PURE__ */ React.createElement("div", { className: "fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" }, /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-xl max-w-5xl w-full max-h-[90vh] overflow-y-auto" }, /* @__PURE__ */ React.createElement(
+  )), !modoRestringido && verHorarios && /* @__PURE__ */ React.createElement(DiasCerradosGlobalesPanel, null), mostrarEditorPorDia && profesionalSeleccionado && /* @__PURE__ */ React.createElement("div", { className: "fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" }, /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-xl max-w-5xl w-full max-h-[90vh] overflow-y-auto" }, /* @__PURE__ */ React.createElement(
     HorariosPorDiaPanel,
     {
       profesionalId: profesionalSeleccionado,
@@ -284,7 +279,7 @@ function FechasLibresPanel({ profesionalId, profesionales, onActualizar }) {
       alert(t("Error al guardar la fecha."));
     }
   };
-  return /* @__PURE__ */ React.createElement("div", { className: "mt-6 p-4 bg-orange-50 rounded-lg border border-orange-100" }, /* @__PURE__ */ React.createElement("h3", { className: "font-semibold text-lg text-orange-800 mb-2 flex items-center gap-2" }, "✈️ ", t("Días Libres / Vacaciones de {nombre}", { nombre: profesional?.nombre })), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-orange-600 mb-4" }, t("El profesional NO recibirá citas estos días.")), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap sm:flex-nowrap gap-2 mb-4" }, /* @__PURE__ */ React.createElement(
+  return /* @__PURE__ */ React.createElement("div", { className: "mt-6 p-4 bg-orange-50 rounded-lg border border-orange-100" }, /* @__PURE__ */ React.createElement("h3", { className: "font-semibold text-lg text-orange-800 mb-2 flex items-center gap-2" }, "✈️ ", t("Días Libres / Vacaciones de {nombre}", { nombre: profesional?.nombre })), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-orange-600 mb-4" }, t("{nombre} no recibirá citas estos días.", { nombre: profesional?.nombre || "" })), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap sm:flex-nowrap gap-2 mb-4" }, /* @__PURE__ */ React.createElement(
     "input",
     {
       type: "date",
@@ -429,7 +424,7 @@ function DiasCerradosGlobalesPanel() {
       console.error("Error:", error);
     }
   };
-  return /* @__PURE__ */ React.createElement("div", { className: "p-4 bg-red-50 rounded-lg border border-red-200" }, /* @__PURE__ */ React.createElement("h3", { className: "font-semibold text-lg text-red-800 mb-2 flex items-center gap-2" }, "🚫 ", t("Días Cerrados del Local")), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-red-600 mb-4" }, t("El local completo estará cerrado estos días."), " ", /* @__PURE__ */ React.createElement("b", null, t("Ningún profesional")), " ", t("recibirá citas.")), /* @__PURE__ */ React.createElement("div", { className: "flex flex-col sm:flex-row gap-2 mb-4 bg-white p-3 rounded shadow-sm border border-red-100" }, /* @__PURE__ */ React.createElement(
+  return /* @__PURE__ */ React.createElement("div", { className: "p-4 bg-red-50 rounded-lg border border-red-200" }, /* @__PURE__ */ React.createElement("h3", { className: "font-semibold text-lg text-red-800 mb-2 flex items-center gap-2" }, "🚫 ", t("Cierres del local")), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-red-600 mb-4" }, t("El local completo estará cerrado estos días. Nadie recibirá citas.")), /* @__PURE__ */ React.createElement("div", { className: "flex flex-col sm:flex-row gap-2 mb-4 bg-white p-3 rounded shadow-sm border border-red-100" }, /* @__PURE__ */ React.createElement(
     "input",
     {
       type: "date",

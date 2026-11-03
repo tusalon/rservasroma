@@ -12,6 +12,9 @@ function CatalogoPanel() {
     const [subiendo, setSubiendo] = React.useState(false);
     const [guardando, setGuardando] = React.useState(false);
     const [editando, setEditando] = React.useState(null);
+    // El formulario solo sale al tocar "Añadir foto" (o al editar una, o si todavía no hay ninguna):
+    // antes ocupaba el principio de la pantalla y las fotos publicadas quedaban abajo.
+    const [mostrarForm, setMostrarForm] = React.useState(false);
 
     const formVacio = {
         titulo: '', descripcion: '', imagen_url: '',
@@ -159,8 +162,11 @@ function CatalogoPanel() {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
+    const formVisible = mostrarForm || !!editando || (!cargando && disenos.length === 0);
+
     const cancelar = () => {
         setEditando(null);
+        setMostrarForm(false);
         setForm(formVacio);
     };
 
@@ -237,6 +243,7 @@ function CatalogoPanel() {
                 </div>
             )}
 
+            {formVisible && (
             <div className="bg-white rounded-xl shadow-sm p-6">
                 <h2 className="text-xl font-bold mb-1">
                     {editando ? t('Editar foto') : t('Añadir foto al catálogo')}
@@ -310,7 +317,7 @@ function CatalogoPanel() {
                             className="px-5 py-2 rounded-lg bg-pink-500 text-white text-sm font-bold hover:bg-pink-600 disabled:opacity-60">
                             {guardando ? t('Guardando...') : (editando ? t('Guardar cambios') : t('Publicar foto'))}
                         </button>
-                        {editando && (
+                        {(editando || mostrarForm) && (
                             <button type="button" onClick={cancelar}
                                 className="px-5 py-2 rounded-lg bg-gray-100 text-gray-700 text-sm font-medium">
                                 {t('Cancelar')}
@@ -319,11 +326,20 @@ function CatalogoPanel() {
                     </div>
                 </form>
             </div>
+            )}
 
             <div className="bg-white rounded-xl shadow-sm p-6">
-                <h2 className="text-lg font-bold mb-4">
-                    {t('Publicados ({n})', { n: disenos.length })}
-                </h2>
+                <div className="flex items-center justify-between gap-3 mb-4">
+                    <h2 className="text-lg font-bold">
+                        {t('Publicados ({n})', { n: disenos.length })}
+                    </h2>
+                    {!formVisible && (
+                        <button type="button" onClick={() => { setMostrarForm(true); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                            className="shrink-0 px-4 py-2 rounded-full bg-pink-500 text-white text-sm font-bold">
+                            + {t('Añadir foto')}
+                        </button>
+                    )}
+                </div>
 
                 {cargando ? (
                     <p className="text-sm text-gray-400">{t('Cargando...')}</p>

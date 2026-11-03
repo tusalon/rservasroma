@@ -275,36 +275,38 @@ function ServiciosPanel() {
                             {t('Controla servicios, categorías, precios, duración y profesionales.')}
                         </p>
                     </div>
-                    <div className="flex flex-col sm:flex-row gap-2">
-                        <button onClick={() => setMostrarImportar(true)} className="border border-amber-300 text-amber-700 px-4 py-3 rounded-lg hover:bg-amber-50 font-semibold" title={t('Pega tu lista de servicios y se crean solos')}>
-                            📋 {t('Importar lista')}
-                        </button>
-                        <button onClick={compartirPrecios} disabled={compartiendo} className="border border-green-300 text-green-700 px-4 py-3 rounded-lg hover:bg-green-50 font-semibold disabled:opacity-50" title={t('Genera una imagen con tus servicios y precios para tu estado de WhatsApp o para enviarla a tus clientas')}>
-                            📤 {compartiendo ? t('Preparando…') : t('Compartir precios')}
-                        </button>
-                        <button onClick={() => setMostrarCategorias(!mostrarCategorias)} className="border border-pink-200 text-pink-700 px-4 py-3 rounded-lg hover:bg-pink-50 font-semibold">
-                            ⚙️ {t('Categorías')}
-                        </button>
-                        <button onClick={() => abrirFormularioServicio()} className="bg-pink-600 text-white px-4 py-3 rounded-full hover:bg-pink-700 font-semibold shadow-sm">
+                    <div className="flex flex-col gap-2 lg:w-96">
+                        <button onClick={() => abrirFormularioServicio()} className="bg-pink-600 text-white px-4 py-3 rounded-full hover:bg-pink-700 font-bold shadow-sm">
                             + {t('Nuevo servicio')}
                         </button>
+                        <div className="flex gap-2 overflow-x-auto pb-0.5">
+                            <button onClick={() => setMostrarImportar(true)} className="shrink-0 whitespace-nowrap border border-amber-300 text-amber-700 px-3 py-2 rounded-full hover:bg-amber-50 text-sm font-semibold" title={t('Pega tu lista de servicios y se crean solos')}>
+                                📋 {t('Importar lista')}
+                            </button>
+                            <button onClick={compartirPrecios} disabled={compartiendo} className="shrink-0 whitespace-nowrap border border-green-300 text-green-700 px-3 py-2 rounded-full hover:bg-green-50 text-sm font-semibold disabled:opacity-50" title={t('Genera una imagen con tus servicios y precios para tu estado de WhatsApp o para enviarla a tus clientas')}>
+                                📤 {compartiendo ? t('Preparando…') : t('Compartir precios')}
+                            </button>
+                            <button onClick={() => setMostrarCategorias(!mostrarCategorias)} className="shrink-0 whitespace-nowrap border border-pink-200 text-pink-700 px-3 py-2 rounded-full hover:bg-pink-50 text-sm font-semibold">
+                                ⚙️ {t('Categorías')}
+                            </button>
+                        </div>
                     </div>
                 </div>
 
-                <div className="mt-5 flex flex-col md:flex-row gap-3">
+                <div className="mt-4 relative">
                     <input
                         type="search"
                         value={busqueda}
                         onChange={(e) => setBusqueda(e.target.value)}
-                        className="flex-1 border border-gray-200 rounded-lg px-4 py-3 focus:ring-2 focus:ring-pink-500 focus:border-pink-500 outline-none"
+                        className="w-full border border-gray-200 rounded-full px-4 py-3 focus:ring-2 focus:ring-pink-500 focus:border-pink-500 outline-none"
                         placeholder={t('Buscar por nombre o descripción')}
                     />
-                    <button onClick={() => setBusqueda('')} className="px-3 py-2 rounded-lg border border-gray-200 text-sm hover:bg-gray-50">
-                        {t('Limpiar')}
-                    </button>
+                    {busqueda && (
+                        <button onClick={() => setBusqueda('')} aria-label={t('Limpiar')} className="absolute right-3 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-gray-100 text-gray-600 text-sm">✕</button>
+                    )}
                 </div>
 
-                <div className="mt-5 flex gap-2 overflow-x-auto pb-1">
+                <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
                     {categoriasFiltro.map(categoria => {
                         const id = categoriaId(categoria);
                         return (
@@ -384,12 +386,12 @@ function ServiciosPanel() {
                                                 : <p key={clave} className="text-xs text-pink-600 mt-1">🕐 {t(nombre)}: {formatearListaHorasAdmin(servicio.horarios_permitidos_por_dia[clave])}</p>
                                         ))}
                                     </div>
-                                    <div className="flex gap-1 shrink-0">
-                                        <button onClick={() => setServicioParaAsignar(servicio)} className="w-9 h-9 rounded-lg hover:bg-purple-50 text-purple-600" title={t('Asignar profesionales')}>👥</button>
-                                        <button onClick={() => abrirFormularioServicio(servicio)} className="w-9 h-9 rounded-lg hover:bg-blue-50 text-blue-600" title={t('Editar')}>✏️</button>
-                                        <button onClick={() => duplicarServicio(servicio)} className="w-9 h-9 rounded-lg hover:bg-amber-50 text-amber-600" title={t('Duplicar')}>📄</button>
-                                        <button onClick={() => eliminarServicio(servicio.id)} className="w-9 h-9 rounded-lg hover:bg-red-50 text-red-600" title={t('Eliminar')}>🗑️</button>
-                                    </div>
+                                </div>
+                                <div className="mt-3 pt-3 border-t border-gray-100 flex items-center gap-2">
+                                    <button onClick={() => abrirFormularioServicio(servicio)} className="shrink-0 whitespace-nowrap px-4 py-2 rounded-full border border-gray-200 text-sm font-bold text-gray-800 hover:bg-gray-50">✏️ {t('Editar')}</button>
+                                    <button onClick={() => setServicioParaAsignar(servicio)} className="flex-1 whitespace-nowrap py-2 rounded-full border border-purple-200 text-sm font-bold text-purple-700 hover:bg-purple-50" title={t('Asignar profesionales')}>👥 {t('Profesionales')}</button>
+                                    <button onClick={() => duplicarServicio(servicio)} className="shrink-0 w-9 h-10 rounded-full text-amber-600 hover:bg-amber-50" title={t('Duplicar')} aria-label={t('Duplicar')}>📄</button>
+                                    <button onClick={() => eliminarServicio(servicio.id)} className="shrink-0 w-9 h-10 rounded-full text-red-600 hover:bg-red-50" title={t('Eliminar')} aria-label={t('Eliminar')}>🗑️</button>
                                 </div>
                             </div>
                         );

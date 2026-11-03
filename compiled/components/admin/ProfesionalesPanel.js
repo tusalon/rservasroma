@@ -104,14 +104,14 @@ function ProfesionalesPanel() {
   if (cargando) {
     return /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-xl shadow-sm p-6" }, /* @__PURE__ */ React.createElement("div", { className: "text-center py-12" }, /* @__PURE__ */ React.createElement("div", { className: "animate-spin rounded-full h-12 w-12 border-b-2 border-amber-500 mx-auto" }), /* @__PURE__ */ React.createElement("p", { className: "text-gray-500 mt-4" }, t("Cargando profesionales..."))));
   }
-  return /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-xl shadow-sm p-6" }, /* @__PURE__ */ React.createElement("div", { className: "flex justify-between items-center mb-6" }, /* @__PURE__ */ React.createElement("h2", { className: "text-xl font-bold" }, "👥 ", t("Profesionales")), /* @__PURE__ */ React.createElement(
+  return /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-xl shadow-sm p-6" }, /* @__PURE__ */ React.createElement("div", { className: "flex justify-between items-center gap-3 mb-6" }, /* @__PURE__ */ React.createElement("h2", { className: "text-lg font-bold whitespace-nowrap" }, "👥 ", t("Profesionales")), /* @__PURE__ */ React.createElement(
     "button",
     {
       onClick: () => {
         setEditando(null);
         setMostrarForm(true);
       },
-      className: "bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700"
+      className: "bg-pink-500 text-white px-3 py-2 text-sm rounded-full font-bold whitespace-nowrap shrink-0"
     },
     "+ ",
     t("Nuevo Profesional")
@@ -125,31 +125,34 @@ function ProfesionalesPanel() {
         setEditando(null);
       }
     }
-  ), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-1 md:grid-cols-2 gap-4" }, profesionales.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "col-span-2 text-center py-8 text-gray-500" }, t("No hay profesionales cargados")) : profesionales.map((p) => /* @__PURE__ */ React.createElement("div", { key: p.id, className: `border rounded-lg p-4 ${p.activo ? "" : "opacity-50 bg-gray-50"}` }, /* @__PURE__ */ React.createElement("div", { className: "flex justify-between items-start" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3" }, /* @__PURE__ */ React.createElement("div", { className: `w-12 h-12 ${p.color || "bg-amber-600"} rounded-full flex items-center justify-center text-2xl` }, p.avatar || "👤"), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2" }, /* @__PURE__ */ React.createElement("h3", { className: "font-semibold text-lg" }, p.nombre), /* @__PURE__ */ React.createElement(
+  ), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-1 md:grid-cols-2 gap-4" }, profesionales.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "col-span-2 text-center py-8 text-gray-500" }, t("No hay profesionales cargados")) : profesionales.map((p) => /* @__PURE__ */ React.createElement("div", { key: p.id, className: `border rounded-xl p-4 ${p.activo ? "" : "opacity-50 bg-gray-50"}` }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3" }, /* @__PURE__ */ React.createElement("div", { className: `w-12 h-12 shrink-0 ${p.color || "bg-amber-600"} rounded-full flex items-center justify-center text-2xl` }, p.avatar || "👤"), /* @__PURE__ */ React.createElement("div", { className: "min-w-0 flex-1" }, /* @__PURE__ */ React.createElement("h3", { className: "font-bold text-lg truncate" }, p.nombre), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-600 truncate" }, p.especialidad), /* @__PURE__ */ React.createElement("p", { className: "text-xs mt-1 flex flex-wrap items-center gap-x-2 gap-y-1" }, /* @__PURE__ */ React.createElement("span", { className: `px-2 py-0.5 rounded-full ${p.nivel === 1 ? "bg-gray-100 text-gray-600" : p.nivel === 2 ? "bg-blue-100 text-blue-600" : "bg-purple-100 text-purple-600"}` }, getNivelNombre(p.nivel)), p.telefono && /* @__PURE__ */ React.createElement("span", { className: "text-gray-500" }, "📱 ", p.telefono))), /* @__PURE__ */ React.createElement(
     "button",
     {
       onClick: () => toggleActivo(p.id),
-      className: `text-xs px-2 py-1 rounded-full ${p.activo ? "bg-green-100 text-green-700" : "bg-gray-200 text-gray-600"}`
+      className: `shrink-0 text-xs font-bold px-3 py-1.5 rounded-full ${p.activo ? "bg-green-100 text-green-700" : "bg-gray-200 text-gray-600"}`
     },
     p.activo ? t("Activo") : t("Inactivo")
-  )), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-600" }, p.especialidad), /* @__PURE__ */ React.createElement("p", { className: "text-xs mt-1" }, /* @__PURE__ */ React.createElement("span", { className: `px-2 py-0.5 rounded-full ${p.nivel === 1 ? "bg-gray-100 text-gray-600" : p.nivel === 2 ? "bg-blue-100 text-blue-600" : "bg-purple-100 text-purple-600"}` }, getNivelNombre(p.nivel))), p.telefono && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-1" }, "📱 ", p.telefono))), /* @__PURE__ */ React.createElement("div", { className: "flex gap-2" }, /* @__PURE__ */ React.createElement(
+  )), /* @__PURE__ */ React.createElement("div", { className: "mt-3 pt-3 border-t border-gray-100 flex items-center gap-2" }, /* @__PURE__ */ React.createElement(
     "button",
     {
       onClick: () => {
         setEditando(p);
         setMostrarForm(true);
       },
-      className: "text-blue-600 hover:text-blue-800"
+      className: "flex-1 py-2 rounded-full border border-gray-200 text-sm font-bold text-gray-800 hover:bg-gray-50"
     },
-    "✏️"
+    "✏️ ",
+    t("Editar")
   ), /* @__PURE__ */ React.createElement(
     "button",
     {
       onClick: () => handleEliminar(p.id),
-      className: "text-red-600 hover:text-red-800"
+      className: "w-10 h-10 rounded-full text-red-600 hover:bg-red-50",
+      title: t("Eliminar"),
+      "aria-label": t("Eliminar")
     },
     "🗑️"
-  )))))));
+  ))))));
 }
 function ProfesionalForm({ profesional, onGuardar, onCancelar }) {
   window.useIdioma();
