@@ -478,6 +478,47 @@ function AsignarServiciosModal({ asignacion, onCerrar, onGuardar }) {
     );
 }
 
+// Iconos de la barra de abajo: trazo redondeado y un relleno suave del mismo color (dos tonos).
+// En la sección activa el relleno sube y el icono va en blanco sobre la píldora de color.
+function IconoSeccion({ id, activa }) {
+    const relleno = { fill: 'currentColor', fillOpacity: activa ? 0.28 : 0.12, stroke: 'none' };
+    const trazo = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.9, strokeLinecap: 'round', strokeLinejoin: 'round' };
+    const formas = {
+        hoy: (<>
+            <circle cx="12" cy="12" r="4.6" {...relleno} />
+            <circle cx="12" cy="12" r="4.6" {...trazo} />
+            <path d="M12 2.8v2.1M12 19.1v2.1M2.8 12h2.1M19.1 12h2.1M5.5 5.5 7 7M17 17l1.5 1.5M18.5 5.5 17 7M7 17l-1.5 1.5" {...trazo} />
+        </>),
+        agenda: (<>
+            <rect x="3.5" y="5" width="17" height="15.5" rx="4.2" {...relleno} />
+            <rect x="3.5" y="5" width="17" height="15.5" rx="4.2" {...trazo} />
+            <path d="M3.8 10h16.4M8 3v3.6M16 3v3.6" {...trazo} />
+            <path d="M8.2 14.2h.01M12 14.2h.01M15.8 14.2h.01M8.2 17.2h.01M12 17.2h.01" {...trazo} strokeWidth="2.4" />
+        </>),
+        clientas: (<>
+            <circle cx="9" cy="8.2" r="3.4" {...relleno} />
+            <circle cx="9" cy="8.2" r="3.4" {...trazo} />
+            <path d="M2.8 20c.4-3.5 3-5.5 6.2-5.5s5.8 2 6.2 5.5" {...trazo} />
+            <path d="M15.6 5.2a3 3 0 0 1 0 5.9M17.6 14.8c2 .6 3.3 2.3 3.6 5" {...trazo} />
+        </>),
+        salon: (<>
+            <path d="M4.5 10v8.2a2.3 2.3 0 0 0 2.3 2.3h10.4a2.3 2.3 0 0 0 2.3-2.3V10" {...relleno} />
+            <path d="M4.5 10v8.2a2.3 2.3 0 0 0 2.3 2.3h10.4a2.3 2.3 0 0 0 2.3-2.3V10" {...trazo} />
+            <path d="M3 9.4 4.7 4.6A1.5 1.5 0 0 1 6.1 3.6h11.8a1.5 1.5 0 0 1 1.4 1l1.7 4.8c.4 1.3-.5 2.6-1.9 2.6-1.1 0-2-.7-2.3-1.7-.3 1-1.2 1.7-2.3 1.7-1.1 0-2-.7-2.3-1.7-.3 1-1.2 1.7-2.3 1.7-1.1 0-2-.7-2.3-1.7-.3 1-1.2 1.7-2.3 1.7-1.4 0-2.3-1.3-1.9-2.6Z" {...trazo} />
+            <path d="M10 20.5v-4.2c0-.7.5-1.2 1.2-1.2h1.6c.7 0 1.2.5 1.2 1.2v4.2" {...trazo} />
+        </>),
+        numeros: (<>
+            <rect x="3.8" y="12.2" width="4" height="8.3" rx="1.4" {...relleno} />
+            <rect x="10" y="7.4" width="4" height="13.1" rx="1.4" {...relleno} />
+            <rect x="16.2" y="3.5" width="4" height="17" rx="1.4" {...relleno} />
+            <rect x="3.8" y="12.2" width="4" height="8.3" rx="1.4" {...trazo} />
+            <rect x="10" y="7.4" width="4" height="13.1" rx="1.4" {...trazo} />
+            <rect x="16.2" y="3.5" width="4" height="17" rx="1.4" {...trazo} />
+        </>)
+    };
+    return <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false">{formas[id] || formas.hoy}</svg>;
+}
+
 function AdminApp() {
     const idioma = window.useIdioma();
     const t = window.t;
@@ -7259,18 +7300,28 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                 )}
             </div>
 
-            {/* Barra de secciones, siempre a mano abajo. */}
-            <nav aria-label={t('Secciones')} className="fixed bottom-0 inset-x-0 z-40 bg-white border-t border-gray-200"
-                style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
-                <div className="max-w-xl mx-auto grid" style={{ gridTemplateColumns: `repeat(${SECCIONES.length}, minmax(0, 1fr))` }}>
+            {/* Barra de secciones, siempre a mano abajo: una píldora flotante. La sección activa
+                lleva el color de la marca con un brillo suave; las demás, el icono en gris. */}
+            <nav aria-label={t('Secciones')} className="fixed inset-x-0 z-40 px-3 pointer-events-none"
+                style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 10px)' }}>
+                <div className="max-w-md mx-auto grid rounded-full bg-white/95 backdrop-blur px-1.5 py-1.5 pointer-events-auto"
+                    style={{ gridTemplateColumns: `repeat(${SECCIONES.length}, minmax(0, 1fr))`, boxShadow: '0 10px 30px rgba(31,17,40,.16), 0 2px 6px rgba(31,17,40,.08)', border: '1px solid rgba(255,20,147,.10)' }}>
                     {SECCIONES.map(sec => {
                         const activa = seccionActiva && seccionActiva.id === sec.id;
                         return (
                             <button key={sec.id} onClick={() => setTabActivo(sec.hijos.some(h => h.id === tabActivo) ? tabActivo : sec.hijos[0].id)}
                                 aria-current={activa ? 'page' : undefined}
-                                className={`flex flex-col items-center gap-0.5 py-2.5 text-[11px] font-bold ${activa ? 'text-pink-600' : 'text-gray-500'}`}>
-                                <i className={`${sec.icono} text-xl`}></i>
-                                <span className="whitespace-nowrap" style={{ fontSize: '11px', lineHeight: 1.2 }}>{sec.label}</span>
+                                className={`flex flex-col items-center gap-0.5 py-1 rounded-full transition-transform active:scale-95 ${activa ? 'text-pink-700' : 'text-gray-500'}`}>
+                                <span className="flex items-center justify-center rounded-full transition-all duration-200"
+                                    style={{
+                                        width: '46px', height: '30px',
+                                        color: activa ? '#fff' : undefined,
+                                        background: activa ? 'linear-gradient(135deg, #FF1493 0%, #FF5CAD 100%)' : 'transparent',
+                                        boxShadow: activa ? '0 6px 16px rgba(255,20,147,.38)' : 'none'
+                                    }}>
+                                    <IconoSeccion id={sec.id} activa={activa} />
+                                </span>
+                                <span className="whitespace-nowrap" style={{ fontSize: '10.5px', lineHeight: 1.15, fontWeight: activa ? 800 : 600 }}>{sec.label}</span>
                             </button>
                         );
                     })}

@@ -687,7 +687,7 @@ function instalarIndicadorPushAdmin() {
                    avisos ya activos se oculta, como en la app de clientas. */
                 #rservas-push-indicator {
                     position: fixed;
-                    bottom: calc(env(safe-area-inset-bottom, 0px) + 76px);
+                    bottom: calc(env(safe-area-inset-bottom, 0px) + 92px);
                     left: 72px;
                     width: 48px;
                     height: 48px;
