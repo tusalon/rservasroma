@@ -39,13 +39,13 @@ function Header({ cliente, onLogout, onMisReservas, onGoBack, userRol, showBackB
                         </button>
                     )}
 
-                    <div className="w-8 h-8 shrink-0 bg-pink-600 rounded-full flex items-center justify-center text-white">
+                    <div className="w-8 h-8 shrink-0 bg-pink-600 rounded-full hidden sm:flex items-center justify-center text-white">
                         <i className="icon-calendar text-lg"></i>
                     </div>
-                    <h1 className="text-xl font-bold text-gray-800 truncate min-w-0">{nombreNegocio}</h1>
+                    <h1 className="text-base sm:text-xl font-bold text-gray-800 leading-tight line-clamp-2 break-words min-w-0">{nombreNegocio}</h1>
                 </div>
 
-                <div className="flex items-center gap-3 shrink-0 ml-2">
+                <div className="flex items-center gap-2 sm:gap-3 shrink-0 ml-2">
                     {cliente && (
                         <div className="hidden sm:flex items-center gap-1 text-sm text-gray-600">
                             <i className="icon-user-check text-green-500"></i>
@@ -60,7 +60,7 @@ function Header({ cliente, onLogout, onMisReservas, onGoBack, userRol, showBackB
                             title={t('Mis Reservas')}
                         >
                             <i className="icon-calendar"></i>
-                            <span className="text-sm font-medium">{t('Mis Citas')}</span>
+                            <span className="text-sm font-medium hidden sm:inline">{t('Mis Citas')}</span>
                         </button>
                     )}
 

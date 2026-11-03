@@ -24,7 +24,7 @@ function Header({ cliente, onLogout, onMisReservas, onGoBack, userRol, showBackB
       title: t("Volver")
     },
     /* @__PURE__ */ React.createElement("i", { className: "icon-arrow-left text-gray-600" })
-  ), /* @__PURE__ */ React.createElement("div", { className: "w-8 h-8 shrink-0 bg-pink-600 rounded-full flex items-center justify-center text-white" }, /* @__PURE__ */ React.createElement("i", { className: "icon-calendar text-lg" })), /* @__PURE__ */ React.createElement("h1", { className: "text-xl font-bold text-gray-800 truncate min-w-0" }, nombreNegocio)), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3 shrink-0 ml-2" }, cliente && /* @__PURE__ */ React.createElement("div", { className: "hidden sm:flex items-center gap-1 text-sm text-gray-600" }, /* @__PURE__ */ React.createElement("i", { className: "icon-user-check text-green-500" }), /* @__PURE__ */ React.createElement("span", { className: "font-medium" }, cliente.nombre)), cliente && onMisReservas && userRol === "cliente" && /* @__PURE__ */ React.createElement(
+  ), /* @__PURE__ */ React.createElement("div", { className: "w-8 h-8 shrink-0 bg-pink-600 rounded-full hidden sm:flex items-center justify-center text-white" }, /* @__PURE__ */ React.createElement("i", { className: "icon-calendar text-lg" })), /* @__PURE__ */ React.createElement("h1", { className: "text-base sm:text-xl font-bold text-gray-800 leading-tight line-clamp-2 break-words min-w-0" }, nombreNegocio)), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2 sm:gap-3 shrink-0 ml-2" }, cliente && /* @__PURE__ */ React.createElement("div", { className: "hidden sm:flex items-center gap-1 text-sm text-gray-600" }, /* @__PURE__ */ React.createElement("i", { className: "icon-user-check text-green-500" }), /* @__PURE__ */ React.createElement("span", { className: "font-medium" }, cliente.nombre)), cliente && onMisReservas && userRol === "cliente" && /* @__PURE__ */ React.createElement(
     "button",
     {
       onClick: onMisReservas,
@@ -32,7 +32,7 @@ function Header({ cliente, onLogout, onMisReservas, onGoBack, userRol, showBackB
       title: t("Mis Reservas")
     },
     /* @__PURE__ */ React.createElement("i", { className: "icon-calendar" }),
-    /* @__PURE__ */ React.createElement("span", { className: "text-sm font-medium" }, t("Mis Citas"))
+    /* @__PURE__ */ React.createElement("span", { className: "text-sm font-medium hidden sm:inline" }, t("Mis Citas"))
   ), tieneAcceso && /* @__PURE__ */ React.createElement("div", { className: "relative" }, /* @__PURE__ */ React.createElement(
     "button",
     {

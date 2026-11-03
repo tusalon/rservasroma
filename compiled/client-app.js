@@ -149,27 +149,11 @@ function CumpleClienteCard({ cliente }) {
   if (estado === "listo") {
     return /* @__PURE__ */ React.createElement("div", { role: "status", className: "bg-white rounded-2xl shadow-sm p-4 text-sm text-gray-800" }, "🎂 ", t("¡Anotado! Tu salón te lo tendrá en cuenta."));
   }
-  return /* @__PURE__ */ React.createElement("section", { className: "bg-white rounded-2xl shadow-sm p-4 border border-pink-100", "aria-labelledby": "cumple-titulo" }, /* @__PURE__ */ React.createElement("h2", { id: "cumple-titulo", className: "font-bold text-gray-900" }, "🎂 ", t("¿Cuándo es tu cumpleaños?")), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-700 mt-1" }, !bono.activa ? t("{salon} quiere felicitarte en tu cumpleaños.", { salon: salon || t("Tu salón") }) : bono.tipo === "regalo" ? t("{salon} tiene un regalo para ti en tu cumpleaños: {regalo}.", { salon: salon || t("Tu salón"), regalo: bono.regalo }) : t("{salon} tiene {pct}% de descuento para ti en tu cumpleaños.", { salon: salon || t("Tu salón"), pct: bono.pct })), /* @__PURE__ */ React.createElement("div", { className: "flex gap-2 mt-3" }, /* @__PURE__ */ React.createElement(
-    "select",
-    {
-      value: dia,
-      onChange: (e) => setDia(e.target.value),
-      "aria-label": t("Día"),
-      className: "flex-1 min-h-[44px] rounded-lg border border-gray-300 px-3 bg-white text-gray-900"
-    },
-    /* @__PURE__ */ React.createElement("option", { value: "" }, t("Día")),
-    Array.from({ length: 31 }, (_, i) => /* @__PURE__ */ React.createElement("option", { key: i + 1, value: i + 1 }, i + 1))
-  ), /* @__PURE__ */ React.createElement(
-    "select",
-    {
-      value: mes,
-      onChange: (e) => setMes(e.target.value),
-      "aria-label": t("Mes"),
-      className: "flex-[2] min-h-[44px] rounded-lg border border-gray-300 px-3 bg-white text-gray-900"
-    },
-    /* @__PURE__ */ React.createElement("option", { value: "" }, t("Mes")),
-    Array.from({ length: 12 }, (_, i) => /* @__PURE__ */ React.createElement("option", { key: i + 1, value: i + 1 }, window.cumpleanos.nombreMes(i + 1, window.getIdioma?.())))
-  )), error && /* @__PURE__ */ React.createElement("p", { role: "alert", className: "text-sm text-red-700 mt-2" }, error), /* @__PURE__ */ React.createElement("div", { className: "flex gap-2 mt-3" }, /* @__PURE__ */ React.createElement("button", { type: "button", onClick: aplazar, className: "flex-1 min-h-[44px] rounded-lg border border-gray-300 bg-white font-semibold text-gray-800" }, t("Ahora no")), /* @__PURE__ */ React.createElement("button", { type: "button", onClick: guardar, disabled: guardando, className: "flex-1 min-h-[44px] rounded-lg bg-pink-500 font-bold text-white disabled:opacity-50" }, guardando ? t("Guardando…") : t("Guardar"))));
+  return /* @__PURE__ */ React.createElement("section", { className: "bg-white rounded-2xl shadow-sm p-4 border border-pink-100", "aria-labelledby": "cumple-titulo" }, /* @__PURE__ */ React.createElement("h2", { id: "cumple-titulo", className: "font-bold text-gray-900" }, "🎂 ", t("¿Cuándo es tu cumpleaños?")), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-700 mt-1" }, !bono.activa ? t("{salon} quiere felicitarte en tu cumpleaños.", { salon: salon || t("Tu salón") }) : bono.tipo === "regalo" ? t("{salon} tiene un regalo para ti en tu cumpleaños: {regalo}.", { salon: salon || t("Tu salón"), regalo: bono.regalo }) : t("{salon} tiene {pct}% de descuento para ti en tu cumpleaños.", { salon: salon || t("Tu salón"), pct: bono.pct })), /* @__PURE__ */ React.createElement("div", { className: "mt-3" }, /* @__PURE__ */ React.createElement(SelectorCumple, { dia, mes, claro: true, onCambio: (d, m) => {
+    setDia(d);
+    setMes(m);
+    setError("");
+  } })), error && /* @__PURE__ */ React.createElement("p", { role: "alert", className: "text-sm text-red-700 mt-2" }, error), /* @__PURE__ */ React.createElement("div", { className: "flex gap-2 mt-3" }, /* @__PURE__ */ React.createElement("button", { type: "button", onClick: aplazar, className: "flex-1 min-h-[44px] rounded-full border border-gray-300 bg-white font-semibold text-gray-800" }, t("Ahora no")), /* @__PURE__ */ React.createElement("button", { type: "button", onClick: guardar, disabled: guardando, className: "flex-1 min-h-[44px] rounded-full bg-pink-500 font-bold text-white disabled:opacity-50" }, guardando ? t("Guardando…") : t("Guardar"))));
 }
 function ClientApp() {
   const [step, setStep] = React.useState("auth");

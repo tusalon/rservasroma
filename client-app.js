@@ -177,22 +177,13 @@ function CumpleClienteCard({ cliente }) {
                         ? t('{salon} tiene un regalo para ti en tu cumpleaños: {regalo}.', { salon: salon || t('Tu salón'), regalo: bono.regalo })
                         : t('{salon} tiene {pct}% de descuento para ti en tu cumpleaños.', { salon: salon || t('Tu salón'), pct: bono.pct })}
             </p>
-            <div className="flex gap-2 mt-3">
-                <select value={dia} onChange={(e) => setDia(e.target.value)} aria-label={t('Día')}
-                    className="flex-1 min-h-[44px] rounded-lg border border-gray-300 px-3 bg-white text-gray-900">
-                    <option value="">{t('Día')}</option>
-                    {Array.from({ length: 31 }, (_, i) => <option key={i + 1} value={i + 1}>{i + 1}</option>)}
-                </select>
-                <select value={mes} onChange={(e) => setMes(e.target.value)} aria-label={t('Mes')}
-                    className="flex-[2] min-h-[44px] rounded-lg border border-gray-300 px-3 bg-white text-gray-900">
-                    <option value="">{t('Mes')}</option>
-                    {Array.from({ length: 12 }, (_, i) => <option key={i + 1} value={i + 1}>{window.cumpleanos.nombreMes(i + 1, window.getIdioma?.())}</option>)}
-                </select>
+            <div className="mt-3">
+                <SelectorCumple dia={dia} mes={mes} claro onCambio={(d, m) => { setDia(d); setMes(m); setError(''); }} />
             </div>
             {error && <p role="alert" className="text-sm text-red-700 mt-2">{error}</p>}
             <div className="flex gap-2 mt-3">
-                <button type="button" onClick={aplazar} className="flex-1 min-h-[44px] rounded-lg border border-gray-300 bg-white font-semibold text-gray-800">{t('Ahora no')}</button>
-                <button type="button" onClick={guardar} disabled={guardando} className="flex-1 min-h-[44px] rounded-lg bg-pink-500 font-bold text-white disabled:opacity-50">{guardando ? t('Guardando…') : t('Guardar')}</button>
+                <button type="button" onClick={aplazar} className="flex-1 min-h-[44px] rounded-full border border-gray-300 bg-white font-semibold text-gray-800">{t('Ahora no')}</button>
+                <button type="button" onClick={guardar} disabled={guardando} className="flex-1 min-h-[44px] rounded-full bg-pink-500 font-bold text-white disabled:opacity-50">{guardando ? t('Guardando…') : t('Guardar')}</button>
             </div>
         </section>
     );

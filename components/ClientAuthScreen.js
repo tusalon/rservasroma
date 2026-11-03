@@ -1,5 +1,36 @@
 ﻿// components/ClientAuthScreen.js - Login por teléfono con registro automático
 
+// Cumpleaños con los meses en píldoras y, al elegir uno, sus días: más rápido
+// que dos listas desplegables de 31 y 12 opciones. Lo usan el registro (fondo
+// oscuro) y la tarjeta de cumpleaños de client-app.js (fondo claro).
+// Columnas en línea: legacy-ios-fallback.css pasa grid-cols-3/4 a dos.
+function SelectorCumple({ dia, mes, onCambio, claro = false }) {
+    const normal = claro ? 'bg-gray-100 text-gray-800' : 'bg-white/15 text-white';
+    return (
+        <div className="space-y-2">
+            <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }}>
+                {Array.from({ length: 12 }, (_, i) => (
+                    <button key={i} type="button" onClick={() => onCambio('', String(i + 1))}
+                        className={`py-2.5 rounded-full text-sm font-bold capitalize ${mes === String(i + 1) ? 'bg-pink-500 text-white' : normal}`}>
+                        {window.cumpleanos.nombreMes(i + 1, window.getIdioma?.()).slice(0, 3)}
+                    </button>
+                ))}
+            </div>
+            {mes && (
+                <div className="grid gap-1.5" style={{ gridTemplateColumns: 'repeat(7, minmax(0, 1fr))' }}>
+                    {/* 2024 es bisiesto: febrero ofrece el 29. */}
+                    {Array.from({ length: new Date(2024, Number(mes), 0).getDate() }, (_, i) => (
+                        <button key={i} type="button" onClick={() => onCambio(String(i + 1), mes)}
+                            className={`aspect-square rounded-lg text-sm font-bold ${dia === String(i + 1) ? 'bg-pink-500 text-white' : normal}`}>
+                            {i + 1}
+                        </button>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+}
+
 function ClientAuthScreen({ onAccessGranted, onGoBack, disenoPendiente }) {
     window.useIdioma();
     const t = window.t;
@@ -473,28 +504,8 @@ function ClientAuthScreen({ onAccessGranted, onGoBack, disenoPendiente }) {
                                         ? t('Tu salón puede tener un detalle para ti ese día.')
                                         : t('Así tu salón podrá felicitarte ese día.')}
                                 </p>
-                                {/* Meses en píldoras y, al elegir uno, sus días. Columnas en
-                                    línea: legacy-ios-fallback.css pasa grid-cols-3/4 a dos. */}
-                                <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }}>
-                                    {Array.from({ length: 12 }, (_, i) => (
-                                        <button key={i} type="button"
-                                            onClick={() => { setCumpleMes(String(i + 1)); setCumpleDia(''); }}
-                                            className={`py-2.5 rounded-full text-sm font-bold capitalize ${cumpleMes === String(i + 1) ? 'bg-pink-500 text-white' : 'bg-white/15 text-white'}`}>
-                                            {window.cumpleanos.nombreMes(i + 1, window.getIdioma?.()).slice(0, 3)}
-                                        </button>
-                                    ))}
-                                </div>
-                                {cumpleMes && (
-                                    <div className="grid gap-1.5" style={{ gridTemplateColumns: 'repeat(7, minmax(0, 1fr))' }}>
-                                        {/* 2024 es bisiesto: febrero ofrece el 29. */}
-                                        {Array.from({ length: new Date(2024, Number(cumpleMes), 0).getDate() }, (_, i) => (
-                                            <button key={i} type="button" onClick={() => setCumpleDia(String(i + 1))}
-                                                className={`aspect-square rounded-lg text-sm font-bold ${cumpleDia === String(i + 1) ? 'bg-pink-500 text-white' : 'bg-white/15 text-white'}`}>
-                                                {i + 1}
-                                            </button>
-                                        ))}
-                                    </div>
-                                )}
+                                <SelectorCumple dia={cumpleDia} mes={cumpleMes}
+                                    onCambio={(d, m) => { setCumpleDia(d); setCumpleMes(m); }} />
                                 <button type="button" onClick={() => setPasoCumple(false)} className="text-sm font-semibold text-white/80">
                                     ← {t('Atrás')}
                                 </button>

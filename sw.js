@@ -1,6 +1,6 @@
 ﻿// sw.js - Service Worker para Rservasroma
 
-const CACHE_NAME = 'rservasroma-v159';
+const CACHE_NAME = 'rservasroma-v160';
 const BASE = '/rservasroma';
 
 const urlsToCache = [
@@ -16,7 +16,7 @@ const urlsToCache = [
   `${BASE}/manifest.json`,
 
   // App principal (JSX pre-compilado en compiled/ â€” ver scripts/build-jsx.sh)
-  `${BASE}/compiled/client-app.js?v=20261103-fase2`,
+  `${BASE}/compiled/client-app.js?v=20261103-fase2b`,
   `${BASE}/compiled/admin-app.js?v=20261102-espacios60`,
 
   // Utils
@@ -64,9 +64,9 @@ const urlsToCache = [
   `${BASE}/compiled/components/BookingForm.js?v=20261103-fase1`,
   `${BASE}/compiled/components/Catalogo.js?v=20261103-fase2`,
   `${BASE}/compiled/components/Calendar.js?v=20261103-fase2`,
-  `${BASE}/compiled/components/ClientAuthScreen.js?v=20261103-fase2`,
+  `${BASE}/compiled/components/ClientAuthScreen.js?v=20261103-fase2b`,
   `${BASE}/compiled/components/Confirmation.js?v=20261103-fase2`,
-  `${BASE}/compiled/components/Header.js?v=20261103-fase1`,
+  `${BASE}/compiled/components/Header.js?v=20261103-fase2b`,
   `${BASE}/compiled/components/InstallButton.js?v=20260723-jsx1`,
   `${BASE}/compiled/components/MultiProfesionalSelector.js?v=20260926-generico1`,
   `${BASE}/compiled/components/MultiTimeSlots.js?v=20261023-combo1`,
