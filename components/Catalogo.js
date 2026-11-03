@@ -356,7 +356,7 @@ function ModalDiseno({ diseno, precio, servicio, colorPrimario, cliente, onCerra
                     )}
 
                     {/* Lo que el catálogo tiene que conseguir: que la clienta pase
-                        de "me gusta" a turno reservado sin buscar el servicio. */}
+                        de "me gusta" a cita reservada sin buscar el servicio. */}
                     <button
                         onClick={() => onReservar(diseno)}
                         className="w-full text-white font-bold py-3 rounded-full shadow-lg active:scale-[0.98] transition flex items-center justify-center gap-2"

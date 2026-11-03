@@ -268,7 +268,7 @@
 
                 <section class="offline-section">
                     <h2>Hoy</h2>
-                    ${todaysBookings.length ? todaysBookings.map(bookingCard).join('') : '<p class="offline-muted">No hay turnos guardados para hoy.</p>'}
+                    ${todaysBookings.length ? todaysBookings.map(bookingCard).join('') : '<p class="offline-muted">No hay citas guardadas para hoy.</p>'}
                 </section>
 
                 <section class="offline-section">
@@ -278,7 +278,7 @@
                             <h3>${relativeDayLabel(dateKey)}</h3>
                             ${grouped[dateKey].map(bookingCard).join('')}
                         </div>
-                    `).join('') : '<p class="offline-muted">No hay turnos guardados para los proximos dias.</p>'}
+                    `).join('') : '<p class="offline-muted">No hay citas guardadas para los próximos días.</p>'}
                 </section>
             </main>
         `;

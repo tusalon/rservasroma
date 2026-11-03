@@ -94,7 +94,7 @@ function MyBookings({ cliente, onVolver, onRepetir }) {
       const diffMinutos = Math.floor(diffMs / 6e4);
       const diffHoras = Math.floor(diffMinutos / 60);
       const mins = diffMinutos % 60;
-      if (diffMinutos <= 0) return "⏰ " + t("El turno ya pasó");
+      if (diffMinutos <= 0) return "⏰ " + t("La cita ya pasó");
       if (diffMinutos <= minCancelacionHoras * 60) return "⚠️ " + t("Faltan {tiempo} — ya no se puede cancelar desde la app", { tiempo: diffHoras > 0 ? `${diffHoras}h ${mins}m` : `${diffMinutos} min` });
       return "🕐 " + t("Faltan {tiempo} — puedes cancelar", { tiempo: diffHoras > 0 ? `${diffHoras}h ${mins}m` : `${diffMinutos} min` });
     } catch {
@@ -138,10 +138,10 @@ function MyBookings({ cliente, onVolver, onRepetir }) {
       }
       if (window.notificarCancelacion) await window.notificarCancelacion({ ...turno, cancelado_por: "cliente" });
       for (const fila of turno.filas) await window.notificarListaEsperaTurnoLiberado?.(fila);
-      mostrarToast("ok", t("Turno cancelado correctamente."));
+      mostrarToast("ok", t("Cita cancelada correctamente."));
       await cargarReservas();
     } catch {
-      mostrarToast("error", t("Error al cancelar el turno. Intenta de nuevo."));
+      mostrarToast("error", t("Error al cancelar la cita. Inténtalo de nuevo."));
       await cargarReservas();
     } finally {
       setCancelando(null);
@@ -175,7 +175,7 @@ function MyBookings({ cliente, onVolver, onRepetir }) {
   }, [reservaReprogramando, reprogramacionFecha, negocioId]);
   const abrirReprogramacion = (turno) => {
     if (!puedeModificar(turno)) {
-      mostrarToast("error", t("Ya no se puede cambiar este turno desde la app. Escribe al salón."));
+      mostrarToast("error", t("Ya no se puede cambiar esta cita desde la app. Escribe al salón."));
       return;
     }
     setReservaReprogramando(turno);
@@ -244,11 +244,11 @@ Ahora: ${fN} a las ${hN}`;
       const anterior = reservaReprogramando;
       await window.turnos.moverTurno(anterior, reprogramacionFecha, reprogramacionHora);
       await notificarReprogramacion({ ...anterior, fecha: reprogramacionFecha, hora_inicio: reprogramacionHora }, anterior);
-      mostrarToast("ok", t("Turno reprogramado correctamente."));
+      mostrarToast("ok", t("Cita reprogramada correctamente."));
       cerrarReprogramacion();
       await cargarReservas();
     } catch (error) {
-      mostrarToast("error", textoDeError(error, t("Error al reprogramar el turno. Intenta de nuevo.")));
+      mostrarToast("error", textoDeError(error, t("Error al reprogramar la cita. Inténtalo de nuevo.")));
       await cargarReservas();
     } finally {
       setReprogramando(false);
@@ -256,7 +256,7 @@ Ahora: ${fN} a las ${hN}`;
   };
   const abrirAnadir = (turno) => {
     if (!puedeModificar(turno)) {
-      mostrarToast("error", t("Ya no se puede cambiar este turno desde la app. Escribe al salón."));
+      mostrarToast("error", t("Ya no se puede cambiar esta cita desde la app. Escribe al salón."));
       return;
     }
     setAnadiendoA(turno);
@@ -276,7 +276,7 @@ Ahora: ${fN} a las ${hN}`;
           `Fecha: ${fechaLegible(turno.fecha)} a las ${horaLegible(turno.hora_inicio)}`
         ], turno);
       }
-      mostrarToast("ok", t("Servicio quitado de tu turno."));
+      mostrarToast("ok", t("Servicio quitado de tu cita."));
     } catch (error) {
       mostrarToast("error", textoDeError(error, t("No se pudo quitar el servicio. Intenta de nuevo.")));
     } finally {
@@ -303,7 +303,7 @@ Ahora: ${fN} a las ${hN}`;
     },
     /* @__PURE__ */ React.createElement("span", null, toast.tipo === "ok" ? "✅" : "❌"),
     /* @__PURE__ */ React.createElement("span", null, toast.texto)
-  ), confirmandoCancelacion && /* @__PURE__ */ React.createElement("div", { className: "fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-4" }, /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-2xl shadow-xl w-full max-w-sm p-6" }, /* @__PURE__ */ React.createElement("h3", { className: "text-lg font-bold text-pink-800 mb-2" }, t("¿Cancelar turno?")), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-pink-600 mb-1" }, fechaLegible(confirmandoCancelacion.fecha)), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-pink-600 mb-4" }, horaLegible(confirmandoCancelacion.hora_inicio), " — ", confirmandoCancelacion.servicio), /* @__PURE__ */ React.createElement("div", { className: "flex gap-3" }, /* @__PURE__ */ React.createElement(
+  ), confirmandoCancelacion && /* @__PURE__ */ React.createElement("div", { className: "fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-4" }, /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-2xl shadow-xl w-full max-w-sm p-6" }, /* @__PURE__ */ React.createElement("h3", { className: "text-lg font-bold text-pink-800 mb-2" }, t("¿Cancelar cita?")), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-pink-600 mb-1" }, fechaLegible(confirmandoCancelacion.fecha)), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-pink-600 mb-4" }, horaLegible(confirmandoCancelacion.hora_inicio), " — ", confirmandoCancelacion.servicio), /* @__PURE__ */ React.createElement("div", { className: "flex gap-3" }, /* @__PURE__ */ React.createElement(
     "button",
     {
       onClick: () => setConfirmandoCancelacion(null),
@@ -344,7 +344,7 @@ Ahora: ${fN} a las ${hN}`;
                                 ${filtro === key ? "bg-pink-500 text-white shadow-md" : "bg-pink-100 text-pink-700 hover:bg-pink-200"}`
     },
     label
-  ))), filtro === "historial" && historialCount > 0 && /* @__PURE__ */ React.createElement("div", { className: "bg-pink-50 border border-pink-200 rounded-xl p-4 mb-4 flex items-center gap-3" }, /* @__PURE__ */ React.createElement("span", { className: "text-3xl" }, "✨"), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("p", { className: "font-semibold text-pink-800" }, t("{n} visita{s} en total", { n: historialCount, s: historialCount !== 1 ? "s" : "" })), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-pink-500" }, t("Gracias por elegirnos siempre")))), loading ? /* @__PURE__ */ React.createElement("div", { className: "text-center py-12" }, /* @__PURE__ */ React.createElement("div", { className: "animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500 mx-auto" }), /* @__PURE__ */ React.createElement("p", { className: "text-pink-500 mt-4" }, t("Cargando tus reservas..."))) : reservasFiltradas.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "text-center py-12 bg-white/80 backdrop-blur-sm rounded-xl shadow-sm border border-pink-200" }, /* @__PURE__ */ React.createElement("div", { className: "text-6xl mb-4" }, filtro === "historial" ? "📖" : "📅"), /* @__PURE__ */ React.createElement("p", { className: "text-pink-600 mb-2" }, filtro === "proximas" ? t("No tienes turnos próximos") : filtro === "historial" ? t("Aún no tienes visitas pasadas") : t("No tienes turnos cancelados")), filtro === "proximas" && /* @__PURE__ */ React.createElement("button", { onClick: onVolver, className: "text-pink-500 font-medium hover:underline" }, t("Reservar un turno"))) : /* @__PURE__ */ React.createElement("div", { className: "space-y-4" }, reservasFiltradas.map((booking) => {
+  ))), filtro === "historial" && historialCount > 0 && /* @__PURE__ */ React.createElement("div", { className: "bg-pink-50 border border-pink-200 rounded-xl p-4 mb-4 flex items-center gap-3" }, /* @__PURE__ */ React.createElement("span", { className: "text-3xl" }, "✨"), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("p", { className: "font-semibold text-pink-800" }, t("{n} visita{s} en total", { n: historialCount, s: historialCount !== 1 ? "s" : "" })), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-pink-500" }, t("Gracias por elegirnos siempre")))), loading ? /* @__PURE__ */ React.createElement("div", { className: "text-center py-12" }, /* @__PURE__ */ React.createElement("div", { className: "animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500 mx-auto" }), /* @__PURE__ */ React.createElement("p", { className: "text-pink-500 mt-4" }, t("Cargando tus reservas..."))) : reservasFiltradas.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "text-center py-12 bg-white/80 backdrop-blur-sm rounded-xl shadow-sm border border-pink-200" }, /* @__PURE__ */ React.createElement("div", { className: "text-6xl mb-4" }, filtro === "historial" ? "📖" : "📅"), /* @__PURE__ */ React.createElement("p", { className: "text-pink-600 mb-2" }, filtro === "proximas" ? t("No tienes citas próximas") : filtro === "historial" ? t("Aún no tienes visitas pasadas") : t("No tienes citas canceladas")), filtro === "proximas" && /* @__PURE__ */ React.createElement("button", { onClick: onVolver, className: "text-pink-500 font-medium hover:underline" }, t("Reservar una cita"))) : /* @__PURE__ */ React.createElement("div", { className: "space-y-4" }, reservasFiltradas.map((booking) => {
     const puedeCancelarBooking = booking.estado !== "Cancelado" && puedeCancelar(booking.fecha, booking.hora_inicio);
     const puedeModificarBooking = puedeModificar(booking);
     const tiempoRestante = getMensajeTiempoRestante(booking.fecha, booking.hora_inicio);
@@ -353,7 +353,7 @@ Ahora: ${fN} a las ${hN}`;
     const calendarLink = window.generarLinkCalendarioCliente ? window.generarLinkCalendarioCliente(booking) : "";
     const varios = booking.items.length > 1;
     return /* @__PURE__ */ React.createElement("div", { key: booking.id, className: `bg-white/90 backdrop-blur-sm rounded-xl shadow-sm border-l-4 overflow-hidden border border-pink-200
-                                    ${booking.estado === "Cancelado" ? "border-l-pink-400 opacity-70" : "border-l-pink-500"}` }, /* @__PURE__ */ React.createElement("div", { className: "p-4" }, /* @__PURE__ */ React.createElement("div", { className: "flex justify-between items-start mb-3" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("span", { className: "text-sm text-pink-600 font-medium block mb-1" }, fechaConDia), /* @__PURE__ */ React.createElement("h3", { className: "font-bold text-pink-800 text-lg" }, varios ? t("Tu turno") : booking.servicio)), /* @__PURE__ */ React.createElement("span", { className: `px-3 py-1 rounded-full text-xs font-semibold
+                                    ${booking.estado === "Cancelado" ? "border-l-pink-400 opacity-70" : "border-l-pink-500"}` }, /* @__PURE__ */ React.createElement("div", { className: "p-4" }, /* @__PURE__ */ React.createElement("div", { className: "flex justify-between items-start mb-3" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("span", { className: "text-sm text-pink-600 font-medium block mb-1" }, fechaConDia), /* @__PURE__ */ React.createElement("h3", { className: "font-bold text-pink-800 text-lg" }, varios ? t("Tu cita") : booking.servicio)), /* @__PURE__ */ React.createElement("span", { className: `px-3 py-1 rounded-full text-xs font-semibold
                                                 ${booking.estado === "Reservado" || booking.estado === "Confirmado" ? "bg-green-100 text-green-700" : booking.estado === "Pendiente" ? "bg-amber-100 text-amber-700" : booking.estado === "Completado" ? "bg-pink-200 text-pink-800" : booking.estado === "Cancelado" ? "bg-gray-100 text-gray-500" : "bg-pink-100 text-pink-500"}` }, booking.estado === "Reservado" || booking.estado === "Confirmado" ? "✅ " + t("Confirmado") : booking.estado === "Pendiente" ? "⏳ " + t("Falta el anticipo") : booking.estado === "Completado" ? "✨ " + t("Completado") : booking.estado === "Ausente" ? t("No asististe") : booking.estado)), varios && /* @__PURE__ */ React.createElement("ul", { className: "mb-3 space-y-2" }, booking.items.map((item, indice) => /* @__PURE__ */ React.createElement("li", { key: `${item.filaId}-${indice}`, className: "flex items-center justify-between gap-3 bg-pink-50 border border-pink-100 rounded-lg px-3 py-2" }, /* @__PURE__ */ React.createElement("div", { className: "min-w-0" }, /* @__PURE__ */ React.createElement("p", { className: "font-medium text-pink-800 truncate" }, item.nombre), item.profesional_nombre && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-pink-500 truncate" }, item.profesional_nombre)), puedeModificarBooking && /* @__PURE__ */ React.createElement(
       "button",
       {
@@ -431,7 +431,7 @@ Ahora: ${fN} a las ${hN}`;
                                                     ${puedeCancelarBooking ? "text-red-600 hover:underline" : "text-gray-400 cursor-not-allowed"}
                                                     disabled:cursor-not-allowed`
       },
-      cancelando === booking.id ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "animate-spin h-4 w-4 border-2 border-red-600 border-t-transparent rounded-full" }), t("Cancelando...")) : puedeCancelarBooking ? t("Cancelar turno") : t("No se puede cancelar aún")
+      cancelando === booking.id ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "animate-spin h-4 w-4 border-2 border-red-600 border-t-transparent rounded-full" }), t("Cancelando...")) : puedeCancelarBooking ? t("Cancelar cita") : t("No se puede cancelar aún")
     )));
   }))), reservaReprogramando && /* @__PURE__ */ React.createElement("div", { className: "fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-4" }, /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-t-2xl sm:rounded-2xl shadow-xl w-full max-w-lg max-h-[92vh] overflow-y-auto" }, /* @__PURE__ */ React.createElement("div", { className: "sticky top-0 bg-white border-b border-pink-100 p-4 flex items-center justify-between" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h2", { className: "text-lg font-bold text-pink-800" }, t("Cambiar fecha y hora")), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-pink-500" }, reservaReprogramando.servicio)), /* @__PURE__ */ React.createElement(
     "button",
@@ -441,7 +441,7 @@ Ahora: ${fN} a las ${hN}`;
       className: "w-9 h-9 rounded-full bg-pink-50 text-pink-600 hover:bg-pink-100 disabled:opacity-50 text-lg"
     },
     "✕"
-  )), /* @__PURE__ */ React.createElement("div", { className: "p-4 space-y-4" }, /* @__PURE__ */ React.createElement("div", { className: "rounded-lg bg-pink-50 border border-pink-100 p-3 text-sm text-pink-700" }, reservaReprogramando.items.length > 1 ? t("Se mueve todo tu turno, con sus {n} servicios. Los servicios y las profesionales se mantienen igual.", { n: reservaReprogramando.items.length }) : t("Solo cambia la fecha y hora. El servicio, profesional y duración se mantienen igual.")), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 gap-3 text-sm" }, /* @__PURE__ */ React.createElement("div", { className: "bg-gray-50 rounded-lg p-3" }, /* @__PURE__ */ React.createElement("p", { className: "text-gray-500" }, t("Profesional")), /* @__PURE__ */ React.createElement("p", { className: "font-semibold text-gray-800" }, reservaReprogramando.profesional_nombre || t("No asignada"))), /* @__PURE__ */ React.createElement("div", { className: "bg-gray-50 rounded-lg p-3" }, /* @__PURE__ */ React.createElement("p", { className: "text-gray-500" }, t("Duración")), /* @__PURE__ */ React.createElement("p", { className: "font-semibold text-gray-800" }, reservaReprogramando.duracion || 60, " min"))), reprogContexto ? /* @__PURE__ */ React.createElement(
+  )), /* @__PURE__ */ React.createElement("div", { className: "p-4 space-y-4" }, /* @__PURE__ */ React.createElement("div", { className: "rounded-lg bg-pink-50 border border-pink-100 p-3 text-sm text-pink-700" }, reservaReprogramando.items.length > 1 ? t("Se mueve toda tu cita, con sus {n} servicios. Los servicios y las profesionales se mantienen igual.", { n: reservaReprogramando.items.length }) : t("Solo cambia la fecha y hora. El servicio, profesional y duración se mantienen igual.")), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 gap-3 text-sm" }, /* @__PURE__ */ React.createElement("div", { className: "bg-gray-50 rounded-lg p-3" }, /* @__PURE__ */ React.createElement("p", { className: "text-gray-500" }, t("Profesional")), /* @__PURE__ */ React.createElement("p", { className: "font-semibold text-gray-800" }, reservaReprogramando.profesional_nombre || t("No asignada"))), /* @__PURE__ */ React.createElement("div", { className: "bg-gray-50 rounded-lg p-3" }, /* @__PURE__ */ React.createElement("p", { className: "text-gray-500" }, t("Duración")), /* @__PURE__ */ React.createElement("p", { className: "font-semibold text-gray-800" }, reservaReprogramando.duracion || 60, " min"))), reprogContexto ? /* @__PURE__ */ React.createElement(
     Calendar,
     {
       onDateSelect: setReprogramacionFecha,
@@ -491,7 +491,7 @@ Ahora: ${fN} a las ${hN}`;
       onCerrar: () => setAnadiendoA(null),
       onError: (mensaje) => mostrarToast("error", mensaje),
       onListo: async () => {
-        mostrarToast("ok", t("Servicio añadido a tu turno."));
+        mostrarToast("ok", t("Servicio añadido a tu cita."));
         setAnadiendoA(null);
         await cargarReservas();
       }

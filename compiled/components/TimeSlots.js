@@ -245,9 +245,9 @@ function TimeSlots({ service, date, profesional, cliente, onTimeSelect, selected
       });
       if (result.success) {
         setWaitlistSlots((prev) => ({ ...prev, [slot.hora]: result.data }));
-        mostrarToast("ok", t("Listo. Quedaste en lista de espera para ese turno."));
+        mostrarToast("ok", t("Listo. Quedaste en lista de espera para ese horario."));
       } else if (result.reason === "occupied") {
-        mostrarToast("error", t("Ese turno ya tiene una clienta en lista de espera."));
+        mostrarToast("error", t("Ese horario ya tiene una clienta en lista de espera."));
         setWaitlistSlots((prev) => ({ ...prev, [slot.hora]: result.data || true }));
       } else {
         mostrarToast("error", t("No se pudo anotarte en lista de espera. Intenta de nuevo."));
@@ -300,7 +300,7 @@ function TimeSlots({ service, date, profesional, cliente, onTimeSelect, selected
       className: "w-full rounded-xl border border-dashed border-gray-300 py-3 text-sm font-semibold text-gray-600"
     },
     t("¿No ves tu hora? Ponte en lista de espera")
-  ), occupiedSlots.length > 0 && (verEspera || slots.length === 0) && /* @__PURE__ */ React.createElement("div", { className: "mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4" }, /* @__PURE__ */ React.createElement("div", { className: "mb-3" }, /* @__PURE__ */ React.createElement("p", { className: "font-semibold text-amber-800" }, t("Turnos ocupados con lista de espera")), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-amber-700" }, t("Puedes anotarte en un turno ocupado. Solo se permite una clienta en espera por horario."))), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 sm:grid-cols-3 gap-3" }, occupiedSlots.map((slot) => {
+  ), occupiedSlots.length > 0 && (verEspera || slots.length === 0) && /* @__PURE__ */ React.createElement("div", { className: "mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4" }, /* @__PURE__ */ React.createElement("div", { className: "mb-3" }, /* @__PURE__ */ React.createElement("p", { className: "font-semibold text-amber-800" }, t("Horarios ocupados con lista de espera")), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-amber-700" }, t("Puedes anotarte en un horario ocupado. Solo se permite una clienta en espera por horario."))), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 sm:grid-cols-3 gap-3" }, occupiedSlots.map((slot) => {
     const yaTieneEspera = Boolean(waitlistSlots[slot.hora]);
     const cargando = joiningWaitlist === slot.hora;
     return /* @__PURE__ */ React.createElement(

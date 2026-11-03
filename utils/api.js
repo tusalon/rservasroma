@@ -364,7 +364,7 @@ WhatsApp: ${espera.cliente_whatsapp}`;
         // "Enviar mensajes por WhatsApp". El WhatsApp a la clienta lo manda la
         // admin desde ese panel.
         if (window.enviarNotificacionPush) {
-            await window.enviarNotificacionPush('Lista de espera: turno liberado', mensaje, 'bell', 'high', {
+            await window.enviarNotificacionPush('Lista de espera: horario liberado', mensaje, 'bell', 'high', {
                 ir: 'lista-espera',
                 profesionalId: booking.profesional_id
             });
@@ -379,8 +379,8 @@ WhatsApp: ${espera.cliente_whatsapp}`;
             const nombreNegocioEspera = config?.nombre || espera.negocio_nombre || 'Tu salón';
             await window.enviarPushCliente({
                 whatsapp: espera.cliente_whatsapp,
-                title: `🔔 Se liberó un turno — ${nombreNegocioEspera}`,
-                body: `Hola ${espera.cliente_nombre || ''}! Se liberó el turno de ${espera.servicio || 'tu servicio'} el ${fecha} a las ${hora}. Reserva desde la app antes de que se ocupe.`,
+                title: `🔔 Se liberó un horario — ${nombreNegocioEspera}`,
+                body: `Hola ${espera.cliente_nombre || ''}! Se liberó el horario de ${espera.servicio || 'tu servicio'} el ${fecha} a las ${hora}. Reserva desde la app antes de que se ocupe.`,
             }).catch(() => {});
         }
 

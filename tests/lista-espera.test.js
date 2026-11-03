@@ -23,7 +23,7 @@ assert.equal(l.turnoOcupado([{ hora_inicio: '15:00', estado: 'Confirmado' }], { 
 // --- Mensaje a la clienta
 assert.equal(
     l.mensajeAvisoListaEspera({ nombre: 'Ana', fecha: 'viernes 9 de octubre', hora: '3:00 PM', salon: 'Nails X' }),
-    'Hola Ana, estabas en lista de espera para el viernes 9 de octubre a las 3:00 PM en Nails X. Ya tienes el turno para ese momento. ¡Te esperamos!'
+    'Hola Ana, estabas en lista de espera para el viernes 9 de octubre a las 3:00 PM en Nails X. Ya tienes la cita para ese momento. ¡Te esperamos!'
 );
 const sinSalon = l.mensajeAvisoListaEspera({ nombre: '', fecha: 'hoy', hora: '9:00 AM' });
 assert.ok(sinSalon.startsWith('Hola, estabas'), 'sin nombre no queda "Hola undefined"');

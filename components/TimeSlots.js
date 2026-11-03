@@ -305,9 +305,9 @@ function TimeSlots({ service, date, profesional, cliente, onTimeSelect, selected
 
             if (result.success) {
                 setWaitlistSlots(prev => ({ ...prev, [slot.hora]: result.data }));
-                mostrarToast('ok', t('Listo. Quedaste en lista de espera para ese turno.'));
+                mostrarToast('ok', t('Listo. Quedaste en lista de espera para ese horario.'));
             } else if (result.reason === 'occupied') {
-                mostrarToast('error', t('Ese turno ya tiene una clienta en lista de espera.'));
+                mostrarToast('error', t('Ese horario ya tiene una clienta en lista de espera.'));
                 setWaitlistSlots(prev => ({ ...prev, [slot.hora]: result.data || true }));
             } else {
                 mostrarToast('error', t('No se pudo anotarte en lista de espera. Intenta de nuevo.'));
@@ -444,8 +444,8 @@ function TimeSlots({ service, date, profesional, cliente, onTimeSelect, selected
                     {occupiedSlots.length > 0 && (verEspera || slots.length === 0) && (
                         <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4">
                             <div className="mb-3">
-                                <p className="font-semibold text-amber-800">{t('Turnos ocupados con lista de espera')}</p>
-                                <p className="text-sm text-amber-700">{t('Puedes anotarte en un turno ocupado. Solo se permite una clienta en espera por horario.')}</p>
+                                <p className="font-semibold text-amber-800">{t('Horarios ocupados con lista de espera')}</p>
+                                <p className="text-sm text-amber-700">{t('Puedes anotarte en un horario ocupado. Solo se permite una clienta en espera por horario.')}</p>
                             </div>
                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                                 {occupiedSlots.map(slot => {

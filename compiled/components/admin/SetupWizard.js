@@ -662,7 +662,7 @@ function SetupWizard() {
         className: `w-14 shrink-0 px-2 py-2 rounded-lg text-sm font-bold transition-all ${cfg.activo ? "bg-amber-600 text-white shadow" : "bg-gray-200 text-gray-500"}`
       },
       d.corto
-    ), cfg.activo ? /* @__PURE__ */ React.createElement("div", { className: "flex-1 min-w-0" }, /* @__PURE__ */ React.createElement("div", { className: "text-sm text-gray-700 truncate" }, cfg.horas.length > 0 ? `${cfg.horas.length} ${cfg.horas.length === 1 ? t("cita") : t("citas")}: ${turnosDelDiaLegibles(d.id).join(" · ")}` : t("Sin horarios — toca «Elegir horas»"))) : /* @__PURE__ */ React.createElement("span", { className: "text-gray-400 text-sm flex-1" }, t("Cerrado")), cfg.activo && /* @__PURE__ */ React.createElement(
+    ), cfg.activo ? /* @__PURE__ */ React.createElement("div", { className: "flex-1 min-w-0" }, /* @__PURE__ */ React.createElement("div", { className: "text-sm text-gray-700 truncate" }, cfg.horas.length > 0 ? `${cfg.horas.length} ${cfg.horas.length === 1 ? t("horario") : t("horarios")}: ${turnosDelDiaLegibles(d.id).join(" · ")}` : t("Sin horarios — toca «Elegir horas»"))) : /* @__PURE__ */ React.createElement("span", { className: "text-gray-400 text-sm flex-1" }, t("Cerrado")), cfg.activo && /* @__PURE__ */ React.createElement(
       "button",
       {
         type: "button",

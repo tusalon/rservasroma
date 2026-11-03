@@ -89,7 +89,7 @@ function MultiProfesionalSelector({ selectedService, selectedProfesional, onSele
 
                             {profesionales.length === 0 ? (
                                 <div className="text-sm bg-pink-50 border border-pink-200 rounded-lg p-3 space-y-2">
-                                    <p className="text-pink-700">{t('"{servicio}" aún no tiene turnos online.', { servicio: servicio.nombre })}</p>
+                                    <p className="text-pink-700">{t('"{servicio}" aún no tiene citas online.', { servicio: servicio.nombre })}</p>
                                     <button
                                         type="button"
                                         onClick={() => window.contactarSalonWhatsApp?.(`Hola! Quiero reservar "${servicio.nombre}" pero no aparece disponible en la app ✨`)}

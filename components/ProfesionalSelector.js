@@ -98,7 +98,7 @@ function ProfesionalSelector({ onSelect, selectedProfesional, selectedService })
 
             {selectedService && profesionales.length === 0 ? (
                 <div className="text-center p-8 bg-pink-50 rounded-xl border border-pink-200 space-y-3">
-                    <p className="text-pink-700 font-medium">{t('"{servicio}" aún no tiene turnos online', { servicio: selectedService.nombre })}</p>
+                    <p className="text-pink-700 font-medium">{t('"{servicio}" aún no tiene citas online', { servicio: selectedService.nombre })}</p>
                     <p className="text-sm text-pink-600">{t('Escríbenos y te lo coordinamos directamente 💖')}</p>
                     <button
                         onClick={() => window.contactarSalonWhatsApp?.(`Hola! Quiero reservar "${selectedService.nombre}" pero no aparece disponible en la app ✨`)}
@@ -109,7 +109,7 @@ function ProfesionalSelector({ onSelect, selectedProfesional, selectedService })
                 </div>
             ) : profesionales.length === 0 ? (
                 <div className="text-center p-8 bg-white/80 backdrop-blur-sm rounded-xl border border-pink-200 space-y-3">
-                    <p className="text-pink-600 font-medium">{t('Aún no hay profesionales con turnos online')}</p>
+                    <p className="text-pink-600 font-medium">{t('Aún no hay profesionales con citas online')}</p>
                     <button
                         onClick={() => window.contactarSalonWhatsApp?.()}
                         className="bg-green-500 hover:bg-green-600 text-white font-bold px-5 py-3 rounded-xl shadow-sm transition-colors"

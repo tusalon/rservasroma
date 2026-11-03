@@ -37,7 +37,7 @@
     function mensajeAvisoListaEspera({ nombre, fecha, hora, salon }) {
         const saludo = nombre ? `Hola ${nombre}` : 'Hola';
         const lugar = salon ? ` en ${salon}` : '';
-        return `${saludo}, estabas en lista de espera para el ${fecha} a las ${hora}${lugar}. Ya tienes el turno para ese momento. ¡Te esperamos!`;
+        return `${saludo}, estabas en lista de espera para el ${fecha} a las ${hora}${lugar}. Ya tienes la cita para ese momento. ¡Te esperamos!`;
     }
 
     // Filas que se muestran: de hoy en adelante, sin las cerradas, y sin los turnos de
@@ -74,19 +74,19 @@
         'Enviar': 'Send',
         'Descartar': 'Dismiss',
         'Lista de espera': 'Waitlist',
-        'Turno libre': 'Spot free',
-        'Turno ocupado': 'Spot taken',
+        'Horario libre': 'Spot free',
+        'Horario ocupado': 'Spot taken',
         'Avisada': 'Notified',
         'Avisar por WhatsApp': 'Notify on WhatsApp',
         'Quitar de la lista': 'Remove from list',
         'Actualizar': 'Refresh',
-        'Ese turno ya se ocupó de nuevo.': 'That spot has been taken again.',
-        'Cuando una clienta se anote en un turno lleno, aparecerá aquí.': 'When a client joins a full spot, she will show up here.',
+        'Ese horario ya se ocupó de nuevo.': 'That spot has been taken again.',
+        'Cuando una clienta se anote en un horario lleno, aparecerá aquí.': 'When a client joins a full spot, she will show up here.',
         'No se pudo cargar la lista de espera.': 'Could not load the waitlist.',
         'No se pudo actualizar. Inténtalo de nuevo.': 'Could not update. Please try again.',
         '¿Quitar a {nombre} de la lista de espera?': 'Remove {nombre} from the waitlist?',
-        'Se liberó un turno y {nombre} está en lista de espera.': 'A spot opened up and {nombre} is on the waitlist.',
-        'Se liberaron {n} turnos con clientas en lista de espera.': '{n} spots opened up with clients on the waitlist.',
+        'Se liberó un horario y {nombre} está en lista de espera.': 'A spot opened up and {nombre} is on the waitlist.',
+        'Se liberaron {n} horarios con clientas en lista de espera.': '{n} spots opened up with clients on the waitlist.',
         'Ver lista de espera': 'See waitlist',
         'Cerrar aviso': 'Dismiss notice',
         'Profesional': 'Professional',

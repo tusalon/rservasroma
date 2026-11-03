@@ -449,7 +449,7 @@ window.contactarSalonWhatsApp = async function(mensaje) {
     try {
         const config = await window.cargarConfiguracionNegocio();
         if (!config?.telefono) return false;
-        return window.enviarWhatsApp(config.telefono, mensaje || `Hola! Quiero reservar un turno en ${config?.nombre || 'el salón'} ✨`);
+        return window.enviarWhatsApp(config.telefono, mensaje || `Hola! Quiero reservar una cita en ${config?.nombre || 'el salón'} ✨`);
     } catch (error) {
         console.error('Error contactando al salón:', error);
         return false;
@@ -582,7 +582,7 @@ window.enviarMensajePago = async function(booking, configNegocio) {
         });
 
         const mensajeFinal =
-`✨ *${configNegocio.nombre || 'Mi Salón'} - Confirmación de Turno*
+`✨ *${configNegocio.nombre || 'Mi Salón'} - Confirmación de Cita*
 
 ✅ *SOLICITUD DE TURNO REGISTRADA*
 
@@ -594,7 +594,7 @@ ${lineaTotalReserva}
 ${lineaDireccion}
 
 ${mensajePagoConfig || `
-💰 *Para confirmar tu turno*, envía el *anticipo de ${montoAnticipoFormateado || montoAnticipo}* por:
+💰 *Para confirmar tu cita*, envía el *anticipo de ${montoAnticipoFormateado || montoAnticipo}* por:
 
 📲 *Transfermóvil:*
    Tarjeta: ${configNegocio.cbu || 'XXXX XXXX XXXX XXXX'}${configNegocio.alias ? `
@@ -604,9 +604,9 @@ ${mensajePagoConfig || `
    ${window.formatearTelefono ? window.formatearTelefono(configNegocio.telefono, configNegocio.codigo_pais) : `+${configNegocio.telefono || '00000000'}`}
 
 ⏳ *Importante:*
-El turno se liberará automáticamente si no se confirma el pago dentro de las ${configNegocio.tiempo_vencimiento || 2} horas.`}
+La cita se liberará automáticamente si no se confirma el pago dentro de las ${configNegocio.tiempo_vencimiento || 2} horas.`}
 ${lineaCalendario}
-Cuando confirmemos tu pago, tu turno quedará reservado.
+Cuando confirmemos tu pago, tu cita quedará reservada.
 
 ¡Gracias por elegirnos! 💖`;
 
@@ -650,9 +650,9 @@ window.enviarConfirmacionReserva = async function(booking, configNegocio) {
         }) || '';
 
         const mensajeEstandar =
-`✅ *${configNegocio?.nombre || 'Mi Salón'} - Turno Confirmado*
+`✅ *${configNegocio?.nombre || 'Mi Salón'} - Cita Confirmada*
 
-Hola *${booking.cliente_nombre}*, tu turno ha sido agendado.
+Hola *${booking.cliente_nombre}*, tu cita ha sido agendada.
 
 📅 *Fecha:* ${fechaConDia}
 ⏰ *Hora:* ${horaFormateada}
@@ -699,7 +699,7 @@ window.enviarMensajeInasistencia = async function(booking, configNegocio) {
         const { fechaConDia, horaFormateada } = getFechaHora(booking);
         const profesional = getProfesional(booking);
         const mensajeBase = configNegocio?.mensaje_inasistencia ||
-`Hola {cliente}, registramos que no asististe a tu turno en {nombre_negocio}.
+`Hola {cliente}, registramos que no asististe a tu cita en {nombre_negocio}.
 
 Servicio: {servicio}
 Fecha: {fecha}
@@ -765,7 +765,7 @@ ${lineaCalendario}
 ⏰ Hora: ${horaFormateada}`;
 
         await window.enviarNotificacionPush(
-            `📅 ${config.nombre} - Nuevo turno`,
+            `📅 ${config.nombre} - Nueva cita`,
             mensajePush,
             'calendar',
             'default',
@@ -821,7 +821,7 @@ window.notificarReservaPendiente = async function(booking) {
         });
 
         const mensajeFinal =
-`✨ *${configNegocio.nombre || 'Mi Salón'} - Confirmación de Turno*
+`✨ *${configNegocio.nombre || 'Mi Salón'} - Confirmación de Cita*
 
 ✅ *SOLICITUD DE TURNO REGISTRADA*
 
@@ -835,7 +835,7 @@ ${lineaTotalReserva}
 ${lineaDireccion}
 
 ${mensajePagoConfig || `
-💰 *Para confirmar tu turno*, envía el *anticipo de ${montoAnticipoFormateado || montoAnticipo}* por:
+💰 *Para confirmar tu cita*, envía el *anticipo de ${montoAnticipoFormateado || montoAnticipo}* por:
 
 📲 *Transfermóvil:*
    Tarjeta: ${configNegocio.cbu || 'XXXX XXXX XXXX XXXX'}${configNegocio.alias ? `
@@ -845,7 +845,7 @@ ${mensajePagoConfig || `
    ${window.formatearTelefono ? window.formatearTelefono(configNegocio.telefono, configNegocio.codigo_pais) : `+${configNegocio.telefono || '00000000'}`}
 
 ⏳ *Importante:*
-El turno se liberará automáticamente si no se confirma el pago dentro de las ${configNegocio.tiempo_vencimiento || 2} horas.`}
+La cita se liberará automáticamente si no se confirma el pago dentro de las ${configNegocio.tiempo_vencimiento || 2} horas.`}
 ${lineaCalendario}
 
 ¡Gracias por elegirnos! 💖`;
@@ -898,12 +898,12 @@ window.notificarCancelacion = async function(booking) {
 ⏰ *Hora:* ${horaFormateada}
 👩‍🎨 *Profesional:* ${profesional}
 
-El cliente canceló su turno.`;
+El cliente canceló su cita.`;
 
         const mensajeCliente =
 `❌ *CANCELACIÓN DE TURNO - ${config.nombre}*
 
-Hola *${booking.cliente_nombre}*, lamentamos informarte que tu turno ha sido cancelado.
+Hola *${booking.cliente_nombre}*, lamentamos informarte que tu cita ha sido cancelada.
 
 📅 *Fecha:* ${fechaConDia}
 ⏰ *Hora:* ${horaFormateada}

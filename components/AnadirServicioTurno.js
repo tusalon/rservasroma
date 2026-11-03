@@ -104,7 +104,7 @@ function AnadirServicioTurno({ turno, esAdmin = false, onCerrar, onListo, onErro
                 <div className="p-4 space-y-4">
                     {!servicio && (
                         <>
-                            <p className="text-sm text-pink-700">{esAdmin ? t('Elige el servicio que quieres añadir a este turno.') : t('Elige el servicio que quieres añadir a tu turno.')}</p>
+                            <p className="text-sm text-pink-700">{esAdmin ? t('Elige el servicio que quieres añadir a esta cita.') : t('Elige el servicio que quieres añadir a tu cita.')}</p>
                             {cargandoServicios ? (
                                 <div className="flex justify-center py-6"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-500"></div></div>
                             ) : servicios.length === 0 ? (

@@ -489,7 +489,7 @@ window.getMensajeBienvenida = async function() {
 };
 window.getMensajeConfirmacion = async function() {
     const c = await window.cargarConfiguracionNegocio();
-    return c?.mensaje_confirmacion || 'Tu turno ha sido reservado con éxito';
+    return c?.mensaje_confirmacion || 'Tu cita ha sido reservada con éxito';
 };
 window.getNtfyTopic = async function() {
     const c = await window.cargarConfiguracionNegocio();
@@ -649,7 +649,7 @@ window.actualizarManifestPWA = function(config) {
         if (themeMeta) themeMeta.setAttribute('content', color);
         if (nombre) {
             guardarNombreNegocioPorSlug(slug, nombre);
-            document.title = nombre + ' - Reserva de Turnos';
+            document.title = nombre + ' - Reserva de Citas';
             document.querySelector('meta[name="apple-mobile-web-app-title"]')?.setAttribute('content', shortName);
         }
         window.dispatchEvent(new CustomEvent('rservas-manifest-ready', { detail: { slug, nombre } }));

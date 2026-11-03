@@ -1,6 +1,6 @@
 ﻿// sw.js - Service Worker para Rservasroma
 
-const CACHE_NAME = 'rservasroma-v168';
+const CACHE_NAME = 'rservasroma-v169';
 const BASE = '/rservasroma';
 
 const urlsToCache = [
@@ -17,10 +17,10 @@ const urlsToCache = [
 
   // App principal (JSX pre-compilado en compiled/ â€” ver scripts/build-jsx.sh)
   `${BASE}/compiled/client-app.js?v=20261103-flotantes1`,
-  `${BASE}/compiled/admin-app.js?v=20261103-cita1`,
+  `${BASE}/compiled/admin-app.js?v=20261103-cita2`,
 
   // Utils
-  `${BASE}/utils/api.js?v=20261021-espacios2`,
+  `${BASE}/utils/api.js?v=20261103-cita2`,
   `${BASE}/utils/auth-clients.js?v=20261018-cumple2`,
   `${BASE}/utils/auth-profesionales.js?v=20260920-telpaislogin1`,
   `${BASE}/utils/config.js`,
@@ -29,8 +29,8 @@ const urlsToCache = [
   `${BASE}/utils/hero-backgrounds.js?v=20260723-fotos`,
   `${BASE}/utils/native-push-notifications.js?v=20260722-platform-v4`,
   `${BASE}/utils/offline-panel.js`,
-  `${BASE}/utils/config-negocio-master.js?v=20261103-fase1`,
-  `${BASE}/utils/i18n.js?v=20261103-cita1`,
+  `${BASE}/utils/config-negocio-master.js?v=20261103-cita2`,
+  `${BASE}/utils/i18n.js?v=20261103-cita2`,
   `${BASE}/utils/cuba-geo.js?v=20260727-wizard-ubicacion1`,
   `${BASE}/utils/phone-utils.js?v=20261012-eeuu1`,
   `${BASE}/utils/profesionales.js?v=20261018-elimprof2`,
@@ -43,8 +43,8 @@ const urlsToCache = [
   `${BASE}/utils/supabase-config.js?v=20260723-fotos`,
   `${BASE}/utils/timeLogic.js?v=20261023-combo1`,
   `${BASE}/utils/espacios.js?v=20261102-duracion1`,
-  `${BASE}/utils/turnos.js?v=20261023-combo1`,
-  `${BASE}/utils/whatsapp-helper.js?v=20261103-textos1`,
+  `${BASE}/utils/turnos.js?v=20261103-cita2`,
+  `${BASE}/utils/whatsapp-helper.js?v=20261103-cita2`,
   `${BASE}/utils/bienvenida.js?v=20261012-bienvenida2`,
   `${BASE}/utils/soporte.js?v=20261103-flotantes1`,
   `${BASE}/utils/avisos-panel.js?v=20261103-avisos1`,
@@ -57,7 +57,7 @@ const urlsToCache = [
   `${BASE}/utils/panel-sesion.js?v=20261019-ficha1`,
   `${BASE}/utils/ficha-clienta.js?v=20261019-ficha1`,
   `${BASE}/utils/cobro-moneda.js?v=20261010-cobro1`,
-  `${BASE}/utils/lista-espera.js?v=20261008-espera1`,
+  `${BASE}/utils/lista-espera.js?v=20261103-cita2`,
   `${BASE}/utils/clientes-conocidos.js?v=20260913-conocidos1`,
   `${BASE}/utils/frases-motivacionales.js?v=20261103-textos1`,
 
@@ -66,18 +66,18 @@ const urlsToCache = [
   `${BASE}/compiled/components/Catalogo.js?v=20261103-sello1`,
   `${BASE}/compiled/components/Calendar.js?v=20261103-fase2`,
   `${BASE}/compiled/components/ClientAuthScreen.js?v=20261103-fase2b`,
-  `${BASE}/compiled/components/Confirmation.js?v=20261103-sello1`,
+  `${BASE}/compiled/components/Confirmation.js?v=20261103-cita2`,
   `${BASE}/compiled/components/Header.js?v=20261103-flotantes1`,
   `${BASE}/compiled/components/InstallButton.js?v=20260723-jsx1`,
-  `${BASE}/compiled/components/MultiProfesionalSelector.js?v=20260926-generico1`,
+  `${BASE}/compiled/components/MultiProfesionalSelector.js?v=20261103-cita2`,
   `${BASE}/compiled/components/MultiTimeSlots.js?v=20261023-combo1`,
-  `${BASE}/compiled/components/AnadirServicioTurno.js?v=20261021-turnos1`,
-  `${BASE}/compiled/components/MyBookings.js?v=20261103-fase2`,
-  `${BASE}/compiled/components/ProfesionalSelector.js?v=20261103-pasos1`,
-  `${BASE}/compiled/components/ServiceSelectionCategorias.js?v=20261103-flotantes1`,
-  `${BASE}/compiled/components/TimeSlots.js?v=20261103-fase2`,
-  `${BASE}/compiled/components/WelcomeScreen.js?v=20261103-flotantes1`,
-  `${BASE}/compiled/components/WhatsAppButton.js?v=20261103-flotantes1`,
+  `${BASE}/compiled/components/AnadirServicioTurno.js?v=20261103-cita2`,
+  `${BASE}/compiled/components/MyBookings.js?v=20261103-cita2`,
+  `${BASE}/compiled/components/ProfesionalSelector.js?v=20261103-cita2`,
+  `${BASE}/compiled/components/ServiceSelectionCategorias.js?v=20261103-cita2`,
+  `${BASE}/compiled/components/TimeSlots.js?v=20261103-cita2`,
+  `${BASE}/compiled/components/WelcomeScreen.js?v=20261103-cita2`,
+  `${BASE}/compiled/components/WhatsAppButton.js?v=20261103-cita2`,
 
   // Componentes admin (compilados)
   `${BASE}/compiled/components/admin/ConfigPanel.js?v=20261103-cita1`,
@@ -93,7 +93,7 @@ const urlsToCache = [
   `${BASE}/compiled/components/admin/ImportarServicios.js?v=20260723-jsx1`,
   `${BASE}/compiled/components/admin/ServiciosPanelCategorias.js?v=20261103-textos1`,
   `${BASE}/compiled/components/admin/FichaClientaPanel.js?v=20261103-avisos1`,
-  `${BASE}/compiled/components/admin/SetupWizard.js?v=20261103-cita1`,
+  `${BASE}/compiled/components/admin/SetupWizard.js?v=20261103-cita2`,
 
   // Vendors (sin babel.min.js: ya no se transpila en el navegador)
   `${BASE}/vendor/react.production.min.js`,
@@ -262,7 +262,7 @@ self.addEventListener('fetch', event => {
   // version aqui no bastaba para que una admin con el SW ya instalado
   // recibiera el archivo nuevo hasta que la cache vieja se vaciara sola).
   const esAssetCriticoAdmin = [
-    `${BASE}/compiled/admin-app.js?v=20261103-cita1`,
+    `${BASE}/compiled/admin-app.js?v=20261103-cita2`,
     `${BASE}/compiled/components/admin/EditarNegocio.js`,
     `${BASE}/utils/config-negocio-master.js`,
     `${BASE}/utils/native-push-notifications.js`,

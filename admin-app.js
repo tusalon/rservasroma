@@ -3367,9 +3367,9 @@ function AdminApp() {
                 const lineaCalendario = typeof generarLineaCalendarioCliente === 'function' ? generarLineaCalendarioCliente(bookingData) : '';
 
                 const mensajeEstandar =
-`*${nombreNegocio} - Turno Confirmado*
+`*${nombreNegocio} - Cita Confirmada*
 
-Hola *${bookingData.cliente_nombre}*, tu turno ha sido CONFIRMADO.
+Hola *${bookingData.cliente_nombre}*, tu cita ha sido CONFIRMADA.
 
 *Fecha:* ${fechaConDia}
 *Hora:* ${horaFormateada}
@@ -3439,9 +3439,9 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
             const lineaCalendario = typeof generarLineaCalendarioCliente === 'function' ? generarLineaCalendarioCliente(bookingData) : '';
 
             const mensajeEstandar =
-`*${nombreNegocio} - Turno Confirmado*
+`*${nombreNegocio} - Cita Confirmada*
 
-Hola *${bookingData.cliente_nombre}*, tu turno ha sido CONFIRMADO.
+Hola *${bookingData.cliente_nombre}*, tu cita ha sido CONFIRMADA.
 
 *Fecha:* ${fechaConDia}
 *Hora:* ${horaFormateada}

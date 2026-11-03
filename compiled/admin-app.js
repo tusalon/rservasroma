@@ -2767,9 +2767,9 @@ Te esperamos.`;
         const horaFormateada = window.formatTo12Hour ? window.formatTo12Hour(bookingData.hora_inicio) : bookingData.hora_inicio;
         const nombreNegocio2 = configNegocio?.nombre || (window.getNombreNegocio ? await window.getNombreNegocio() : "Mi Negocio");
         const lineaCalendario = typeof generarLineaCalendarioCliente === "function" ? generarLineaCalendarioCliente(bookingData) : "";
-        const mensajeEstandar = `*${nombreNegocio2} - Turno Confirmado*
+        const mensajeEstandar = `*${nombreNegocio2} - Cita Confirmada*
 
-Hola *${bookingData.cliente_nombre}*, tu turno ha sido CONFIRMADO.
+Hola *${bookingData.cliente_nombre}*, tu cita ha sido CONFIRMADA.
 
 *Fecha:* ${fechaConDia}
 *Hora:* ${horaFormateada}
@@ -2828,9 +2828,9 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
       const horaFormateada = window.formatTo12Hour ? window.formatTo12Hour(bookingData.hora_inicio) : bookingData.hora_inicio;
       const nombreNegocio2 = configNegocio?.nombre || (window.getNombreNegocio ? await window.getNombreNegocio() : "Mi Negocio");
       const lineaCalendario = typeof generarLineaCalendarioCliente === "function" ? generarLineaCalendarioCliente(bookingData) : "";
-      const mensajeEstandar = `*${nombreNegocio2} - Turno Confirmado*
+      const mensajeEstandar = `*${nombreNegocio2} - Cita Confirmada*
 
-Hola *${bookingData.cliente_nombre}*, tu turno ha sido CONFIRMADO.
+Hola *${bookingData.cliente_nombre}*, tu cita ha sido CONFIRMADA.
 
 *Fecha:* ${fechaConDia}
 *Hora:* ${horaFormateada}

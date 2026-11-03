@@ -212,7 +212,7 @@ function ServiceSelection({ onSelect, selectedService }) {
 
             {services.length === 0 ? (
                 <div className="text-center p-8 bg-white/80 backdrop-blur-sm rounded-xl border border-pink-200 space-y-3">
-                    <p className="text-pink-600 font-medium">{t('Los turnos online aún no están listos')}</p>
+                    <p className="text-pink-600 font-medium">{t('Las citas online aún no están listas')}</p>
                     <p className="text-sm text-pink-500">{t('Escríbenos por WhatsApp y coordinamos tu cita 💖')}</p>
                     <button
                         onClick={() => window.contactarSalonWhatsApp?.()}
@@ -229,7 +229,7 @@ function ServiceSelection({ onSelect, selectedService }) {
                             className="w-full flex items-center justify-between gap-3 bg-pink-50 p-4 rounded-2xl shadow-sm transition-colors"
                         >
                             <span className="text-left min-w-0">
-                                <span className="block text-xs font-bold text-pink-600">↻ {t('¿Repetir tu último turno?')}</span>
+                                <span className="block text-xs font-bold text-pink-600">↻ {t('¿Repetir tu última cita?')}</span>
                                 <span className="block font-bold text-gray-900 truncate">{servicioUltimoTurno.nombre}</span>
                             </span>
                             <span className="text-2xl text-pink-600">→</span>

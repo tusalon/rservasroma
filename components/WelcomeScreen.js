@@ -308,7 +308,7 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol, onMisReservas, onC
                                 boxShadow: `0 10px 28px ${hexToRgba(colorPrimario, 0.35)}`
                             }}>
                             <span>💖</span>
-                            <span>{t('Reservar Turno')}</span>
+                            <span>{t('Reservar cita')}</span>
                             <span>✨</span>
                         </button>
 

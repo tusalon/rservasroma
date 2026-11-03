@@ -123,7 +123,7 @@ function MyBookings({ cliente, onVolver, onRepetir }) {
             const diffMinutos = Math.floor(diffMs / 60000);
             const diffHoras = Math.floor(diffMinutos / 60);
             const mins = diffMinutos % 60;
-            if (diffMinutos <= 0) return '⏰ ' + t('El turno ya pasó');
+            if (diffMinutos <= 0) return '⏰ ' + t('La cita ya pasó');
             if (diffMinutos <= minCancelacionHoras * 60) return '⚠️ ' + t('Faltan {tiempo} — ya no se puede cancelar desde la app', { tiempo: diffHoras > 0 ? `${diffHoras}h ${mins}m` : `${diffMinutos} min` });
             return '🕐 ' + t('Faltan {tiempo} — puedes cancelar', { tiempo: diffHoras > 0 ? `${diffHoras}h ${mins}m` : `${diffMinutos} min` });
         } catch { return ''; }
@@ -178,10 +178,10 @@ function MyBookings({ cliente, onVolver, onRepetir }) {
             }
             if (window.notificarCancelacion) await window.notificarCancelacion({ ...turno, cancelado_por: 'cliente' });
             for (const fila of turno.filas) await window.notificarListaEsperaTurnoLiberado?.(fila);
-            mostrarToast('ok', t('Turno cancelado correctamente.'));
+            mostrarToast('ok', t('Cita cancelada correctamente.'));
             await cargarReservas();
         } catch {
-            mostrarToast('error', t('Error al cancelar el turno. Intenta de nuevo.'));
+            mostrarToast('error', t('Error al cancelar la cita. Inténtalo de nuevo.'));
             await cargarReservas();
         } finally {
             setCancelando(null);
@@ -203,7 +203,7 @@ function MyBookings({ cliente, onVolver, onRepetir }) {
     }, [reservaReprogramando, reprogramacionFecha, negocioId]);
 
     const abrirReprogramacion = (turno) => {
-        if (!puedeModificar(turno)) { mostrarToast('error', t('Ya no se puede cambiar este turno desde la app. Escribe al salón.')); return; }
+        if (!puedeModificar(turno)) { mostrarToast('error', t('Ya no se puede cambiar esta cita desde la app. Escribe al salón.')); return; }
         setReservaReprogramando(turno);
         setReprogramacionFecha('');
         setReprogramacionHora('');
@@ -267,11 +267,11 @@ function MyBookings({ cliente, onVolver, onRepetir }) {
             const anterior = reservaReprogramando;
             await window.turnos.moverTurno(anterior, reprogramacionFecha, reprogramacionHora);
             await notificarReprogramacion({ ...anterior, fecha: reprogramacionFecha, hora_inicio: reprogramacionHora }, anterior);
-            mostrarToast('ok', t('Turno reprogramado correctamente.'));
+            mostrarToast('ok', t('Cita reprogramada correctamente.'));
             cerrarReprogramacion();
             await cargarReservas();
         } catch (error) {
-            mostrarToast('error', textoDeError(error, t('Error al reprogramar el turno. Intenta de nuevo.')));
+            mostrarToast('error', textoDeError(error, t('Error al reprogramar la cita. Inténtalo de nuevo.')));
             await cargarReservas();
         } finally {
             setReprogramando(false);
@@ -280,7 +280,7 @@ function MyBookings({ cliente, onVolver, onRepetir }) {
 
     // ---- Añadir un servicio al turno ----
     const abrirAnadir = (turno) => {
-        if (!puedeModificar(turno)) { mostrarToast('error', t('Ya no se puede cambiar este turno desde la app. Escribe al salón.')); return; }
+        if (!puedeModificar(turno)) { mostrarToast('error', t('Ya no se puede cambiar esta cita desde la app. Escribe al salón.')); return; }
         setAnadiendoA(turno);
     };
 
@@ -300,7 +300,7 @@ function MyBookings({ cliente, onVolver, onRepetir }) {
                     `Fecha: ${fechaLegible(turno.fecha)} a las ${horaLegible(turno.hora_inicio)}`
                 ], turno);
             }
-            mostrarToast('ok', t('Servicio quitado de tu turno.'));
+            mostrarToast('ok', t('Servicio quitado de tu cita.'));
         } catch (error) {
             mostrarToast('error', textoDeError(error, t('No se pudo quitar el servicio. Intenta de nuevo.')));
         } finally {
@@ -343,7 +343,7 @@ function MyBookings({ cliente, onVolver, onRepetir }) {
             {confirmandoCancelacion && (
                 <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-4">
                     <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
-                        <h3 className="text-lg font-bold text-pink-800 mb-2">{t('¿Cancelar turno?')}</h3>
+                        <h3 className="text-lg font-bold text-pink-800 mb-2">{t('¿Cancelar cita?')}</h3>
                         <p className="text-sm text-pink-600 mb-1">{fechaLegible(confirmandoCancelacion.fecha)}</p>
                         <p className="text-sm text-pink-600 mb-4">
                             {horaLegible(confirmandoCancelacion.hora_inicio)} — {confirmandoCancelacion.servicio}
@@ -433,12 +433,12 @@ function MyBookings({ cliente, onVolver, onRepetir }) {
                     <div className="text-center py-12 bg-white/80 backdrop-blur-sm rounded-xl shadow-sm border border-pink-200">
                         <div className="text-6xl mb-4">{filtro === 'historial' ? '📖' : '📅'}</div>
                         <p className="text-pink-600 mb-2">
-                            {filtro === 'proximas' ? t('No tienes turnos próximos') :
+                            {filtro === 'proximas' ? t('No tienes citas próximas') :
                              filtro === 'historial' ? t('Aún no tienes visitas pasadas') :
-                             t('No tienes turnos cancelados')}
+                             t('No tienes citas canceladas')}
                         </p>
                         {filtro === 'proximas' && (
-                            <button onClick={onVolver} className="text-pink-500 font-medium hover:underline">{t('Reservar un turno')}</button>
+                            <button onClick={onVolver} className="text-pink-500 font-medium hover:underline">{t('Reservar una cita')}</button>
                         )}
                     </div>
                 ) : (
@@ -459,7 +459,7 @@ function MyBookings({ cliente, onVolver, onRepetir }) {
                                         <div className="flex justify-between items-start mb-3">
                                             <div>
                                                 <span className="text-sm text-pink-600 font-medium block mb-1">{fechaConDia}</span>
-                                                <h3 className="font-bold text-pink-800 text-lg">{varios ? t('Tu turno') : booking.servicio}</h3>
+                                                <h3 className="font-bold text-pink-800 text-lg">{varios ? t('Tu cita') : booking.servicio}</h3>
                                             </div>
                                             <span className={`px-3 py-1 rounded-full text-xs font-semibold
                                                 ${booking.estado === 'Reservado' || booking.estado === 'Confirmado' ? 'bg-green-100 text-green-700' :
@@ -608,7 +608,7 @@ function MyBookings({ cliente, onVolver, onRepetir }) {
                                                 {cancelando === booking.id ? (
                                                     <><div className="animate-spin h-4 w-4 border-2 border-red-600 border-t-transparent rounded-full"></div>{t('Cancelando...')}</>
                                                 ) : (
-                                                    puedeCancelarBooking ? t('Cancelar turno') : t('No se puede cancelar aún')
+                                                    puedeCancelarBooking ? t('Cancelar cita') : t('No se puede cancelar aún')
                                                 )}
                                             </button>
                                         )}
@@ -638,7 +638,7 @@ function MyBookings({ cliente, onVolver, onRepetir }) {
                         <div className="p-4 space-y-4">
                             <div className="rounded-lg bg-pink-50 border border-pink-100 p-3 text-sm text-pink-700">
                                 {reservaReprogramando.items.length > 1
-                                    ? t('Se mueve todo tu turno, con sus {n} servicios. Los servicios y las profesionales se mantienen igual.', { n: reservaReprogramando.items.length })
+                                    ? t('Se mueve toda tu cita, con sus {n} servicios. Los servicios y las profesionales se mantienen igual.', { n: reservaReprogramando.items.length })
                                     : t('Solo cambia la fecha y hora. El servicio, profesional y duración se mantienen igual.')}
                             </div>
 
@@ -721,7 +721,7 @@ function MyBookings({ cliente, onVolver, onRepetir }) {
                     onCerrar={() => setAnadiendoA(null)}
                     onError={(mensaje) => mostrarToast('error', mensaje)}
                     onListo={async () => {
-                        mostrarToast('ok', t('Servicio añadido a tu turno.'));
+                        mostrarToast('ok', t('Servicio añadido a tu cita.'));
                         setAnadiendoA(null);
                         await cargarReservas();
                     }}

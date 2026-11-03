@@ -215,7 +215,7 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol, onMisReservas, onC
             }
           },
           /* @__PURE__ */ React.createElement("span", null, "💖"),
-          /* @__PURE__ */ React.createElement("span", null, t("Reservar Turno")),
+          /* @__PURE__ */ React.createElement("span", null, t("Reservar cita")),
           /* @__PURE__ */ React.createElement("span", null, "✨")
         ), hayCatalogo && onCatalogo && /* @__PURE__ */ React.createElement(
           "button",

@@ -203,8 +203,8 @@ function Confirmation({ booking, onReset }) {
                     <h2 className="text-2xl font-bold text-amber-700 mb-2">{t('¡Ya casi! Falta el anticipo')}</h2>
                     <p className="text-amber-700 mb-5 max-w-xs mx-auto">
                         {textoAnticipo
-                            ? t('Tu turno quedará confirmado cuando envíes el anticipo de {monto}. Si no se recibe a tiempo, el horario se libera.', { monto: textoAnticipo })
-                            : t('Tu turno quedará confirmado cuando envíes el anticipo. Si no se recibe a tiempo, el horario se libera.')}
+                            ? t('Tu cita quedará confirmada cuando envíes el anticipo de {monto}. Si no se recibe a tiempo, el horario se libera.', { monto: textoAnticipo })
+                            : t('Tu cita quedará confirmada cuando envíes el anticipo. Si no se recibe a tiempo, el horario se libera.')}
                     </p>
                     {/* Es lo único que la clienta tiene que hacer aquí: arriba,
                         antes del resumen, no al fondo de la pantalla. */}
@@ -223,7 +223,7 @@ function Confirmation({ booking, onReset }) {
                 </>
             ) : (
                 <>
-                    <h2 className="text-2xl font-bold text-pink-800 mb-2">{t('¡Turno Reservado!')}</h2>
+                    <h2 className="text-2xl font-bold text-pink-800 mb-2">{t('¡Cita reservada!')}</h2>
                     <p className="text-pink-600 mb-6 max-w-xs mx-auto" style={mensajePropio ? { whiteSpace: 'pre-line' } : undefined}>
                         {mensajePropio || t('Tu cita ha sido agendada correctamente')}
                     </p>
@@ -303,7 +303,7 @@ function Confirmation({ booking, onReset }) {
                 {!valoracionEnviada ? (
                     <>
                         <p className="font-semibold text-pink-800 mb-1">{t('¿Qué te pareció reservar con nosotras?')}</p>
-                        <p className="text-xs text-pink-500 mb-3">{t('Califica la experiencia de agendar tu turno')}</p>
+                        <p className="text-xs text-pink-500 mb-3">{t('Califica la experiencia de agendar tu cita')}</p>
                         <div className="flex justify-center gap-2">
                             {[1,2,3,4,5].map(n => (
                                 <button key={n}
@@ -351,7 +351,7 @@ function Confirmation({ booking, onReset }) {
                     onClick={onReset}
                     className="w-full bg-pink-500 text-white py-4 rounded-full font-bold hover:bg-pink-600 transition-colors flex items-center justify-center gap-2 text-lg shadow-md"
                 >
-                    {t('Reservar otro turno')}
+                    {t('Reservar otra cita')}
                 </button>
 
                 {telefonoDuenno && (

@@ -1043,7 +1043,7 @@ function SetupWizard() {
                                             <div className="flex-1 min-w-0">
                                                 <div className="text-sm text-gray-700 truncate">
                                                     {cfg.horas.length > 0
-                                                        ? `${cfg.horas.length} ${cfg.horas.length === 1 ? t('cita') : t('citas')}: ${turnosDelDiaLegibles(d.id).join(' · ')}`
+                                                        ? `${cfg.horas.length} ${cfg.horas.length === 1 ? t('horario') : t('horarios')}: ${turnosDelDiaLegibles(d.id).join(' · ')}`
                                                         : t('Sin horarios — toca «Elegir horas»')}
                                                 </div>
                                             </div>
