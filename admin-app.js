@@ -789,7 +789,7 @@ function AdminApp() {
             id: 'profesionales',
             icono: 'icon-users',
             titulo: t('No tienes profesionales activos'),
-            detalle: t('Hace falta al menos una persona que atienda para poder dar turnos.'),
+            detalle: t('Hace falta al menos una persona que atienda para poder dar citas.'),
             accion: t('Agregar profesional'),
             onClick: () => setTabActivo('profesionales')
         });
@@ -2141,11 +2141,11 @@ function AdminApp() {
             if (diasCerradosFechas.includes(fechaStr)) return;
             const conteo = disponibilidadConteos[fechaStr] || 0;
             if (disponibilidadDias[fechaStr] !== true || conteo <= 0) return;
-            lineas.push(`${fechaStr}: ${conteo} ${conteo === 1 ? 'turno libre' : 'turnos libres'}`);
+            lineas.push(`${fechaStr}: ${conteo} ${conteo === 1 ? 'horario libre' : 'horarios libres'}`);
             diasListados++;
         });
 
-        if (diasListados === 0) lineas.push('Sin turnos libres este mes.');
+        if (diasListados === 0) lineas.push('Sin horarios libres este mes.');
 
         const texto = encodeURIComponent(lineas.join('\n'));
         window.open(`https://wa.me/?text=${texto}`, '_blank');
@@ -2348,7 +2348,7 @@ function AdminApp() {
                 ctx.setLineDash([]);
                 ctx.fillStyle = '#9ca3af';
                 ctx.font = '700 20px Arial';
-                dibujarTextoCentrado(ctx, 'Sin turnos', x + columnW / 2, y + 90, slotW - 16, 24);
+                dibujarTextoCentrado(ctx, 'Sin horarios', x + columnW / 2, y + 90, slotW - 16, 24);
             } else {
                 // Antes se recortaba a 8 turnos fijos y se escondian los demas
                 // en silencio: un dia con 12 huecos libres mostraba 8. Ahora se
@@ -2395,7 +2395,7 @@ function AdminApp() {
 
         ctx.fillStyle = '#831843';
         ctx.font = '800 34px Arial';
-        ctx.fillText('Reserva tu turno', 540, 1740);
+        ctx.fillText('Reserva tu cita', 540, 1740);
         ctx.fillStyle = '#6b7280';
         ctx.font = '500 26px Arial';
         ctx.fillText('Horarios sujetos a disponibilidad al momento de reservar', 540, 1790);
@@ -2539,9 +2539,9 @@ function AdminApp() {
             if (esCerrado) {
                 ctx.fillText('Cerrado', x + colW / 2, y + 100);
             } else if (!esPasado && disponible) {
-                ctx.fillText(`${conteo} turnos`, x + colW / 2, y + 100);
+                ctx.fillText(`${conteo} horarios`, x + colW / 2, y + 100);
             } else {
-                ctx.fillText('Sin turnos', x + colW / 2, y + 100);
+                ctx.fillText('Sin horarios', x + colW / 2, y + 100);
             }
         });
 
@@ -2550,10 +2550,10 @@ function AdminApp() {
         // que dia llenar primero; en la imagen que ve la clienta solo hace
         // falta el numero, no una etiqueta que suene a presion de venta.
         const legendas = [
-            ['#dcfce7', '#15803d', '4+ turnos'],
-            ['#fef3c7', '#b45309', '3 turnos'],
-            ['#fee2e2', '#b91c1c', '1-2 turnos'],
-            ['#f3f4f6', '#9ca3af', 'Sin turnos']
+            ['#dcfce7', '#15803d', '4+ horarios'],
+            ['#fef3c7', '#b45309', '3 horarios'],
+            ['#fee2e2', '#b91c1c', '1-2 horarios'],
+            ['#f3f4f6', '#9ca3af', 'Sin horarios']
         ];
 
         legendas.forEach((item, index) => {
@@ -2571,10 +2571,10 @@ function AdminApp() {
         ctx.textAlign = 'center';
         ctx.fillStyle = '#831843';
         ctx.font = '800 34px Arial';
-        ctx.fillText('Reserva tu turno', 540, 1740);
+        ctx.fillText('Reserva tu cita', 540, 1740);
         ctx.fillStyle = '#6b7280';
         ctx.font = '500 26px Arial';
-        ctx.fillText('Los numeros indican turnos disponibles por dia', 540, 1790);
+        ctx.fillText('Los números indican horarios disponibles por día', 540, 1790);
         ctx.fillStyle = '#be185d';
         ctx.font = '800 30px Arial';
         ctx.fillText('ByReservasRoma', 540, 1850);
@@ -2662,7 +2662,7 @@ function AdminApp() {
     };
     const quitarServicioDelTurno = async (item) => {
         if (!turnoEditando || quitandoServicioTurno) return;
-        if (!(await window.confirmar(`${t('¿Quitar este servicio del turno?')}\n\n${item.nombre}`))) return;
+        if (!(await window.confirmar(`${t('¿Quitar este servicio de la cita?')}\n\n${item.nombre}`))) return;
         setQuitandoServicioTurno(true);
         try {
             await window.turnos.quitarServicio(turnoEditando, item, { esAdmin: userRole === 'admin' });
@@ -2695,7 +2695,7 @@ function AdminApp() {
                 const fechaConDia = window.formatFechaCompleta ? window.formatFechaCompleta(datos.fecha) : datos.fecha;
                 const horaFormateada = window.formatTo12Hour ? window.formatTo12Hour(datos.hora_inicio) : datos.hora_inicio;
                 const lineaCalendario = typeof generarLineaCalendarioCliente === 'function' ? generarLineaCalendarioCliente(datos) : '';
-                window.enviarWhatsApp(datos.cliente_whatsapp, `Hola *${datos.cliente_nombre}*, tu turno fue reprogramado.\n\n*Servicio:* ${datos.servicio}\n*Fecha:* ${fechaConDia}\n*Hora:* ${horaFormateada}\n*Profesional:* ${datos.profesional_nombre}\n${lineaCalendario}\nTe esperamos.`);
+                window.enviarWhatsApp(datos.cliente_whatsapp, `Hola *${datos.cliente_nombre}*, tu cita fue reprogramada.\n\n*Servicio:* ${datos.servicio}\n*Fecha:* ${fechaConDia}\n*Hora:* ${horaFormateada}\n*Profesional:* ${datos.profesional_nombre}\n${lineaCalendario}\nTe esperamos.`);
             } catch (whatsappError) {
                 console.error('Error enviando WhatsApp:', whatsappError);
             }
@@ -2925,7 +2925,7 @@ function AdminApp() {
                         const fechaConDia = window.formatFechaCompleta ? window.formatFechaCompleta(result.data.fecha) : result.data.fecha;
                         const horaFormateada = window.formatTo12Hour ? window.formatTo12Hour(result.data.hora_inicio) : result.data.hora_inicio;
                         const lineaCalendario = typeof generarLineaCalendarioCliente === 'function' ? generarLineaCalendarioCliente(result.data) : '';
-                        const mensajeCliente = `Hola *${result.data.cliente_nombre}*, tu turno fue reprogramado.\n\n*Servicio:* ${result.data.servicio}\n*Fecha:* ${fechaConDia}\n*Hora:* ${horaFormateada}\n*Profesional:* ${result.data.profesional_nombre || result.data.trabajador_nombre}\n${lineaCalendario}\nTe esperamos.`;
+                        const mensajeCliente = `Hola *${result.data.cliente_nombre}*, tu cita fue reprogramada.\n\n*Servicio:* ${result.data.servicio}\n*Fecha:* ${fechaConDia}\n*Hora:* ${horaFormateada}\n*Profesional:* ${result.data.profesional_nombre || result.data.trabajador_nombre}\n${lineaCalendario}\nTe esperamos.`;
                         window.enviarWhatsApp(result.data.cliente_whatsapp, mensajeCliente);
                     } else if (requiereAnticipo) {
                         if (window.enviarMensajePago) {
@@ -3407,7 +3407,7 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
             }
         }
 
-        if (!(await window.confirmar(t('Confirmar que se recibió el pago de {nombre}? El turno pasará a "Reservado".', { nombre: bookingData.cliente_nombre })))) return;
+        if (!(await window.confirmar(t('¿Confirmar que se recibió el pago de {nombre}? La cita pasará a "Reservado".', { nombre: bookingData.cliente_nombre })))) return;
 
         try {
 
@@ -3766,7 +3766,7 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
         }
 
         if (!turnoYaPaso(bookingData)) {
-            alert(t('Solo se puede marcar ausencia en turnos que ya pasaron.'));
+            alert(t('Solo se puede marcar ausencia en citas que ya pasaron.'));
             return;
         }
 
@@ -4029,7 +4029,7 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
         const fechaLegible = window.formatFechaCompleta ? window.formatFechaCompleta(b.fecha) : b.fecha;
         const profesionalNombre = b.profesional_nombre || b.trabajador_nombre || '';
         const lineas = [
-            `Hola ${String(b.cliente_nombre || '').trim()}! 💖 Te recordamos tu turno de MAÑANA en ${nombreNegocio}:`,
+            `Hola ${String(b.cliente_nombre || '').trim()}! 💖 Te recordamos tu cita de MAÑANA en ${nombreNegocio}:`,
             '',
             `🗓️ ${fechaLegible}`,
             `🕐 ${hora}`,
@@ -5469,7 +5469,7 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                                     </div>
                                     {clienteReconocido && (
                                         <p className="text-xs text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-lg px-2.5 py-1.5 mt-1.5">
-                                            {t('Ya vino antes: {nombre} · {n} turno{s}', {
+                                            {t('Ya vino antes: {nombre} · {n} cita{s}', {
                                                 nombre: clienteReconocido.nombre,
                                                 n: clienteReconocido.turnos,
                                                 s: clienteReconocido.turnos === 1 ? '' : 's'
@@ -5479,7 +5479,7 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        {turnoEditando ? t('Servicios de este turno') : !reservaEditando ? t('Servicios *') : t('Servicio *')}
+                                        {turnoEditando ? t('Servicios de esta cita') : !reservaEditando ? t('Servicios *') : t('Servicio *')}
                                     </label>
                                     {turnoEditando ? (
                                         <div>
@@ -5501,7 +5501,7 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                                                 className="mt-2 text-sm font-semibold text-pink-600 underline disabled:opacity-50">
                                                 ➕ {t('Añadir un servicio')}
                                             </button>
-                                            <p className="text-xs text-gray-500 mt-2">{t('Al cambiar la fecha u hora se mueve todo el turno, con sus servicios.')}</p>
+                                            <p className="text-xs text-gray-500 mt-2">{t('Al cambiar la fecha u hora se mueve toda la cita, con sus servicios.')}</p>
                                         </div>
                                     ) : reservaEditando ? (
                                         <select
@@ -5825,7 +5825,7 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
 
                                 {serviciosDetalle.length > 1 && (
                                     <div className="mt-5 rounded-xl border border-pink-100 bg-pink-50 p-4">
-                                        <p className="text-xs font-bold uppercase text-pink-500 mb-3">{t('Servicios del turno')}</p>
+                                        <p className="text-xs font-bold uppercase text-pink-500 mb-3">{t('Servicios de la cita')}</p>
                                         <div className="space-y-2">
                                             {serviciosDetalle.map(item => (
                                                 <div key={item.id} className="flex justify-between gap-3 text-sm">
@@ -5906,7 +5906,7 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                                     <div className="flex items-center justify-between gap-2">
                                         <div>
                                             <p className="text-sm font-bold text-gray-900">{t('Disponibilidad semanal')}</p>
-                                            <p className="text-xs text-gray-500">{t('Turnos libres en verde para compartir.')}</p>
+                                            <p className="text-xs text-gray-500">{t('Horarios libres en verde para compartir.')}</p>
                                         </div>
                                         <button
                                             onClick={compartirDisponibilidadSemanal}
@@ -5934,7 +5934,7 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                                                     <div className="px-1.5 py-3 sm:p-4 space-y-2 sm:space-y-3">
                                                         {disponibles.length === 0 ? (
                                                             <div className="h-24 sm:h-32 rounded-xl border border-dashed border-gray-200 bg-white/70 text-gray-400 text-[9px] sm:text-xs flex items-center justify-center text-center px-1 leading-tight">
-                                                                {t('Sin turnos')}
+                                                                {t('Sin horarios')}
                                                             </div>
                                                         ) : (
                                                             disponibles.map(turno => (
@@ -5951,7 +5951,7 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
 
                                     <div className="flex flex-wrap gap-3 text-[11px] sm:text-xs text-gray-600">
                                         <span className="inline-flex items-center gap-1"><span className="w-3 h-3 rounded bg-green-500"></span>{t('Disponible')}</span>
-                                        <span className="inline-flex items-center gap-1"><span className="w-3 h-3 rounded bg-gray-100 border border-gray-200"></span>{t('Sin turnos')}</span>
+                                        <span className="inline-flex items-center gap-1"><span className="w-3 h-3 rounded bg-gray-100 border border-gray-200"></span>{t('Sin horarios')}</span>
                                     </div>
                                 </div>
                             ) : (
@@ -5995,7 +5995,7 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                                             else className += " bg-gray-100 text-gray-400 border-gray-200";
                                             
                                             return (
-                                                <div key={idx} className={className} title={esCerrado ? t('Día cerrado') : esPasado ? t('Fecha pasada') : disponible ? t('{n} turno(s) disponible(s)', { n: disponiblesDia }) : t('Sin horarios disponibles')}>
+                                                <div key={idx} className={className} title={esCerrado ? t('Día cerrado') : esPasado ? t('Fecha pasada') : disponible ? t('{n} horario(s) disponible(s)', { n: disponiblesDia }) : t('Sin horarios disponibles')}>
                                                     <span className="text-base leading-tight">{date.getDate()}</span>
                                                     {!esCerrado && !esPasado && (
                                                         <span className={`mt-0.5 min-w-5 px-1.5 py-0.5 rounded-full border text-[11px] font-bold leading-none ${tonoConteo}`}>
@@ -6026,8 +6026,8 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                     <div role="status" className="bg-green-50 border border-green-300 rounded-xl p-3 flex flex-wrap items-center gap-3">
                         <span className="flex-1 min-w-[200px] text-sm text-green-900">
                             {esperaLibres.length === 1
-                                ? t('Se liberó un turno y {nombre} está en lista de espera.', { nombre: esperaLibres[0].cliente_nombre || '' })
-                                : t('Se liberaron {n} turnos con clientas en lista de espera.', { n: esperaLibres.length })}
+                                ? t('Se liberó un horario y {nombre} está en lista de espera.', { nombre: esperaLibres[0].cliente_nombre || '' })
+                                : t('Se liberaron {n} horarios con clientas en lista de espera.', { n: esperaLibres.length })}
                         </span>
                         <button type="button" onClick={() => setTabActivo('lista-espera')} className="px-4 min-h-11 rounded-lg bg-green-600 text-white text-sm font-semibold hover:bg-green-700">
                             {t('Ver lista de espera')}
@@ -6247,7 +6247,7 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                                                         </div>
                                                         <p className="text-sm text-gray-500 mt-1">+{cliente.whatsapp}</p>
                                                         <p className="text-xs text-gray-500 mt-1">{t('Última cita:')} {ultimaCita}</p>
-                                                        <p className="text-xs font-semibold text-pink-600 mt-2">{t('Tocar para ver todos sus turnos')}</p>
+                                                        <p className="text-xs font-semibold text-pink-600 mt-2">{t('Tocar para ver todas sus citas')}</p>
                                                     </div>
 
                                                     {(userRole === 'admin' || userNivel >= 3) && (
@@ -6324,7 +6324,7 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                                     <div className="flex flex-wrap gap-2 mt-3">
                                         <span className={`px-2.5 py-1 rounded-full border text-xs font-semibold ${clienteDetalle.score.tone}`}>{clienteDetalle.score.label}</span>
                                         <span className="px-2.5 py-1 rounded-full bg-white border text-xs font-semibold text-gray-700">{t('Score {n}/100', { n: clienteDetalle.score.score })}</span>
-                                        <span className="px-2.5 py-1 rounded-full bg-pink-50 text-pink-700 border border-pink-100 text-xs font-semibold">{t('{n} turnos', { n: clienteDetalle.reservas.length })}</span>
+                                        <span className="px-2.5 py-1 rounded-full bg-pink-50 text-pink-700 border border-pink-100 text-xs font-semibold">{t('{n} citas', { n: clienteDetalle.reservas.length })}</span>
                                         {(() => {
                                             const cumpleFicha = window.cumpleanos?.cumpleDe(clienteDetalle.cliente, 'cumple_dia', 'cumple_mes');
                                             return cumpleFicha ? (
@@ -6440,7 +6440,7 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                             <div className="p-5 overflow-y-auto max-h-[68vh] space-y-3">
                                 {clienteDetalle.reservas.length === 0 ? (
                                     <div className="text-center py-10 bg-gray-50 rounded-xl border border-gray-100">
-                                        <p className="text-gray-500">{t('Este cliente aún no tiene turnos registrados.')}</p>
+                                        <p className="text-gray-500">{t('Este cliente aún no tiene citas registradas.')}</p>
                                     </div>
                                 ) : (
                                     clienteDetalle.reservas.map((reserva, index) => {
@@ -6532,14 +6532,14 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                             </div>
 
                             <div className="sm:hidden mt-3 flex flex-wrap gap-2 text-xs">
-                                <span className="rounded-full bg-white border border-pink-100 px-2.5 py-1 text-gray-700"><b>{agendaVisibleBookings.length}</b> {t('Turnos').toLowerCase()}</span>
+                                <span className="rounded-full bg-white border border-pink-100 px-2.5 py-1 text-gray-700"><b>{agendaVisibleBookings.length}</b> {t('Citas').toLowerCase()}</span>
                                 <span className="rounded-full bg-white border border-amber-100 px-2.5 py-1 text-amber-700"><b>{agendaVisibleBookings.filter(b => b.estado === 'Pendiente').length}</b> {t('Pendientes').toLowerCase()}</span>
                                 <span className="rounded-full bg-white border border-emerald-100 px-2.5 py-1 text-emerald-700"><b>{agendaVisibleBookings.filter(b => b.estado === 'Completado').length}</b> {t('Completados').toLowerCase()}</span>
                             </div>
 
                             <div className="hidden sm:grid grid-cols-4 gap-3 mt-5">
                                 <div className="rounded-lg border border-pink-100 bg-white p-3">
-                                    <p className="text-xs text-gray-500">{t('Turnos')}</p>
+                                    <p className="text-xs text-gray-500">{t('Citas')}</p>
                                     <p className="text-2xl font-bold text-gray-900">{agendaVisibleBookings.length}</p>
                                 </div>
                                 <div className="rounded-lg border border-amber-100 bg-white p-3">
@@ -6606,7 +6606,7 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                                                         {col.avatar || String(col.nombre || '?').charAt(0).toUpperCase()}
                                                     </div>
                                                     <p className="text-xs font-semibold text-gray-800 truncate max-w-full">{col.nombre}</p>
-                                                    <span className="text-[10px] text-gray-500">{col.items.length} {t('turnos').toLowerCase()}</span>
+                                                    <span className="text-[10px] text-gray-500">{col.items.length} {t('citas').toLowerCase()}</span>
                                                 </div>
                                             ))}
                                         </div>
@@ -6695,7 +6695,7 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                                                     <button key={dateStr} onClick={() => { setAgendaDate(day); setAgendaMode('dia'); }} className={`py-1.5 text-center border-l ${isToday ? 'bg-pink-50' : ''}`}>
                                                         <span className="block text-[10px] font-semibold uppercase text-gray-500">{day.toLocaleDateString(idioma === 'en' ? 'en-US' : 'es-CU', { weekday: 'short' })}</span>
                                                         <span className={`block text-lg font-bold leading-tight ${isToday ? 'text-pink-600' : 'text-gray-900'}`}>{day.getDate()}</span>
-                                                        <span className={`block text-[10px] leading-3 ${total ? 'text-pink-600 font-bold' : 'text-gray-400'}`}>{total} {t('turnos').toLowerCase()}</span>
+                                                        <span className={`block text-[10px] leading-3 ${total ? 'text-pink-600 font-bold' : 'text-gray-400'}`}>{total} {t('citas').toLowerCase()}</span>
                                                     </button>
                                                 );
                                             })}
@@ -6978,14 +6978,14 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                                 <div className="p-4 bg-gradient-to-r from-amber-50 to-white border-b border-amber-100">
                                     <h3 className="font-bold text-gray-900 flex items-center gap-2">
                                         <span className="text-xl">🔔</span>
-                                        {t('Turnos de mañana ({n})', { n: turnosManana.length })}
+                                        {t('Citas de mañana ({n})', { n: turnosManana.length })}
                                     </h3>
                                     <p className="text-xs text-gray-500 mt-1">
                                         {turnosManana.length > 0
                                             ? t('Envía el recordatorio por WhatsApp con un toque. Quedará marcado como recordado en este dispositivo.')
                                             : (esProfesionalPanel
-                                                ? t('Mañana no tienes turnos. Cuando tengas, aquí podrás recordárselos por WhatsApp con un toque.')
-                                                : t('Mañana no hay turnos. Cuando los haya, aquí podrás recordárselos por WhatsApp con un toque.'))}
+                                                ? t('Mañana no tienes citas. Cuando tengas, aquí podrás recordárselas por WhatsApp con un toque.')
+                                                : t('Mañana no hay citas. Cuando las haya, aquí podrás recordárselas por WhatsApp con un toque.'))}
                                     </p>
                                 </div>
                                 <div className="divide-y divide-gray-100">
@@ -7020,7 +7020,7 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                         <div className="bg-white p-4 rounded-xl shadow-sm space-y-3">
                             {esAdminPanel && profesionalesList.length > 1 && (
                                 <div className="space-y-2">
-                                    <p className="text-xs uppercase tracking-wide text-gray-500 font-bold">{t('Ver turnos de')}</p>
+                                    <p className="text-xs uppercase tracking-wide text-gray-500 font-bold">{t('Ver citas de')}</p>
                                     <select
                                         value={filtroProfesionalAdmin}
                                         onChange={(e) => cambiarFiltroProfesionalAdmin(e.target.value)}
@@ -7034,7 +7034,7 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                                     </select>
                                     {filtroProfesionalAdmin && (
                                         <p className="text-xs text-gray-500">
-                                            {t('La agenda y los contadores también muestran solo estos turnos.')}
+                                            {t('La agenda y los contadores también muestran solo estas citas.')}
                                         </p>
                                     )}
                                 </div>

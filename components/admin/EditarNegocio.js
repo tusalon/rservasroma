@@ -31,7 +31,7 @@ function EditarNegocio() {
         mensaje_confirmacion_activo: false,
         mensaje_primera_vez: '',
         mensaje_primera_vez_activo: false,
-        mensaje_inasistencia: 'Hola {cliente}, registramos que no asististe a tu turno en {nombre_negocio}.\n\nServicio: {servicio}\nFecha: {fecha}\nHora: {hora}\nProfesional: {profesional}\n\nSi necesitas reprogramar, por favor escribenos por este WhatsApp.',
+        mensaje_inasistencia: 'Hola {cliente}, registramos que no asististe a tu cita en {nombre_negocio}.\n\nServicio: {servicio}\nFecha: {fecha}\nHora: {hora}\nProfesional: {profesional}\n\nSi necesitas reprogramar, por favor escribenos por este WhatsApp.',
         instagram: '',
         facebook: '',
         horario_atencion: '',
@@ -126,11 +126,11 @@ function EditarNegocio() {
                     imagen_fondo_tipo: configData.imagen_fondo_tipo || 'unas',
                     imagen_fondo_url: configData.imagen_fondo_url || '',
                     mensaje_bienvenida: configData.mensaje_bienvenida || '¡Bienvenido!',
-                    mensaje_confirmacion: configData.mensaje_confirmacion || 'Tu turno ha sido reservado',
+                    mensaje_confirmacion: configData.mensaje_confirmacion || 'Tu cita ha sido reservada',
                     mensaje_confirmacion_activo: configData.mensaje_confirmacion_activo === true,
                     mensaje_primera_vez: configData.mensaje_primera_vez || '',
                     mensaje_primera_vez_activo: configData.mensaje_primera_vez_activo === true,
-                    mensaje_inasistencia: configData.mensaje_inasistencia || 'Hola {cliente}, registramos que no asististe a tu turno en {nombre_negocio}.\n\nServicio: {servicio}\nFecha: {fecha}\nHora: {hora}\nProfesional: {profesional}\n\nSi necesitas reprogramar, por favor escribenos por este WhatsApp.',
+                    mensaje_inasistencia: configData.mensaje_inasistencia || 'Hola {cliente}, registramos que no asististe a tu cita en {nombre_negocio}.\n\nServicio: {servicio}\nFecha: {fecha}\nHora: {hora}\nProfesional: {profesional}\n\nSi necesitas reprogramar, por favor escribenos por este WhatsApp.',
                     instagram: configData.instagram || '',
                     facebook: configData.facebook || '',
                     horario_atencion: configData.horario_atencion || '',
@@ -1014,8 +1014,8 @@ function EditarNegocio() {
                                                 <div className="grid grid-cols-2 gap-2 text-blue-600">
                                                     <span><code>{'{monto_anticipo}'}</code> - {t('Monto calculado')}</span>
                                                     <span><code>{'{servicio}'}</code> - {t('Nombre del servicio')}</span>
-                                                    <span><code>{'{fecha}'}</code> - {t('Fecha del turno')}</span>
-                                                    <span><code>{'{hora}'}</code> - {t('Hora del turno')}</span>
+                                                    <span><code>{'{fecha}'}</code> - {t('Fecha de la cita')}</span>
+                                                    <span><code>{'{hora}'}</code> - {t('Hora de la cita')}</span>
                                                     <span><code>{'{profesional}'}</code> - {t('Profesional')}</span>
                                                     <span><code>{'{cbu}'}</code> - {t('Número de tarjeta')}</span>
                                                     <span><code>{'{alias}'}</code> - {t('Móvil a confirmar')}</span>

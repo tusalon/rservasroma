@@ -171,7 +171,7 @@ function ConfigPanel({ profesionalId, modoRestringido, profesionalInicial = null
                             
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    {t('Intervalo entre turnos (min)')}
+                                    {t('Intervalo entre citas (min)')}
                                 </label>
                                 <input
                                     type="number"
@@ -231,7 +231,7 @@ function ConfigPanel({ profesionalId, modoRestringido, profesionalInicial = null
                                     step="1"
                                 />
                                 <p className="text-xs text-gray-500 mt-1">
-                                    {t('Ej: 2 evita reservar turnos con menos de 2 horas.')}
+                                    {t('Ej: 2 evita reservar citas con menos de 2 horas.')}
                                 </p>
                             </div>
 
@@ -426,7 +426,7 @@ function FechasLibresPanel({ profesionalId, profesionales, onActualizar }) {
                 ✈️ {t('Días Libres / Vacaciones de {nombre}', { nombre: profesional?.nombre })}
             </h3>
             <p className="text-sm text-orange-600 mb-4">
-                {t('El profesional NO recibirá turnos estos días.')}
+                {t('El profesional NO recibirá citas estos días.')}
             </p>
 
             <div className="flex flex-wrap sm:flex-nowrap gap-2 mb-4">
@@ -615,7 +615,7 @@ function DiasCerradosGlobalesPanel() {
                 🚫 {t('Días Cerrados del Local')}
             </h3>
             <p className="text-sm text-red-600 mb-4">
-                {t('El local completo estará cerrado estos días.')} <b>{t('Ningún profesional')}</b> {t('recibirá turnos.')}
+                {t('El local completo estará cerrado estos días.')} <b>{t('Ningún profesional')}</b> {t('recibirá citas.')}
             </p>
 
             <div className="flex flex-col sm:flex-row gap-2 mb-4 bg-white p-3 rounded shadow-sm border border-red-100">

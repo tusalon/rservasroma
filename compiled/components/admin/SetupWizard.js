@@ -144,7 +144,7 @@ function SetupWizard() {
     // Defaults conservados para el negocio (editables luego en el panel)
     direccion: "",
     mensaje_bienvenida: "¡Bienvenido a nuestro salón!",
-    mensaje_confirmacion: "Tu turno ha sido reservado con éxito",
+    mensaje_confirmacion: "Tu cita ha sido reservada con éxito",
     instagram: "",
     facebook: ""
   });
@@ -239,7 +239,7 @@ function SetupWizard() {
       const activos = diasActivos();
       if (activos.length === 0) return t("Selecciona al menos un día de trabajo");
       const sinHoras = activos.some((d) => (config.horarios_dias[d.id].horas || []).length === 0);
-      if (sinHoras) return t("Cada día que trabajas necesita al menos un turno. Toca «Elegir horas» en el día que quedó vacío.");
+      if (sinHoras) return t("Cada día que trabajas necesita al menos un horario. Toca «Elegir horas» en el día que quedó vacío.");
     }
     return "";
   };
@@ -651,7 +651,7 @@ function SetupWizard() {
       },
       className: "w-5 h-5 text-amber-600"
     }
-  )), s.mostrar_horarios_especiales ? /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("input", { value: s.horarios_permitidos, onChange: (e) => actualizarServicio(i, "horarios_permitidos", e.target.value), className: "w-full border rounded-lg px-3 py-2", placeholder: t("Ej: 09:00, 11:00, 15:00") }), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 mt-1" }, t("Escribe las horas exactas separadas por coma."))) : /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500" }, t("La mayoria de los servicios no necesita esto: se reserva en cualquier horario del profesional.")))))), step === 4 && /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-xl shadow-sm p-6 space-y-4 animate-fade-in" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h2", { className: "text-xl font-bold mb-1" }, "🕐 ", t("¿A qué hora empiezan tus turnos?")), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500" }, t("Marca la hora a la que empieza cada cita. Tus clientas verán exactamente esas horas para reservar."))), /* @__PURE__ */ React.createElement("div", { className: "rounded-lg bg-blue-50 border border-blue-200 p-3" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs text-blue-900 leading-relaxed" }, t("Ejemplo: si atiendes a las 9, a las 11 y a la 1, marca solo esas tres. No hace falta marcar todas las horas que estás abierta."))), /* @__PURE__ */ React.createElement("p", { className: "text-sm font-semibold text-gray-700" }, t("Toca un día para abrirlo y elegir sus turnos:")), DIAS.map((d) => {
+  )), s.mostrar_horarios_especiales ? /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("input", { value: s.horarios_permitidos, onChange: (e) => actualizarServicio(i, "horarios_permitidos", e.target.value), className: "w-full border rounded-lg px-3 py-2", placeholder: t("Ej: 09:00, 11:00, 15:00") }), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 mt-1" }, t("Escribe las horas exactas separadas por coma."))) : /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500" }, t("La mayoria de los servicios no necesita esto: se reserva en cualquier horario del profesional.")))))), step === 4 && /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-xl shadow-sm p-6 space-y-4 animate-fade-in" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h2", { className: "text-xl font-bold mb-1" }, "🕐 ", t("¿A qué hora empiezan tus citas?")), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500" }, t("Marca la hora a la que empieza cada cita. Tus clientas verán exactamente esas horas para reservar."))), /* @__PURE__ */ React.createElement("div", { className: "rounded-lg bg-blue-50 border border-blue-200 p-3" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs text-blue-900 leading-relaxed" }, t("Ejemplo: si atiendes a las 9, a las 11 y a la 1, marca solo esas tres. No hace falta marcar todas las horas que estás abierta."))), /* @__PURE__ */ React.createElement("p", { className: "text-sm font-semibold text-gray-700" }, t("Toca un día para abrirlo y elegir sus horarios:")), DIAS.map((d) => {
     const cfg = config.horarios_dias[d.id];
     const editando = diaEditando === d.id;
     return /* @__PURE__ */ React.createElement("div", { key: d.id, className: `rounded-lg border transition-all ${cfg.activo ? "border-amber-200 bg-amber-50/40" : "border-gray-200 bg-gray-50"}` }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3 p-3" }, /* @__PURE__ */ React.createElement(
@@ -662,7 +662,7 @@ function SetupWizard() {
         className: `w-14 shrink-0 px-2 py-2 rounded-lg text-sm font-bold transition-all ${cfg.activo ? "bg-amber-600 text-white shadow" : "bg-gray-200 text-gray-500"}`
       },
       d.corto
-    ), cfg.activo ? /* @__PURE__ */ React.createElement("div", { className: "flex-1 min-w-0" }, /* @__PURE__ */ React.createElement("div", { className: "text-sm text-gray-700 truncate" }, cfg.horas.length > 0 ? `${cfg.horas.length} ${cfg.horas.length === 1 ? t("turno") : t("turnos")}: ${turnosDelDiaLegibles(d.id).join(" · ")}` : t("Sin turnos — toca «Elegir horas»"))) : /* @__PURE__ */ React.createElement("span", { className: "text-gray-400 text-sm flex-1" }, t("Cerrado")), cfg.activo && /* @__PURE__ */ React.createElement(
+    ), cfg.activo ? /* @__PURE__ */ React.createElement("div", { className: "flex-1 min-w-0" }, /* @__PURE__ */ React.createElement("div", { className: "text-sm text-gray-700 truncate" }, cfg.horas.length > 0 ? `${cfg.horas.length} ${cfg.horas.length === 1 ? t("cita") : t("citas")}: ${turnosDelDiaLegibles(d.id).join(" · ")}` : t("Sin horarios — toca «Elegir horas»"))) : /* @__PURE__ */ React.createElement("span", { className: "text-gray-400 text-sm flex-1" }, t("Cerrado")), cfg.activo && /* @__PURE__ */ React.createElement(
       "button",
       {
         type: "button",
@@ -670,7 +670,7 @@ function SetupWizard() {
         className: "text-xs font-semibold text-amber-700 hover:underline shrink-0"
       },
       editando ? t("Cerrar") : t("Elegir horas")
-    )), cfg.activo && editando && /* @__PURE__ */ React.createElement("div", { className: "px-3 pb-3" }, /* @__PURE__ */ React.createElement("div", { className: "rounded-lg bg-white border border-amber-200 p-3 mb-3" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-semibold text-gray-500 mb-1.5" }, t("Tus clientas verán estos turnos:")), cfg.horas.length > 0 ? /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-1.5" }, turnosDelDiaLegibles(d.id).map((hora) => /* @__PURE__ */ React.createElement("span", { key: hora, className: "px-2 py-1 rounded-md bg-green-100 text-green-800 text-xs font-bold" }, hora))) : /* @__PURE__ */ React.createElement("p", { className: "text-xs text-red-600 font-semibold" }, t("Ninguno todavía. Marca abajo las horas en que atiendes."))), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap items-center gap-2 mb-3" }, /* @__PURE__ */ React.createElement("button", { type: "button", onClick: () => limpiarHorasDia(d.id), className: "text-xs px-2.5 py-1.5 bg-gray-200 text-gray-700 rounded hover:bg-gray-300" }, t("Quitar todos")), /* @__PURE__ */ React.createElement(
+    )), cfg.activo && editando && /* @__PURE__ */ React.createElement("div", { className: "px-3 pb-3" }, /* @__PURE__ */ React.createElement("div", { className: "rounded-lg bg-white border border-amber-200 p-3 mb-3" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-semibold text-gray-500 mb-1.5" }, t("Tus clientas verán estos horarios:")), cfg.horas.length > 0 ? /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-1.5" }, turnosDelDiaLegibles(d.id).map((hora) => /* @__PURE__ */ React.createElement("span", { key: hora, className: "px-2 py-1 rounded-md bg-green-100 text-green-800 text-xs font-bold" }, hora))) : /* @__PURE__ */ React.createElement("p", { className: "text-xs text-red-600 font-semibold" }, t("Ninguno todavía. Marca abajo las horas en que atiendes."))), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap items-center gap-2 mb-3" }, /* @__PURE__ */ React.createElement("button", { type: "button", onClick: () => limpiarHorasDia(d.id), className: "text-xs px-2.5 py-1.5 bg-gray-200 text-gray-700 rounded hover:bg-gray-300" }, t("Quitar todos")), /* @__PURE__ */ React.createElement(
       "select",
       {
         value: "",
@@ -680,7 +680,7 @@ function SetupWizard() {
         },
         className: "text-xs border rounded px-2 py-1.5 bg-white"
       },
-      /* @__PURE__ */ React.createElement("option", { value: "" }, t("Copiar turnos de otro día…")),
+      /* @__PURE__ */ React.createElement("option", { value: "" }, t("Copiar horarios de otro día…")),
       DIAS.filter((x) => x.id !== d.id && config.horarios_dias[x.id].horas.length > 0).map((x) => /* @__PURE__ */ React.createElement("option", { key: x.id, value: x.id }, x.nombre, " (", config.horarios_dias[x.id].horas.length, ")"))
     )), (verMadrugada ? [GRUPO_MADRUGADA, ...GRUPOS_HORARIO] : GRUPOS_HORARIO).map((grupo) => /* @__PURE__ */ React.createElement("div", { key: grupo.id, className: "mb-3" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5" }, t(grupo.titulo)), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-4 sm:grid-cols-6 gap-1.5" }, SLOTS_DIA.filter((s) => s.indice >= grupo.desde && s.indice <= grupo.hasta).map((slot) => {
       const activa = cfg.horas.includes(slot.indice);

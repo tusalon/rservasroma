@@ -95,7 +95,7 @@ function ListaEsperaPanel({ profesionalId = null, nombreSalon = '', onCambio }) 
             const mapa = await reservasDe([fila.fecha]);
             if (window.listaEspera.turnoOcupado(mapa[`${fila.fecha}|${fila.profesional_id}`], fila)) {
                 setLibres(l => ({ ...l, [fila.id]: false }));
-                setAviso(t('Ese turno ya se ocupó de nuevo.'));
+                setAviso(t('Ese horario ya se ocupó de nuevo.'));
                 return;
             }
             const fecha = window.formatFechaCompleta ? window.formatFechaCompleta(fila.fecha) : fila.fecha;
@@ -151,7 +151,7 @@ function ListaEsperaPanel({ profesionalId = null, nombreSalon = '', onCambio }) 
             {cargando ? (
                 <p className="text-sm text-gray-500">{t('Cargando...')}</p>
             ) : ordenadas.length === 0 ? (
-                <p className="text-sm text-gray-600 py-6 text-center">{t('Cuando una clienta se anote en un turno lleno, aparecerá aquí.')}</p>
+                <p className="text-sm text-gray-600 py-6 text-center">{t('Cuando una clienta se anote en un horario lleno, aparecerá aquí.')}</p>
             ) : (
                 <ul className="space-y-3">
                     {ordenadas.map(f => {
@@ -171,7 +171,7 @@ function ListaEsperaPanel({ profesionalId = null, nombreSalon = '', onCambio }) 
                                             <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-purple-100 text-purple-800 border border-purple-200">{t('Avisada')}</span>
                                         )}
                                         <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${libre ? 'bg-green-100 text-green-800 border-green-300' : 'bg-gray-100 text-gray-700 border-gray-200'}`}>
-                                            {libre ? t('Turno libre') : t('Turno ocupado')}
+                                            {libre ? t('Horario libre') : t('Horario ocupado')}
                                         </span>
                                     </div>
                                 </div>

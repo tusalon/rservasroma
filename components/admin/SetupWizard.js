@@ -173,7 +173,7 @@ function SetupWizard() {
         // Defaults conservados para el negocio (editables luego en el panel)
         direccion: '',
         mensaje_bienvenida: '¡Bienvenido a nuestro salón!',
-        mensaje_confirmacion: 'Tu turno ha sido reservado con éxito',
+        mensaje_confirmacion: 'Tu cita ha sido reservada con éxito',
         instagram: '',
         facebook: ''
     });
@@ -286,7 +286,7 @@ function SetupWizard() {
             const activos = diasActivos();
             if (activos.length === 0) return t('Selecciona al menos un día de trabajo');
             const sinHoras = activos.some(d => (config.horarios_dias[d.id].horas || []).length === 0);
-            if (sinHoras) return t('Cada día que trabajas necesita al menos un turno. Toca «Elegir horas» en el día que quedó vacío.');
+            if (sinHoras) return t('Cada día que trabajas necesita al menos un horario. Toca «Elegir horas» en el día que quedó vacío.');
         }
         return '';
     };
@@ -1012,7 +1012,7 @@ function SetupWizard() {
                 {step === 4 && (
                     <div className="bg-white rounded-xl shadow-sm p-6 space-y-4 animate-fade-in">
                         <div>
-                            <h2 className="text-xl font-bold mb-1">🕐 {t('¿A qué hora empiezan tus turnos?')}</h2>
+                            <h2 className="text-xl font-bold mb-1">🕐 {t('¿A qué hora empiezan tus citas?')}</h2>
                             <p className="text-sm text-gray-500">{t('Marca la hora a la que empieza cada cita. Tus clientas verán exactamente esas horas para reservar.')}</p>
                         </div>
 
@@ -1022,7 +1022,7 @@ function SetupWizard() {
                             </p>
                         </div>
 
-                        <p className="text-sm font-semibold text-gray-700">{t('Toca un día para abrirlo y elegir sus turnos:')}</p>
+                        <p className="text-sm font-semibold text-gray-700">{t('Toca un día para abrirlo y elegir sus horarios:')}</p>
 
                         {DIAS.map(d => {
                             const cfg = config.horarios_dias[d.id];
@@ -1043,8 +1043,8 @@ function SetupWizard() {
                                             <div className="flex-1 min-w-0">
                                                 <div className="text-sm text-gray-700 truncate">
                                                     {cfg.horas.length > 0
-                                                        ? `${cfg.horas.length} ${cfg.horas.length === 1 ? t('turno') : t('turnos')}: ${turnosDelDiaLegibles(d.id).join(' · ')}`
-                                                        : t('Sin turnos — toca «Elegir horas»')}
+                                                        ? `${cfg.horas.length} ${cfg.horas.length === 1 ? t('cita') : t('citas')}: ${turnosDelDiaLegibles(d.id).join(' · ')}`
+                                                        : t('Sin horarios — toca «Elegir horas»')}
                                                 </div>
                                             </div>
                                         ) : (
@@ -1066,7 +1066,7 @@ function SetupWizard() {
                                             {/* Espejo de lo que vera la clienta: sin esto la dueña tiene
                                                 que imaginarse que produce cada franja que marca. */}
                                             <div className="rounded-lg bg-white border border-amber-200 p-3 mb-3">
-                                                <p className="text-xs font-semibold text-gray-500 mb-1.5">{t('Tus clientas verán estos turnos:')}</p>
+                                                <p className="text-xs font-semibold text-gray-500 mb-1.5">{t('Tus clientas verán estos horarios:')}</p>
                                                 {cfg.horas.length > 0 ? (
                                                     <div className="flex flex-wrap gap-1.5">
                                                         {turnosDelDiaLegibles(d.id).map(hora => (
@@ -1087,7 +1087,7 @@ function SetupWizard() {
                                                     onChange={(e) => { copiarHorasDia(d.id, e.target.value); e.target.value = ''; }}
                                                     className="text-xs border rounded px-2 py-1.5 bg-white"
                                                 >
-                                                    <option value="">{t('Copiar turnos de otro día…')}</option>
+                                                    <option value="">{t('Copiar horarios de otro día…')}</option>
                                                     {DIAS.filter(x => x.id !== d.id && config.horarios_dias[x.id].horas.length > 0).map(x => (
                                                         <option key={x.id} value={x.id}>{x.nombre} ({config.horarios_dias[x.id].horas.length})</option>
                                                     ))}

@@ -1,6 +1,6 @@
 ﻿// sw.js - Service Worker para Rservasroma
 
-const CACHE_NAME = 'rservasroma-v167';
+const CACHE_NAME = 'rservasroma-v168';
 const BASE = '/rservasroma';
 
 const urlsToCache = [
@@ -17,7 +17,7 @@ const urlsToCache = [
 
   // App principal (JSX pre-compilado en compiled/ â€” ver scripts/build-jsx.sh)
   `${BASE}/compiled/client-app.js?v=20261103-flotantes1`,
-  `${BASE}/compiled/admin-app.js?v=20261103-textos1`,
+  `${BASE}/compiled/admin-app.js?v=20261103-cita1`,
 
   // Utils
   `${BASE}/utils/api.js?v=20261021-espacios2`,
@@ -30,7 +30,7 @@ const urlsToCache = [
   `${BASE}/utils/native-push-notifications.js?v=20260722-platform-v4`,
   `${BASE}/utils/offline-panel.js`,
   `${BASE}/utils/config-negocio-master.js?v=20261103-fase1`,
-  `${BASE}/utils/i18n.js?v=20261103-textos1`,
+  `${BASE}/utils/i18n.js?v=20261103-cita1`,
   `${BASE}/utils/cuba-geo.js?v=20260727-wizard-ubicacion1`,
   `${BASE}/utils/phone-utils.js?v=20261012-eeuu1`,
   `${BASE}/utils/profesionales.js?v=20261018-elimprof2`,
@@ -80,20 +80,20 @@ const urlsToCache = [
   `${BASE}/compiled/components/WhatsAppButton.js?v=20261103-flotantes1`,
 
   // Componentes admin (compilados)
-  `${BASE}/compiled/components/admin/ConfigPanel.js?v=20261103-textos1`,
+  `${BASE}/compiled/components/admin/ConfigPanel.js?v=20261103-cita1`,
   `${BASE}/compiled/components/admin/EspaciosPanel.js?v=20261021-espacios2`,
   `${BASE}/compiled/components/admin/CatalogoPanel.js?v=20261103-avisos1`,
   `${BASE}/compiled/components/admin/RomaHubActivacion.js?v=20260731-marca`,
-  `${BASE}/compiled/components/admin/EditarNegocio.js?v=20261103-textos1`,
+  `${BASE}/compiled/components/admin/EditarNegocio.js?v=20261103-cita1`,
   `${BASE}/compiled/components/admin/HorariosPorDiaPanel.js?v=20261103-textos1`,
   `${BASE}/compiled/components/admin/HorariosExcepcionPanel.js?v=20261103-textos1`,
-  `${BASE}/compiled/components/admin/ListaEsperaPanel.js?v=20261103-avisos1`,
+  `${BASE}/compiled/components/admin/ListaEsperaPanel.js?v=20261103-cita1`,
   `${BASE}/compiled/components/admin/ClientasNuevasPanel.js?v=20261012-bienvenida2`,
   `${BASE}/compiled/components/admin/ProfesionalesPanel.js?v=20261103-avisos1`,
   `${BASE}/compiled/components/admin/ImportarServicios.js?v=20260723-jsx1`,
   `${BASE}/compiled/components/admin/ServiciosPanelCategorias.js?v=20261103-textos1`,
   `${BASE}/compiled/components/admin/FichaClientaPanel.js?v=20261103-avisos1`,
-  `${BASE}/compiled/components/admin/SetupWizard.js?v=20261103-textos1`,
+  `${BASE}/compiled/components/admin/SetupWizard.js?v=20261103-cita1`,
 
   // Vendors (sin babel.min.js: ya no se transpila en el navegador)
   `${BASE}/vendor/react.production.min.js`,
@@ -262,7 +262,7 @@ self.addEventListener('fetch', event => {
   // version aqui no bastaba para que una admin con el SW ya instalado
   // recibiera el archivo nuevo hasta que la cache vieja se vaciara sola).
   const esAssetCriticoAdmin = [
-    `${BASE}/compiled/admin-app.js?v=20261103-textos1`,
+    `${BASE}/compiled/admin-app.js?v=20261103-cita1`,
     `${BASE}/compiled/components/admin/EditarNegocio.js`,
     `${BASE}/utils/config-negocio-master.js`,
     `${BASE}/utils/native-push-notifications.js`,

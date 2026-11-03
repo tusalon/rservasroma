@@ -119,7 +119,7 @@ function ConfigPanel({ profesionalId, modoRestringido, profesionalInicial = null
     },
     /* @__PURE__ */ React.createElement("span", { className: "text-lg mb-1" }, opcion.icon),
     /* @__PURE__ */ React.createElement("span", null, opcion.label)
-  )))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, t("Intervalo entre turnos (min)")), /* @__PURE__ */ React.createElement(
+  )))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, t("Intervalo entre citas (min)")), /* @__PURE__ */ React.createElement(
     "input",
     {
       type: "number",
@@ -161,7 +161,7 @@ function ConfigPanel({ profesionalId, modoRestringido, profesionalInicial = null
       min: "0",
       step: "1"
     }
-  ), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-1" }, t("Ej: 2 evita reservar turnos con menos de 2 horas."))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, t("Antelación mínima para cancelar (horas)")), /* @__PURE__ */ React.createElement(
+  ), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-1" }, t("Ej: 2 evita reservar citas con menos de 2 horas."))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, t("Antelación mínima para cancelar (horas)")), /* @__PURE__ */ React.createElement(
     "input",
     {
       type: "number",
@@ -281,7 +281,7 @@ function FechasLibresPanel({ profesionalId, profesionales, onActualizar }) {
       alert(t("Error al guardar la fecha."));
     }
   };
-  return /* @__PURE__ */ React.createElement("div", { className: "mt-6 p-4 bg-orange-50 rounded-lg border border-orange-100" }, /* @__PURE__ */ React.createElement("h3", { className: "font-semibold text-lg text-orange-800 mb-2 flex items-center gap-2" }, "✈️ ", t("Días Libres / Vacaciones de {nombre}", { nombre: profesional?.nombre })), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-orange-600 mb-4" }, t("El profesional NO recibirá turnos estos días.")), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap sm:flex-nowrap gap-2 mb-4" }, /* @__PURE__ */ React.createElement(
+  return /* @__PURE__ */ React.createElement("div", { className: "mt-6 p-4 bg-orange-50 rounded-lg border border-orange-100" }, /* @__PURE__ */ React.createElement("h3", { className: "font-semibold text-lg text-orange-800 mb-2 flex items-center gap-2" }, "✈️ ", t("Días Libres / Vacaciones de {nombre}", { nombre: profesional?.nombre })), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-orange-600 mb-4" }, t("El profesional NO recibirá citas estos días.")), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap sm:flex-nowrap gap-2 mb-4" }, /* @__PURE__ */ React.createElement(
     "input",
     {
       type: "date",
@@ -426,7 +426,7 @@ function DiasCerradosGlobalesPanel() {
       console.error("Error:", error);
     }
   };
-  return /* @__PURE__ */ React.createElement("div", { className: "p-4 bg-red-50 rounded-lg border border-red-200" }, /* @__PURE__ */ React.createElement("h3", { className: "font-semibold text-lg text-red-800 mb-2 flex items-center gap-2" }, "🚫 ", t("Días Cerrados del Local")), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-red-600 mb-4" }, t("El local completo estará cerrado estos días."), " ", /* @__PURE__ */ React.createElement("b", null, t("Ningún profesional")), " ", t("recibirá turnos.")), /* @__PURE__ */ React.createElement("div", { className: "flex flex-col sm:flex-row gap-2 mb-4 bg-white p-3 rounded shadow-sm border border-red-100" }, /* @__PURE__ */ React.createElement(
+  return /* @__PURE__ */ React.createElement("div", { className: "p-4 bg-red-50 rounded-lg border border-red-200" }, /* @__PURE__ */ React.createElement("h3", { className: "font-semibold text-lg text-red-800 mb-2 flex items-center gap-2" }, "🚫 ", t("Días Cerrados del Local")), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-red-600 mb-4" }, t("El local completo estará cerrado estos días."), " ", /* @__PURE__ */ React.createElement("b", null, t("Ningún profesional")), " ", t("recibirá citas.")), /* @__PURE__ */ React.createElement("div", { className: "flex flex-col sm:flex-row gap-2 mb-4 bg-white p-3 rounded shadow-sm border border-red-100" }, /* @__PURE__ */ React.createElement(
     "input",
     {
       type: "date",
