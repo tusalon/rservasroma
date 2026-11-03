@@ -1,6 +1,6 @@
 ﻿// sw.js - Service Worker para Rservasroma
 
-const CACHE_NAME = 'rservasroma-v162';
+const CACHE_NAME = 'rservasroma-v163';
 const BASE = '/rservasroma';
 
 const urlsToCache = [
@@ -30,7 +30,7 @@ const urlsToCache = [
   `${BASE}/utils/native-push-notifications.js?v=20260722-platform-v4`,
   `${BASE}/utils/offline-panel.js`,
   `${BASE}/utils/config-negocio-master.js?v=20261103-fase1`,
-  `${BASE}/utils/i18n.js?v=20261103-pasos1`,
+  `${BASE}/utils/i18n.js?v=20261103-sello1`,
   `${BASE}/utils/cuba-geo.js?v=20260727-wizard-ubicacion1`,
   `${BASE}/utils/phone-utils.js?v=20261012-eeuu1`,
   `${BASE}/utils/profesionales.js?v=20261018-elimprof2`,
@@ -62,10 +62,10 @@ const urlsToCache = [
 
   // Componentes cliente (compilados)
   `${BASE}/compiled/components/BookingForm.js?v=20261103-fase1`,
-  `${BASE}/compiled/components/Catalogo.js?v=20261103-fase2`,
+  `${BASE}/compiled/components/Catalogo.js?v=20261103-sello1`,
   `${BASE}/compiled/components/Calendar.js?v=20261103-fase2`,
   `${BASE}/compiled/components/ClientAuthScreen.js?v=20261103-fase2b`,
-  `${BASE}/compiled/components/Confirmation.js?v=20261103-fase2`,
+  `${BASE}/compiled/components/Confirmation.js?v=20261103-sello1`,
   `${BASE}/compiled/components/Header.js?v=20261103-fase2b`,
   `${BASE}/compiled/components/InstallButton.js?v=20260723-jsx1`,
   `${BASE}/compiled/components/MultiProfesionalSelector.js?v=20260926-generico1`,

@@ -431,6 +431,14 @@
            numerado de cada componente ("1. Elige tu servicio"...). */
         .paso-reserva > div > h2 { display: none; }
 
+        /* Sello "Reservada" del ticket al confirmar (Confirmation.js). */
+        .sello-reserva { animation: sello-entra .45s cubic-bezier(.2,.8,.2,1) .3s both; }
+        @keyframes sello-entra {
+            from { opacity: 0; transform: rotate(-12deg) scale(1.8); }
+            to { opacity: 1; transform: rotate(-12deg) scale(1); }
+        }
+        @media (prefers-reduced-motion: reduce) { .sello-reserva { animation: none; } }
+
         .border-pink-100,
         .border-pink-200,
         .border-pink-300,
@@ -674,7 +682,7 @@
     <script src="utils/supabase-config.js?v=20260723-fotos"></script>
     <script src="utils/hero-backgrounds.js?v=20260723-fotos"></script>
     <script src="utils/config-negocio-master.js?v=20261103-fase1"></script>
-    <script src="utils/i18n.js?v=20261103-pasos1"></script>
+    <script src="utils/i18n.js?v=20261103-sello1"></script>
     <script src="utils/phone-utils.js?v=20261012-eeuu1"></script>
     <script src="utils/storage.js?v=20260905-soporte1"></script>
     <script src="utils/catalogo.js?v=20261103-fase1"></script>
@@ -722,9 +730,9 @@
     <script src="compiled/components/TimeSlots.js?v=20261103-fase2"></script>
     <script src="compiled/components/MultiTimeSlots.js?v=20261023-combo1"></script>
     <script src="compiled/components/BookingForm.js?v=20261103-fase1"></script>
-    <script src="compiled/components/Confirmation.js?v=20261103-fase2"></script>
+    <script src="compiled/components/Confirmation.js?v=20261103-sello1"></script>
     <script src="compiled/components/WelcomeScreen.js?v=20261103-fase2"></script>
-    <script src="compiled/components/Catalogo.js?v=20261103-fase2"></script>
+    <script src="compiled/components/Catalogo.js?v=20261103-sello1"></script>
     <script src="compiled/components/WhatsAppButton.js?v=20260806-tel-prefijo"></script>
     <script src="compiled/components/ClientAuthScreen.js?v=20261103-fase2b"></script>
     <script src="compiled/components/AnadirServicioTurno.js?v=20261021-turnos1"></script>

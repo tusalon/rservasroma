@@ -22,6 +22,9 @@ function Catalogo({ onGoBack, onReservarDiseno, cliente }) {
       if (!vivo) return;
       setDisenos(lista || []);
       setConfig(configData);
+      const pedido = new URLSearchParams(window.location.search).get("d");
+      const encontrado = pedido && (lista || []).find((d) => String(d.id) === pedido);
+      if (encontrado) setAbierto(encontrado);
       if (servicios2) {
         setPrecios(window.catalogoMapaPrecios?.(servicios2) || {});
         setServicios(servicios2);
@@ -35,6 +38,22 @@ function Catalogo({ onGoBack, onReservarDiseno, cliente }) {
   const colorPrimario = window.asegurarColorVisible ? window.asegurarColorVisible(config?.color_primario, "#ec4899") : config?.color_primario || "#ec4899";
   const grupos = React.useMemo(() => window.catalogoAgrupar(disenos), [disenos]);
   const gruposVisibles = React.useMemo(() => categoria === "todas" ? grupos : grupos.filter((g) => g.nombre === categoria), [grupos, categoria]);
+  const enVisor = gruposVisibles.flatMap((g) => g.disenos);
+  const posicion = abierto ? enVisor.findIndex((d) => d.id === abierto.id) : -1;
+  const moverVisor = (paso) => {
+    if (enVisor.length < 2 || posicion < 0) return;
+    setAbierto(enVisor[(posicion + paso + enVisor.length) % enVisor.length]);
+  };
+  const enlaceDiseno = (diseno) => {
+    try {
+      const url = new URL(window.construirUrlCatalogoNegocio?.(config) || window.location.href);
+      url.searchParams.set("ir", "catalogo");
+      url.searchParams.set("d", diseno.id);
+      return url.toString();
+    } catch (e) {
+      return window.location.href;
+    }
+  };
   if (cargando) {
     return /* @__PURE__ */ React.createElement("div", { className: "min-h-screen flex items-center justify-center bg-pink-50" }, /* @__PURE__ */ React.createElement("div", { className: "animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500" }));
   }
@@ -74,7 +93,13 @@ function Catalogo({ onGoBack, onReservarDiseno, cliente }) {
   )))))))), abierto && /* @__PURE__ */ React.createElement(
     ModalDiseno,
     {
+      key: abierto.id,
       diseno: disenos.find((d) => d.id === abierto.id) || abierto,
+      posicion,
+      total: enVisor.length,
+      onAnterior: () => moverVisor(-1),
+      onSiguiente: () => moverVisor(1),
+      enlace: enlaceDiseno(abierto),
       precio: precios[String(abierto.servicio_id)],
       servicio: servicios.find((s) => String(s.id) === String(abierto.servicio_id)),
       colorPrimario,
@@ -130,7 +155,7 @@ function TarjetaDiseno({ diseno, onClick, precio }) {
     /* @__PURE__ */ React.createElement("div", { className: "p-2" }, /* @__PURE__ */ React.createElement("p", { className: "text-sm font-medium text-gray-800 line-clamp-2" }, diseno.titulo), diseno.servicio_nombre && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 mt-0.5 truncate" }, diseno.servicio_nombre), precio && /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold text-gray-700 mt-0.5 truncate" }, precio))
   );
 }
-function ModalDiseno({ diseno, precio, servicio, colorPrimario, cliente, onCerrar, onReservar, onVotoEnviado }) {
+function ModalDiseno({ diseno, precio, servicio, colorPrimario, cliente, onCerrar, onReservar, onVotoEnviado, posicion, total, onAnterior, onSiguiente, enlace }) {
   window.useIdioma();
   const t = window.t;
   const votoPrevio = window.catalogoVotoPropio(diseno.id);
@@ -138,6 +163,13 @@ function ModalDiseno({ diseno, precio, servicio, colorPrimario, cliente, onCerra
   const [enviando, setEnviando] = React.useState(false);
   const [textoCompleto, setTextoCompleto] = React.useState(false);
   const meGusta = parseInt(diseno.votos_conteo, 10) || 0;
+  const inicioToque = React.useRef(null);
+  const alSoltar = (e) => {
+    if (inicioToque.current === null) return;
+    const dx = e.changedTouches[0].clientX - inicioToque.current;
+    inicioToque.current = null;
+    if (Math.abs(dx) > 50) (dx < 0 ? onSiguiente : onAnterior)();
+  };
   const descripcion = String(diseno.descripcion || "");
   const descripcionLarga = descripcion.length > 220;
   const marcarMeEncanta = async () => {
@@ -156,7 +188,7 @@ function ModalDiseno({ diseno, precio, servicio, colorPrimario, cliente, onCerra
     const datos = {
       title: diseno.titulo,
       text: `${diseno.titulo} ✨`,
-      url: window.location.href
+      url: enlace || window.location.href
     };
     try {
       if (navigator.share) {
@@ -180,21 +212,50 @@ function ModalDiseno({ diseno, precio, servicio, colorPrimario, cliente, onCerra
         className: "bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl max-h-[92vh] overflow-y-auto",
         onClick: (e) => e.stopPropagation()
       },
-      /* @__PURE__ */ React.createElement("div", { className: "relative" }, /* @__PURE__ */ React.createElement(
-        "img",
+      /* @__PURE__ */ React.createElement(
+        "div",
         {
-          src: window.urlImagenCloudinary(diseno.imagen_url, 900),
-          alt: diseno.titulo,
-          className: "w-full max-h-[55vh] object-contain bg-pink-50 rounded-t-3xl"
-        }
-      ), /* @__PURE__ */ React.createElement(
-        "button",
-        {
-          onClick: onCerrar,
-          className: "absolute right-3 top-3 w-9 h-9 rounded-full bg-white/90 shadow text-gray-600 text-lg leading-none"
+          className: "relative",
+          onTouchStart: (e) => {
+            inicioToque.current = e.touches[0].clientX;
+          },
+          onTouchEnd: alSoltar
         },
-        "✕"
-      )),
+        /* @__PURE__ */ React.createElement(
+          "img",
+          {
+            src: window.urlImagenCloudinary(diseno.imagen_url, 900),
+            alt: diseno.titulo,
+            className: "w-full max-h-[55vh] object-contain bg-pink-50 rounded-t-3xl"
+          }
+        ),
+        /* @__PURE__ */ React.createElement(
+          "button",
+          {
+            onClick: onCerrar,
+            "aria-label": t("Cerrar"),
+            className: "absolute right-3 top-3 w-9 h-9 rounded-full bg-white/90 shadow text-gray-600 text-lg leading-none"
+          },
+          "✕"
+        ),
+        total > 1 && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(
+          "button",
+          {
+            onClick: onAnterior,
+            "aria-label": t("Diseño anterior"),
+            className: "absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 shadow text-gray-800 text-2xl leading-none"
+          },
+          "‹"
+        ), /* @__PURE__ */ React.createElement(
+          "button",
+          {
+            onClick: onSiguiente,
+            "aria-label": t("Diseño siguiente"),
+            className: "absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 shadow text-gray-800 text-2xl leading-none"
+          },
+          "›"
+        ), /* @__PURE__ */ React.createElement("span", { className: "absolute bottom-3 left-1/2 -translate-x-1/2 bg-black/55 text-white text-xs font-bold px-2.5 py-1 rounded-full tabular-nums" }, posicion + 1, " / ", total))
+      ),
       /* @__PURE__ */ React.createElement("div", { className: "p-4 space-y-4" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h2", { className: "text-lg font-bold text-gray-800" }, diseno.titulo), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-0.5" }, diseno.categoria), precio && /* @__PURE__ */ React.createElement("p", { className: "text-base font-bold mt-1", style: { color: colorPrimario } }, precio)), descripcion && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("p", { className: `text-sm text-gray-600 whitespace-pre-line ${textoCompleto || !descripcionLarga ? "" : "line-clamp-4"}` }, descripcion), descripcionLarga && /* @__PURE__ */ React.createElement(
         "button",
         {
@@ -228,7 +289,7 @@ function ModalDiseno({ diseno, precio, servicio, colorPrimario, cliente, onCerra
           className: "w-full py-2.5 rounded-full border border-gray-200 text-gray-600 text-sm font-medium"
         },
         "🔗 ",
-        t("Compartir")
+        t("Compartir este diseño")
       ))
     )
   );

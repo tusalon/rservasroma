@@ -32,6 +32,11 @@ function Catalogo({ onGoBack, onReservarDiseno, cliente }) {
             if (!vivo) return;
             setDisenos(lista || []);
             setConfig(configData);
+            // Enlace a un diseño concreto (?d=ID, ver enlaceDiseno): se abre
+            // directamente en el visor en vez de dejarla buscando en la galería.
+            const pedido = new URLSearchParams(window.location.search).get('d');
+            const encontrado = pedido && (lista || []).find(d => String(d.id) === pedido);
+            if (encontrado) setAbierto(encontrado);
             if (servicios) {
                 setPrecios(window.catalogoMapaPrecios?.(servicios) || {});
                 setServicios(servicios);
@@ -54,6 +59,24 @@ function Catalogo({ onGoBack, onReservarDiseno, cliente }) {
     const gruposVisibles = React.useMemo(() => (
         categoria === 'todas' ? grupos : grupos.filter(g => g.nombre === categoria)
     ), [grupos, categoria]);
+    // El visor pasa de un diseño al siguiente en el mismo orden de la galería.
+    const enVisor = gruposVisibles.flatMap(g => g.disenos);
+    const posicion = abierto ? enVisor.findIndex(d => d.id === abierto.id) : -1;
+    const moverVisor = (paso) => {
+        if (enVisor.length < 2 || posicion < 0) return;
+        setAbierto(enVisor[(posicion + paso + enVisor.length) % enVisor.length]);
+    };
+    // Lo que se comparte abre esta foto, no la galería entera.
+    const enlaceDiseno = (diseno) => {
+        try {
+            const url = new URL(window.construirUrlCatalogoNegocio?.(config) || window.location.href);
+            url.searchParams.set('ir', 'catalogo');
+            url.searchParams.set('d', diseno.id);
+            return url.toString();
+        } catch (e) {
+            return window.location.href;
+        }
+    };
 
     if (cargando) {
         return (
@@ -144,9 +167,16 @@ function Catalogo({ onGoBack, onReservarDiseno, cliente }) {
 
             {abierto && (
                 <ModalDiseno
+                    // key: al pasar de diseño, el "me encanta" y el "ver más" empiezan de cero.
+                    key={abierto.id}
                     /* Se relee de la lista para que el promedio del modal se
                        actualice en cuanto la clienta envía su voto. */
                     diseno={disenos.find(d => d.id === abierto.id) || abierto}
+                    posicion={posicion}
+                    total={enVisor.length}
+                    onAnterior={() => moverVisor(-1)}
+                    onSiguiente={() => moverVisor(1)}
+                    enlace={enlaceDiseno(abierto)}
                     precio={precios[String(abierto.servicio_id)]}
                     servicio={servicios.find(s => String(s.id) === String(abierto.servicio_id))}
                     colorPrimario={colorPrimario}
@@ -215,7 +245,7 @@ function TarjetaDiseno({ diseno, onClick, precio }) {
     );
 }
 
-function ModalDiseno({ diseno, precio, servicio, colorPrimario, cliente, onCerrar, onReservar, onVotoEnviado }) {
+function ModalDiseno({ diseno, precio, servicio, colorPrimario, cliente, onCerrar, onReservar, onVotoEnviado, posicion, total, onAnterior, onSiguiente, enlace }) {
     window.useIdioma();
     const t = window.t;
     const votoPrevio = window.catalogoVotoPropio(diseno.id);
@@ -225,6 +255,14 @@ function ModalDiseno({ diseno, precio, servicio, colorPrimario, cliente, onCerra
     const [enviando, setEnviando] = React.useState(false);
     const [textoCompleto, setTextoCompleto] = React.useState(false);
     const meGusta = parseInt(diseno.votos_conteo, 10) || 0;
+    const inicioToque = React.useRef(null);
+    // Deslizar con el dedo sobre la foto pasa al diseño de al lado.
+    const alSoltar = (e) => {
+        if (inicioToque.current === null) return;
+        const dx = e.changedTouches[0].clientX - inicioToque.current;
+        inicioToque.current = null;
+        if (Math.abs(dx) > 50) (dx < 0 ? onSiguiente : onAnterior)();
+    };
     const descripcion = String(diseno.descripcion || '');
     const descripcionLarga = descripcion.length > 220;
 
@@ -247,7 +285,7 @@ function ModalDiseno({ diseno, precio, servicio, colorPrimario, cliente, onCerra
         const datos = {
             title: diseno.titulo,
             text: `${diseno.titulo} ✨`,
-            url: window.location.href
+            url: enlace || window.location.href
         };
         try {
             if (navigator.share) {
@@ -266,15 +304,32 @@ function ModalDiseno({ diseno, precio, servicio, colorPrimario, cliente, onCerra
             onClick={onCerrar}>
             <div className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl max-h-[92vh] overflow-y-auto"
                 onClick={e => e.stopPropagation()}>
-                <div className="relative">
+                <div className="relative"
+                    onTouchStart={(e) => { inicioToque.current = e.touches[0].clientX; }}
+                    onTouchEnd={alSoltar}>
                     <img
                         src={window.urlImagenCloudinary(diseno.imagen_url, 900)}
                         alt={diseno.titulo}
                         className="w-full max-h-[55vh] object-contain bg-pink-50 rounded-t-3xl" />
-                    <button onClick={onCerrar}
+                    <button onClick={onCerrar} aria-label={t('Cerrar')}
                         className="absolute right-3 top-3 w-9 h-9 rounded-full bg-white/90 shadow text-gray-600 text-lg leading-none">
                         ✕
                     </button>
+                    {total > 1 && (
+                        <>
+                            <button onClick={onAnterior} aria-label={t('Diseño anterior')}
+                                className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 shadow text-gray-800 text-2xl leading-none">
+                                ‹
+                            </button>
+                            <button onClick={onSiguiente} aria-label={t('Diseño siguiente')}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 shadow text-gray-800 text-2xl leading-none">
+                                ›
+                            </button>
+                            <span className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-black/55 text-white text-xs font-bold px-2.5 py-1 rounded-full tabular-nums">
+                                {posicion + 1} / {total}
+                            </span>
+                        </>
+                    )}
                 </div>
 
                 <div className="p-4 space-y-4">
@@ -322,7 +377,7 @@ function ModalDiseno({ diseno, precio, servicio, colorPrimario, cliente, onCerra
 
                     <button onClick={compartir}
                         className="w-full py-2.5 rounded-full border border-gray-200 text-gray-600 text-sm font-medium">
-                        🔗 {t('Compartir')}
+                        🔗 {t('Compartir este diseño')}
                     </button>
 
                 </div>

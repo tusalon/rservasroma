@@ -230,39 +230,28 @@ function Confirmation({ booking, onReset }) {
                 </>
             )}
 
-            <div className="bg-white/90 backdrop-blur-sm p-6 rounded-2xl shadow-xl border-2 border-pink-300 w-full max-w-sm mb-6">
-                <div className="space-y-4 text-left">
-                    <div>
-                        <div className="text-xs text-pink-400 uppercase tracking-wider font-semibold mb-1">{t('Cliente')}</div>
-                        <div className="font-medium text-pink-700 text-lg">{booking.cliente_nombre}</div>
-                    </div>
-
-                    <div>
-                        <div className="text-xs text-pink-400 uppercase tracking-wider font-semibold mb-1">WhatsApp</div>
-                        <div className="font-medium text-pink-700">+{String(booking.cliente_whatsapp || '').replace(/^\+/, '')}</div>
-                    </div>
-
-                    <div>
-                        <div className="text-xs text-pink-400 uppercase tracking-wider font-semibold mb-1">{t('Servicio')}</div>
-                        <div className="font-medium text-pink-700">{booking.servicio}</div>
-                        <div className="text-sm text-pink-500">{booking.duracion} min</div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <div className="text-xs text-pink-400 uppercase tracking-wider font-semibold mb-1">{t('Fecha')}</div>
-                            <div className="font-medium text-pink-700 text-sm">{fechaConDia}</div>
+            {/* El ticket de la cita, el mismo que se fue llenando al reservar. Si
+                quedó confirmada recibe el sello "Reservada" (animación en index.html). */}
+            <div className="relative bg-white p-5 rounded-2xl shadow-lg w-full max-w-sm mb-6 text-left">
+                {!esPendientePago && (
+                    <span className="sello-reserva absolute right-3 -top-3 bg-white border-[3px] border-green-600 text-green-700 font-extrabold tracking-widest text-sm px-2.5 py-1 rounded-lg"
+                        style={{ transform: 'rotate(-12deg)' }}>
+                        {t('RESERVADA')}
+                    </span>
+                )}
+                <div className="divide-y divide-dashed divide-gray-200 text-sm">
+                    {[
+                        [t('Servicio'), `${booking.servicio} · ${booking.duracion} min`],
+                        [t('Fecha'), fechaConDia],
+                        [t('Hora'), window.formatTo12Hour ? window.formatTo12Hour(booking.hora_inicio) : booking.hora_inicio],
+                        [t('Profesional'), booking.profesional_nombre || booking.trabajador_nombre || t('No asignada')],
+                        [t('Cliente'), booking.cliente_nombre]
+                    ].map(([etiqueta, valor]) => (
+                        <div key={etiqueta} className="flex justify-between gap-4 py-2.5">
+                            <span className="text-gray-500">{etiqueta}</span>
+                            <span className="font-semibold text-gray-900 text-right">{valor}</span>
                         </div>
-                        <div>
-                            <div className="text-xs text-pink-400 uppercase tracking-wider font-semibold mb-1">{t('Hora')}</div>
-                            <div className="font-medium text-pink-700">{window.formatTo12Hour ? window.formatTo12Hour(booking.hora_inicio) : booking.hora_inicio}</div>
-                        </div>
-                    </div>
-
-                    <div>
-                        <div className="text-xs text-pink-400 uppercase tracking-wider font-semibold mb-1">{t('Profesional')}</div>
-                        <div className="font-medium text-pink-700">{booking.profesional_nombre || booking.trabajador_nombre || t('No asignada')}</div>
-                    </div>
+                    ))}
                 </div>
             </div>
 
