@@ -1,6 +1,6 @@
 // components/WelcomeScreen.js - Versión con REDES SOCIALES (CORREGIDA - SIN DESBORDAMIENTO)
 
-function WelcomeScreen({ onStart, onGoBack, cliente, userRol, onMisReservas, onCatalogo }) {
+function WelcomeScreen({ onStart, onGoBack, cliente, userRol, onMisReservas, onCatalogo, onLogout }) {
     window.useIdioma();
     const t = window.t;
     const [config, setConfig] = React.useState(null);
@@ -337,6 +337,14 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol, onMisReservas, onC
                             <p className="text-xs text-white/70">
                                 🕐 {config.horario_atencion}
                             </p>
+                        )}
+
+                        {/* En el móvil la cabecera ya no lleva "salir": va aquí. */}
+                        {cliente && onLogout && (
+                            <button onClick={onLogout}
+                                className="text-white/60 text-xs hover:text-white/90 transition mx-auto block underline underline-offset-2">
+                                {t('Cerrar sesión')}
+                            </button>
                         )}
 
                         {/* Cambiar de salón (solo APK de clientas) */}

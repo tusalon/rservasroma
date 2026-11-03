@@ -1,6 +1,6 @@
 ﻿// sw.js - Service Worker para Rservasroma
 
-const CACHE_NAME = 'rservasroma-v163';
+const CACHE_NAME = 'rservasroma-v164';
 const BASE = '/rservasroma';
 
 const urlsToCache = [
@@ -16,7 +16,7 @@ const urlsToCache = [
   `${BASE}/manifest.json`,
 
   // App principal (JSX pre-compilado en compiled/ â€” ver scripts/build-jsx.sh)
-  `${BASE}/compiled/client-app.js?v=20261103-pasos1`,
+  `${BASE}/compiled/client-app.js?v=20261103-flotantes1`,
   `${BASE}/compiled/admin-app.js?v=20261102-espacios60`,
 
   // Utils
@@ -30,12 +30,12 @@ const urlsToCache = [
   `${BASE}/utils/native-push-notifications.js?v=20260722-platform-v4`,
   `${BASE}/utils/offline-panel.js`,
   `${BASE}/utils/config-negocio-master.js?v=20261103-fase1`,
-  `${BASE}/utils/i18n.js?v=20261103-sello1`,
+  `${BASE}/utils/i18n.js?v=20261103-flotantes1`,
   `${BASE}/utils/cuba-geo.js?v=20260727-wizard-ubicacion1`,
   `${BASE}/utils/phone-utils.js?v=20261012-eeuu1`,
   `${BASE}/utils/profesionales.js?v=20261018-elimprof2`,
   `${BASE}/utils/push-config.js?v=20260717-push-activo`,
-  `${BASE}/utils/push-notifications.js?v=20260722-platform-v4`,
+  `${BASE}/utils/push-notifications.js?v=20261103-flotantes1`,
   `${BASE}/utils/servicios.js?v=20261021-espacios2`,
   `${BASE}/utils/storage.js?v=20260905-soporte1`,
   `${BASE}/utils/catalogo.js?v=20261103-fase1`,
@@ -46,7 +46,7 @@ const urlsToCache = [
   `${BASE}/utils/turnos.js?v=20261023-combo1`,
   `${BASE}/utils/whatsapp-helper.js?v=20261012-bienvenida2`,
   `${BASE}/utils/bienvenida.js?v=20261012-bienvenida2`,
-  `${BASE}/utils/soporte.js?v=20260906-soporteA1`,
+  `${BASE}/utils/soporte.js?v=20261103-flotantes1`,
   `${BASE}/utils/legacy-ios-fallback.css?v=20260904-bordes1`,
   `${BASE}/utils/roma-typography.css?v=20260731-tipografia`,
   `${BASE}/utils/roma-theme.js?v=20260731-tipografia`,
@@ -66,17 +66,17 @@ const urlsToCache = [
   `${BASE}/compiled/components/Calendar.js?v=20261103-fase2`,
   `${BASE}/compiled/components/ClientAuthScreen.js?v=20261103-fase2b`,
   `${BASE}/compiled/components/Confirmation.js?v=20261103-sello1`,
-  `${BASE}/compiled/components/Header.js?v=20261103-fase2b`,
+  `${BASE}/compiled/components/Header.js?v=20261103-flotantes1`,
   `${BASE}/compiled/components/InstallButton.js?v=20260723-jsx1`,
   `${BASE}/compiled/components/MultiProfesionalSelector.js?v=20260926-generico1`,
   `${BASE}/compiled/components/MultiTimeSlots.js?v=20261023-combo1`,
   `${BASE}/compiled/components/AnadirServicioTurno.js?v=20261021-turnos1`,
   `${BASE}/compiled/components/MyBookings.js?v=20261103-fase2`,
   `${BASE}/compiled/components/ProfesionalSelector.js?v=20261103-pasos1`,
-  `${BASE}/compiled/components/ServiceSelectionCategorias.js?v=20261103-servicios1`,
+  `${BASE}/compiled/components/ServiceSelectionCategorias.js?v=20261103-flotantes1`,
   `${BASE}/compiled/components/TimeSlots.js?v=20261103-fase2`,
-  `${BASE}/compiled/components/WelcomeScreen.js?v=20261103-fase2`,
-  `${BASE}/compiled/components/WhatsAppButton.js?v=20260806-tel-prefijo`,
+  `${BASE}/compiled/components/WelcomeScreen.js?v=20261103-flotantes1`,
+  `${BASE}/compiled/components/WhatsAppButton.js?v=20261103-flotantes1`,
 
   // Componentes admin (compilados)
   `${BASE}/compiled/components/admin/ConfigPanel.js?v=20261021-espacios2`,

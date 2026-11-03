@@ -1,4 +1,4 @@
-function WelcomeScreen({ onStart, onGoBack, cliente, userRol, onMisReservas, onCatalogo }) {
+function WelcomeScreen({ onStart, onGoBack, cliente, userRol, onMisReservas, onCatalogo, onLogout }) {
   window.useIdioma();
   const t = window.t;
   const [config, setConfig] = React.useState(null);
@@ -233,7 +233,14 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol, onMisReservas, onC
           },
           /* @__PURE__ */ React.createElement("i", { className: "icon-calendar" }),
           /* @__PURE__ */ React.createElement("span", null, t("Mis Reservas"))
-        ), config?.horario_atencion && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-white/70" }, "🕐 ", config.horario_atencion), esApkConRecientes && /* @__PURE__ */ React.createElement(
+        ), config?.horario_atencion && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-white/70" }, "🕐 ", config.horario_atencion), cliente && onLogout && /* @__PURE__ */ React.createElement(
+          "button",
+          {
+            onClick: onLogout,
+            className: "text-white/60 text-xs hover:text-white/90 transition mx-auto block underline underline-offset-2"
+          },
+          t("Cerrar sesión")
+        ), esApkConRecientes && /* @__PURE__ */ React.createElement(
           "button",
           {
             onClick: () => {

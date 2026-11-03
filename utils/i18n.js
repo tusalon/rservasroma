@@ -1225,6 +1225,21 @@
         const className = (props && props.className) || "";
         const idioma = useIdioma();
         const h = React.createElement;
+        // compacto: un solo botón con el idioma actual que cambia al otro. Lo usa
+        // la cabecera de la clienta, donde en el móvil no cabe el par ES | EN.
+        if (props && props.compacto) {
+            return h(
+                "button",
+                {
+                    type: "button",
+                    onClick: () => setIdioma(idioma === 'es' ? 'en' : 'es'),
+                    className: "w-9 h-9 rounded-full bg-gray-100 text-xs font-bold text-gray-700 " + className,
+                    title: idioma === 'es' ? 'English' : 'Español',
+                    "aria-label": idioma === 'es' ? 'Switch to English' : 'Cambiar a español'
+                },
+                idioma === 'es' ? 'ES' : 'EN'
+            );
+        }
         return h(
             "div",
             { className: "inline-flex items-center rounded-full border border-gray-200 bg-white p-0.5 text-xs font-semibold " + className },

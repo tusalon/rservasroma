@@ -32,7 +32,7 @@
     // Nada de emoji: un 🆘 se dibuja distinto en cada telefono y no se puede
     // teñir del color del salon.
     var TRAZOS = {
-        soporte: '<circle cx="12" cy="12" r="10"/><path d="m4.93 4.93 4.24 4.24"/><path d="m14.83 9.17 4.24-4.24"/><path d="m14.83 14.83 4.24 4.24"/><path d="m9.17 14.83-4.24 4.24"/><circle cx="12" cy="12" r="4"/>',
+        soporte: '<path d="M3 11h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-5Zm0 0a9 9 0 1 1 18 0m0 0v5a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3Z"/><path d="M21 16v2a4 4 0 0 1-4 4h-5"/>',
         camara: '<path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/>',
         cerrar: '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
         chat: '<path d="M7.9 20A9 9 0 1 0 4 16.1L2 22z"/>'
@@ -477,15 +477,15 @@
         boton.type = 'button';
         boton.title = 'Soporte de RservasRoma';
         boton.setAttribute('aria-label', 'Soporte de RservasRoma');
-        boton.innerHTML = icono('soporte', 24);
+        boton.innerHTML = icono('soporte', 22);
         // El mismo botón redondo que recargar y salir en la cabecera del panel,
         // pero en blanco: sobre el fondo rosa claro de la app, uno relleno del
         // color de marca se leería como una acción más de la agenda, y uno del
         // color del fondo desaparecería. 52px para que sea un objetivo cómodo.
         boton.style.cssText =
-            'position:fixed;bottom:20px;' + lado +
+            'position:fixed;bottom:20px;bottom:calc(env(safe-area-inset-bottom, 0px) + 20px);' + lado +
             'z-index:2147482000;display:flex;align-items:center;justify-content:center;' +
-            'width:52px;height:52px;padding:0;border-radius:9999px;cursor:pointer;' +
+            'width:48px;height:48px;padding:0;border-radius:9999px;cursor:pointer;' +
             'background:#fff;border:1px solid;font-family:inherit;' +
             BORDE_MARCA + MARCA + SOMBRA;
         boton.onclick = abrirSoporte;

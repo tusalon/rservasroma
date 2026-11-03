@@ -234,7 +234,7 @@ function ServiceSelection({ onSelect, selectedService }) {
       )),
       service.descripcion && /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-600 leading-relaxed break-words mt-2 line-clamp-2" }, service.descripcion)
     );
-  }))), serviciosSeleccionados.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "sticky bottom-3 z-20 bg-white shadow-xl rounded-2xl p-3" }, /* @__PURE__ */ React.createElement("div", { className: "flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("p", { className: "font-bold text-gray-900" }, t("{n} servicio{s} · {duracion} min · {precio} {moneda}", {
+  }))), serviciosSeleccionados.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "sticky bottom-20 z-20 bg-white shadow-xl rounded-2xl p-3" }, /* @__PURE__ */ React.createElement("div", { className: "flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("p", { className: "font-bold text-gray-900" }, t("{n} servicio{s} · {duracion} min · {precio} {moneda}", {
     n: serviciosSeleccionados.length,
     s: serviciosSeleccionados.length === 1 ? "" : "s",
     duracion: totalSeleccion.duracion,

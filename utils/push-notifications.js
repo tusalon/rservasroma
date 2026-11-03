@@ -542,17 +542,19 @@ function instalarIndicadorPushCliente() {
                     60% { transform: rotate(-6deg); }
                     75% { transform: rotate(3deg); }
                 }
+                /* Abajo, junto a soporte: arriba a la derecha tapaba la cabecera
+                   ("Mis citas", salir). Con los avisos ya activos se oculta. */
                 #rservas-client-push-indicator {
                     position: fixed;
-                    top: calc(env(safe-area-inset-top, 0px) + 12px);
-                    right: 12px;
-                    width: 42px;
-                    height: 42px;
+                    bottom: calc(env(safe-area-inset-bottom, 0px) + 20px);
+                    left: 76px;
+                    width: 48px;
+                    height: 48px;
                     border: 0;
                     border-radius: 999px;
-                    background: rgba(255,255,255,.96);
+                    background: #fff;
                     color: #111827;
-                    box-shadow: 0 10px 28px rgba(15,23,42,.20);
+                    box-shadow: 0 4px 8px rgba(17,12,46,.04), 0 12px 28px rgba(17,12,46,.10);
                     display: inline-flex;
                     align-items: center;
                     justify-content: center;
@@ -571,9 +573,7 @@ function instalarIndicadorPushCliente() {
                     transform-origin: 50% 0;
                 }
                 #rservas-client-push-indicator.is-active {
-                    background: #16a34a;
-                    color: #fff;
-                    box-shadow: 0 10px 28px rgba(22,163,74,.30);
+                    display: none;
                 }
                 #rservas-client-push-indicator.is-active i {
                     animation: rservasClientBellRing 1.45s ease-in-out infinite;

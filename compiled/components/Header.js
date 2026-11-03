@@ -28,11 +28,11 @@ function Header({ cliente, onLogout, onMisReservas, onGoBack, userRol, showBackB
     "button",
     {
       onClick: onMisReservas,
-      className: "flex items-center gap-2 bg-pink-100 hover:bg-pink-200 text-pink-700 px-3 py-2 rounded-full transition-all",
+      className: "flex items-center gap-1.5 bg-pink-500 text-white px-3.5 py-2 rounded-full shadow-md font-bold text-sm whitespace-nowrap",
       title: t("Mis Reservas")
     },
     /* @__PURE__ */ React.createElement("i", { className: "icon-calendar" }),
-    /* @__PURE__ */ React.createElement("span", { className: "text-sm font-medium hidden sm:inline" }, t("Mis Citas"))
+    /* @__PURE__ */ React.createElement("span", null, t("Mis Citas"))
   ), tieneAcceso && /* @__PURE__ */ React.createElement("div", { className: "relative" }, /* @__PURE__ */ React.createElement(
     "button",
     {
@@ -45,11 +45,11 @@ function Header({ cliente, onLogout, onMisReservas, onGoBack, userRol, showBackB
     /* @__PURE__ */ React.createElement("i", { className: userRol === "admin" ? "icon-shield-check" : "icon-briefcase" }),
     /* @__PURE__ */ React.createElement("span", { className: "text-sm font-medium hidden sm:inline" }, userRol === "admin" ? t("Admin") : t("Mi Panel")),
     /* @__PURE__ */ React.createElement("span", { className: "w-2 h-2 bg-green-400 rounded-full animate-pulse" })
-  ), mostrarOpcionesAdmin && /* @__PURE__ */ React.createElement("div", { className: "absolute right-0 mt-2 w-48 bg-gray-800 rounded-lg shadow-lg border border-amber-700 p-2 text-xs text-gray-300 z-50" }, userRol === "admin" ? /* @__PURE__ */ React.createElement("div", { className: "space-y-1" }, /* @__PURE__ */ React.createElement("p", { className: "font-semibold text-amber-400" }, "👑 ", t("Acceso como administrador")), /* @__PURE__ */ React.createElement("p", { className: "text-gray-400" }, t("Puede gestionar todo el sistema"))) : /* @__PURE__ */ React.createElement("div", { className: "space-y-1" }, /* @__PURE__ */ React.createElement("p", { className: "font-semibold text-amber-400" }, "✂️ ", t("Acceso como profesional")), /* @__PURE__ */ React.createElement("p", { className: "text-gray-400" }, t("Bienvenido, {nombre}", { nombre: cliente?.nombre })), /* @__PURE__ */ React.createElement("p", { className: "text-gray-500 text-xs" }, t("Puedes ver tus reservas"))))), /* @__PURE__ */ React.createElement(window.LanguageToggle, null), cliente && onLogout && /* @__PURE__ */ React.createElement(
+  ), mostrarOpcionesAdmin && /* @__PURE__ */ React.createElement("div", { className: "absolute right-0 mt-2 w-48 bg-gray-800 rounded-lg shadow-lg border border-amber-700 p-2 text-xs text-gray-300 z-50" }, userRol === "admin" ? /* @__PURE__ */ React.createElement("div", { className: "space-y-1" }, /* @__PURE__ */ React.createElement("p", { className: "font-semibold text-amber-400" }, "👑 ", t("Acceso como administrador")), /* @__PURE__ */ React.createElement("p", { className: "text-gray-400" }, t("Puede gestionar todo el sistema"))) : /* @__PURE__ */ React.createElement("div", { className: "space-y-1" }, /* @__PURE__ */ React.createElement("p", { className: "font-semibold text-amber-400" }, "✂️ ", t("Acceso como profesional")), /* @__PURE__ */ React.createElement("p", { className: "text-gray-400" }, t("Bienvenido, {nombre}", { nombre: cliente?.nombre })), /* @__PURE__ */ React.createElement("p", { className: "text-gray-500 text-xs" }, t("Puedes ver tus reservas"))))), /* @__PURE__ */ React.createElement(window.LanguageToggle, { compacto: true }), cliente && onLogout && /* @__PURE__ */ React.createElement(
     "button",
     {
       onClick: onLogout,
-      className: "w-9 h-9 bg-gray-100 rounded-full flex items-center justify-center hover:bg-red-100 transition-colors group relative",
+      className: "w-9 h-9 bg-gray-100 rounded-full hidden sm:flex items-center justify-center hover:bg-red-100 transition-colors group relative",
       title: t("Cerrar sesión")
     },
     /* @__PURE__ */ React.createElement("i", { className: "icon-log-out text-gray-500 group-hover:text-red-600" })

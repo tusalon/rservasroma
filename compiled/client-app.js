@@ -396,7 +396,8 @@ function ClientApp() {
             cliente,
             userRol,
             onMisReservas: goToMyBookings,
-            onCatalogo: handleVerCatalogo
+            onCatalogo: handleVerCatalogo,
+            onLogout: handleLogout
           }
         );
       case "catalogo":

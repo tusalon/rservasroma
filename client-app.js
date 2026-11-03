@@ -495,6 +495,7 @@ function ClientApp() {
                         userRol={userRol}
                         onMisReservas={goToMyBookings}
                         onCatalogo={handleVerCatalogo}
+                        onLogout={handleLogout}
                     />
                 );
 

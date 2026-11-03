@@ -326,8 +326,9 @@ function ServiceSelection({ onSelect, selectedService }) {
                 </>
             )}
 
+            {/* bottom-20: la barra queda por encima de la fila de botones flotantes. */}
             {serviciosSeleccionados.length > 0 && (
-                <div className="sticky bottom-3 z-20 bg-white shadow-xl rounded-2xl p-3">
+                <div className="sticky bottom-20 z-20 bg-white shadow-xl rounded-2xl p-3">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                         <div>
                             <p className="font-bold text-gray-900">

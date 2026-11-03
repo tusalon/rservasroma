@@ -53,14 +53,15 @@ function Header({ cliente, onLogout, onMisReservas, onGoBack, userRol, showBackB
                         </div>
                     )}
 
+                    {/* "Mis citas" destacado: es lo que más busca una clienta que vuelve. */}
                     {cliente && onMisReservas && userRol === 'cliente' && (
                         <button
                             onClick={onMisReservas}
-                            className="flex items-center gap-2 bg-pink-100 hover:bg-pink-200 text-pink-700 px-3 py-2 rounded-full transition-all"
+                            className="flex items-center gap-1.5 bg-pink-500 text-white px-3.5 py-2 rounded-full shadow-md font-bold text-sm whitespace-nowrap"
                             title={t('Mis Reservas')}
                         >
                             <i className="icon-calendar"></i>
-                            <span className="text-sm font-medium hidden sm:inline">{t('Mis Citas')}</span>
+                            <span>{t('Mis Citas')}</span>
                         </button>
                     )}
 
@@ -99,12 +100,12 @@ function Header({ cliente, onLogout, onMisReservas, onGoBack, userRol, showBackB
                         </div>
                     )}
 
-                    <window.LanguageToggle />
+                    <window.LanguageToggle compacto />
 
                     {cliente && onLogout && (
                         <button
                             onClick={onLogout}
-                            className="w-9 h-9 bg-gray-100 rounded-full flex items-center justify-center hover:bg-red-100 transition-colors group relative"
+                            className="w-9 h-9 bg-gray-100 rounded-full hidden sm:flex items-center justify-center hover:bg-red-100 transition-colors group relative"
                             title={t('Cerrar sesión')}
                         >
                             <i className="icon-log-out text-gray-500 group-hover:text-red-600"></i>
