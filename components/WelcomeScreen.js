@@ -328,7 +328,7 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol, onMisReservas, onC
                             <button onClick={onMisReservas}
                                 className="w-full text-white/90 font-medium py-2.5 rounded-full border border-white/30 hover:bg-white/10 transition flex items-center justify-center gap-2">
                                 <i className="icon-calendar"></i>
-                                <span>{t('Mis Reservas')}</span>
+                                <span>{t('Mis Citas')}</span>
                             </button>
                         )}
 

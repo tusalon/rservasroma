@@ -257,7 +257,7 @@ function Confirmation({ booking, onReset }) {
 
             {esPendientePago ? (
                 <p className="text-sm text-amber-800 mb-6 max-w-sm">
-                    {t('El salón ya recibió tu solicitud')}. {t('Si cierras esta pantalla, el botón del anticipo también está en «Mis Reservas».')}
+                    {t('El salón ya recibió tu solicitud')}. {t('Si cierras esta pantalla, el botón del anticipo también está en «Mis Citas».')}
                 </p>
             ) : (
                 <div className="bg-pink-100 border border-pink-300 rounded-lg p-4 mb-6 max-w-sm w-full">
@@ -267,7 +267,7 @@ function Confirmation({ booking, onReset }) {
                         </div>
                         <div className="text-left">
                             <p className="font-medium text-pink-800">{t('El salón ya recibió tu reserva')}</p>
-                            <p className="text-xs text-pink-600">{t('Si necesitas cambiarla, hazlo desde "Mis Reservas"')}</p>
+                            <p className="text-xs text-pink-600">{t('Si necesitas cambiarla, hazlo desde "Mis Citas"')}</p>
                         </div>
                     </div>
                 </div>

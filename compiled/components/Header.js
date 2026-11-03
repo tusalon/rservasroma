@@ -29,7 +29,7 @@ function Header({ cliente, onLogout, onMisReservas, onGoBack, userRol, showBackB
     {
       onClick: onMisReservas,
       className: "flex items-center gap-1.5 bg-pink-500 text-white px-3.5 py-2 rounded-full shadow-md font-bold text-sm whitespace-nowrap",
-      title: t("Mis Reservas")
+      title: t("Mis Citas")
     },
     /* @__PURE__ */ React.createElement("i", { className: "icon-calendar" }),
     /* @__PURE__ */ React.createElement("span", null, t("Mis Citas"))

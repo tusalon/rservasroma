@@ -58,7 +58,7 @@ function Header({ cliente, onLogout, onMisReservas, onGoBack, userRol, showBackB
                         <button
                             onClick={onMisReservas}
                             className="flex items-center gap-1.5 bg-pink-500 text-white px-3.5 py-2 rounded-full shadow-md font-bold text-sm whitespace-nowrap"
-                            title={t('Mis Reservas')}
+                            title={t('Mis Citas')}
                         >
                             <i className="icon-calendar"></i>
                             <span>{t('Mis Citas')}</span>

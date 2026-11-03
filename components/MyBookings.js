@@ -389,7 +389,7 @@ function MyBookings({ cliente, onVolver, onRepetir }) {
                         <i className="icon-arrow-left text-xl"></i>
                         <span className="font-medium">{t('Volver')}</span>
                     </button>
-                    <h1 className="text-xl font-bold text-pink-800">✨ {t('Mis Reservas')}</h1>
+                    <h1 className="text-xl font-bold text-pink-800">✨ {t('Mis Citas')}</h1>
                     <div className="w-20"></div>
                 </div>
             </div>

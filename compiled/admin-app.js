@@ -3933,7 +3933,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
   const getTabsDisponibles = () => {
     const tabs = [];
     const puedeVerEstadisticas = userRole === "admin" || userRole === "profesional" && userNivel >= 2;
-    tabs.push({ id: "reservas", icono: "📅", label: userRole === "profesional" ? t2("Mis Reservas") : t2("Reservas") });
+    tabs.push({ id: "reservas", icono: "📅", label: userRole === "profesional" ? t2("Mis Citas") : t2("Reservas") });
     tabs.push({ id: "agenda", icono: "📋", label: t2("Agenda") });
     if (puedeVerEstadisticas) {
       tabs.push({ id: "estadisticas", icono: "📊", label: t2("Estadísticas") });

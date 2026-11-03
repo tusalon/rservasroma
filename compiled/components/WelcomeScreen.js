@@ -232,7 +232,7 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol, onMisReservas, onC
             className: "w-full text-white/90 font-medium py-2.5 rounded-full border border-white/30 hover:bg-white/10 transition flex items-center justify-center gap-2"
           },
           /* @__PURE__ */ React.createElement("i", { className: "icon-calendar" }),
-          /* @__PURE__ */ React.createElement("span", null, t("Mis Reservas"))
+          /* @__PURE__ */ React.createElement("span", null, t("Mis Citas"))
         ), config?.horario_atencion && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-white/70" }, "🕐 ", config.horario_atencion), cliente && onLogout && /* @__PURE__ */ React.createElement(
           "button",
           {

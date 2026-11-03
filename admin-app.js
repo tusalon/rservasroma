@@ -4964,7 +4964,7 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
     const getTabsDisponibles = () => {
         const tabs = [];
         const puedeVerEstadisticas = userRole === 'admin' || (userRole === 'profesional' && userNivel >= 2);
-        tabs.push({ id: 'reservas', icono: '📅', label: userRole === 'profesional' ? t('Mis Reservas') : t('Reservas') });
+        tabs.push({ id: 'reservas', icono: '📅', label: userRole === 'profesional' ? t('Mis Citas') : t('Reservas') });
 
         tabs.push({ id: 'agenda', icono: '📋', label: t('Agenda') });
 
