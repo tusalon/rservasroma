@@ -14,6 +14,18 @@ function Confirmation({ booking, onReset }) {
     const [hoverEstrella, setHoverEstrella] = React.useState(0);
     // Mensaje de confirmacion propio de la admin (vacio = el de siempre).
     const [mensajePropio, setMensajePropio] = React.useState('');
+    // Recordatorios: se piden aquí, cuando ya hay una cita que no quiere olvidar
+    // (antes estaban en la bienvenida, antes de tener cita).
+    const pushUIVisible = window.RSERVAS_PUSH_UI_VISIBLE === true;
+    const cliente = { whatsapp: booking?.cliente_whatsapp };
+    const [pushEstado, setPushEstado] = React.useState(() => {
+        if (window.Capacitor?.isNativePlatform?.()) {
+            return typeof window.clientePushActivo === 'function' && window.clientePushActivo() ? 'granted' : 'default';
+        }
+        return 'Notification' in window ? Notification.permission : 'unsupported';
+    });
+    const [activandoPush, setActivandoPush] = React.useState(false);
+    const [pushMensaje, setPushMensaje] = React.useState('');
 
     React.useEffect(() => {
         const cargarDatos = async () => {
@@ -72,6 +84,77 @@ function Confirmation({ booking, onReset }) {
                 body: JSON.stringify({ valoracion: n, valoracion_at: new Date().toISOString() })
             }).catch(() => {});
         } catch (e) {}
+    };
+
+    const activarNotificaciones = async () => {
+        const isNative = Boolean(window.Capacitor?.isNativePlatform?.());
+        if (isNative) {
+            setActivandoPush(true);
+            setPushMensaje('');
+            try {
+                const ok = typeof window.solicitarNativePushRservasRoma === 'function' &&
+                    await window.solicitarNativePushRservasRoma({
+                        role: 'cliente',
+                        clienteWhatsapp: cliente?.whatsapp
+                    });
+                setPushEstado(ok ? 'granted' : 'default');
+                if (!ok) setPushMensaje(t('No se pudo activar. Instala la version mas reciente de la app.'));
+            } catch (error) {
+                console.warn('Push nativo cliente:', error);
+                setPushEstado('default');
+                setPushMensaje(t('No se pudo activar: {msg}', { msg: String(error.message || error).substring(0, 60) }));
+            } finally {
+                setActivandoPush(false);
+            }
+            return;
+        }
+
+        if (!('Notification' in window)) { setPushEstado('unsupported'); return; }
+        setActivandoPush(true);
+        setPushMensaje('');
+
+        pedirPermisoYSuscribir();
+
+        function pedirPermisoYSuscribir() {
+            const permissionPromise = Notification.permission === 'default'
+                ? Notification.requestPermission()
+                : Promise.resolve(Notification.permission);
+
+            permissionPromise.then(permiso => {
+                setPushEstado(permiso);
+                if (permiso !== 'granted') {
+                    setPushMensaje(permiso === 'denied' ? t('Permiso bloqueado en el navegador') : t('Permiso no concedido'));
+                    setActivandoPush(false);
+                    return;
+                }
+                if (typeof window.solicitarPushRservasRoma !== 'function') {
+                    setPushEstado('granted');
+                    setActivandoPush(false);
+                    return;
+                }
+                window.solicitarPushRservasRoma({ permission: permiso, defaultRole: 'cliente', clienteWhatsapp: cliente?.whatsapp })
+                    .then(res => {
+                        if (res?.ok) {
+                            setPushMensaje('');
+                        } else {
+                            const msg = res?.error || 'error';
+                            console.warn('Push resultado:', msg);
+                            if (msg === 'sw_not_ready') {
+                                setPushMensaje(t('Instala la app en tu pantalla de inicio para recibir avisos'));
+                            } else if (msg.includes('applicationServerKey') || msg.includes('VAPID') || msg.includes('key')) {
+                                setPushMensaje(t('Recarga la app y vuelve a intentarlo'));
+                            } else {
+                                setPushMensaje(t('No se pudo activar: {msg}', { msg: msg.substring(0, 60) }));
+                            }
+                        }
+                    })
+                    .catch(err => {
+                        console.warn('Push error:', err);
+                        setPushMensaje(t('Error: {err}', { err: String(err).substring(0, 60) }));
+                    })
+                    .finally(() => setActivandoPush(false));
+            }).catch(() => setActivandoPush(false));
+        }
     };
 
     // ⚡ ELIMINADO: useEffect con setTimeout que causaba problemas en iOS
@@ -198,6 +281,31 @@ function Confirmation({ booking, onReset }) {
                             <p className="text-xs text-pink-600">{t('Si necesitas cambiarla, hazlo desde "Mis Reservas"')}</p>
                         </div>
                     </div>
+                </div>
+            )}
+
+            {pushUIVisible && pushEstado !== 'denied' && (
+                <div className="w-full max-w-sm mb-4 bg-white/90 p-4 rounded-2xl border border-pink-200 text-left">
+                    {pushEstado === 'granted' ? (
+                        <p className="font-semibold text-green-700">{t('Recordatorios activados')} ✓</p>
+                    ) : pushEstado === 'unsupported' ? (
+                        /iPhone|iPad|iPod/i.test(navigator.userAgent) && window.navigator.standalone !== true && (
+                            <p className="text-sm text-gray-700 leading-relaxed">
+                                {t('Para recibir recordatorios de tus citas, instala la app:')}{' '}
+                                {t('toca')} <strong>{t('Compartir ⬆️')}</strong> {t('y luego')} <strong>{t('«Añadir a pantalla de inicio»')}</strong>
+                            </p>
+                        )
+                    ) : (
+                        <>
+                            <p className="font-bold text-gray-900">{t('¿Te avisamos un día antes?')}</p>
+                            <p className="text-sm text-gray-600 mb-3">{t('Te llega un aviso al móvil con la hora de tu cita.')}</p>
+                            <button onClick={activarNotificaciones} disabled={activandoPush}
+                                className="px-5 py-2.5 rounded-full bg-pink-500 text-white font-bold text-sm disabled:opacity-60">
+                                {activandoPush ? t('Activando...') : t('Sí, avísame')}
+                            </button>
+                        </>
+                    )}
+                    {pushMensaje && <p className="text-sm text-amber-700 mt-2">{pushMensaje}</p>}
                 </div>
             )}
 

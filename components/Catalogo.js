@@ -12,6 +12,7 @@ function Catalogo({ onGoBack, onReservarDiseno, cliente }) {
     const [abierto, setAbierto] = React.useState(null);
     const [config, setConfig] = React.useState(null);
     const [precios, setPrecios] = React.useState({});
+    const [servicios, setServicios] = React.useState([]);
 
     // Cada foto ensena el precio del servicio que tiene enlazado: la clienta
     // no deberia enamorarse de un diseno sin saber cuanto cuesta.
@@ -31,7 +32,10 @@ function Catalogo({ onGoBack, onReservarDiseno, cliente }) {
             if (!vivo) return;
             setDisenos(lista || []);
             setConfig(configData);
-            if (servicios) setPrecios(window.catalogoMapaPrecios?.(servicios) || {});
+            if (servicios) {
+                setPrecios(window.catalogoMapaPrecios?.(servicios) || {});
+                setServicios(servicios);
+            }
             setCargando(false);
         }).catch(() => vivo && setCargando(false));
         return () => { vivo = false; };
@@ -144,6 +148,7 @@ function Catalogo({ onGoBack, onReservarDiseno, cliente }) {
                        actualice en cuanto la clienta envía su voto. */
                     diseno={disenos.find(d => d.id === abierto.id) || abierto}
                     precio={precios[String(abierto.servicio_id)]}
+                    servicio={servicios.find(s => String(s.id) === String(abierto.servicio_id))}
                     colorPrimario={colorPrimario}
                     cliente={cliente}
                     onCerrar={() => setAbierto(null)}
@@ -172,7 +177,7 @@ function BotonCategoria({ activo, color, onClick, texto }) {
 
 function TarjetaDiseno({ diseno, onClick, precio }) {
     const [cargada, setCargada] = React.useState(false);
-    const promedio = window.catalogoPromedio(diseno);
+    const meGusta = parseInt(diseno.votos_conteo, 10) || 0;
     const miniatura = window.urlImagenCloudinary(diseno.imagen_url, 500);
     const borrosa = window.urlImagenCloudinary(diseno.imagen_url, 24);
 
@@ -191,9 +196,9 @@ function TarjetaDiseno({ diseno, onClick, precio }) {
                     loading="lazy"
                     onLoad={() => setCargada(true)}
                     className={`relative w-full h-full object-cover transition-opacity duration-500 ${cargada ? 'opacity-100' : 'opacity-0'}`} />
-                {promedio !== null && (
+                {meGusta > 0 && (
                     <span className="absolute right-2 top-2 bg-white/90 text-pink-600 text-xs font-bold px-2 py-0.5 rounded-full shadow-sm">
-                        ❤️ {promedio}%
+                        ♥ {meGusta}
                     </span>
                 )}
             </div>
@@ -210,37 +215,32 @@ function TarjetaDiseno({ diseno, onClick, precio }) {
     );
 }
 
-function ModalDiseno({ diseno, precio, colorPrimario, cliente, onCerrar, onReservar, onVotoEnviado }) {
+function ModalDiseno({ diseno, precio, servicio, colorPrimario, cliente, onCerrar, onReservar, onVotoEnviado }) {
     window.useIdioma();
     const t = window.t;
     const votoPrevio = window.catalogoVotoPropio(diseno.id);
-    const [puntuacion, setPuntuacion] = React.useState(votoPrevio === null ? 80 : votoPrevio);
+    // Un toque = "me encanta". Se guarda como un voto de 100 para que los
+    // promedios de los votos de antes (0-100 %) sigan valiendo en el panel.
+    const [meEncanta, setMeEncanta] = React.useState(votoPrevio !== null);
     const [enviando, setEnviando] = React.useState(false);
-    const [votado, setVotado] = React.useState(votoPrevio !== null);
     const [textoCompleto, setTextoCompleto] = React.useState(false);
-    // Si ya tiene sesión, su nombre viene puesto; si votó antes desde este
-    // teléfono, se reusa el que escribió. Solo teclea quien llega de cero.
-    const [nombre, setNombre] = React.useState(
-        () => cliente?.nombre || window.catalogoNombreGuardado() || ''
-    );
-    const promedio = window.catalogoPromedio(diseno);
+    const meGusta = parseInt(diseno.votos_conteo, 10) || 0;
     const descripcion = String(diseno.descripcion || '');
     const descripcionLarga = descripcion.length > 220;
 
-    const enviarVoto = async () => {
+    const marcarMeEncanta = async () => {
+        if (meEncanta || enviando) return;
         setEnviando(true);
-        const resultado = await window.catalogoVotar(diseno.id, puntuacion, nombre, diseno.titulo);
+        // Si tiene sesión va con su nombre; si votó antes desde este teléfono,
+        // con el que escribió entonces.
+        const nombre = cliente?.nombre || window.catalogoNombreGuardado() || '';
+        const resultado = await window.catalogoVotar(diseno.id, 100, nombre, diseno.titulo);
         setEnviando(false);
-        if (!resultado.success) {
-            alert(t('No se pudo enviar tu voto. Revisa tu conexión.'));
-            return;
-        }
-        setVotado(true);
-        // Reflejar el voto al instante sin recargar toda la galería: si este
-        // dispositivo ya había votado, el conteo no sube, solo cambia la suma.
-        const conteo = (parseInt(diseno.votos_conteo, 10) || 0) + (votoPrevio === null ? 1 : 0);
-        const suma = (parseInt(diseno.votos_suma, 10) || 0) - (votoPrevio || 0) + puntuacion;
-        onVotoEnviado(diseno.id, Math.round(suma / Math.max(1, conteo)), conteo);
+        if (!resultado.success) return;
+        setMeEncanta(true);
+        const conteo = meGusta + 1;
+        const suma = (parseInt(diseno.votos_suma, 10) || 0) + 100;
+        onVotoEnviado(diseno.id, Math.round(suma / conteo), conteo);
     };
 
     const compartir = async () => {
@@ -280,10 +280,7 @@ function ModalDiseno({ diseno, precio, colorPrimario, cliente, onCerrar, onReser
                 <div className="p-4 space-y-4">
                     <div>
                         <h2 className="text-lg font-bold text-gray-800">{diseno.titulo}</h2>
-                        <p className="text-xs text-gray-400 mt-0.5">
-                            {diseno.categoria}
-                            {promedio !== null && ` · ❤️ ${promedio}% (${diseno.votos_conteo})`}
-                        </p>
+                        <p className="text-xs text-gray-500 mt-0.5">{diseno.categoria}</p>
                         {precio && (
                             <p className="text-base font-bold mt-1" style={{ color: colorPrimario }}>{precio}</p>
                         )}
@@ -309,8 +306,18 @@ function ModalDiseno({ diseno, precio, colorPrimario, cliente, onCerrar, onReser
                         onClick={() => onReservar(diseno)}
                         className="w-full text-white font-bold py-3 rounded-full shadow-lg active:scale-[0.98] transition flex items-center justify-center gap-2"
                         style={{ backgroundColor: colorPrimario }}>
-                        <span>💖</span>
                         <span>{t('Pedir mi cita')}</span>
+                    </button>
+                    {/* Qué se está pidiendo, antes de tocar el botón. */}
+                    <p className="text-sm text-gray-600 text-center -mt-2">
+                        {servicio
+                            ? t('Se reserva como: {servicio}', { servicio: [servicio.nombre, servicio.duracion ? `${servicio.duracion} min` : '', precio].filter(Boolean).join(' · ') })
+                            : t('Al pedir la cita, elige el servicio que más se parezca.')}
+                    </p>
+
+                    <button type="button" onClick={marcarMeEncanta} disabled={enviando}
+                        className={`w-full py-2.5 rounded-full text-sm font-bold border-2 transition ${meEncanta ? 'border-pink-500 bg-pink-50 text-pink-600' : 'border-gray-200 text-gray-700'}`}>
+                        {meEncanta ? `♥ ${t('Te encanta')}` : `♡ ${t('Me encanta')}`}{meGusta > 0 ? ` · ${meGusta}` : ''}
                     </button>
 
                     <button onClick={compartir}
@@ -318,37 +325,6 @@ function ModalDiseno({ diseno, precio, colorPrimario, cliente, onCerrar, onReser
                         🔗 {t('Compartir')}
                     </button>
 
-                    <div className="bg-pink-50 rounded-2xl p-4">
-                        <p className="text-sm font-medium text-gray-700 mb-2">
-                            {votado ? t('Tu voto: {n}%', { n: puntuacion }) : t('¿Cuánto te gusta?')}
-                        </p>
-                        <div className="flex items-center gap-3">
-                            <input
-                                type="range" min="0" max="100" step="5"
-                                value={puntuacion}
-                                onChange={e => setPuntuacion(parseInt(e.target.value, 10))}
-                                className="flex-1 accent-pink-500" />
-                            <span className="text-sm font-bold w-12 text-right" style={{ color: colorPrimario }}>
-                                {puntuacion}%
-                            </span>
-                        </div>
-                        <input
-                            type="text" value={nombre} maxLength={60}
-                            onChange={e => setNombre(e.target.value)}
-                            placeholder={t('¿Cómo te llamas? (opcional)')}
-                            className="w-full mt-3 px-3 py-2 rounded-xl border border-pink-200 bg-white text-sm outline-none focus:border-pink-400" />
-                        <p className="text-xs text-gray-400 mt-1">
-                            {t('Así el salón sabe a quién le gustó su trabajo 💕')}
-                        </p>
-
-                        <button
-                            onClick={enviarVoto}
-                            disabled={enviando}
-                            className="w-full mt-3 py-2 rounded-full text-white text-sm font-bold disabled:opacity-60"
-                            style={{ backgroundColor: colorPrimario }}>
-                            {enviando ? t('Enviando...') : (votado ? t('Cambiar mi voto') : t('Enviar mi voto'))}
-                        </button>
-                    </div>
                 </div>
             </div>
         </div>

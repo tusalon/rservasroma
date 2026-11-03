@@ -380,6 +380,23 @@ function ClientApp() {
     setStep("service");
     setBookingConfirmed(null);
   };
+  const handleRepetir = async (turno) => {
+    setDisenoElegido(null);
+    navigateTo("service");
+    try {
+      const servicios = await window.salonServicios?.getAll?.(true);
+      const servicio = (servicios || []).find((s) => s.nombre === turno.servicio);
+      if (!servicio) return;
+      await handleServiceSelect(servicio);
+      const profesionales = await window.salonProfesionales?.getAll?.();
+      const profesional = (profesionales || []).find((p) => String(p.id) === String(turno.profesional_id || turno.trabajador_id));
+      const asignados = window.getProfesionalesPorServicio ? await window.getProfesionalesPorServicio(servicio.id) : [];
+      const lahace = !asignados?.length || asignados.some((p) => String(p.id) === String(profesional?.id));
+      if (profesional && profesional.activo !== false && lahace) setSelectedProfesional(profesional);
+    } catch (e) {
+      console.error("No se pudo repetir la cita:", e);
+    }
+  };
   const goToMyBookings = () => {
     navigateTo("mybookings");
   };
@@ -423,7 +440,8 @@ function ClientApp() {
           MyBookings,
           {
             cliente,
-            onVolver: handleVolverDeMyBookings
+            onVolver: handleVolverDeMyBookings,
+            onRepetir: handleRepetir
           }
         );
       case "service":

@@ -4,9 +4,8 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol, onMisReservas, onC
   const [config, setConfig] = React.useState(null);
   const [cargando, setCargando] = React.useState(true);
   const [imagenCargada, setImagenCargada] = React.useState(false);
-  const [pushEstado, setPushEstado] = React.useState("");
-  const [activandoPush, setActivandoPush] = React.useState(false);
-  const [pushMensaje, setPushMensaje] = React.useState("");
+  const [proxima, setProxima] = React.useState(null);
+  const [mensajeCompleto, setMensajeCompleto] = React.useState(false);
   const [hayCatalogo, setHayCatalogo] = React.useState(false);
   const pushUIVisible = window.RSERVAS_PUSH_UI_VISIBLE === true;
   const esApkConRecientes = React.useMemo(() => {
@@ -21,89 +20,23 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol, onMisReservas, onC
     }
   }, []);
   React.useEffect(() => {
-    if (!pushUIVisible) return;
-    const isNative = Boolean(window.Capacitor?.isNativePlatform?.());
-    if (isNative) {
-      const activo = typeof window.clientePushActivo === "function" ? window.clientePushActivo() : false;
-      setPushEstado(activo ? "granted" : "default");
-      return;
-    }
-    if (!("Notification" in window)) {
-      setPushEstado("unsupported");
-      return;
-    }
-    const permiso = Notification.permission;
-    setPushEstado(permiso);
-    if (permiso === "granted" && cliente?.whatsapp) {
-      if (typeof window.solicitarPushRservasRoma === "function") {
-        window.solicitarPushRservasRoma({ permission: "granted", defaultRole: "cliente", clienteWhatsapp: cliente.whatsapp }).catch(() => {
-        });
-      }
+    if (!pushUIVisible || !cliente?.whatsapp || !("Notification" in window)) return;
+    if (Notification.permission === "granted" && typeof window.solicitarPushRservasRoma === "function") {
+      window.solicitarPushRservasRoma({ permission: "granted", defaultRole: "cliente", clienteWhatsapp: cliente.whatsapp }).catch(() => {
+      });
     }
   }, []);
-  const activarNotificaciones = async () => {
-    const isNative = Boolean(window.Capacitor?.isNativePlatform?.());
-    if (isNative) {
-      setActivandoPush(true);
-      setPushMensaje("");
-      try {
-        const ok = typeof window.solicitarNativePushRservasRoma === "function" && await window.solicitarNativePushRservasRoma({
-          role: "cliente",
-          clienteWhatsapp: cliente?.whatsapp
-        });
-        setPushEstado(ok ? "granted" : "default");
-        if (!ok) setPushMensaje(t("No se pudo activar. Instala la version mas reciente de la app."));
-      } catch (error) {
-        console.warn("Push nativo cliente:", error);
-        setPushEstado("default");
-        setPushMensaje(t("No se pudo activar: {msg}", { msg: String(error.message || error).substring(0, 60) }));
-      } finally {
-        setActivandoPush(false);
-      }
-      return;
-    }
-    if (!("Notification" in window)) {
-      setPushEstado("unsupported");
-      return;
-    }
-    setActivandoPush(true);
-    setPushMensaje("");
-    pedirPermisoYSuscribir();
-    function pedirPermisoYSuscribir() {
-      const permissionPromise = Notification.permission === "default" ? Notification.requestPermission() : Promise.resolve(Notification.permission);
-      permissionPromise.then((permiso) => {
-        setPushEstado(permiso);
-        if (permiso !== "granted") {
-          setPushMensaje(permiso === "denied" ? t("Permiso bloqueado en el navegador") : t("Permiso no concedido"));
-          setActivandoPush(false);
-          return;
-        }
-        if (typeof window.solicitarPushRservasRoma !== "function") {
-          setPushEstado("granted");
-          setActivandoPush(false);
-          return;
-        }
-        window.solicitarPushRservasRoma({ permission: permiso, defaultRole: "cliente", clienteWhatsapp: cliente?.whatsapp }).then((res) => {
-          if (res?.ok) {
-            setPushMensaje("");
-          } else {
-            const msg = res?.error || "error";
-            console.warn("Push resultado:", msg);
-            if (msg === "sw_not_ready") {
-              setPushMensaje(t("Instala la app en tu pantalla de inicio para recibir avisos"));
-            } else if (msg.includes("applicationServerKey") || msg.includes("VAPID") || msg.includes("key")) {
-              setPushMensaje(t("Recarga la app y vuelve a intentarlo"));
-            } else {
-              setPushMensaje(t("No se pudo activar: {msg}", { msg: msg.substring(0, 60) }));
-            }
-          }
-        }).catch((err) => {
-          console.warn("Push error:", err);
-          setPushMensaje(t("Error: {err}", { err: String(err).substring(0, 60) }));
-        }).finally(() => setActivandoPush(false));
-      }).catch(() => setActivandoPush(false));
-    }
-  };
+  React.useEffect(() => {
+    const negocioId = localStorage.getItem("negocioId") || window.NEGOCIO_ID_POR_DEFECTO;
+    if (!cliente?.whatsapp || !negocioId) return;
+    const d = /* @__PURE__ */ new Date();
+    const hoy = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    fetch(
+      `${window.SUPABASE_URL}/rest/v1/reservas?negocio_id=eq.${negocioId}&cliente_whatsapp=eq.${cliente.whatsapp}&fecha=gte.${hoy}&estado=not.in.(Cancelado,Completado,Ausente)&order=fecha.asc,hora_inicio.asc&limit=1&select=servicio,fecha,hora_inicio,estado`,
+      { headers: { "apikey": window.SUPABASE_ANON_KEY, "Authorization": `Bearer ${window.SUPABASE_ANON_KEY}` } }
+    ).then((r) => r.ok ? r.json() : []).then((lista) => setProxima(Array.isArray(lista) && lista[0] ? lista[0] : null)).catch(() => {
+    });
+  }, []);
   React.useEffect(() => {
     const cargarDatos = async () => {
       const configData = await window.cargarConfiguracionNegocio();
@@ -231,14 +164,14 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol, onMisReservas, onC
             style: { background: `linear-gradient(135deg, ${colorPrimario}, ${colorSecundario})`, "--tw-ring-color": hexToRgba(colorSecundario, 0.45) }
           },
           /* @__PURE__ */ React.createElement("span", { className: "text-3xl" }, sticker)
-        ), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("p", { className: "text-sm font-medium text-white/80" }, t("Bienvenida a")), /* @__PURE__ */ React.createElement(
+        ), /* @__PURE__ */ React.createElement("div", null, cliente ? /* @__PURE__ */ React.createElement("p", { className: "text-2xl font-extrabold text-white leading-tight" }, t("Hola, {nombre}", { nombre: String(cliente.nombre || "").split(" ")[0] })) : /* @__PURE__ */ React.createElement("p", { className: "text-sm font-medium text-white/80" }, t("Bienvenida a")), /* @__PURE__ */ React.createElement(
           "div",
           {
-            className: "text-xl font-bold break-words leading-tight",
+            className: `${cliente ? "text-base" : "text-xl"} font-bold break-words leading-tight`,
             style: { color: colorSecundario, textShadow: `0 2px 12px ${hexToRgba(colorPrimario, 0.45)}` }
           },
           config?.nombre || t("Mi Salón")
-        )), cliente && /* @__PURE__ */ React.createElement("p", { className: "text-white/90 text-sm bg-black/20 inline-block px-3 py-0.5 rounded-full" }, "✨ ", cliente.nombre, " ✨"), /* @__PURE__ */ React.createElement("p", { className: "text-white/80 text-xs max-w-xs mx-auto leading-snug" }, config?.mensaje_bienvenida || t("¡Bienvenida a nuestro salón!")), tieneRedes && /* @__PURE__ */ React.createElement("div", { className: "flex justify-center gap-3" }, tieneWhatsApp && /* @__PURE__ */ React.createElement(
+        )), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("p", { className: `text-white/85 text-xs max-w-xs mx-auto leading-snug whitespace-pre-line ${mensajeCompleto ? "" : "line-clamp-4"}` }, config?.mensaje_bienvenida || t("¡Bienvenida a nuestro salón!")), String(config?.mensaje_bienvenida || "").length > 160 && /* @__PURE__ */ React.createElement("button", { onClick: () => setMensajeCompleto(!mensajeCompleto), className: "text-xs font-bold text-white underline underline-offset-2 mt-1" }, mensajeCompleto ? t("Ver menos") : t("Ver más"))), tieneRedes && /* @__PURE__ */ React.createElement("div", { className: "flex justify-center gap-3" }, tieneWhatsApp && /* @__PURE__ */ React.createElement(
           "button",
           {
             onClick: abrirWhatsApp,
@@ -262,16 +195,15 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol, onMisReservas, onC
             className: "w-10 h-10 bg-[#1877F2] rounded-full flex items-center justify-center border border-white/30 hover:scale-105 transition-transform"
           },
           /* @__PURE__ */ React.createElement("i", { className: "icon-facebook text-white text-lg" })
-        )), pushUIVisible && pushEstado === "denied" && /* @__PURE__ */ React.createElement("p", { className: "text-white/50 text-xs text-center" }, "🔔 ", t("Notificaciones bloqueadas — actívalas en Ajustes del teléfono")), pushUIVisible && pushEstado === "unsupported" && /iPhone|iPad|iPod/i.test(navigator.userAgent) && window.navigator.standalone !== true && /* @__PURE__ */ React.createElement("p", { className: "text-white/60 text-xs text-center leading-relaxed" }, "🔔 ", t("Para recibir recordatorios de tus citas, instala la app:"), /* @__PURE__ */ React.createElement("br", null), t("toca"), " ", /* @__PURE__ */ React.createElement("strong", null, t("Compartir ⬆️")), " ", t("y luego"), " ", /* @__PURE__ */ React.createElement("strong", null, t("«Añadir a pantalla de inicio»"))), pushUIVisible && pushEstado !== "unsupported" && pushEstado !== "denied" && /* @__PURE__ */ React.createElement("div", { className: "space-y-1" }, pushEstado === "granted" ? /* @__PURE__ */ React.createElement("p", { className: "text-white/60 text-xs flex items-center justify-center gap-1" }, "🔔 ", t("Recordatorios activados")) : /* @__PURE__ */ React.createElement(
+        )), proxima && onMisReservas && /* @__PURE__ */ React.createElement(
           "button",
           {
-            onClick: activarNotificaciones,
-            disabled: activandoPush,
-            className: "text-white/80 text-xs border border-white/30 rounded-full px-4 py-1.5 hover:bg-white/10 transition flex items-center gap-1.5 mx-auto disabled:opacity-50"
+            onClick: onMisReservas,
+            className: "w-full text-left bg-white/95 rounded-2xl px-4 py-3 shadow-lg flex items-center gap-3"
           },
-          "🔔 ",
-          activandoPush ? t("Activando...") : t("Activar recordatorios")
-        ), pushMensaje && /* @__PURE__ */ React.createElement("p", { className: "text-yellow-300/80 text-xs text-center" }, pushMensaje)), /* @__PURE__ */ React.createElement(
+          /* @__PURE__ */ React.createElement("span", { className: "min-w-0 flex-1" }, /* @__PURE__ */ React.createElement("span", { className: "block text-xs font-bold uppercase tracking-wide text-gray-500" }, t("Tu próxima cita")), /* @__PURE__ */ React.createElement("span", { className: "block font-bold text-gray-900 truncate" }, window.formatFechaCompleta ? window.formatFechaCompleta(proxima.fecha) : proxima.fecha, " · ", window.formatTo12Hour ? window.formatTo12Hour(proxima.hora_inicio) : proxima.hora_inicio), /* @__PURE__ */ React.createElement("span", { className: `block text-sm truncate ${proxima.estado === "Pendiente" ? "text-amber-700 font-semibold" : "text-gray-600"}` }, proxima.estado === "Pendiente" ? t("Falta el anticipo · toca para enviarlo") : proxima.servicio)),
+          /* @__PURE__ */ React.createElement("span", { className: "text-gray-400 text-xl" }, "›")
+        ), /* @__PURE__ */ React.createElement(
           "button",
           {
             onClick: onStart,

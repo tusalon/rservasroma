@@ -4,7 +4,7 @@
 // (uno o varios servicios seguidos) se ve junto y se cambia junto. La logica de mover, quitar y anadir
 // servicios vive en utils/turnos.js (con prueba en tests/turnos.test.js).
 
-function MyBookings({ cliente, onVolver }) {
+function MyBookings({ cliente, onVolver, onRepetir }) {
     window.useIdioma();
     const t = window.t;
     const [bookings, setBookings] = React.useState([]);
@@ -21,6 +21,9 @@ function MyBookings({ cliente, onVolver }) {
     const [reprogramando, setReprogramando] = React.useState(false);
     const [reservaReprogramando, setReservaReprogramando] = React.useState(null);
     const [reprogramacionFecha, setReprogramacionFecha] = React.useState('');
+    // Servicio y profesional del turno, para pintar la misma tira de días que en
+    // la reserva (solo días con huecos). Sin ellos queda el selector de fecha.
+    const [reprogContexto, setReprogContexto] = React.useState(null);
     const [reprogramacionHora, setReprogramacionHora] = React.useState('');
     const [horariosReprogramacion, setHorariosReprogramacion] = React.useState([]);
     const [cargandoHorariosReprogramacion, setCargandoHorariosReprogramacion] = React.useState(false);
@@ -206,6 +209,17 @@ function MyBookings({ cliente, onVolver }) {
         setReprogramacionHora('');
         setHorariosReprogramacion([]);
         setMensajeReprogramacion('');
+        setReprogContexto(null);
+        // Un turno de varios servicios se mueve entero: la tira de un solo
+        // servicio no sirve ahí, queda el selector de fecha.
+        if (turno.items.length > 1) return;
+        Promise.all([window.salonServicios?.getAll?.(true), window.salonProfesionales?.getAll?.()])
+            .then(([servicios, profesionales]) => {
+                const servicio = (servicios || []).find(s => s.nombre === turno.servicio);
+                const profesional = (profesionales || []).find(p => String(p.id) === String(turno.profesional_id || turno.trabajador_id));
+                if (servicio && profesional) setReprogContexto({ servicio, profesional });
+            })
+            .catch(() => {});
     };
 
     const cerrarReprogramacion = () => {
@@ -551,6 +565,14 @@ function MyBookings({ cliente, onVolver }) {
                                             </button>
                                         )}
 
+                                        {/* Volver a pedir lo mismo sin empezar de cero. */}
+                                        {onRepetir && !varios && (esPasado(booking) || booking.estado === 'Cancelado') && (
+                                            <button onClick={() => onRepetir(booking)}
+                                                className="w-full py-2.5 rounded-full font-bold transition flex items-center justify-center gap-2 bg-pink-500 text-white shadow-sm mb-2">
+                                                {booking.estado === 'Cancelado' ? t('Reservar de nuevo') : t('Repetir esta cita')}
+                                            </button>
+                                        )}
+
                                         {booking.estado !== 'Cancelado' && calendarLink && (
                                             <a href={calendarLink} target="_blank" rel="noopener noreferrer"
                                                 className="w-full py-2 rounded-lg font-medium transition flex items-center justify-center gap-2 bg-white hover:bg-pink-50 text-pink-700 border border-pink-300 mb-2">
@@ -631,12 +653,22 @@ function MyBookings({ cliente, onVolver }) {
                                 </div>
                             </div>
 
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">{t('Nueva fecha')}</label>
-                                <input type="date" min={getTodayLocalString()} value={reprogramacionFecha}
-                                    onChange={(e) => setReprogramacionFecha(e.target.value)}
-                                    className="w-full border border-pink-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-pink-400" />
-                            </div>
+                            {reprogContexto ? (
+                                <Calendar
+                                    onDateSelect={setReprogramacionFecha}
+                                    selectedDate={reprogramacionFecha}
+                                    profesional={reprogContexto.profesional}
+                                    profesionalCompleto={reprogContexto.profesional}
+                                    service={reprogContexto.servicio}
+                                />
+                            ) : (
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">{t('Nueva fecha')}</label>
+                                    <input type="date" min={getTodayLocalString()} value={reprogramacionFecha}
+                                        onChange={(e) => setReprogramacionFecha(e.target.value)}
+                                        className="w-full border border-pink-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-pink-400" />
+                                </div>
+                            )}
 
                             {reprogramacionFecha && (
                                 <div>

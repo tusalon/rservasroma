@@ -4,7 +4,6 @@ function Calendar({ onDateSelect, selectedDate, profesional, profesionalCompleto
     const idioma = window.useIdioma();
     const t = window.t;
     const [currentDate, setCurrentDate] = React.useState(new Date());
-    const [diasLaborales, setDiasLaborales] = React.useState([]);
     const [diasCerrados, setDiasCerrados] = React.useState([]);
     const [cargandoHorarios, setCargandoHorarios] = React.useState(false);
     const [fechasLibresProfesional, setFechasLibresProfesional] = React.useState([]);
@@ -16,6 +15,9 @@ function Calendar({ onDateSelect, selectedDate, profesional, profesionalCompleto
     const [disponibilidadVerificada, setDisponibilidadVerificada] = React.useState(false);
     const [minAntelacionHoras, setMinAntelacionHoras] = React.useState(2);
     const [maxAntelacionDias, setMaxAntelacionDias] = React.useState(30);
+    // Huecos libres por fecha ("4 libres") y si se ve la tira o el mes entero.
+    const [libresPorFecha, setLibresPorFecha] = React.useState({});
+    const [vistaMes, setVistaMes] = React.useState(false);
 
     // indiceToHoraLegible, variantesHorarioPermitido y servicioPermiteHorario viven en
     // utils/timeLogic.js (cargado antes que este componente). timeToMinutes se mantiene
@@ -37,8 +39,6 @@ function Calendar({ onDateSelect, selectedDate, profesional, profesionalCompleto
         if (typeof window.getNegocioId === 'function') return window.getNegocioId();
         return localStorage.getItem('negocioId');
     };
-
-    const getTodayLocalString = () => formatDate(new Date());
 
     // slotTieneDescanso (utils/timeLogic.js) ya valida descanso.inicio/fin antes de llamar
     // timeToMinutes, así que usar la versión global ahí no reintroduce el problema de
@@ -96,7 +96,6 @@ function Calendar({ onDateSelect, selectedDate, profesional, profesionalCompleto
                     await window.salonConfig.getDescansosPorDia(profesional.id) :
                     {};
 
-                setDiasLaborales(horarios.dias || []);
                 setHorariosPorDia(porDia);
                 setDescansosPorDia(descansos || {});
                 if (onHorariosCargados) onHorariosCargados(porDia);
@@ -108,7 +107,6 @@ function Calendar({ onDateSelect, selectedDate, profesional, profesionalCompleto
                 await verificarDisponibilidadMes(porDia, descansos || {}, config);
             } catch (error) {
                 console.error('Error cargando disponibilidad:', error);
-                setDiasLaborales([]);
                 setDiasCerrados([]);
                 setFechasLibresProfesional([]);
                 setHorariosPorDia({});
@@ -193,6 +191,7 @@ function Calendar({ onDateSelect, selectedDate, profesional, profesionalCompleto
             const diasSemana = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
             const sinDisponibilidad = [];
             const conHorariosConfigurados = [];
+            const libres = {};
             const ahora = new Date();
             const minFechaPermitida = new Date(Date.now() + (minHoras * 60 * 60 * 1000));
             
@@ -220,6 +219,7 @@ function Calendar({ onDateSelect, selectedDate, profesional, profesionalCompleto
                 }
 
                 let tieneHorarioFuturo = false;
+                let huecos = 0;
 
                 if (datosMultiples.length > 0) {
                     const primerItem = datosMultiples[0];
@@ -268,14 +268,12 @@ function Calendar({ onDateSelect, selectedDate, profesional, profesionalCompleto
                             cursor = fin;
                         }
 
-                        if (slotCompletoDisponible) {
-                            tieneHorarioFuturo = true;
-                            break;
-                        }
+                        if (slotCompletoDisponible) huecos++;
                     }
+                    tieneHorarioFuturo = huecos > 0;
                 } else {
                     conHorariosConfigurados.push(fechaStr);
-                    tieneHorarioFuturo = baseSlots.some(slotStr => {
+                    huecos = baseSlots.filter(slotStr => {
                         const slotStart = timeToMinutes(slotStr);
                         const fechaHoraSlot = new Date(year, month, d, Math.floor(slotStart / 60), slotStart % 60, 0);
                         return slotDisponible({
@@ -287,8 +285,10 @@ function Calendar({ onDateSelect, selectedDate, profesional, profesionalCompleto
                             fechaHoraSlot,
                             minFechaPermitida,
                         });
-                    });
+                    }).length;
+                    tieneHorarioFuturo = huecos > 0;
                 }
+                libres[fechaStr] = huecos;
 
                 if (!tieneHorarioFuturo) {
                     sinDisponibilidad.push(fechaStr);
@@ -299,6 +299,7 @@ function Calendar({ onDateSelect, selectedDate, profesional, profesionalCompleto
             if (peticionMesRef.current !== miPeticion) return;
             setFechasSinDisponibilidad(sinDisponibilidad);
             setFechasConHorariosConfigurados(conHorariosConfigurados);
+            setLibresPorFecha(libres);
             setDisponibilidadVerificada(true);
         } catch (error) {
             console.error('Error verificando disponibilidad real del mes:', error);
@@ -316,12 +317,6 @@ function Calendar({ onDateSelect, selectedDate, profesional, profesionalCompleto
         return date < today;
     };
 
-    const profesionalTrabajaEsteDia = (date) => {
-        if (!profesional || diasLaborales.length === 0) return true;
-        const diasSemana = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
-        return diasLaborales.includes(diasSemana[date.getDay()]);
-    };
-
     const esDiaCerrado = (date) => diasCerrados.includes(formatDate(date));
     const esDiaLibreProfesional = (date) => (fechasLibresProfesional || []).includes(formatDate(date));
     const esDiaSinDisponibilidad = (date) => fechasSinDisponibilidad.includes(formatDate(date));
@@ -337,18 +332,6 @@ function Calendar({ onDateSelect, selectedDate, profesional, profesionalCompleto
 
     const tieneHorariosConfigurados = (date) => {
         return fechasConHorariosConfigurados.includes(formatDate(date));
-    };
-
-    const nextMonth = () => {
-        const next = new Date(currentDate);
-        next.setMonth(currentDate.getMonth() + 1);
-        setCurrentDate(next);
-    };
-
-    const prevMonth = () => {
-        const prev = new Date(currentDate);
-        prev.setMonth(currentDate.getMonth() - 1);
-        setCurrentDate(prev);
     };
 
     const getDaysInMonth = () => {
@@ -387,103 +370,151 @@ function Calendar({ onDateSelect, selectedDate, profesional, profesionalCompleto
         );
     }
 
+    // Estado de un día, compartido por la tira y por el mes completo.
+    const estadoDia = (date) => {
+        const past = isPastDate(date);
+        const cerrado = esDiaCerrado(date);
+        const diaLibreProfesional = esDiaLibreProfesional(date);
+        const sinDisponibilidad = esDiaSinDisponibilidad(date);
+        const tieneHorarios = tieneHorariosConfigurados(date);
+        const dentroDeAntelacion = estaDentroDeAntelacion(date);
+        const verificado = disponibilidadVerificada && !cargandoDisponibilidad;
+        const posible = !past && !cerrado && !diaLibreProfesional && dentroDeAntelacion;
+        return {
+            // Lleno pero con horarios: se elige para ver la lista de espera.
+            lleno: verificado && posible && sinDisponibilidad && tieneHorarios,
+            libre: verificado && posible && !sinDisponibilidad && tieneHorarios,
+            // Mientras se verifica, los candidatos se ven "cargando", no vacíos:
+            // si se pintan igual, la clienta cree que no hay nada y se va.
+            verificando: !verificado && posible,
+            libres: libresPorFecha[formatDate(date)] || 0
+        };
+    };
+
+    const diaCorto = idioma === 'en'
+        ? ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+        : ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
+
+    // Meses que se pueden reservar: del actual hasta el límite de antelación del
+    // salón (sin límite, tres meses). Llegar a diciembre es un toque.
+    const hoy = new Date();
+    const limiteDias = Number(maxAntelacionDias) > 0 ? Number(maxAntelacionDias) : 90;
+    const ultimoDia = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() + limiteDias);
+    const meses = [];
+    for (let m = new Date(hoy.getFullYear(), hoy.getMonth(), 1); m <= ultimoDia && meses.length < 6; m = new Date(m.getFullYear(), m.getMonth() + 1, 1)) {
+        meses.push(m);
+    }
+    const esMesActual = (m) => m.getFullYear() === currentDate.getFullYear() && m.getMonth() === currentDate.getMonth();
+
+    // La tira solo enseña días a los que se puede ir: los cerrados, pasados o
+    // libres de la profesional no aparecen.
+    const diasTira = days.filter(Boolean).map(date => ({ date, ...estadoDia(date) }))
+        .filter(d => d.libre || d.lleno || d.verificando);
+    const primerLibre = diasTira.find(d => d.libre);
+
     return (
         <div className="space-y-4 animate-fade-in">
-            <h2 className="text-lg font-semibold text-pink-700 flex items-center gap-2">
-                <span className="text-2xl">📅</span>
+            <h2 className="text-lg font-semibold text-pink-700 flex items-center gap-2 flex-wrap">
                 {t('3. Selecciona una fecha')}
                 {profesional && (
-                    <span className="text-sm bg-pink-100 text-pink-700 px-3 py-1 rounded-full ml-2">
+                    <span className="text-sm bg-pink-100 text-pink-700 px-3 py-1 rounded-full">
                         {t('con {nombre}', { nombre: profesional.nombre })}
                     </span>
                 )}
-                {selectedDate && (
-                    <span className="text-xs bg-pink-100 text-pink-700 px-2 py-1 rounded-full ml-2">
-                        {t('Fecha seleccionada')}
-                    </span>
-                )}
-                {cargandoDisponibilidad && (
-                    <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full ml-2 animate-pulse">
-                        {t('Verificando...')}
-                    </span>
-                )}
             </h2>
-            
-            <div className="bg-white/90 backdrop-blur-sm rounded-xl border-2 border-pink-200 shadow-sm overflow-hidden">
-                <div className="flex items-center justify-between p-4 bg-gradient-to-r from-pink-50 to-pink-100 border-b border-pink-200">
-                    <button onClick={prevMonth} className="p-2 hover:bg-white/50 rounded-full transition-colors text-pink-600" title={t('Mes anterior')}>◀</button>
-                    <span className="font-bold text-pink-800 text-lg capitalize">
-                        {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
-                    </span>
-                    <button onClick={nextMonth} className="p-2 hover:bg-white/50 rounded-full transition-colors text-pink-600" title={t('Mes siguiente')}>▶</button>
-                </div>
 
-                <div className="p-4">
-                    <div className="grid grid-cols-7 mb-2 text-center">
+            {primerLibre && !selectedDate && (
+                <button type="button" onClick={() => onDateSelect(formatDate(primerLibre.date))}
+                    className="w-full flex items-center gap-3 rounded-2xl bg-gray-900 text-white p-4 text-left shadow-md">
+                    <span className="w-10 h-10 shrink-0 rounded-xl bg-pink-500 flex items-center justify-center text-lg">⚡</span>
+                    <span>
+                        <span className="block font-bold">{t('Lo antes posible')}</span>
+                        <span className="block text-sm text-white/75">
+                            {diaCorto[primerLibre.date.getDay()]} {primerLibre.date.getDate()} · {t('{n} libre{s}', { n: primerLibre.libres, s: primerLibre.libres === 1 ? '' : 's' })}
+                        </span>
+                    </span>
+                </button>
+            )}
+
+            {meses.length > 1 && (
+                <div className="flex gap-2 overflow-x-auto pb-1">
+                    {meses.map(m => (
+                        <button key={m.getTime()} type="button" onClick={() => setCurrentDate(m)}
+                            className={`whitespace-nowrap px-4 py-2 rounded-full text-sm font-bold transition-colors
+                                ${esMesActual(m) ? 'bg-gray-900 text-white' : 'bg-white text-gray-600 shadow-sm'}`}>
+                            {monthNames[m.getMonth()]}
+                        </button>
+                    ))}
+                </div>
+            )}
+
+            {!vistaMes ? (
+                diasTira.length === 0 ? (
+                    <p className="text-sm text-gray-600 bg-white/80 rounded-xl p-4 text-center">
+                        {t('No quedan días con horarios este mes. Prueba con el mes siguiente.')}
+                    </p>
+                ) : (
+                    <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1">
+                        {diasTira.map(d => {
+                            const dateStr = formatDate(d.date);
+                            const selected = selectedDate === dateStr;
+                            return (
+                                <button key={dateStr} type="button"
+                                    onClick={() => !d.verificando && onDateSelect(dateStr)}
+                                    disabled={d.verificando}
+                                    className={`shrink-0 w-[4.5rem] rounded-2xl py-2.5 text-center transition-colors
+                                        ${selected ? 'bg-pink-500 text-white shadow-md'
+                                            : d.verificando ? 'bg-gray-100 text-gray-400 animate-pulse'
+                                            : d.lleno ? 'bg-white/70 text-gray-500 border border-gray-200'
+                                            : 'bg-white text-gray-800 shadow-sm'}`}>
+                                    <span className="block text-[11px] font-bold uppercase tracking-wide opacity-80">{diaCorto[d.date.getDay()]}</span>
+                                    <span className="block text-2xl font-extrabold leading-tight">{d.date.getDate()}</span>
+                                    <span className={`block text-[11px] font-bold whitespace-nowrap ${selected ? 'text-white' : d.lleno ? 'text-gray-500' : 'text-green-700'}`}>
+                                        {d.verificando ? '…' : d.lleno ? t('Lleno') : t('{n} libre{s}', { n: d.libres, s: d.libres === 1 ? '' : 's' })}
+                                    </span>
+                                </button>
+                            );
+                        })}
+                    </div>
+                )
+            ) : (
+                <div className="bg-white/90 rounded-2xl shadow-sm p-3">
+                    <div className="grid grid-cols-7 mb-1 text-center">
                         {(idioma === 'en' ? ['S', 'M', 'T', 'W', 'T', 'F', 'S'] : ['D', 'L', 'M', 'M', 'J', 'V', 'S']).map((d, i) => (
-                            <div key={i} className={`text-xs font-medium py-1 ${i === 0 ? 'text-pink-400' : 'text-pink-600'}`}>{d}</div>
+                            <div key={i} className="text-xs font-semibold text-gray-500 py-1">{d}</div>
                         ))}
                     </div>
-                    
+                    {/* Dos estados nada más: con huecos (punto verde) o lleno
+                        (tachado). Lo demás se ve apagado y no se puede tocar. */}
                     <div className="grid grid-cols-7 gap-1">
                         {days.map((date, idx) => {
-                            if (!date) return <div key={idx} className="h-10" />;
-
+                            if (!date) return <div key={idx} />;
+                            const d = estadoDia(date);
                             const dateStr = formatDate(date);
-                            const past = isPastDate(date);
                             const selected = selectedDate === dateStr;
-                            const profesionalTrabaja = profesionalTrabajaEsteDia(date);
-                            const cerrado = esDiaCerrado(date);
-                            const diaLibreProfesional = esDiaLibreProfesional(date);
-                            const sinDisponibilidad = esDiaSinDisponibilidad(date);
-                            const tieneHorarios = tieneHorariosConfigurados(date);
-                            const dentroDeAntelacion = estaDentroDeAntelacion(date);
-                            const puedeListaEspera = disponibilidadVerificada && !cargandoDisponibilidad && !past && !cerrado && !diaLibreProfesional && sinDisponibilidad && tieneHorarios && dentroDeAntelacion;
-                            const available = disponibilidadVerificada && !cargandoDisponibilidad && !past && !cerrado && !diaLibreProfesional && !sinDisponibilidad && tieneHorarios && dentroDeAntelacion;
-                            const selectable = available || puedeListaEspera;
-                            // Mientras se verifica el mes, los días candidatos se ven
-                            // "cargando" (gris pulsante), no "sin turnos" (rosa pálido):
-                            // si se pintan igual, la clienta cree que no hay nada y se va.
-                            const verificandoDia = (cargandoDisponibilidad || !disponibilidadVerificada) &&
-                                !past && !cerrado && !diaLibreProfesional && dentroDeAntelacion;
-
-                            let className = "h-10 w-full flex items-center justify-center rounded-lg text-sm font-medium transition-all relative";
-                            if (selected) className += " bg-pink-500 text-white shadow-md scale-105 ring-2 ring-pink-300";
-                            else if (verificandoDia) className += " text-gray-400 bg-gray-100 animate-pulse cursor-wait";
-                            else if (puedeListaEspera) className += " text-amber-700 bg-amber-50 border border-amber-200 hover:bg-amber-100 hover:scale-105 cursor-pointer";
-                            else if (!selectable) className += " text-pink-300 cursor-not-allowed bg-pink-50/50";
-                            else className += " text-pink-700 hover:bg-pink-100 hover:text-pink-600 hover:scale-105 cursor-pointer";
-                            
-                            let title = "";
-                            if (cerrado) title = t('Dia cerrado');
-                            else if (diaLibreProfesional) title = t('{nombre} no trabaja este dia', { nombre: profesional?.nombre });
-                            else if (puedeListaEspera) title = t('Dia lleno: puedes anotarte en lista de espera');
-                            else if (sinDisponibilidad) title = t('Sin horarios disponibles para este servicio');
-                            else if (!disponibilidadVerificada || cargandoDisponibilidad) title = t('Verificando disponibilidad');
-                            else if (past && dateStr === getTodayLocalString()) title = t('Hoy ya no hay horarios disponibles');
-                            else if (past) title = t('Fecha pasada');
-                            else if (!profesionalTrabaja && profesional && !tieneHorarios) {
-                                const diasSemana = idioma === 'en'
-                                    ? ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
-                                    : ['domingos', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabados'];
-                                title = t('{nombre} no trabaja los {dia}', { nombre: profesional.nombre, dia: diasSemana[date.getDay()] });
-                            } else if (!tieneHorarios) title = t('No hay horarios configurados para este dia');
-                            else title = t('Disponible');
-                            
+                            const tocable = d.libre || d.lleno;
                             return (
-                                <button key={idx} onClick={() => selectable && onDateSelect(dateStr)} disabled={!selectable} className={className} title={title}>
+                                <button key={idx} type="button" onClick={() => tocable && onDateSelect(dateStr)} disabled={!tocable}
+                                    className={`relative aspect-square rounded-xl text-sm font-bold flex items-center justify-center
+                                        ${selected ? 'bg-pink-500 text-white'
+                                            : d.verificando ? 'bg-gray-100 text-gray-400 animate-pulse'
+                                            : d.libre ? 'bg-white text-gray-800 shadow-sm'
+                                            : d.lleno ? 'text-gray-500 line-through'
+                                            : 'text-gray-300'}`}>
                                     {date.getDate()}
-                                    {cerrado && <span className="absolute top-0 right-0 text-[10px] text-red-500">×</span>}
-                                    {diaLibreProfesional && !cerrado && <span className="absolute top-0 right-0 text-[10px] text-orange-500">○</span>}
-                                    {puedeListaEspera && <span className="absolute top-0 right-0 text-[10px] text-amber-500">!</span>}
-                                    {sinDisponibilidad && !puedeListaEspera && !cerrado && !diaLibreProfesional && <span className="absolute top-0 right-0 text-[10px] text-red-500">×</span>}
-                                    {available && !selected && <span className="absolute bottom-0.5 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-pink-400 rounded-full"></span>}
-                                    {puedeListaEspera && !selected && <span className="absolute bottom-0.5 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-amber-400 rounded-full"></span>}
+                                    {d.libre && !selected && <span className="absolute bottom-1 w-1.5 h-1.5 rounded-full bg-green-600"></span>}
                                 </button>
                             );
                         })}
                     </div>
                 </div>
+            )}
+
+            <div className="flex items-center justify-between gap-3 text-xs text-gray-500">
+                <span>{vistaMes ? t('Punto verde: hay huecos. Tachado: lleno.') : t('Desliza para ver más días.')}</span>
+                <button type="button" onClick={() => setVistaMes(!vistaMes)} className="font-bold text-pink-600 whitespace-nowrap py-1">
+                    {vistaMes ? t('Ver tira de días') : t('Ver mes completo')}
+                </button>
             </div>
         </div>
     );

@@ -406,14 +406,16 @@ function TimeSlots({ service, date, profesional, cliente, onTimeSelect, selected
                     )}
 
                     {/* Píldoras de tres en fila, separadas en mañana y tarde: se
-                        leen de un vistazo y caben más horarios por pantalla. */}
+                        leen de un vistazo y caben más horarios por pantalla. Las columnas
+                        van en línea porque legacy-ios-fallback.css pasa grid-cols-3 a
+                        dos columnas en el móvil. */}
                     {[
                         [t('Por la mañana'), slots.filter(h => h < '12:00')],
                         [t('Por la tarde'), slots.filter(h => h >= '12:00')]
                     ].filter(([, lista]) => lista.length > 0).map(([titulo, lista]) => (
                         <div key={titulo}>
                             <p className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">{titulo}</p>
-                            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
+                            <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
                                 {lista.map(time24h => (
                                     <button
                                         key={time24h}
@@ -421,7 +423,7 @@ function TimeSlots({ service, date, profesional, cliente, onTimeSelect, selected
                                         className={`py-3 rounded-full text-base font-semibold tabular-nums transition-colors
                                             ${selectedTime === time24h
                                                 ? 'bg-pink-500 text-white shadow-md'
-                                                : 'bg-white text-gray-800 border border-pink-200 hover:border-pink-400'}`}
+                                                : 'bg-white text-gray-800 shadow-sm hover:shadow'}`}
                                     >
                                         {formatTo12Hour(time24h)}
                                     </button>

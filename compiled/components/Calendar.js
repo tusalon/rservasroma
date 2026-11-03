@@ -2,7 +2,6 @@ function Calendar({ onDateSelect, selectedDate, profesional, profesionalCompleto
   const idioma = window.useIdioma();
   const t = window.t;
   const [currentDate, setCurrentDate] = React.useState(/* @__PURE__ */ new Date());
-  const [diasLaborales, setDiasLaborales] = React.useState([]);
   const [diasCerrados, setDiasCerrados] = React.useState([]);
   const [cargandoHorarios, setCargandoHorarios] = React.useState(false);
   const [fechasLibresProfesional, setFechasLibresProfesional] = React.useState([]);
@@ -14,6 +13,8 @@ function Calendar({ onDateSelect, selectedDate, profesional, profesionalCompleto
   const [disponibilidadVerificada, setDisponibilidadVerificada] = React.useState(false);
   const [minAntelacionHoras, setMinAntelacionHoras] = React.useState(2);
   const [maxAntelacionDias, setMaxAntelacionDias] = React.useState(30);
+  const [libresPorFecha, setLibresPorFecha] = React.useState({});
+  const [vistaMes, setVistaMes] = React.useState(false);
   const timeToMinutes = (timeStr) => {
     const [hours, minutes] = String(timeStr || "00:00").split(":").map(Number);
     return (hours || 0) * 60 + (minutes || 0);
@@ -29,7 +30,6 @@ function Calendar({ onDateSelect, selectedDate, profesional, profesionalCompleto
     if (typeof window.getNegocioId === "function") return window.getNegocioId();
     return localStorage.getItem("negocioId");
   };
-  const getTodayLocalString = () => formatDate(/* @__PURE__ */ new Date());
   const getReservasPorFechaProfesional = async (negocioId, profesionalId, fechaInicio, fechaFin, servicio) => {
     const response = await fetch(
       `${window.SUPABASE_URL}/rest/v1/reservas?negocio_id=eq.${negocioId}&fecha=gte.${fechaInicio}&fecha=lte.${fechaFin}&profesional_id=eq.${profesionalId}&estado=neq.Cancelado&select=fecha,hora_inicio,hora_fin`,
@@ -70,7 +70,6 @@ function Calendar({ onDateSelect, selectedDate, profesional, profesionalCompleto
         const horarios = await window.salonConfig.getHorariosProfesional(profesional.id);
         const porDia = horarios.horariosPorDia || {};
         const descansos = window.salonConfig.getDescansosPorDia ? await window.salonConfig.getDescansosPorDia(profesional.id) : {};
-        setDiasLaborales(horarios.dias || []);
         setHorariosPorDia(porDia);
         setDescansosPorDia(descansos || {});
         if (onHorariosCargados) onHorariosCargados(porDia);
@@ -80,7 +79,6 @@ function Calendar({ onDateSelect, selectedDate, profesional, profesionalCompleto
         await verificarDisponibilidadMes(porDia, descansos || {}, config);
       } catch (error) {
         console.error("Error cargando disponibilidad:", error);
-        setDiasLaborales([]);
         setDiasCerrados([]);
         setFechasLibresProfesional([]);
         setHorariosPorDia({});
@@ -142,6 +140,7 @@ function Calendar({ onDateSelect, selectedDate, profesional, profesionalCompleto
       const diasSemana = ["domingo", "lunes", "martes", "miercoles", "jueves", "viernes", "sabado"];
       const sinDisponibilidad = [];
       const conHorariosConfigurados = [];
+      const libres = {};
       const ahora = /* @__PURE__ */ new Date();
       const minFechaPermitida = new Date(Date.now() + minHoras * 60 * 60 * 1e3);
       for (let d = 1; d <= diasEnMes; d++) {
@@ -165,6 +164,7 @@ function Calendar({ onDateSelect, selectedDate, profesional, profesionalCompleto
           continue;
         }
         let tieneHorarioFuturo = false;
+        let huecos = 0;
         if (datosMultiples.length > 0) {
           const primerItem = datosMultiples[0];
           const primerHorario = primerItem.horariosPorFecha[fechaStr] || {};
@@ -206,14 +206,12 @@ function Calendar({ onDateSelect, selectedDate, profesional, profesionalCompleto
               }
               cursor = fin;
             }
-            if (slotCompletoDisponible) {
-              tieneHorarioFuturo = true;
-              break;
-            }
+            if (slotCompletoDisponible) huecos++;
           }
+          tieneHorarioFuturo = huecos > 0;
         } else {
           conHorariosConfigurados.push(fechaStr);
-          tieneHorarioFuturo = baseSlots.some((slotStr) => {
+          huecos = baseSlots.filter((slotStr) => {
             const slotStart = timeToMinutes(slotStr);
             const fechaHoraSlot = new Date(year, month, d, Math.floor(slotStart / 60), slotStart % 60, 0);
             return slotDisponible({
@@ -225,8 +223,10 @@ function Calendar({ onDateSelect, selectedDate, profesional, profesionalCompleto
               fechaHoraSlot,
               minFechaPermitida
             });
-          });
+          }).length;
+          tieneHorarioFuturo = huecos > 0;
         }
+        libres[fechaStr] = huecos;
         if (!tieneHorarioFuturo) {
           sinDisponibilidad.push(fechaStr);
         }
@@ -234,6 +234,7 @@ function Calendar({ onDateSelect, selectedDate, profesional, profesionalCompleto
       if (peticionMesRef.current !== miPeticion) return;
       setFechasSinDisponibilidad(sinDisponibilidad);
       setFechasConHorariosConfigurados(conHorariosConfigurados);
+      setLibresPorFecha(libres);
       setDisponibilidadVerificada(true);
     } catch (error) {
       console.error("Error verificando disponibilidad real del mes:", error);
@@ -249,35 +250,20 @@ function Calendar({ onDateSelect, selectedDate, profesional, profesionalCompleto
     today.setHours(0, 0, 0, 0);
     return date < today;
   };
-  const profesionalTrabajaEsteDia = (date) => {
-    if (!profesional || diasLaborales.length === 0) return true;
-    const diasSemana = ["domingo", "lunes", "martes", "miercoles", "jueves", "viernes", "sabado"];
-    return diasLaborales.includes(diasSemana[date.getDay()]);
-  };
   const esDiaCerrado = (date) => diasCerrados.includes(formatDate(date));
   const esDiaLibreProfesional = (date) => (fechasLibresProfesional || []).includes(formatDate(date));
   const esDiaSinDisponibilidad = (date) => fechasSinDisponibilidad.includes(formatDate(date));
   const estaDentroDeAntelacion = (date) => {
     if (Number(maxAntelacionDias) <= 0) return true;
-    const hoy = /* @__PURE__ */ new Date();
-    hoy.setHours(0, 0, 0, 0);
+    const hoy2 = /* @__PURE__ */ new Date();
+    hoy2.setHours(0, 0, 0, 0);
     const fecha = new Date(date);
     fecha.setHours(0, 0, 0, 0);
-    const diffDias = Math.ceil((fecha - hoy) / (1e3 * 60 * 60 * 24));
+    const diffDias = Math.ceil((fecha - hoy2) / (1e3 * 60 * 60 * 24));
     return diffDias <= Number(maxAntelacionDias);
   };
   const tieneHorariosConfigurados = (date) => {
     return fechasConHorariosConfigurados.includes(formatDate(date));
-  };
-  const nextMonth = () => {
-    const next = new Date(currentDate);
-    next.setMonth(currentDate.getMonth() + 1);
-    setCurrentDate(next);
-  };
-  const prevMonth = () => {
-    const prev = new Date(currentDate);
-    prev.setMonth(currentDate.getMonth() - 1);
-    setCurrentDate(prev);
   };
   const getDaysInMonth = () => {
     const year = currentDate.getFullYear();
@@ -294,40 +280,90 @@ function Calendar({ onDateSelect, selectedDate, profesional, profesionalCompleto
   if (cargandoHorarios) {
     return /* @__PURE__ */ React.createElement("div", { className: "space-y-4 animate-fade-in" }, /* @__PURE__ */ React.createElement("h2", { className: "text-lg font-semibold text-pink-700 flex items-center gap-2" }, /* @__PURE__ */ React.createElement("span", { className: "text-2xl" }, "📅"), t("3. Selecciona una fecha"), profesional && /* @__PURE__ */ React.createElement("span", { className: "text-sm bg-pink-100 text-pink-700 px-3 py-1 rounded-full ml-2" }, t("con {nombre}", { nombre: profesional.nombre }))), /* @__PURE__ */ React.createElement("div", { className: "text-center py-8" }, /* @__PURE__ */ React.createElement("div", { className: "animate-spin h-8 w-8 border-b-2 border-pink-500 rounded-full mx-auto" }), /* @__PURE__ */ React.createElement("p", { className: "text-pink-400 mt-4" }, t("Cargando disponibilidad..."))));
   }
-  return /* @__PURE__ */ React.createElement("div", { className: "space-y-4 animate-fade-in" }, /* @__PURE__ */ React.createElement("h2", { className: "text-lg font-semibold text-pink-700 flex items-center gap-2" }, /* @__PURE__ */ React.createElement("span", { className: "text-2xl" }, "📅"), t("3. Selecciona una fecha"), profesional && /* @__PURE__ */ React.createElement("span", { className: "text-sm bg-pink-100 text-pink-700 px-3 py-1 rounded-full ml-2" }, t("con {nombre}", { nombre: profesional.nombre })), selectedDate && /* @__PURE__ */ React.createElement("span", { className: "text-xs bg-pink-100 text-pink-700 px-2 py-1 rounded-full ml-2" }, t("Fecha seleccionada")), cargandoDisponibilidad && /* @__PURE__ */ React.createElement("span", { className: "text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full ml-2 animate-pulse" }, t("Verificando..."))), /* @__PURE__ */ React.createElement("div", { className: "bg-white/90 backdrop-blur-sm rounded-xl border-2 border-pink-200 shadow-sm overflow-hidden" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between p-4 bg-gradient-to-r from-pink-50 to-pink-100 border-b border-pink-200" }, /* @__PURE__ */ React.createElement("button", { onClick: prevMonth, className: "p-2 hover:bg-white/50 rounded-full transition-colors text-pink-600", title: t("Mes anterior") }, "◀"), /* @__PURE__ */ React.createElement("span", { className: "font-bold text-pink-800 text-lg capitalize" }, monthNames[currentDate.getMonth()], " ", currentDate.getFullYear()), /* @__PURE__ */ React.createElement("button", { onClick: nextMonth, className: "p-2 hover:bg-white/50 rounded-full transition-colors text-pink-600", title: t("Mes siguiente") }, "▶")), /* @__PURE__ */ React.createElement("div", { className: "p-4" }, /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-7 mb-2 text-center" }, (idioma === "en" ? ["S", "M", "T", "W", "T", "F", "S"] : ["D", "L", "M", "M", "J", "V", "S"]).map((d, i) => /* @__PURE__ */ React.createElement("div", { key: i, className: `text-xs font-medium py-1 ${i === 0 ? "text-pink-400" : "text-pink-600"}` }, d))), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-7 gap-1" }, days.map((date, idx) => {
-    if (!date) return /* @__PURE__ */ React.createElement("div", { key: idx, className: "h-10" });
-    const dateStr = formatDate(date);
+  const estadoDia = (date) => {
     const past = isPastDate(date);
-    const selected = selectedDate === dateStr;
-    const profesionalTrabaja = profesionalTrabajaEsteDia(date);
     const cerrado = esDiaCerrado(date);
     const diaLibreProfesional = esDiaLibreProfesional(date);
     const sinDisponibilidad = esDiaSinDisponibilidad(date);
     const tieneHorarios = tieneHorariosConfigurados(date);
     const dentroDeAntelacion = estaDentroDeAntelacion(date);
-    const puedeListaEspera = disponibilidadVerificada && !cargandoDisponibilidad && !past && !cerrado && !diaLibreProfesional && sinDisponibilidad && tieneHorarios && dentroDeAntelacion;
-    const available = disponibilidadVerificada && !cargandoDisponibilidad && !past && !cerrado && !diaLibreProfesional && !sinDisponibilidad && tieneHorarios && dentroDeAntelacion;
-    const selectable = available || puedeListaEspera;
-    const verificandoDia = (cargandoDisponibilidad || !disponibilidadVerificada) && !past && !cerrado && !diaLibreProfesional && dentroDeAntelacion;
-    let className = "h-10 w-full flex items-center justify-center rounded-lg text-sm font-medium transition-all relative";
-    if (selected) className += " bg-pink-500 text-white shadow-md scale-105 ring-2 ring-pink-300";
-    else if (verificandoDia) className += " text-gray-400 bg-gray-100 animate-pulse cursor-wait";
-    else if (puedeListaEspera) className += " text-amber-700 bg-amber-50 border border-amber-200 hover:bg-amber-100 hover:scale-105 cursor-pointer";
-    else if (!selectable) className += " text-pink-300 cursor-not-allowed bg-pink-50/50";
-    else className += " text-pink-700 hover:bg-pink-100 hover:text-pink-600 hover:scale-105 cursor-pointer";
-    let title = "";
-    if (cerrado) title = t("Dia cerrado");
-    else if (diaLibreProfesional) title = t("{nombre} no trabaja este dia", { nombre: profesional?.nombre });
-    else if (puedeListaEspera) title = t("Dia lleno: puedes anotarte en lista de espera");
-    else if (sinDisponibilidad) title = t("Sin horarios disponibles para este servicio");
-    else if (!disponibilidadVerificada || cargandoDisponibilidad) title = t("Verificando disponibilidad");
-    else if (past && dateStr === getTodayLocalString()) title = t("Hoy ya no hay horarios disponibles");
-    else if (past) title = t("Fecha pasada");
-    else if (!profesionalTrabaja && profesional && !tieneHorarios) {
-      const diasSemana = idioma === "en" ? ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"] : ["domingos", "lunes", "martes", "miercoles", "jueves", "viernes", "sabados"];
-      title = t("{nombre} no trabaja los {dia}", { nombre: profesional.nombre, dia: diasSemana[date.getDay()] });
-    } else if (!tieneHorarios) title = t("No hay horarios configurados para este dia");
-    else title = t("Disponible");
-    return /* @__PURE__ */ React.createElement("button", { key: idx, onClick: () => selectable && onDateSelect(dateStr), disabled: !selectable, className, title }, date.getDate(), cerrado && /* @__PURE__ */ React.createElement("span", { className: "absolute top-0 right-0 text-[10px] text-red-500" }, "×"), diaLibreProfesional && !cerrado && /* @__PURE__ */ React.createElement("span", { className: "absolute top-0 right-0 text-[10px] text-orange-500" }, "○"), puedeListaEspera && /* @__PURE__ */ React.createElement("span", { className: "absolute top-0 right-0 text-[10px] text-amber-500" }, "!"), sinDisponibilidad && !puedeListaEspera && !cerrado && !diaLibreProfesional && /* @__PURE__ */ React.createElement("span", { className: "absolute top-0 right-0 text-[10px] text-red-500" }, "×"), available && !selected && /* @__PURE__ */ React.createElement("span", { className: "absolute bottom-0.5 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-pink-400 rounded-full" }), puedeListaEspera && !selected && /* @__PURE__ */ React.createElement("span", { className: "absolute bottom-0.5 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-amber-400 rounded-full" }));
-  })))));
+    const verificado = disponibilidadVerificada && !cargandoDisponibilidad;
+    const posible = !past && !cerrado && !diaLibreProfesional && dentroDeAntelacion;
+    return {
+      // Lleno pero con horarios: se elige para ver la lista de espera.
+      lleno: verificado && posible && sinDisponibilidad && tieneHorarios,
+      libre: verificado && posible && !sinDisponibilidad && tieneHorarios,
+      // Mientras se verifica, los candidatos se ven "cargando", no vacíos:
+      // si se pintan igual, la clienta cree que no hay nada y se va.
+      verificando: !verificado && posible,
+      libres: libresPorFecha[formatDate(date)] || 0
+    };
+  };
+  const diaCorto = idioma === "en" ? ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] : ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
+  const hoy = /* @__PURE__ */ new Date();
+  const limiteDias = Number(maxAntelacionDias) > 0 ? Number(maxAntelacionDias) : 90;
+  const ultimoDia = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() + limiteDias);
+  const meses = [];
+  for (let m = new Date(hoy.getFullYear(), hoy.getMonth(), 1); m <= ultimoDia && meses.length < 6; m = new Date(m.getFullYear(), m.getMonth() + 1, 1)) {
+    meses.push(m);
+  }
+  const esMesActual = (m) => m.getFullYear() === currentDate.getFullYear() && m.getMonth() === currentDate.getMonth();
+  const diasTira = days.filter(Boolean).map((date) => ({ date, ...estadoDia(date) })).filter((d) => d.libre || d.lleno || d.verificando);
+  const primerLibre = diasTira.find((d) => d.libre);
+  return /* @__PURE__ */ React.createElement("div", { className: "space-y-4 animate-fade-in" }, /* @__PURE__ */ React.createElement("h2", { className: "text-lg font-semibold text-pink-700 flex items-center gap-2 flex-wrap" }, t("3. Selecciona una fecha"), profesional && /* @__PURE__ */ React.createElement("span", { className: "text-sm bg-pink-100 text-pink-700 px-3 py-1 rounded-full" }, t("con {nombre}", { nombre: profesional.nombre }))), primerLibre && !selectedDate && /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      type: "button",
+      onClick: () => onDateSelect(formatDate(primerLibre.date)),
+      className: "w-full flex items-center gap-3 rounded-2xl bg-gray-900 text-white p-4 text-left shadow-md"
+    },
+    /* @__PURE__ */ React.createElement("span", { className: "w-10 h-10 shrink-0 rounded-xl bg-pink-500 flex items-center justify-center text-lg" }, "⚡"),
+    /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("span", { className: "block font-bold" }, t("Lo antes posible")), /* @__PURE__ */ React.createElement("span", { className: "block text-sm text-white/75" }, diaCorto[primerLibre.date.getDay()], " ", primerLibre.date.getDate(), " · ", t("{n} libre{s}", { n: primerLibre.libres, s: primerLibre.libres === 1 ? "" : "s" })))
+  ), meses.length > 1 && /* @__PURE__ */ React.createElement("div", { className: "flex gap-2 overflow-x-auto pb-1" }, meses.map((m) => /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      key: m.getTime(),
+      type: "button",
+      onClick: () => setCurrentDate(m),
+      className: `whitespace-nowrap px-4 py-2 rounded-full text-sm font-bold transition-colors
+                                ${esMesActual(m) ? "bg-gray-900 text-white" : "bg-white text-gray-600 shadow-sm"}`
+    },
+    monthNames[m.getMonth()]
+  ))), !vistaMes ? diasTira.length === 0 ? /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-600 bg-white/80 rounded-xl p-4 text-center" }, t("No quedan días con horarios este mes. Prueba con el mes siguiente.")) : /* @__PURE__ */ React.createElement("div", { className: "flex gap-2 overflow-x-auto pb-2 -mx-1 px-1" }, diasTira.map((d) => {
+    const dateStr = formatDate(d.date);
+    const selected = selectedDate === dateStr;
+    return /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        key: dateStr,
+        type: "button",
+        onClick: () => !d.verificando && onDateSelect(dateStr),
+        disabled: d.verificando,
+        className: `shrink-0 w-[4.5rem] rounded-2xl py-2.5 text-center transition-colors
+                                        ${selected ? "bg-pink-500 text-white shadow-md" : d.verificando ? "bg-gray-100 text-gray-400 animate-pulse" : d.lleno ? "bg-white/70 text-gray-500 border border-gray-200" : "bg-white text-gray-800 shadow-sm"}`
+      },
+      /* @__PURE__ */ React.createElement("span", { className: "block text-[11px] font-bold uppercase tracking-wide opacity-80" }, diaCorto[d.date.getDay()]),
+      /* @__PURE__ */ React.createElement("span", { className: "block text-2xl font-extrabold leading-tight" }, d.date.getDate()),
+      /* @__PURE__ */ React.createElement("span", { className: `block text-[11px] font-bold whitespace-nowrap ${selected ? "text-white" : d.lleno ? "text-gray-500" : "text-green-700"}` }, d.verificando ? "…" : d.lleno ? t("Lleno") : t("{n} libre{s}", { n: d.libres, s: d.libres === 1 ? "" : "s" }))
+    );
+  })) : /* @__PURE__ */ React.createElement("div", { className: "bg-white/90 rounded-2xl shadow-sm p-3" }, /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-7 mb-1 text-center" }, (idioma === "en" ? ["S", "M", "T", "W", "T", "F", "S"] : ["D", "L", "M", "M", "J", "V", "S"]).map((d, i) => /* @__PURE__ */ React.createElement("div", { key: i, className: "text-xs font-semibold text-gray-500 py-1" }, d))), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-7 gap-1" }, days.map((date, idx) => {
+    if (!date) return /* @__PURE__ */ React.createElement("div", { key: idx });
+    const d = estadoDia(date);
+    const dateStr = formatDate(date);
+    const selected = selectedDate === dateStr;
+    const tocable = d.libre || d.lleno;
+    return /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        key: idx,
+        type: "button",
+        onClick: () => tocable && onDateSelect(dateStr),
+        disabled: !tocable,
+        className: `relative aspect-square rounded-xl text-sm font-bold flex items-center justify-center
+                                        ${selected ? "bg-pink-500 text-white" : d.verificando ? "bg-gray-100 text-gray-400 animate-pulse" : d.libre ? "bg-white text-gray-800 shadow-sm" : d.lleno ? "text-gray-500 line-through" : "text-gray-300"}`
+      },
+      date.getDate(),
+      d.libre && !selected && /* @__PURE__ */ React.createElement("span", { className: "absolute bottom-1 w-1.5 h-1.5 rounded-full bg-green-600" })
+    );
+  }))), /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between gap-3 text-xs text-gray-500" }, /* @__PURE__ */ React.createElement("span", null, vistaMes ? t("Punto verde: hay huecos. Tachado: lleno.") : t("Desliza para ver más días.")), /* @__PURE__ */ React.createElement("button", { type: "button", onClick: () => setVistaMes(!vistaMes), className: "font-bold text-pink-600 whitespace-nowrap py-1" }, vistaMes ? t("Ver tira de días") : t("Ver mes completo"))));
 }

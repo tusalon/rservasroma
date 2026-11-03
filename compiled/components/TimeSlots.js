@@ -283,13 +283,13 @@ function TimeSlots({ service, date, profesional, cliente, onTimeSelect, selected
   })), [
     [t("Por la mañana"), slots.filter((h) => h < "12:00")],
     [t("Por la tarde"), slots.filter((h) => h >= "12:00")]
-  ].filter(([, lista]) => lista.length > 0).map(([titulo, lista]) => /* @__PURE__ */ React.createElement("div", { key: titulo }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold uppercase tracking-wider text-gray-500 mb-2" }, titulo), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2" }, lista.map((time24h) => /* @__PURE__ */ React.createElement(
+  ].filter(([, lista]) => lista.length > 0).map(([titulo, lista]) => /* @__PURE__ */ React.createElement("div", { key: titulo }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold uppercase tracking-wider text-gray-500 mb-2" }, titulo), /* @__PURE__ */ React.createElement("div", { className: "grid gap-2", style: { gridTemplateColumns: "repeat(3, minmax(0, 1fr))" } }, lista.map((time24h) => /* @__PURE__ */ React.createElement(
     "button",
     {
       key: time24h,
       onClick: () => onTimeSelect(time24h),
       className: `py-3 rounded-full text-base font-semibold tabular-nums transition-colors
-                                            ${selectedTime === time24h ? "bg-pink-500 text-white shadow-md" : "bg-white text-gray-800 border border-pink-200 hover:border-pink-400"}`
+                                            ${selectedTime === time24h ? "bg-pink-500 text-white shadow-md" : "bg-white text-gray-800 shadow-sm hover:shadow"}`
     },
     formatTo12Hour(time24h)
   ))))), occupiedSlots.length > 0 && slots.length > 0 && !verEspera && /* @__PURE__ */ React.createElement(

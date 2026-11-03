@@ -18,6 +18,7 @@ function ClientAuthScreen({ onAccessGranted, onGoBack, disenoPendiente }) {
   const [codigoPaisCliente, setCodigoPaisCliente] = React.useState("53");
   const [cumpleDia, setCumpleDia] = React.useState("");
   const [cumpleMes, setCumpleMes] = React.useState("");
+  const [pasoCumple, setPasoCumple] = React.useState(false);
   React.useEffect(() => {
     const cargarDatos = async () => {
       const configData = await window.cargarConfiguracionNegocio();
@@ -43,6 +44,7 @@ function ClientAuthScreen({ onAccessGranted, onGoBack, disenoPendiente }) {
     setProfesionalPassword("");
     setEsAdmin(false);
     setError("");
+    setPasoCumple(false);
   };
   const debounceTelefonoRef = React.useRef(null);
   const verificacionIdRef = React.useRef(0);
@@ -162,7 +164,7 @@ function ClientAuthScreen({ onAccessGranted, onGoBack, disenoPendiente }) {
       setVerificando(false);
     }
   };
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e, sinCumple = false) => {
     e.preventDefault();
     const codigoPais = codigoPaisCliente || (window.getCodigoPaisTelefono ? window.getCodigoPaisTelefono(config) : "53");
     const paisTelefono2 = window.getPhoneCountryConfig ? window.getPhoneCountryConfig({ codigo_pais: codigoPais }) : { localLength: 8 };
@@ -179,6 +181,11 @@ function ClientAuthScreen({ onAccessGranted, onGoBack, disenoPendiente }) {
     }
     if (!nombre.trim()) {
       setError(t("Ingresa tu nombre completo para registrarte."));
+      return;
+    }
+    if (window.cumpleanos && !pasoCumple) {
+      setError("");
+      setPasoCumple(true);
       return;
     }
     setVerificando(true);
@@ -200,7 +207,7 @@ function ClientAuthScreen({ onAccessGranted, onGoBack, disenoPendiente }) {
         onAccessGranted(clienteExistente.nombre, numeroCompleto);
         return;
       }
-      const cumpleElegido = window.cumpleanos?.normalizarCumple(cumpleDia, cumpleMes);
+      const cumpleElegido = sinCumple ? null : window.cumpleanos?.normalizarCumple(cumpleDia, cumpleMes);
       const nuevoCliente = await window.crearCliente(nombre.trim(), numeroCompleto, cumpleElegido);
       if (nuevoCliente?.pendiente) {
         setClientePendiente(nuevoCliente);
@@ -259,7 +266,7 @@ function ClientAuthScreen({ onAccessGranted, onGoBack, disenoPendiente }) {
       alt: disenoPendiente.titulo,
       className: "w-14 h-14 rounded-lg object-cover shrink-0"
     }
-  ), /* @__PURE__ */ React.createElement("div", { className: "min-w-0 text-left" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs text-pink-200 font-medium" }, t("Para pedir tu cita")), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-white font-bold truncate" }, disenoPendiente.titulo), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-white/70 mt-0.5" }, t("Entra con tu WhatsApp: es un paso y ya quedas registrada.")))), clientePendiente && /* @__PURE__ */ React.createElement("div", { className: "bg-white/15 border border-white/25 rounded-xl p-5 text-center" }, /* @__PURE__ */ React.createElement("p", { className: "text-4xl mb-2" }, "⏳"), /* @__PURE__ */ React.createElement("h2", { className: "text-lg font-bold text-white mb-2" }, t("Tu solicitud ya llegó")), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-white/85 leading-relaxed" }, t("{negocio} tiene que aceptarte antes de que puedas reservar. Te avisamos por aquí mismo: vuelve a entrar con tu WhatsApp más tarde.", { negocio: nombreNegocio || t("El salón") }))), !clientePendiente && /* @__PURE__ */ React.createElement("h2", { className: "text-lg font-semibold text-white mb-4 flex items-center justify-center gap-2 bg-pink-500/30 p-3 rounded-lg" }, /* @__PURE__ */ React.createElement("span", null, "📱"), necesitaNombre ? t("Primera vez aquí — bienvenida") : t("Entra con tu WhatsApp"), /* @__PURE__ */ React.createElement("span", null, "✨")), !clientePendiente && /* @__PURE__ */ React.createElement("form", { onSubmit: handleSubmit, className: "space-y-4" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-white mb-1" }, t("Tu número de WhatsApp")), /* @__PURE__ */ React.createElement("div", { className: "flex" }, /* @__PURE__ */ React.createElement(
+  ), /* @__PURE__ */ React.createElement("div", { className: "min-w-0 text-left" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs text-pink-200 font-medium" }, t("Para pedir tu cita")), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-white font-bold truncate" }, disenoPendiente.titulo), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-white/70 mt-0.5" }, t("Entra con tu WhatsApp: es un paso y ya quedas registrada.")))), clientePendiente && /* @__PURE__ */ React.createElement("div", { className: "bg-white/15 border border-white/25 rounded-xl p-5 text-center" }, /* @__PURE__ */ React.createElement("p", { className: "text-4xl mb-2" }, "⏳"), /* @__PURE__ */ React.createElement("h2", { className: "text-lg font-bold text-white mb-2" }, t("Tu solicitud ya llegó")), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-white/85 leading-relaxed" }, t("{negocio} tiene que aceptarte antes de que puedas reservar. Te avisamos por aquí mismo: vuelve a entrar con tu WhatsApp más tarde.", { negocio: nombreNegocio || t("El salón") }))), !clientePendiente && /* @__PURE__ */ React.createElement("h2", { className: "text-lg font-semibold text-white mb-4 text-center bg-pink-500/30 p-3 rounded-lg" }, !necesitaNombre ? t("Entra con tu WhatsApp") : !window.cumpleanos ? t("Primera vez aquí — bienvenida") : pasoCumple ? t("Primera vez · 2 de 2") : t("Primera vez · 1 de 2")), !clientePendiente && /* @__PURE__ */ React.createElement("form", { onSubmit: handleSubmit, className: "space-y-4" }, /* @__PURE__ */ React.createElement("div", { hidden: pasoCumple }, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-white mb-1" }, t("Tu número de WhatsApp")), /* @__PURE__ */ React.createElement("div", { className: "flex" }, /* @__PURE__ */ React.createElement(
     "select",
     {
       value: codigoPaisCliente,
@@ -286,7 +293,7 @@ function ClientAuthScreen({ onAccessGranted, onGoBack, disenoPendiente }) {
       placeholder: paisTelefono.ejemplo || "51234567",
       required: true
     }
-  )), !necesitaNombre && !esProfesional && /* @__PURE__ */ React.createElement("p", { className: "text-sm text-white/90 mt-1.5" }, t("Si ya reservaste antes, entrarás directo sin contraseña."))), necesitaNombre && !clienteBloqueado && !esAdmin && !esProfesional && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "bg-white/10 border border-pink-300/40 rounded-lg p-3 text-pink-100 text-sm mb-3 flex items-center gap-2" }, /* @__PURE__ */ React.createElement("span", null, "👋"), /* @__PURE__ */ React.createElement("span", null, t("Número nuevo — solo necesitamos tu nombre para registrarte."))), /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-white mb-1" }, t("Tu nombre completo")), /* @__PURE__ */ React.createElement(
+  )), !necesitaNombre && !esProfesional && /* @__PURE__ */ React.createElement("p", { className: "text-sm text-white/90 mt-1.5" }, t("Si ya reservaste antes, entrarás directo sin contraseña."))), necesitaNombre && !clienteBloqueado && !esAdmin && !esProfesional && !pasoCumple && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("p", { className: "text-sm text-white/90 mb-3" }, t("Número nuevo — solo necesitamos tu nombre para registrarte.")), /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-white mb-1" }, t("Tu nombre completo")), /* @__PURE__ */ React.createElement(
     "input",
     {
       type: "text",
@@ -299,27 +306,28 @@ function ClientAuthScreen({ onAccessGranted, onGoBack, disenoPendiente }) {
       placeholder: t("Ej: María Pérez"),
       autoFocus: true
     }
-  ), window.cumpleanos && /* @__PURE__ */ React.createElement("div", { className: "mt-3" }, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-white mb-1" }, "🎂 ", t("Tu cumpleaños (opcional)")), /* @__PURE__ */ React.createElement("div", { className: "flex gap-2" }, /* @__PURE__ */ React.createElement(
-    "select",
+  )), necesitaNombre && pasoCumple && window.cumpleanos && /* @__PURE__ */ React.createElement("div", { className: "space-y-3" }, /* @__PURE__ */ React.createElement("p", { className: "text-xl font-bold text-white" }, t("¿Cuándo es tu cumple?")), /* @__PURE__ */ React.createElement("p", { className: "text-sm font-semibold text-white bg-white/15 rounded-lg px-3 py-2" }, window.cumpleanos.bonificacionConfig(config).activa ? t("Tu salón puede tener un detalle para ti ese día.") : t("Así tu salón podrá felicitarte ese día.")), /* @__PURE__ */ React.createElement("div", { className: "grid gap-2", style: { gridTemplateColumns: "repeat(4, minmax(0, 1fr))" } }, Array.from({ length: 12 }, (_, i) => /* @__PURE__ */ React.createElement(
+    "button",
     {
-      value: cumpleDia,
-      onChange: (e) => setCumpleDia(e.target.value),
-      "aria-label": t("Día"),
-      className: "flex-1 min-h-[44px] px-3 rounded-lg border border-pink-300/30 bg-black/20 text-white outline-none focus:ring-2 focus:ring-pink-500"
+      key: i,
+      type: "button",
+      onClick: () => {
+        setCumpleMes(String(i + 1));
+        setCumpleDia("");
+      },
+      className: `py-2.5 rounded-full text-sm font-bold capitalize ${cumpleMes === String(i + 1) ? "bg-pink-500 text-white" : "bg-white/15 text-white"}`
     },
-    /* @__PURE__ */ React.createElement("option", { value: "", className: "text-gray-900" }, t("Día")),
-    Array.from({ length: 31 }, (_, i) => /* @__PURE__ */ React.createElement("option", { key: i + 1, value: i + 1, className: "text-gray-900" }, i + 1))
-  ), /* @__PURE__ */ React.createElement(
-    "select",
+    window.cumpleanos.nombreMes(i + 1, window.getIdioma?.()).slice(0, 3)
+  ))), cumpleMes && /* @__PURE__ */ React.createElement("div", { className: "grid gap-1.5", style: { gridTemplateColumns: "repeat(7, minmax(0, 1fr))" } }, Array.from({ length: new Date(2024, Number(cumpleMes), 0).getDate() }, (_, i) => /* @__PURE__ */ React.createElement(
+    "button",
     {
-      value: cumpleMes,
-      onChange: (e) => setCumpleMes(e.target.value),
-      "aria-label": t("Mes"),
-      className: "flex-[2] min-h-[44px] px-3 rounded-lg border border-pink-300/30 bg-black/20 text-white outline-none focus:ring-2 focus:ring-pink-500"
+      key: i,
+      type: "button",
+      onClick: () => setCumpleDia(String(i + 1)),
+      className: `aspect-square rounded-lg text-sm font-bold ${cumpleDia === String(i + 1) ? "bg-pink-500 text-white" : "bg-white/15 text-white"}`
     },
-    /* @__PURE__ */ React.createElement("option", { value: "", className: "text-gray-900" }, t("Mes")),
-    Array.from({ length: 12 }, (_, i) => /* @__PURE__ */ React.createElement("option", { key: i + 1, value: i + 1, className: "text-gray-900" }, window.cumpleanos.nombreMes(i + 1, window.getIdioma?.())))
-  )), /* @__PURE__ */ React.createElement("p", { className: "mt-1.5 text-sm text-white/90" }, window.cumpleanos.bonificacionConfig(config).activa ? t("Tu salón puede tener un detalle para ti ese día.") : t("Así tu salón podrá felicitarte ese día.")))), verificando && /* @__PURE__ */ React.createElement("div", { className: "text-pink-300 text-sm bg-pink-500/20 p-2 rounded-lg flex items-center gap-2 border border-pink-300/30" }, /* @__PURE__ */ React.createElement("div", { className: "animate-spin h-4 w-4 border-2 border-pink-300 border-t-transparent rounded-full" }), t("Verificando...")), esProfesional && profesionalInfo && !verificando && /* @__PURE__ */ React.createElement("div", { className: "bg-pink-500/30 border border-pink-300/50 rounded-lg p-4" }, /* @__PURE__ */ React.createElement("p", { className: "text-white font-bold text-xl" }, t("¡Hola, {nombre}!", { nombre: profesionalInfo.nombre })), /* @__PURE__ */ React.createElement("p", { className: "text-pink-200 text-sm" }, t("Ingresa tu contraseña para acceder al panel."))), esProfesional && profesionalInfo && !verificando && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-white mb-1" }, t("Contraseña profesional")), /* @__PURE__ */ React.createElement(
+    i + 1
+  ))), /* @__PURE__ */ React.createElement("button", { type: "button", onClick: () => setPasoCumple(false), className: "text-sm font-semibold text-white/80" }, "← ", t("Atrás"))), verificando && /* @__PURE__ */ React.createElement("div", { className: "text-pink-300 text-sm bg-pink-500/20 p-2 rounded-lg flex items-center gap-2 border border-pink-300/30" }, /* @__PURE__ */ React.createElement("div", { className: "animate-spin h-4 w-4 border-2 border-pink-300 border-t-transparent rounded-full" }), t("Verificando...")), esProfesional && profesionalInfo && !verificando && /* @__PURE__ */ React.createElement("div", { className: "bg-pink-500/30 border border-pink-300/50 rounded-lg p-4" }, /* @__PURE__ */ React.createElement("p", { className: "text-white font-bold text-xl" }, t("¡Hola, {nombre}!", { nombre: profesionalInfo.nombre })), /* @__PURE__ */ React.createElement("p", { className: "text-pink-200 text-sm" }, t("Ingresa tu contraseña para acceder al panel."))), esProfesional && profesionalInfo && !verificando && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-white mb-1" }, t("Contraseña profesional")), /* @__PURE__ */ React.createElement(
     "input",
     {
       type: "password",
@@ -346,8 +354,14 @@ function ClientAuthScreen({ onAccessGranted, onGoBack, disenoPendiente }) {
       disabled: verificando,
       className: "w-full bg-pink-500 text-white py-4 rounded-full font-bold hover:bg-pink-600 transition-all duration-300 transform hover:scale-[1.02] hover:shadow-xl active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg text-lg border border-pink-200/70"
     },
-    /* @__PURE__ */ React.createElement("span", { className: "text-xl" }, necesitaNombre ? "✨" : "📱"),
-    verificando ? t("Verificando...") : necesitaNombre ? t("Registrarme y reservar") : t("Continuar"),
-    /* @__PURE__ */ React.createElement("span", { className: "text-xl" }, "✨")
+    verificando ? t("Verificando...") : necesitaNombre && (pasoCumple || !window.cumpleanos) ? t("Registrarme y reservar") : t("Continuar")
+  ), necesitaNombre && pasoCumple && !verificando && /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      type: "button",
+      onClick: (e) => handleSubmit(e, true),
+      className: "w-full py-2 text-sm font-semibold text-white/85"
+    },
+    t("Prefiero no decirlo")
   ))))));
 }

@@ -6,9 +6,11 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol, onMisReservas, onC
     const [config, setConfig] = React.useState(null);
     const [cargando, setCargando] = React.useState(true);
     const [imagenCargada, setImagenCargada] = React.useState(false);
-    const [pushEstado, setPushEstado] = React.useState('');
-    const [activandoPush, setActivandoPush] = React.useState(false);
-    const [pushMensaje, setPushMensaje] = React.useState('');
+    // Próxima cita de la clienta, para enseñarla nada más entrar.
+    const [proxima, setProxima] = React.useState(null);
+    // Hay mensajes de bienvenida de muchas líneas que empujaban "Reservar"
+    // fuera de la pantalla: se ven 4 líneas y el resto con "Ver más".
+    const [mensajeCompleto, setMensajeCompleto] = React.useState(false);
     // El botón del catálogo solo aparece si el salón tiene diseños publicados:
     // un catálogo vacío es peor que no tenerlo.
     const [hayCatalogo, setHayCatalogo] = React.useState(false);
@@ -32,98 +34,29 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol, onMisReservas, onC
         }
     }, []);
 
+    // Los recordatorios se piden al terminar de reservar (Confirmation.js), cuando
+    // ya hay una cita que recordar. Aquí solo se vuelve a vincular la
+    // suscripción con su número si ya dio permiso antes.
     React.useEffect(() => {
-        if (!pushUIVisible) return;
-        const isNative = Boolean(window.Capacitor?.isNativePlatform?.());
-        if (isNative) {
-            const activo = typeof window.clientePushActivo === 'function'
-                ? window.clientePushActivo()
-                : false;
-            setPushEstado(activo ? 'granted' : 'default');
-            return;
-        }
-        if (!('Notification' in window)) { setPushEstado('unsupported'); return; }
-        const permiso = Notification.permission;
-        setPushEstado(permiso);
-        // Si tiene permiso y whatsapp disponible, actualizar suscripción para vincular el numero
-        if (permiso === 'granted' && cliente?.whatsapp) {
-            if (typeof window.solicitarPushRservasRoma === 'function') {
-                window.solicitarPushRservasRoma({ permission: 'granted', defaultRole: 'cliente', clienteWhatsapp: cliente.whatsapp })
-                    .catch(() => {});
-            }
+        if (!pushUIVisible || !cliente?.whatsapp || !('Notification' in window)) return;
+        if (Notification.permission === 'granted' && typeof window.solicitarPushRservasRoma === 'function') {
+            window.solicitarPushRservasRoma({ permission: 'granted', defaultRole: 'cliente', clienteWhatsapp: cliente.whatsapp })
+                .catch(() => {});
         }
     }, []);
 
-    const activarNotificaciones = async () => {
-        const isNative = Boolean(window.Capacitor?.isNativePlatform?.());
-        if (isNative) {
-            setActivandoPush(true);
-            setPushMensaje('');
-            try {
-                const ok = typeof window.solicitarNativePushRservasRoma === 'function' &&
-                    await window.solicitarNativePushRservasRoma({
-                        role: 'cliente',
-                        clienteWhatsapp: cliente?.whatsapp
-                    });
-                setPushEstado(ok ? 'granted' : 'default');
-                if (!ok) setPushMensaje(t('No se pudo activar. Instala la version mas reciente de la app.'));
-            } catch (error) {
-                console.warn('Push nativo cliente:', error);
-                setPushEstado('default');
-                setPushMensaje(t('No se pudo activar: {msg}', { msg: String(error.message || error).substring(0, 60) }));
-            } finally {
-                setActivandoPush(false);
-            }
-            return;
-        }
-
-        if (!('Notification' in window)) { setPushEstado('unsupported'); return; }
-        setActivandoPush(true);
-        setPushMensaje('');
-
-        pedirPermisoYSuscribir();
-
-        function pedirPermisoYSuscribir() {
-            const permissionPromise = Notification.permission === 'default'
-                ? Notification.requestPermission()
-                : Promise.resolve(Notification.permission);
-
-            permissionPromise.then(permiso => {
-                setPushEstado(permiso);
-                if (permiso !== 'granted') {
-                    setPushMensaje(permiso === 'denied' ? t('Permiso bloqueado en el navegador') : t('Permiso no concedido'));
-                    setActivandoPush(false);
-                    return;
-                }
-                if (typeof window.solicitarPushRservasRoma !== 'function') {
-                    setPushEstado('granted');
-                    setActivandoPush(false);
-                    return;
-                }
-                window.solicitarPushRservasRoma({ permission: permiso, defaultRole: 'cliente', clienteWhatsapp: cliente?.whatsapp })
-                    .then(res => {
-                        if (res?.ok) {
-                            setPushMensaje('');
-                        } else {
-                            const msg = res?.error || 'error';
-                            console.warn('Push resultado:', msg);
-                            if (msg === 'sw_not_ready') {
-                                setPushMensaje(t('Instala la app en tu pantalla de inicio para recibir avisos'));
-                            } else if (msg.includes('applicationServerKey') || msg.includes('VAPID') || msg.includes('key')) {
-                                setPushMensaje(t('Recarga la app y vuelve a intentarlo'));
-                            } else {
-                                setPushMensaje(t('No se pudo activar: {msg}', { msg: msg.substring(0, 60) }));
-                            }
-                        }
-                    })
-                    .catch(err => {
-                        console.warn('Push error:', err);
-                        setPushMensaje(t('Error: {err}', { err: String(err).substring(0, 60) }));
-                    })
-                    .finally(() => setActivandoPush(false));
-            }).catch(() => setActivandoPush(false));
-        }
-    };
+    React.useEffect(() => {
+        const negocioId = localStorage.getItem('negocioId') || window.NEGOCIO_ID_POR_DEFECTO;
+        if (!cliente?.whatsapp || !negocioId) return;
+        const d = new Date();
+        const hoy = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        fetch(`${window.SUPABASE_URL}/rest/v1/reservas?negocio_id=eq.${negocioId}&cliente_whatsapp=eq.${cliente.whatsapp}` +
+            `&fecha=gte.${hoy}&estado=not.in.(Cancelado,Completado,Ausente)&order=fecha.asc,hora_inicio.asc&limit=1&select=servicio,fecha,hora_inicio,estado`,
+            { headers: { 'apikey': window.SUPABASE_ANON_KEY, 'Authorization': `Bearer ${window.SUPABASE_ANON_KEY}` } })
+            .then(r => r.ok ? r.json() : [])
+            .then(lista => setProxima(Array.isArray(lista) && lista[0] ? lista[0] : null))
+            .catch(() => {});
+    }, []);
 
     React.useEffect(() => {
         const cargarDatos = async () => {
@@ -298,26 +231,32 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol, onMisReservas, onC
                             </div>
                         )}
 
-                        {/* Título */}
+                        {/* Título: saluda a la clienta por su nombre */}
                         <div>
-                            <p className="text-sm font-medium text-white/80">{t('Bienvenida a')}</p>
-                            <div className="text-xl font-bold break-words leading-tight"
+                            {cliente ? (
+                                <p className="text-2xl font-extrabold text-white leading-tight">
+                                    {t('Hola, {nombre}', { nombre: String(cliente.nombre || '').split(' ')[0] })}
+                                </p>
+                            ) : (
+                                <p className="text-sm font-medium text-white/80">{t('Bienvenida a')}</p>
+                            )}
+                            <div className={`${cliente ? 'text-base' : 'text-xl'} font-bold break-words leading-tight`}
                                 style={{ color: colorSecundario, textShadow: `0 2px 12px ${hexToRgba(colorPrimario, 0.45)}` }}>
                                 {config?.nombre || t('Mi Salón')}
                             </div>
                         </div>
 
-                        {/* Nombre cliente */}
-                        {cliente && (
-                            <p className="text-white/90 text-sm bg-black/20 inline-block px-3 py-0.5 rounded-full">
-                                ✨ {cliente.nombre} ✨
-                            </p>
-                        )}
-
                                         {/* Mensaje bienvenida */}
-                        <p className="text-white/80 text-xs max-w-xs mx-auto leading-snug">
-                            {config?.mensaje_bienvenida || t('¡Bienvenida a nuestro salón!')}
-                        </p>
+                        <div>
+                            <p className={`text-white/85 text-xs max-w-xs mx-auto leading-snug whitespace-pre-line ${mensajeCompleto ? '' : 'line-clamp-4'}`}>
+                                {config?.mensaje_bienvenida || t('¡Bienvenida a nuestro salón!')}
+                            </p>
+                            {String(config?.mensaje_bienvenida || '').length > 160 && (
+                                <button onClick={() => setMensajeCompleto(!mensajeCompleto)} className="text-xs font-bold text-white underline underline-offset-2 mt-1">
+                                    {mensajeCompleto ? t('Ver menos') : t('Ver más')}
+                                </button>
+                            )}
+                        </div>
 
                         {/* Redes sociales */}
                         {tieneRedes && (
@@ -343,34 +282,21 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol, onMisReservas, onC
                             </div>
                         )}
 
-                        {/* Botón notificaciones */}
-                        {pushUIVisible && pushEstado === 'denied' && (
-                            <p className="text-white/50 text-xs text-center">🔔 {t('Notificaciones bloqueadas — actívalas en Ajustes del teléfono')}</p>
-                        )}
-                        {/* iOS en Safari (sin instalar) no soporta notificaciones:
-                            guiar a instalar la app en vez de ocultar la sección. */}
-                        {pushUIVisible && pushEstado === 'unsupported' &&
-                            /iPhone|iPad|iPod/i.test(navigator.userAgent) &&
-                            window.navigator.standalone !== true && (
-                            <p className="text-white/60 text-xs text-center leading-relaxed">
-                                🔔 {t('Para recibir recordatorios de tus citas, instala la app:')}
-                                <br />{t('toca')} <strong>{t('Compartir ⬆️')}</strong> {t('y luego')} <strong>{t('«Añadir a pantalla de inicio»')}</strong>
-                            </p>
-                        )}
-                        {pushUIVisible && pushEstado !== 'unsupported' && pushEstado !== 'denied' && (
-                            <div className="space-y-1">
-                                {pushEstado === 'granted' ? (
-                                    <p className="text-white/60 text-xs flex items-center justify-center gap-1">🔔 {t('Recordatorios activados')}</p>
-                                ) : (
-                                    <button onClick={activarNotificaciones} disabled={activandoPush}
-                                        className="text-white/80 text-xs border border-white/30 rounded-full px-4 py-1.5 hover:bg-white/10 transition flex items-center gap-1.5 mx-auto disabled:opacity-50">
-                                        🔔 {activandoPush ? t('Activando...') : t('Activar recordatorios')}
-                                    </button>
-                                )}
-                                {pushMensaje && (
-                                    <p className="text-yellow-300/80 text-xs text-center">{pushMensaje}</p>
-                                )}
-                            </div>
+                        {/* Su próxima cita, si tiene: lo primero que suele buscar. */}
+                        {proxima && onMisReservas && (
+                            <button onClick={onMisReservas}
+                                className="w-full text-left bg-white/95 rounded-2xl px-4 py-3 shadow-lg flex items-center gap-3">
+                                <span className="min-w-0 flex-1">
+                                    <span className="block text-xs font-bold uppercase tracking-wide text-gray-500">{t('Tu próxima cita')}</span>
+                                    <span className="block font-bold text-gray-900 truncate">
+                                        {(window.formatFechaCompleta ? window.formatFechaCompleta(proxima.fecha) : proxima.fecha)} · {window.formatTo12Hour ? window.formatTo12Hour(proxima.hora_inicio) : proxima.hora_inicio}
+                                    </span>
+                                    <span className={`block text-sm truncate ${proxima.estado === 'Pendiente' ? 'text-amber-700 font-semibold' : 'text-gray-600'}`}>
+                                        {proxima.estado === 'Pendiente' ? t('Falta el anticipo · toca para enviarlo') : proxima.servicio}
+                                    </span>
+                                </span>
+                                <span className="text-gray-400 text-xl">›</span>
+                            </button>
                         )}
 
                         {/* Botón principal */}

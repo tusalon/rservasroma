@@ -23,6 +23,9 @@ function ClientAuthScreen({ onAccessGranted, onGoBack, disenoPendiente }) {
     // Cumpleaños opcional: solo se pregunta si el salon tiene bonificacion.
     const [cumpleDia, setCumpleDia] = React.useState('');
     const [cumpleMes, setCumpleMes] = React.useState('');
+    // El registro va en dos pasos cortos: nombre y luego cumpleaños. Así el
+    // botón no queda tapado por el teclado y la clienta sabe cuánto le falta.
+    const [pasoCumple, setPasoCumple] = React.useState(false);
 
     React.useEffect(() => {
         const cargarDatos = async () => {
@@ -54,6 +57,7 @@ function ClientAuthScreen({ onAccessGranted, onGoBack, disenoPendiente }) {
         setProfesionalPassword('');
         setEsAdmin(false);
         setError('');
+        setPasoCumple(false);
     };
 
     const debounceTelefonoRef = React.useRef(null);
@@ -209,7 +213,9 @@ function ClientAuthScreen({ onAccessGranted, onGoBack, disenoPendiente }) {
         }
     };
 
-    const handleSubmit = async (e) => {
+    // sinCumple: "Prefiero no decirlo" registra sin cumpleaños aunque haya
+    // tocado un mes antes.
+    const handleSubmit = async (e, sinCumple = false) => {
         e.preventDefault();
 
         const codigoPais = codigoPaisCliente || (window.getCodigoPaisTelefono ? window.getCodigoPaisTelefono(config) : '53');
@@ -238,6 +244,12 @@ function ClientAuthScreen({ onAccessGranted, onGoBack, disenoPendiente }) {
             return;
         }
 
+        if (window.cumpleanos && !pasoCumple) {
+            setError('');
+            setPasoCumple(true);
+            return;
+        }
+
         setVerificando(true);
         setError('');
 
@@ -261,7 +273,7 @@ function ClientAuthScreen({ onAccessGranted, onGoBack, disenoPendiente }) {
             }
 
             // Con solo uno de los dos (dia o mes) no se guarda nada.
-            const cumpleElegido = window.cumpleanos?.normalizarCumple(cumpleDia, cumpleMes);
+            const cumpleElegido = sinCumple ? null : window.cumpleanos?.normalizarCumple(cumpleDia, cumpleMes);
             const nuevoCliente = await window.crearCliente(nombre.trim(), numeroCompleto, cumpleElegido);
             if (nuevoCliente?.pendiente) {
                 setClientePendiente(nuevoCliente);
@@ -380,16 +392,16 @@ function ClientAuthScreen({ onAccessGranted, onGoBack, disenoPendiente }) {
                     )}
 
                     {!clientePendiente && (
-                    <h2 className="text-lg font-semibold text-white mb-4 flex items-center justify-center gap-2 bg-pink-500/30 p-3 rounded-lg">
-                        <span>📱</span>
-                        {necesitaNombre ? t('Primera vez aquí — bienvenida') : t('Entra con tu WhatsApp')}
-                        <span>✨</span>
+                    <h2 className="text-lg font-semibold text-white mb-4 text-center bg-pink-500/30 p-3 rounded-lg">
+                        {!necesitaNombre ? t('Entra con tu WhatsApp')
+                            : !window.cumpleanos ? t('Primera vez aquí — bienvenida')
+                            : pasoCumple ? t('Primera vez · 2 de 2') : t('Primera vez · 1 de 2')}
                     </h2>
                     )}
 
                     {!clientePendiente && (
                     <form onSubmit={handleSubmit} className="space-y-4">
-                        <div>
+                        <div hidden={pasoCumple}>
                             <label className="block text-sm font-medium text-white mb-1">
                                 {t('Tu número de WhatsApp')}
                             </label>
@@ -430,12 +442,11 @@ function ClientAuthScreen({ onAccessGranted, onGoBack, disenoPendiente }) {
                             )}
                         </div>
 
-                        {necesitaNombre && !clienteBloqueado && !esAdmin && !esProfesional && (
+                        {necesitaNombre && !clienteBloqueado && !esAdmin && !esProfesional && !pasoCumple && (
                             <div>
-                                <div className="bg-white/10 border border-pink-300/40 rounded-lg p-3 text-pink-100 text-sm mb-3 flex items-center gap-2">
-                                    <span>👋</span>
-                                    <span>{t('Número nuevo — solo necesitamos tu nombre para registrarte.')}</span>
-                                </div>
+                                <p className="text-sm text-white/90 mb-3">
+                                    {t('Número nuevo — solo necesitamos tu nombre para registrarte.')}
+                                </p>
                                 <label className="block text-sm font-medium text-white mb-1">
                                     {t('Tu nombre completo')}
                                 </label>
@@ -451,40 +462,42 @@ function ClientAuthScreen({ onAccessGranted, onGoBack, disenoPendiente }) {
                                     autoFocus
                                 />
 
-                                {window.cumpleanos && (
-                                    <div className="mt-3">
-                                        <label className="block text-sm font-medium text-white mb-1">
-                                            🎂 {t('Tu cumpleaños (opcional)')}
-                                        </label>
-                                        <div className="flex gap-2">
-                                            <select
-                                                value={cumpleDia}
-                                                onChange={(e) => setCumpleDia(e.target.value)}
-                                                aria-label={t('Día')}
-                                                className="flex-1 min-h-[44px] px-3 rounded-lg border border-pink-300/30 bg-black/20 text-white outline-none focus:ring-2 focus:ring-pink-500"
-                                            >
-                                                <option value="" className="text-gray-900">{t('Día')}</option>
-                                                {Array.from({ length: 31 }, (_, i) => (
-                                                    <option key={i + 1} value={i + 1} className="text-gray-900">{i + 1}</option>
-                                                ))}
-                                            </select>
-                                            <select
-                                                value={cumpleMes}
-                                                onChange={(e) => setCumpleMes(e.target.value)}
-                                                aria-label={t('Mes')}
-                                                className="flex-[2] min-h-[44px] px-3 rounded-lg border border-pink-300/30 bg-black/20 text-white outline-none focus:ring-2 focus:ring-pink-500"
-                                            >
-                                                <option value="" className="text-gray-900">{t('Mes')}</option>
-                                                {Array.from({ length: 12 }, (_, i) => (
-                                                    <option key={i + 1} value={i + 1} className="text-gray-900">
-                                                        {window.cumpleanos.nombreMes(i + 1, window.getIdioma?.())}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                        <p className="mt-1.5 text-sm text-white/90">{window.cumpleanos.bonificacionConfig(config).activa ? t('Tu salón puede tener un detalle para ti ese día.') : t('Así tu salón podrá felicitarte ese día.')}</p>
+                            </div>
+                        )}
+
+                        {necesitaNombre && pasoCumple && window.cumpleanos && (
+                            <div className="space-y-3">
+                                <p className="text-xl font-bold text-white">{t('¿Cuándo es tu cumple?')}</p>
+                                <p className="text-sm font-semibold text-white bg-white/15 rounded-lg px-3 py-2">
+                                    {window.cumpleanos.bonificacionConfig(config).activa
+                                        ? t('Tu salón puede tener un detalle para ti ese día.')
+                                        : t('Así tu salón podrá felicitarte ese día.')}
+                                </p>
+                                {/* Meses en píldoras y, al elegir uno, sus días. Columnas en
+                                    línea: legacy-ios-fallback.css pasa grid-cols-3/4 a dos. */}
+                                <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }}>
+                                    {Array.from({ length: 12 }, (_, i) => (
+                                        <button key={i} type="button"
+                                            onClick={() => { setCumpleMes(String(i + 1)); setCumpleDia(''); }}
+                                            className={`py-2.5 rounded-full text-sm font-bold capitalize ${cumpleMes === String(i + 1) ? 'bg-pink-500 text-white' : 'bg-white/15 text-white'}`}>
+                                            {window.cumpleanos.nombreMes(i + 1, window.getIdioma?.()).slice(0, 3)}
+                                        </button>
+                                    ))}
+                                </div>
+                                {cumpleMes && (
+                                    <div className="grid gap-1.5" style={{ gridTemplateColumns: 'repeat(7, minmax(0, 1fr))' }}>
+                                        {/* 2024 es bisiesto: febrero ofrece el 29. */}
+                                        {Array.from({ length: new Date(2024, Number(cumpleMes), 0).getDate() }, (_, i) => (
+                                            <button key={i} type="button" onClick={() => setCumpleDia(String(i + 1))}
+                                                className={`aspect-square rounded-lg text-sm font-bold ${cumpleDia === String(i + 1) ? 'bg-pink-500 text-white' : 'bg-white/15 text-white'}`}>
+                                                {i + 1}
+                                            </button>
+                                        ))}
                                     </div>
                                 )}
+                                <button type="button" onClick={() => setPasoCumple(false)} className="text-sm font-semibold text-white/80">
+                                    ← {t('Atrás')}
+                                </button>
                             </div>
                         )}
 
@@ -544,9 +557,16 @@ function ClientAuthScreen({ onAccessGranted, onGoBack, disenoPendiente }) {
                                     disabled={verificando}
                                     className="w-full bg-pink-500 text-white py-4 rounded-full font-bold hover:bg-pink-600 transition-all duration-300 transform hover:scale-[1.02] hover:shadow-xl active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg text-lg border border-pink-200/70"
                                 >
-                                    <span className="text-xl">{necesitaNombre ? '✨' : '📱'}</span>
-                                    {verificando ? t('Verificando...') : necesitaNombre ? t('Registrarme y reservar') : t('Continuar')}
-                                    <span className="text-xl">✨</span>
+                                    {verificando ? t('Verificando...')
+                                        : necesitaNombre && (pasoCumple || !window.cumpleanos) ? t('Registrarme y reservar')
+                                        : t('Continuar')}
+                                </button>
+                            )}
+
+                            {necesitaNombre && pasoCumple && !verificando && (
+                                <button type="button" onClick={(e) => handleSubmit(e, true)}
+                                    className="w-full py-2 text-sm font-semibold text-white/85">
+                                    {t('Prefiero no decirlo')}
                                 </button>
                             )}
                         </div>

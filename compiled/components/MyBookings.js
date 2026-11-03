@@ -1,4 +1,4 @@
-function MyBookings({ cliente, onVolver }) {
+function MyBookings({ cliente, onVolver, onRepetir }) {
   window.useIdioma();
   const t = window.t;
   const [bookings, setBookings] = React.useState([]);
@@ -11,6 +11,7 @@ function MyBookings({ cliente, onVolver }) {
   const [reprogramando, setReprogramando] = React.useState(false);
   const [reservaReprogramando, setReservaReprogramando] = React.useState(null);
   const [reprogramacionFecha, setReprogramacionFecha] = React.useState("");
+  const [reprogContexto, setReprogContexto] = React.useState(null);
   const [reprogramacionHora, setReprogramacionHora] = React.useState("");
   const [horariosReprogramacion, setHorariosReprogramacion] = React.useState([]);
   const [cargandoHorariosReprogramacion, setCargandoHorariosReprogramacion] = React.useState(false);
@@ -182,6 +183,14 @@ function MyBookings({ cliente, onVolver }) {
     setReprogramacionHora("");
     setHorariosReprogramacion([]);
     setMensajeReprogramacion("");
+    setReprogContexto(null);
+    if (turno.items.length > 1) return;
+    Promise.all([window.salonServicios?.getAll?.(true), window.salonProfesionales?.getAll?.()]).then(([servicios, profesionales]) => {
+      const servicio = (servicios || []).find((s) => s.nombre === turno.servicio);
+      const profesional = (profesionales || []).find((p) => String(p.id) === String(turno.profesional_id || turno.trabajador_id));
+      if (servicio && profesional) setReprogContexto({ servicio, profesional });
+    }).catch(() => {
+    });
   };
   const cerrarReprogramacion = () => {
     setReservaReprogramando(null);
@@ -380,6 +389,13 @@ Ahora: ${fN} a las ${hN}`;
         className: "w-full py-3 rounded-full font-bold transition flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 text-white shadow-sm mb-3"
       },
       t("Enviar el anticipo por WhatsApp")
+    ), onRepetir && !varios && (esPasado(booking) || booking.estado === "Cancelado") && /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        onClick: () => onRepetir(booking),
+        className: "w-full py-2.5 rounded-full font-bold transition flex items-center justify-center gap-2 bg-pink-500 text-white shadow-sm mb-2"
+      },
+      booking.estado === "Cancelado" ? t("Reservar de nuevo") : t("Repetir esta cita")
     ), booking.estado !== "Cancelado" && calendarLink && /* @__PURE__ */ React.createElement(
       "a",
       {
@@ -425,7 +441,16 @@ Ahora: ${fN} a las ${hN}`;
       className: "w-9 h-9 rounded-full bg-pink-50 text-pink-600 hover:bg-pink-100 disabled:opacity-50 text-lg"
     },
     "✕"
-  )), /* @__PURE__ */ React.createElement("div", { className: "p-4 space-y-4" }, /* @__PURE__ */ React.createElement("div", { className: "rounded-lg bg-pink-50 border border-pink-100 p-3 text-sm text-pink-700" }, reservaReprogramando.items.length > 1 ? t("Se mueve todo tu turno, con sus {n} servicios. Los servicios y las profesionales se mantienen igual.", { n: reservaReprogramando.items.length }) : t("Solo cambia la fecha y hora. El servicio, profesional y duración se mantienen igual.")), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 gap-3 text-sm" }, /* @__PURE__ */ React.createElement("div", { className: "bg-gray-50 rounded-lg p-3" }, /* @__PURE__ */ React.createElement("p", { className: "text-gray-500" }, t("Profesional")), /* @__PURE__ */ React.createElement("p", { className: "font-semibold text-gray-800" }, reservaReprogramando.profesional_nombre || t("No asignada"))), /* @__PURE__ */ React.createElement("div", { className: "bg-gray-50 rounded-lg p-3" }, /* @__PURE__ */ React.createElement("p", { className: "text-gray-500" }, t("Duración")), /* @__PURE__ */ React.createElement("p", { className: "font-semibold text-gray-800" }, reservaReprogramando.duracion || 60, " min"))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, t("Nueva fecha")), /* @__PURE__ */ React.createElement(
+  )), /* @__PURE__ */ React.createElement("div", { className: "p-4 space-y-4" }, /* @__PURE__ */ React.createElement("div", { className: "rounded-lg bg-pink-50 border border-pink-100 p-3 text-sm text-pink-700" }, reservaReprogramando.items.length > 1 ? t("Se mueve todo tu turno, con sus {n} servicios. Los servicios y las profesionales se mantienen igual.", { n: reservaReprogramando.items.length }) : t("Solo cambia la fecha y hora. El servicio, profesional y duración se mantienen igual.")), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 gap-3 text-sm" }, /* @__PURE__ */ React.createElement("div", { className: "bg-gray-50 rounded-lg p-3" }, /* @__PURE__ */ React.createElement("p", { className: "text-gray-500" }, t("Profesional")), /* @__PURE__ */ React.createElement("p", { className: "font-semibold text-gray-800" }, reservaReprogramando.profesional_nombre || t("No asignada"))), /* @__PURE__ */ React.createElement("div", { className: "bg-gray-50 rounded-lg p-3" }, /* @__PURE__ */ React.createElement("p", { className: "text-gray-500" }, t("Duración")), /* @__PURE__ */ React.createElement("p", { className: "font-semibold text-gray-800" }, reservaReprogramando.duracion || 60, " min"))), reprogContexto ? /* @__PURE__ */ React.createElement(
+    Calendar,
+    {
+      onDateSelect: setReprogramacionFecha,
+      selectedDate: reprogramacionFecha,
+      profesional: reprogContexto.profesional,
+      profesionalCompleto: reprogContexto.profesional,
+      service: reprogContexto.servicio
+    }
+  ) : /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, t("Nueva fecha")), /* @__PURE__ */ React.createElement(
     "input",
     {
       type: "date",
