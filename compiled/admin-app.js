@@ -504,7 +504,7 @@ function AdminApp() {
   const [agendaDetalleBooking, setAgendaDetalleBooking] = React.useState(null);
   const [estadisticasPeriodo, setEstadisticasPeriodo] = React.useState("mes");
   const [estadisticasFecha, setEstadisticasFecha] = React.useState(getCurrentLocalDate());
-  const [showClientesRegistrados, setShowClientesRegistrados] = React.useState(false);
+  const [showClientesRegistrados, setShowClientesRegistrados] = React.useState(true);
   const [clientesRegistrados, setClientesRegistrados] = React.useState([]);
   const [errorClientes, setErrorClientes] = React.useState("");
   const [cargandoClientes, setCargandoClientes] = React.useState(false);
@@ -4142,7 +4142,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
     },
     /* @__PURE__ */ React.createElement("i", { className: "icon-log-out text-lg" }),
     /* @__PURE__ */ React.createElement("span", { className: "text-[11px] font-semibold" }, t2("Salir"))
-  ), /* @__PURE__ */ React.createElement(window.LanguageToggle, { compacto: true }))), fraseDelDia && /* @__PURE__ */ React.createElement("div", { className: "bg-white border-l-4 border-pink-400 text-gray-700 px-4 py-3 rounded-xl shadow-sm flex items-center justify-between gap-3" }, /* @__PURE__ */ React.createElement("p", { className: "text-sm italic" }, fraseDelDia), /* @__PURE__ */ React.createElement(
+  ), /* @__PURE__ */ React.createElement(window.LanguageToggle, { className: "ml-1 shrink-0" }))), fraseDelDia && /* @__PURE__ */ React.createElement("div", { className: "bg-white border-l-4 border-pink-400 text-gray-700 px-4 py-3 rounded-xl shadow-sm flex items-center justify-between gap-3" }, /* @__PURE__ */ React.createElement("p", { className: "text-sm italic" }, fraseDelDia), /* @__PURE__ */ React.createElement(
     "button",
     {
       onClick: cerrarFraseDelDia,

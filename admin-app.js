@@ -668,7 +668,7 @@ function AdminApp() {
     const [estadisticasPeriodo, setEstadisticasPeriodo] = React.useState('mes');
     const [estadisticasFecha, setEstadisticasFecha] = React.useState(getCurrentLocalDate());
     
-    const [showClientesRegistrados, setShowClientesRegistrados] = React.useState(false);
+    const [showClientesRegistrados, setShowClientesRegistrados] = React.useState(true);
     const [clientesRegistrados, setClientesRegistrados] = React.useState([]);
     const [errorClientes, setErrorClientes] = React.useState('');
     const [cargandoClientes, setCargandoClientes] = React.useState(false);
@@ -5254,7 +5254,7 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                             <i className="icon-log-out text-lg"></i>
                             <span className="text-[11px] font-semibold">{t('Salir')}</span>
                         </button>
-                        <window.LanguageToggle compacto />
+                        <window.LanguageToggle className="ml-1 shrink-0" />
                     </div>
                 </div>
 
