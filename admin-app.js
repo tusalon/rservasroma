@@ -576,7 +576,7 @@ function AdminApp() {
         try {
             const hoy = new Date().toISOString().slice(0, 10);
             if (localStorage.getItem('fraseMotivacionalVistaEl') === hoy) return null;
-            return window.getFraseDelDia ? window.getFraseDelDia() : null;
+            return window.getFraseDelDia ? true : null;
         } catch (e) {
             return null;
         }
@@ -659,6 +659,9 @@ function AdminApp() {
     const [agendaMode, setAgendaMode] = React.useState('dia');
     const agendaTouch = React.useRef(null);
     const [agendaProSel, setAgendaProSel] = React.useState('');
+    // Cita abierta en la lista del dia (movil) y estado elegido en la leyenda de la agenda
+    const [agendaAbiertaId, setAgendaAbiertaId] = React.useState(null);
+    const [agendaEstadoFiltro, setAgendaEstadoFiltro] = React.useState(null);
     const [agendaAhora, setAgendaAhora] = React.useState(() => Date.now());
     React.useEffect(() => {
         const id = setInterval(() => setAgendaAhora(Date.now()), 60000);
@@ -4106,11 +4109,12 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
     const agendaDays = Array.from({ length: 7 }, (_, index) => addDays(agendaWeekStart, index));
     const agendaStartStr = formatDate(agendaDays[0]);
     const agendaEndStr = formatDate(agendaDays[6]);
+    const agendaEstadoPasa = (b) => !agendaEstadoFiltro || b.estado === agendaEstadoFiltro;
     const agendaBookings = agruparReservasVisuales(bookingsVisiblesPorRol
         .filter(b => b.fecha >= agendaStartStr && b.fecha <= agendaEndStr && b.estado !== 'Cancelado')
         .sort((a, b) => a.fecha.localeCompare(b.fecha) || a.hora_inicio.localeCompare(b.hora_inicio)));
     const agendaDateStr = formatDate(agendaDate);
-    const agendaDayBookings = agendaBookings.filter(b => b.fecha === agendaDateStr);
+    const agendaDayBookings = agendaBookings.filter(b => b.fecha === agendaDateStr && agendaEstadoPasa(b));
     // Profesional elegido en los chips: filtra semana y mes (el día usa sus columnas)
     const agendaProKeyDe = (b) => {
         const id = b.profesional_id ?? b.trabajador_id ?? b.barbero_id;
@@ -4123,7 +4127,7 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
     const agendaProFiltro = (agendaProSel && agendaProSel !== 'todos'
         && (agendaProSel === 'sin-profesional' || (profesionalesList || []).some(pr => String(pr.id) === agendaProSel)))
         ? agendaProSel : null;
-    const agendaPasaFiltro = (b) => !agendaProFiltro || agendaProKeyDe(b) === agendaProFiltro;
+    const agendaPasaFiltro = (b) => agendaEstadoPasa(b) && (!agendaProFiltro || agendaProKeyDe(b) === agendaProFiltro);
     const agendaMonthStart = new Date(agendaDate.getFullYear(), agendaDate.getMonth(), 1);
     const agendaMonthKey = formatDate(agendaMonthStart).slice(0, 7);
     const agendaMonthDays = Array.from({ length: 42 }, (_, index) => addDays(startOfWeek(agendaMonthStart), index));
@@ -4151,6 +4155,25 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
         Completado: 'bg-emerald-50 border-l-emerald-600 border-emerald-100 text-emerald-950',
         Ausente: 'bg-slate-100 border-l-slate-500 border-slate-200 text-slate-800',
         Cancelado: 'bg-red-50 border-l-red-500 border-red-100 text-red-900'
+    };
+    // El color de cada cita dice su ESTADO (la profesional se ve en su avatar). Cada tono
+    // lleva su texto oscuro: fondo suave + barra fuerte + etiqueta con la palabra del estado.
+    const agendaEstadoInfo = {
+        Reservado: { etq: 'Reservada', fondo: '#FFE4F1', borde: '#FF1493', texto: '#7A0B47', pastilla: '#D90F7C', pTexto: '#FFFFFF' },
+        Pendiente: { etq: 'Pendiente', fondo: '#FEF3C7', borde: '#F59E0B', texto: '#78350F', pastilla: '#F59E0B', pTexto: '#412402', rayas: true },
+        Completado: { etq: 'Completada', fondo: '#DCFCE7', borde: '#22C55E', texto: '#14532D', pastilla: '#22C55E', pTexto: '#052E16' },
+        Ausente: { etq: 'No vino', fondo: '#EEEEEE', borde: '#888888', texto: '#3A3A3A', pastilla: '#6B6B6B', pTexto: '#FFFFFF' },
+        Cancelado: { etq: 'Cancelada', fondo: '#FEE2E2', borde: '#EF4444', texto: '#7F1D1D', pastilla: '#DC2626', pTexto: '#FFFFFF' }
+    };
+    const agendaInfoDe = (estado) => agendaEstadoInfo[estado] || agendaEstadoInfo.Reservado;
+    const agendaBloqueStyle = (estado) => {
+        const i = agendaInfoDe(estado);
+        return {
+            background: i.fondo,
+            color: i.texto,
+            border: i.rayas ? '1px dashed ' + i.borde : '1px solid rgba(0,0,0,0.06)',
+            borderLeft: '5px solid ' + i.borde
+        };
     };
     const estadoNormalizado = (estado) => String(estado || '').trim().toLowerCase();
     const puedeEditarReserva = (booking) => {
@@ -4492,6 +4515,12 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
         ? agendaProSel
         : (agendaProColumns.find(c => c.items.length) || agendaProColumns[0]).key;
     const agendaMostrarUna = agendaEsMovil && agendaProColumns.length > 1 && agendaSelKey !== 'todos';
+    // Cuantas citas hay de cada estado en lo que se esta viendo (sin aplicar el filtro de estado)
+    const agendaConteoBase = (agendaMode === 'dia'
+        ? agendaBookings.filter(b => b.fecha === agendaDateStr && (!agendaMostrarUna || agendaProKeyDe(b) === agendaSelKey))
+        : (agendaMode === 'mes' ? agendaMonthBookings.filter(b => b.fecha.startsWith(agendaMonthKey)) : agendaBookings)
+            .filter(b => !agendaProFiltro || agendaProKeyDe(b) === agendaProFiltro));
+    const agendaConteos = agendaConteoBase.reduce((acc, b) => { acc[b.estado] = (acc[b.estado] || 0) + 1; return acc; }, {});
     const agendaDiaColumns = agendaMostrarUna ? agendaProColumns.filter(c => c.key === agendaSelKey) : agendaProColumns;
     const agendaGutterPx = agendaEsMovil ? 44 : 64;
     const agendaColMinPx = agendaMostrarUna ? 0 : (agendaEsMovil ? 104 : 170);
@@ -5198,6 +5227,89 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
     const days = getDaysInMonth(currentDate);
     const disponibilidadDays = getDaysInMonth(disponibilidadFecha);
 
+    // ---- Agenda: tarjetas de cita (lista del dia en el movil) ----
+    const agendaProDe = (b) => {
+        const k = agendaProKeyDe(b);
+        return (profesionalesList || []).find(pr => String(pr.id) === k) || null;
+    };
+    const renderAvatarAgenda = (b, size = 26) => {
+        const pro = agendaProDe(b);
+        const nombre = pro?.nombre || b.profesional_nombre || b.trabajador_nombre || '';
+        const inicial = String(nombre || '?').trim().charAt(0).toUpperCase() || '?';
+        return (
+            <span className={`shrink-0 rounded-full flex items-center justify-center font-bold text-white ${pro?.color || 'bg-gray-500'}`}
+                style={{ width: size, height: size, fontSize: Math.round(size * 0.46) }} title={nombre} aria-label={nombre}>
+                {pro?.avatar || inicial}
+            </span>
+        );
+    };
+    const renderPastillaEstado = (estado) => {
+        const i = agendaInfoDe(estado);
+        return <span className="shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold whitespace-nowrap" style={{ background: i.pastilla, color: i.pTexto }}>{t(i.etq)}</span>;
+    };
+    const renderMarcadorAhora = () => (
+        <div className="flex items-center gap-1 py-0.5">
+            <span className="rounded bg-red-500 px-1.5 text-[10px] font-bold leading-4 text-white">{t('Ahora')} {agendaAhoraLabel}</span>
+            <span className="h-px flex-1 bg-red-500"></span>
+        </div>
+    );
+    const agendaListaDia = [...agendaDiaColumns.flatMap(c => c.items)]
+        .sort((a, b) => timeToMinutes(a.hora_inicio) - timeToMinutes(b.hora_inicio));
+    const agendaAhoraMin = agendaAhoraFecha.getHours() * 60 + agendaAhoraFecha.getMinutes();
+    const agendaAhoraIdx = (agendaDateStr === agendaToday && agendaListaDia.length)
+        ? (() => { const i = agendaListaDia.findIndex(b => timeToMinutes(b.hora_inicio) > agendaAhoraMin); return i === -1 ? agendaListaDia.length : i; })()
+        : -1;
+    const renderTarjetaAgenda = (booking) => {
+        const key = booking._grupoVisualId || booking.id;
+        const abierta = agendaAbiertaId === key;
+        const servicioTxt = booking._grupoVisual ? `${booking._reservasGrupo.length} ${t('servicios')} · ${booking.servicio}` : booking.servicio;
+        const btn = 'px-3 min-h-[36px] rounded-full text-xs font-bold';
+        let detalle = null;
+        if (abierta) {
+            const resumen = getAgendaResumenCobro(booking);
+            const etiqueta = 'block text-[11px] font-semibold opacity-75';
+            const visitas = getCitasCompletadasCliente(booking.cliente_whatsapp).length;
+            detalle = (
+                <div className="mt-2 pt-2 grid grid-cols-2 gap-x-3 gap-y-2 text-[13px]" style={{ borderTop: '1px solid rgba(0,0,0,0.15)' }}>
+                    <div className="col-span-2"><span className={etiqueta}>{t('Servicio')}</span>{servicioTxt}</div>
+                    <div><span className={etiqueta}>{t('Profesional')}</span>{booking.profesional_nombre || booking.trabajador_nombre || t('Sin profesional')}</div>
+                    <div><span className={etiqueta}>{t('Precio')}</span>{formatMoneyEstadistica(resumen.totalMostrar)}</div>
+                    <div><span className={etiqueta}>{t('Teléfono')}</span>{booking.cliente_whatsapp ? '+' + booking.cliente_whatsapp : t('Sin número')}</div>
+                    <div><span className={etiqueta}>{t('Visitas completadas')}</span>{visitas}</div>
+                    {bonificacionCumpleDe(booking.cliente_whatsapp, booking.fecha) && <div className="col-span-2 font-semibold">🎂 {t('Cumpleaños')}</div>}
+                    <div className="col-span-2 flex flex-wrap gap-2 pt-1">
+                        {booking.cliente_whatsapp && <button type="button" onClick={() => window.enviarWhatsApp?.(booking.cliente_whatsapp, `Hola ${booking.cliente_nombre || ''}`)} className={`${btn} bg-white/80`}>{t('Escribir')}</button>}
+                        {booking.estado === 'Pendiente' && puedeGestionarReservas && <button type="button" onClick={() => confirmarPago(booking.id, booking)} className={`${btn} bg-green-600 text-white`}>{t('Confirmar pago')}</button>}
+                        {puedeEditarReserva(booking) && <button type="button" onClick={() => abrirModalReprogramar(booking)} className={`${btn} bg-white/80`}>{t('Editar')}</button>}
+                        {turnoYaPaso(booking) && booking.estado !== 'Ausente' && puedeGestionarReservas && <button type="button" onClick={() => marcarAusencia(booking)} className={`${btn} bg-slate-700 text-white`}>{t('Ausencia')}</button>}
+                        {booking.estado === 'Completado' && puedeGestionarReservas && <button type="button" onClick={() => abrirModalCobro(booking)} className={`${btn} bg-emerald-600 text-white`}>{t('Cobro real')}</button>}
+                        {puedeEditarReserva(booking) && <button type="button" onClick={() => handleCancel(booking.id, booking)} className={`${btn} bg-red-500 text-white`}>{t('Cancelar')}</button>}
+                        <button type="button" onClick={() => abrirDetalleAgenda(booking)} className={`${btn} underline`}>{t('Ver ficha completa')}</button>
+                    </div>
+                </div>
+            );
+        }
+        return (
+            <div className="rounded-xl px-3 py-2 shadow-sm min-w-0" style={agendaBloqueStyle(booking.estado)}>
+                <button type="button" onClick={() => setAgendaAbiertaId(abierta ? null : key)} aria-expanded={abierta} className="w-full text-left">
+                    <span className="flex items-start gap-2">
+                        <span className="flex-1 min-w-0">
+                            <span className="block text-[15px] font-bold leading-tight break-words">{booking.cliente_nombre}{marcaCumple(booking)}</span>
+                            <span className="block text-[12px] leading-snug opacity-90">{rangoHora(booking)}{Number(booking.valoracion) > 0 && <span className="ml-1">⭐{Number(booking.valoracion)}</span>}</span>
+                        </span>
+                        {renderPastillaEstado(booking.estado)}
+                    </span>
+                    <span className="mt-1 flex items-end gap-2">
+                        <span className={`flex-1 min-w-0 text-[13px] leading-snug ${abierta ? '' : 'line-clamp-2'}`}>{servicioTxt}</span>
+                        {renderAvatarAgenda(booking)}
+                        <span aria-hidden="true" className="text-sm opacity-60">{abierta ? '▴' : '▾'}</span>
+                    </span>
+                </button>
+                {detalle}
+            </div>
+        );
+    };
+
     return (
         <div className="min-h-screen bg-pink-50 p-3 sm:p-6" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 160px)' }}>
             <div className="max-w-6xl mx-auto space-y-4">
@@ -5263,7 +5375,7 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                         <span className="text-2xl leading-none mt-0.5" aria-hidden="true">✨</span>
                         <div className="min-w-0 flex-1">
                             <p className="text-[11px] font-bold uppercase tracking-wide text-pink-600">{t('Frase del día')}</p>
-                            <p className="text-[15px] font-semibold leading-snug text-pink-950 mt-0.5">{fraseDelDia}</p>
+                            <p className="text-[15px] font-semibold leading-snug text-pink-950 mt-0.5">{window.getFraseDelDia(undefined, idioma)}</p>
                         </div>
                         <button
                             onClick={cerrarFraseDelDia}
@@ -6651,10 +6763,23 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                                 })}
                             </div>
 
-                            <div className="sm:hidden mt-3 flex flex-wrap gap-2 text-xs">
-                                <span className="rounded-full bg-white border border-pink-100 px-2.5 py-1 text-gray-700"><b>{agendaVisibleBookings.length}</b> {t('Citas').toLowerCase()}</span>
-                                <span className="rounded-full bg-white border border-amber-100 px-2.5 py-1 text-amber-700"><b>{agendaVisibleBookings.filter(b => b.estado === 'Pendiente').length}</b> {t('Pendientes').toLowerCase()}</span>
-                                <span className="rounded-full bg-white border border-emerald-100 px-2.5 py-1 text-emerald-700"><b>{agendaVisibleBookings.filter(b => b.estado === 'Completado').length}</b> {t('Completados').toLowerCase()}</span>
+                            <div className="mt-3 flex flex-wrap items-center gap-2 text-xs" role="group" aria-label={t('Filtrar por estado')}>
+                                <span className="rounded-full bg-white border border-gray-200 px-2.5 py-1 text-gray-700"><b>{agendaConteoBase.length}</b> {agendaConteoBase.length === 1 ? t('cita') : t('citas')}</span>
+                                {['Reservado', 'Pendiente', 'Completado', 'Ausente'].map(est => {
+                                    const i = agendaEstadoInfo[est];
+                                    const n = agendaConteos[est] || 0;
+                                    const activo = agendaEstadoFiltro === est;
+                                    if (n === 0 && !activo) return null;
+                                    return (
+                                        <button key={est} type="button" aria-pressed={activo}
+                                            onClick={() => setAgendaEstadoFiltro(activo ? null : est)}
+                                            className="inline-flex items-center gap-1.5 rounded-full px-3 min-h-[32px] font-bold"
+                                            style={{ background: activo ? i.pastilla : '#fff', color: activo ? i.pTexto : i.texto, border: '1.5px solid ' + i.pastilla }}>
+                                            <span className="rounded-full" style={{ width: 8, height: 8, background: activo ? i.pTexto : i.pastilla }}></span>
+                                            {n} {t(i.etq)}
+                                        </button>
+                                    );
+                                })}
                             </div>
 
                             <div className="hidden sm:grid grid-cols-4 gap-3 mt-5">
@@ -6699,7 +6824,31 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                             </div>
                         )}
 
-                        {agendaMode === 'dia' && (
+                        {agendaMode === 'dia' && agendaEsMovil && (
+                            <div className="p-3 space-y-2">
+                                {agendaListaDia.length === 0 && (
+                                    <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 p-4 text-center text-sm text-gray-500">{t('No hay citas para este día')}</div>
+                                )}
+                                {agendaListaDia.map((booking, idx) => {
+                                    const hora = horaCorta(booking.hora_inicio).split(' ');
+                                    return (
+                                        <React.Fragment key={booking._grupoVisualId || booking.id}>
+                                            {agendaAhoraIdx === idx && renderMarcadorAhora()}
+                                            <div className="grid gap-1.5" style={{ gridTemplateColumns: '40px minmax(0, 1fr)' }}>
+                                                <div className="pt-2 text-right leading-tight text-gray-500">
+                                                    <span className="block text-[12px] font-semibold">{hora[0]}</span>
+                                                    <span className="block text-[10px]">{hora[1]}</span>
+                                                </div>
+                                                {renderTarjetaAgenda(booking)}
+                                            </div>
+                                        </React.Fragment>
+                                    );
+                                })}
+                                {agendaAhoraIdx === agendaListaDia.length && agendaAhoraIdx > 0 && renderMarcadorAhora()}
+                            </div>
+                        )}
+
+                        {agendaMode === 'dia' && !agendaEsMovil && (
                             <div className="p-2 sm:p-5">
                                 <div
                                     className="border rounded-xl bg-white overflow-auto"
@@ -6748,18 +6897,22 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
 
                                                     {getAgendaLayoutBookings(col.items).map(booking => {
                                                         const alto = getBookingHeight(booking);
-                                                        const color = col.key === 'sin-profesional' ? 'bg-gray-200 border-gray-400 text-gray-900' : agendaPastel[Math.max(0, agendaProColumns.indexOf(col)) % agendaPastel.length];
-                                                        const pendiente = booking.estado === 'Pendiente';
+
+
                                                         return (
                                                             <button
                                                                 key={booking._grupoVisualId || booking.id}
                                                                 onClick={() => abrirDetalleAgenda(booking)}
-                                                                className={`absolute rounded-lg border-l-4 ${agendaMostrarUna ? 'px-3 py-2' : 'px-1.5 py-1'} text-left overflow-hidden shadow-sm transition hover:shadow-md ${color} ${pendiente ? 'ring-1 ring-amber-500 ring-inset' : ''} ${booking.estado === 'Completado' || booking.estado === 'Ausente' ? 'opacity-70' : ''}`}
-                                                                style={getAgendaCompactStyle(booking)}
+className={`absolute rounded-lg ${agendaMostrarUna ? 'px-3 py-2' : 'px-1.5 py-1'} text-left overflow-hidden shadow-sm transition hover:shadow-md`}
+                                                                style={{ ...getAgendaCompactStyle(booking), ...agendaBloqueStyle(booking.estado) }}
                                                             >
-                                                                <span className={`block ${agendaMostrarUna ? 'text-xs' : 'text-[10px] md:text-xs'} font-semibold leading-tight truncate`}>
-                                                                    {agendaEstadoMarca[booking.estado] || ''}{rangoHora(booking)}
-                                                                    {Number(booking.valoracion) > 0 && <span className="ml-1">⭐{Number(booking.valoracion)}</span>}
+<span className="flex items-center justify-between gap-1">
+                                                                    <span className={`${agendaMostrarUna ? 'text-xs' : 'text-[10px] md:text-xs'} font-semibold leading-tight truncate`}>
+                                                                        {rangoHora(booking)}
+                                                                        {Number(booking.valoracion) > 0 && <span className="ml-1">⭐{Number(booking.valoracion)}</span>}
+                                                                        {alto < (agendaMostrarUna ? 44 : 52) && <b className="ml-1">· {booking.cliente_nombre}</b>}
+                                                                    </span>
+                                                                    {alto >= 44 && renderPastillaEstado(booking.estado)}
                                                                 </span>
                                                                 {alto >= (agendaMostrarUna ? 44 : 52) && <span className={`block ${agendaMostrarUna ? 'text-sm' : 'text-[11px] md:text-sm'} font-bold leading-tight truncate`}>{booking.cliente_nombre}{marcaCumple(booking)}</span>}
                                                                 {alto >= (agendaMostrarUna ? 60 : 68) && <span className={`block ${agendaMostrarUna ? 'text-xs' : 'text-[10px] md:text-xs'} leading-tight truncate opacity-80`}>{booking._grupoVisual ? `${booking._reservasGrupo.length} ${t('servicios')} - ${booking.servicio}` : booking.servicio}</span>}
@@ -6844,11 +6997,12 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                                                                 <button
                                                                     key={booking._grupoVisualId || booking.id}
                                                                     onClick={() => abrirDetalleAgenda(booking)}
-                                                                    className={`absolute rounded-lg border-l-4 px-1.5 py-1 text-left overflow-hidden shadow-sm ${agendaColorPro(booking)} ${booking.estado === 'Pendiente' ? 'ring-1 ring-amber-500 ring-inset' : ''} ${booking.estado === 'Completado' || booking.estado === 'Ausente' ? 'opacity-70' : ''}`}
-                                                                    style={getAgendaCompactStyle(booking)}
+className="absolute rounded-lg px-1.5 py-1 text-left overflow-hidden shadow-sm"
+                                                                    style={{ ...getAgendaCompactStyle(booking), ...agendaBloqueStyle(booking.estado) }}
                                                                 >
-                                                                    <span className="block text-[10px] font-semibold leading-tight truncate">{agendaEstadoMarca[booking.estado] || ''}{rangoHora(booking)}</span>
+<span className="block text-[10px] font-semibold leading-tight truncate pr-4">{rangoHora(booking)}</span>
                                                                     {alto >= 44 && <span className="block text-xs font-bold leading-tight truncate">{booking.cliente_nombre}</span>}
+                                                                    {alto >= 44 && <span className="absolute top-1 right-1">{renderAvatarAgenda(booking, 16)}</span>}
                                                                     {alto >= 60 && <span className="block text-[10px] leading-tight truncate opacity-80">{booking.servicio}</span>}
                                                                 </button>
                                                             );
@@ -6881,7 +7035,7 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                                             >
                                                 <span className={`text-xs font-bold ${isToday ? 'text-pink-600' : 'text-gray-700'}`}>{day.getDate()}</span>
                                                 {dayList.slice(0, 2).map(booking => (
-                                                    <span key={booking._grupoVisualId || booking.id} className={`mt-0.5 block truncate rounded px-1 text-[9px] sm:text-[11px] leading-4 ${agendaChipStyle[booking.estado] || 'bg-gray-100 text-gray-700'}`}>{primerNombre(booking)}</span>
+<span key={booking._grupoVisualId || booking.id} className="mt-0.5 block truncate rounded px-1 text-[9px] sm:text-[11px] leading-4" style={{ background: agendaInfoDe(booking.estado).fondo, color: agendaInfoDe(booking.estado).texto, borderLeft: '3px solid ' + agendaInfoDe(booking.estado).borde }}>{primerNombre(booking)}</span>
                                                 ))}
                                                 {dayList.length > 2 && <span className="mt-0.5 pl-0.5 text-[9px] sm:text-[11px] font-semibold text-gray-500">+{dayList.length - 2}</span>}
                                             </button>
@@ -6938,21 +7092,25 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                                                 {renderLineaAhora(dateStr)}
 
                                                 {dayLayoutBookings.map(booking => {
-                                                    const statusClass = agendaStatusStyle[booking.estado] || 'bg-gray-50 border-l-gray-500 border-gray-100 text-gray-900';
+
                                                     const isShort = getBookingHeight(booking) < 76;
                                                     return (
                                                         <div
                                                             key={booking._grupoVisualId || booking.id}
-                                                            className={`absolute rounded-xl border border-l-4 shadow-sm hover:shadow-md transition p-2 overflow-hidden cursor-pointer ${statusClass}`}
-                                                            style={getAgendaBookingStyle(booking)}
+className="absolute rounded-xl shadow-sm hover:shadow-md transition p-2 overflow-hidden cursor-pointer"
+                                                            style={{ ...getAgendaBookingStyle(booking), ...agendaBloqueStyle(booking.estado) }}
                                                             title={`${booking.cliente_nombre} - ${booking._grupoVisual ? `${booking._reservasGrupo.length} servicios: ` : ''}${booking.servicio}`}
                                                             onClick={() => abrirDetalleAgenda(booking)}
                                                         >
                                                             <div className="flex h-full flex-col gap-1">
                                                                 <div className="min-w-0">
-                                                                    <p className="text-xs font-bold leading-tight">
-                                                                        {formatTo12Hour(booking.hora_inicio)} - {formatTo12Hour(booking.hora_fin || calculateEndTime(booking.hora_inicio, booking.duracion || 60))}
-                                                                        {Number(booking.valoracion) > 0 && <span className="ml-1" title={t('Valoración de la clienta')}>⭐{Number(booking.valoracion)}</span>}
+<p className="flex items-center justify-between gap-1 text-xs font-bold leading-tight">
+                                                                        <span className="truncate">
+                                                                            {formatTo12Hour(booking.hora_inicio)} - {formatTo12Hour(booking.hora_fin || calculateEndTime(booking.hora_inicio, booking.duracion || 60))}
+                                                                            {Number(booking.valoracion) > 0 && <span className="ml-1" title={t('Valoración de la clienta')}>⭐{Number(booking.valoracion)}</span>}
+                                                                            {isShort && <b className="ml-1">· {booking.cliente_nombre}</b>}
+                                                                        </span>
+                                                                        {renderPastillaEstado(booking.estado)}
                                                                     </p>
                                                                     {!isShort && <p className="font-bold text-sm truncate">{booking.cliente_nombre}{marcaCumple(booking)}</p>}
                                                                     {!isShort && <p className="text-xs truncate opacity-90">{booking._grupoVisual ? `${booking._reservasGrupo.length} servicios - ${booking.servicio}` : booking.servicio}</p>}
@@ -6973,11 +7131,7 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                         </div>
                         )}
 
-                        <div className="p-4 border-t bg-gray-50 flex flex-wrap gap-3 text-xs">
-                            <span className="inline-flex items-center gap-2"><span className="w-3 h-3 rounded bg-pink-500"></span>{t('Reservado')}</span>
-                            <span className="inline-flex items-center gap-2"><span className="w-3 h-3 rounded bg-amber-400"></span>{t('Pendiente')}</span>
-                            <span className="inline-flex items-center gap-2"><span className="w-3 h-3 rounded bg-emerald-500"></span>{t('Completado')}</span>
-                        </div>
+
                     </div>
                 )}
 

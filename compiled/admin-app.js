@@ -416,7 +416,7 @@ function AdminApp() {
     try {
       const hoy = (/* @__PURE__ */ new Date()).toISOString().slice(0, 10);
       if (localStorage.getItem("fraseMotivacionalVistaEl") === hoy) return null;
-      return window.getFraseDelDia ? window.getFraseDelDia() : null;
+      return window.getFraseDelDia ? true : null;
     } catch (e) {
       return null;
     }
@@ -496,6 +496,8 @@ function AdminApp() {
   const [agendaMode, setAgendaMode] = React.useState("dia");
   const agendaTouch = React.useRef(null);
   const [agendaProSel, setAgendaProSel] = React.useState("");
+  const [agendaAbiertaId, setAgendaAbiertaId] = React.useState(null);
+  const [agendaEstadoFiltro, setAgendaEstadoFiltro] = React.useState(null);
   const [agendaAhora, setAgendaAhora] = React.useState(() => Date.now());
   React.useEffect(() => {
     const id = setInterval(() => setAgendaAhora(Date.now()), 6e4);
@@ -3346,9 +3348,10 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
   const agendaDays = Array.from({ length: 7 }, (_, index) => addDays(agendaWeekStart, index));
   const agendaStartStr = formatDate(agendaDays[0]);
   const agendaEndStr = formatDate(agendaDays[6]);
+  const agendaEstadoPasa = (b) => !agendaEstadoFiltro || b.estado === agendaEstadoFiltro;
   const agendaBookings = agruparReservasVisuales(bookingsVisiblesPorRol.filter((b) => b.fecha >= agendaStartStr && b.fecha <= agendaEndStr && b.estado !== "Cancelado").sort((a, b) => a.fecha.localeCompare(b.fecha) || a.hora_inicio.localeCompare(b.hora_inicio)));
   const agendaDateStr = formatDate(agendaDate);
-  const agendaDayBookings = agendaBookings.filter((b) => b.fecha === agendaDateStr);
+  const agendaDayBookings = agendaBookings.filter((b) => b.fecha === agendaDateStr && agendaEstadoPasa(b));
   const agendaProKeyDe = (b) => {
     const id = b.profesional_id ?? b.trabajador_id ?? b.barbero_id;
     const nombre = normalizarTextoProfesional(b.profesional_nombre || b.trabajador_nombre || b.barbero_nombre);
@@ -3356,7 +3359,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
     return pro ? String(pro.id) : "sin-profesional";
   };
   const agendaProFiltro = agendaProSel && agendaProSel !== "todos" && (agendaProSel === "sin-profesional" || (profesionalesList || []).some((pr) => String(pr.id) === agendaProSel)) ? agendaProSel : null;
-  const agendaPasaFiltro = (b) => !agendaProFiltro || agendaProKeyDe(b) === agendaProFiltro;
+  const agendaPasaFiltro = (b) => agendaEstadoPasa(b) && (!agendaProFiltro || agendaProKeyDe(b) === agendaProFiltro);
   const agendaMonthStart = new Date(agendaDate.getFullYear(), agendaDate.getMonth(), 1);
   const agendaMonthKey = formatDate(agendaMonthStart).slice(0, 7);
   const agendaMonthDays = Array.from({ length: 42 }, (_, index) => addDays(startOfWeek(agendaMonthStart), index));
@@ -3376,6 +3379,23 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
     Completado: "bg-emerald-50 border-l-emerald-600 border-emerald-100 text-emerald-950",
     Ausente: "bg-slate-100 border-l-slate-500 border-slate-200 text-slate-800",
     Cancelado: "bg-red-50 border-l-red-500 border-red-100 text-red-900"
+  };
+  const agendaEstadoInfo = {
+    Reservado: { etq: "Reservada", fondo: "#FFE4F1", borde: "#FF1493", texto: "#7A0B47", pastilla: "#D90F7C", pTexto: "#FFFFFF" },
+    Pendiente: { etq: "Pendiente", fondo: "#FEF3C7", borde: "#F59E0B", texto: "#78350F", pastilla: "#F59E0B", pTexto: "#412402", rayas: true },
+    Completado: { etq: "Completada", fondo: "#DCFCE7", borde: "#22C55E", texto: "#14532D", pastilla: "#22C55E", pTexto: "#052E16" },
+    Ausente: { etq: "No vino", fondo: "#EEEEEE", borde: "#888888", texto: "#3A3A3A", pastilla: "#6B6B6B", pTexto: "#FFFFFF" },
+    Cancelado: { etq: "Cancelada", fondo: "#FEE2E2", borde: "#EF4444", texto: "#7F1D1D", pastilla: "#DC2626", pTexto: "#FFFFFF" }
+  };
+  const agendaInfoDe = (estado) => agendaEstadoInfo[estado] || agendaEstadoInfo.Reservado;
+  const agendaBloqueStyle = (estado) => {
+    const i = agendaInfoDe(estado);
+    return {
+      background: i.fondo,
+      color: i.texto,
+      border: i.rayas ? "1px dashed " + i.borde : "1px solid rgba(0,0,0,0.06)",
+      borderLeft: "5px solid " + i.borde
+    };
   };
   const estadoNormalizado = (estado) => String(estado || "").trim().toLowerCase();
   const puedeEditarReserva = (booking) => {
@@ -3633,6 +3653,11 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
   const agendaEsMovil = typeof window !== "undefined" && !!window.matchMedia && window.matchMedia("(max-width: 767px)").matches;
   const agendaSelKey = agendaProSel === "todos" || agendaProColumns.some((c) => c.key === agendaProSel) ? agendaProSel : (agendaProColumns.find((c) => c.items.length) || agendaProColumns[0]).key;
   const agendaMostrarUna = agendaEsMovil && agendaProColumns.length > 1 && agendaSelKey !== "todos";
+  const agendaConteoBase = agendaMode === "dia" ? agendaBookings.filter((b) => b.fecha === agendaDateStr && (!agendaMostrarUna || agendaProKeyDe(b) === agendaSelKey)) : (agendaMode === "mes" ? agendaMonthBookings.filter((b) => b.fecha.startsWith(agendaMonthKey)) : agendaBookings).filter((b) => !agendaProFiltro || agendaProKeyDe(b) === agendaProFiltro);
+  const agendaConteos = agendaConteoBase.reduce((acc, b) => {
+    acc[b.estado] = (acc[b.estado] || 0) + 1;
+    return acc;
+  }, {});
   const agendaDiaColumns = agendaMostrarUna ? agendaProColumns.filter((c) => c.key === agendaSelKey) : agendaProColumns;
   const agendaGutterPx = agendaEsMovil ? 44 : 64;
   const agendaColMinPx = agendaMostrarUna ? 0 : agendaEsMovil ? 104 : 170;
@@ -4105,6 +4130,50 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
   const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
   const days = getDaysInMonth(currentDate);
   const disponibilidadDays = getDaysInMonth(disponibilidadFecha);
+  const agendaProDe = (b) => {
+    const k = agendaProKeyDe(b);
+    return (profesionalesList || []).find((pr) => String(pr.id) === k) || null;
+  };
+  const renderAvatarAgenda = (b, size = 26) => {
+    const pro = agendaProDe(b);
+    const nombre = pro?.nombre || b.profesional_nombre || b.trabajador_nombre || "";
+    const inicial = String(nombre || "?").trim().charAt(0).toUpperCase() || "?";
+    return /* @__PURE__ */ React.createElement(
+      "span",
+      {
+        className: `shrink-0 rounded-full flex items-center justify-center font-bold text-white ${pro?.color || "bg-gray-500"}`,
+        style: { width: size, height: size, fontSize: Math.round(size * 0.46) },
+        title: nombre,
+        "aria-label": nombre
+      },
+      pro?.avatar || inicial
+    );
+  };
+  const renderPastillaEstado = (estado) => {
+    const i = agendaInfoDe(estado);
+    return /* @__PURE__ */ React.createElement("span", { className: "shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold whitespace-nowrap", style: { background: i.pastilla, color: i.pTexto } }, t2(i.etq));
+  };
+  const renderMarcadorAhora = () => /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-1 py-0.5" }, /* @__PURE__ */ React.createElement("span", { className: "rounded bg-red-500 px-1.5 text-[10px] font-bold leading-4 text-white" }, t2("Ahora"), " ", agendaAhoraLabel), /* @__PURE__ */ React.createElement("span", { className: "h-px flex-1 bg-red-500" }));
+  const agendaListaDia = [...agendaDiaColumns.flatMap((c) => c.items)].sort((a, b) => timeToMinutes(a.hora_inicio) - timeToMinutes(b.hora_inicio));
+  const agendaAhoraMin = agendaAhoraFecha.getHours() * 60 + agendaAhoraFecha.getMinutes();
+  const agendaAhoraIdx = agendaDateStr === agendaToday && agendaListaDia.length ? (() => {
+    const i = agendaListaDia.findIndex((b) => timeToMinutes(b.hora_inicio) > agendaAhoraMin);
+    return i === -1 ? agendaListaDia.length : i;
+  })() : -1;
+  const renderTarjetaAgenda = (booking) => {
+    const key = booking._grupoVisualId || booking.id;
+    const abierta = agendaAbiertaId === key;
+    const servicioTxt = booking._grupoVisual ? `${booking._reservasGrupo.length} ${t2("servicios")} · ${booking.servicio}` : booking.servicio;
+    const btn = "px-3 min-h-[36px] rounded-full text-xs font-bold";
+    let detalle = null;
+    if (abierta) {
+      const resumen = getAgendaResumenCobro(booking);
+      const etiqueta = "block text-[11px] font-semibold opacity-75";
+      const visitas = getCitasCompletadasCliente(booking.cliente_whatsapp).length;
+      detalle = /* @__PURE__ */ React.createElement("div", { className: "mt-2 pt-2 grid grid-cols-2 gap-x-3 gap-y-2 text-[13px]", style: { borderTop: "1px solid rgba(0,0,0,0.15)" } }, /* @__PURE__ */ React.createElement("div", { className: "col-span-2" }, /* @__PURE__ */ React.createElement("span", { className: etiqueta }, t2("Servicio")), servicioTxt), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("span", { className: etiqueta }, t2("Profesional")), booking.profesional_nombre || booking.trabajador_nombre || t2("Sin profesional")), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("span", { className: etiqueta }, t2("Precio")), formatMoneyEstadistica(resumen.totalMostrar)), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("span", { className: etiqueta }, t2("Teléfono")), booking.cliente_whatsapp ? "+" + booking.cliente_whatsapp : t2("Sin número")), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("span", { className: etiqueta }, t2("Visitas completadas")), visitas), bonificacionCumpleDe(booking.cliente_whatsapp, booking.fecha) && /* @__PURE__ */ React.createElement("div", { className: "col-span-2 font-semibold" }, "🎂 ", t2("Cumpleaños")), /* @__PURE__ */ React.createElement("div", { className: "col-span-2 flex flex-wrap gap-2 pt-1" }, booking.cliente_whatsapp && /* @__PURE__ */ React.createElement("button", { type: "button", onClick: () => window.enviarWhatsApp?.(booking.cliente_whatsapp, `Hola ${booking.cliente_nombre || ""}`), className: `${btn} bg-white/80` }, t2("Escribir")), booking.estado === "Pendiente" && puedeGestionarReservas && /* @__PURE__ */ React.createElement("button", { type: "button", onClick: () => confirmarPago(booking.id, booking), className: `${btn} bg-green-600 text-white` }, t2("Confirmar pago")), puedeEditarReserva(booking) && /* @__PURE__ */ React.createElement("button", { type: "button", onClick: () => abrirModalReprogramar(booking), className: `${btn} bg-white/80` }, t2("Editar")), turnoYaPaso(booking) && booking.estado !== "Ausente" && puedeGestionarReservas && /* @__PURE__ */ React.createElement("button", { type: "button", onClick: () => marcarAusencia(booking), className: `${btn} bg-slate-700 text-white` }, t2("Ausencia")), booking.estado === "Completado" && puedeGestionarReservas && /* @__PURE__ */ React.createElement("button", { type: "button", onClick: () => abrirModalCobro(booking), className: `${btn} bg-emerald-600 text-white` }, t2("Cobro real")), puedeEditarReserva(booking) && /* @__PURE__ */ React.createElement("button", { type: "button", onClick: () => handleCancel(booking.id, booking), className: `${btn} bg-red-500 text-white` }, t2("Cancelar")), /* @__PURE__ */ React.createElement("button", { type: "button", onClick: () => abrirDetalleAgenda(booking), className: `${btn} underline` }, t2("Ver ficha completa"))));
+    }
+    return /* @__PURE__ */ React.createElement("div", { className: "rounded-xl px-3 py-2 shadow-sm min-w-0", style: agendaBloqueStyle(booking.estado) }, /* @__PURE__ */ React.createElement("button", { type: "button", onClick: () => setAgendaAbiertaId(abierta ? null : key), "aria-expanded": abierta, className: "w-full text-left" }, /* @__PURE__ */ React.createElement("span", { className: "flex items-start gap-2" }, /* @__PURE__ */ React.createElement("span", { className: "flex-1 min-w-0" }, /* @__PURE__ */ React.createElement("span", { className: "block text-[15px] font-bold leading-tight break-words" }, booking.cliente_nombre, marcaCumple(booking)), /* @__PURE__ */ React.createElement("span", { className: "block text-[12px] leading-snug opacity-90" }, rangoHora(booking), Number(booking.valoracion) > 0 && /* @__PURE__ */ React.createElement("span", { className: "ml-1" }, "⭐", Number(booking.valoracion)))), renderPastillaEstado(booking.estado)), /* @__PURE__ */ React.createElement("span", { className: "mt-1 flex items-end gap-2" }, /* @__PURE__ */ React.createElement("span", { className: `flex-1 min-w-0 text-[13px] leading-snug ${abierta ? "" : "line-clamp-2"}` }, servicioTxt), renderAvatarAgenda(booking), /* @__PURE__ */ React.createElement("span", { "aria-hidden": "true", className: "text-sm opacity-60" }, abierta ? "▴" : "▾"))), detalle);
+  };
   return /* @__PURE__ */ React.createElement("div", { className: "min-h-screen bg-pink-50 p-3 sm:p-6", style: { paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 160px)" } }, /* @__PURE__ */ React.createElement("div", { className: "max-w-6xl mx-auto space-y-4" }, /* @__PURE__ */ React.createElement("div", { className: "bg-white px-4 py-3 rounded-xl shadow-sm flex flex-row justify-between items-center gap-3 border-l-4 border-pink-500" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2.5 min-w-0" }, logoNegocio ? /* @__PURE__ */ React.createElement(
     "img",
     {
@@ -4142,7 +4211,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
       "aria-label": t2("Cerrar sesión")
     },
     /* @__PURE__ */ React.createElement("i", { className: "icon-log-out text-lg" })
-  ), /* @__PURE__ */ React.createElement(window.LanguageToggle, { pequeno: true, className: "shrink-0" }))), fraseDelDia && /* @__PURE__ */ React.createElement("div", { className: "px-4 py-3 rounded-2xl flex items-start gap-3 border border-pink-200", style: { background: "linear-gradient(135deg, #FFE4F1 0%, #FFF1F8 100%)" } }, /* @__PURE__ */ React.createElement("span", { className: "text-2xl leading-none mt-0.5", "aria-hidden": "true" }, "✨"), /* @__PURE__ */ React.createElement("div", { className: "min-w-0 flex-1" }, /* @__PURE__ */ React.createElement("p", { className: "text-[11px] font-bold uppercase tracking-wide text-pink-600" }, t2("Frase del día")), /* @__PURE__ */ React.createElement("p", { className: "text-[15px] font-semibold leading-snug text-pink-950 mt-0.5" }, fraseDelDia)), /* @__PURE__ */ React.createElement(
+  ), /* @__PURE__ */ React.createElement(window.LanguageToggle, { pequeno: true, className: "shrink-0" }))), fraseDelDia && /* @__PURE__ */ React.createElement("div", { className: "px-4 py-3 rounded-2xl flex items-start gap-3 border border-pink-200", style: { background: "linear-gradient(135deg, #FFE4F1 0%, #FFF1F8 100%)" } }, /* @__PURE__ */ React.createElement("span", { className: "text-2xl leading-none mt-0.5", "aria-hidden": "true" }, "✨"), /* @__PURE__ */ React.createElement("div", { className: "min-w-0 flex-1" }, /* @__PURE__ */ React.createElement("p", { className: "text-[11px] font-bold uppercase tracking-wide text-pink-600" }, t2("Frase del día")), /* @__PURE__ */ React.createElement("p", { className: "text-[15px] font-semibold leading-snug text-pink-950 mt-0.5" }, window.getFraseDelDia(void 0, idioma))), /* @__PURE__ */ React.createElement(
     "button",
     {
       onClick: cerrarFraseDelDia,
@@ -4726,7 +4795,27 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
       /* @__PURE__ */ React.createElement("span", { className: "block text-lg font-bold leading-tight" }, day.getDate()),
       /* @__PURE__ */ React.createElement("span", { className: `mx-auto mt-1 block h-1.5 w-1.5 rounded-full ${getAgendaDayBookings(day).length ? selected ? "bg-white" : "bg-pink-500" : "bg-transparent"}` })
     );
-  })), /* @__PURE__ */ React.createElement("div", { className: "sm:hidden mt-3 flex flex-wrap gap-2 text-xs" }, /* @__PURE__ */ React.createElement("span", { className: "rounded-full bg-white border border-pink-100 px-2.5 py-1 text-gray-700" }, /* @__PURE__ */ React.createElement("b", null, agendaVisibleBookings.length), " ", t2("Citas").toLowerCase()), /* @__PURE__ */ React.createElement("span", { className: "rounded-full bg-white border border-amber-100 px-2.5 py-1 text-amber-700" }, /* @__PURE__ */ React.createElement("b", null, agendaVisibleBookings.filter((b) => b.estado === "Pendiente").length), " ", t2("Pendientes").toLowerCase()), /* @__PURE__ */ React.createElement("span", { className: "rounded-full bg-white border border-emerald-100 px-2.5 py-1 text-emerald-700" }, /* @__PURE__ */ React.createElement("b", null, agendaVisibleBookings.filter((b) => b.estado === "Completado").length), " ", t2("Completados").toLowerCase())), /* @__PURE__ */ React.createElement("div", { className: "hidden sm:grid grid-cols-4 gap-3 mt-5" }, /* @__PURE__ */ React.createElement("div", { className: "rounded-lg border border-pink-100 bg-white p-3" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500" }, t2("Citas")), /* @__PURE__ */ React.createElement("p", { className: "text-2xl font-bold text-gray-900" }, agendaVisibleBookings.length)), /* @__PURE__ */ React.createElement("div", { className: "rounded-lg border border-amber-100 bg-white p-3" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500" }, t2("Pendientes")), /* @__PURE__ */ React.createElement("p", { className: "text-2xl font-bold text-amber-600" }, agendaVisibleBookings.filter((b) => b.estado === "Pendiente").length)), /* @__PURE__ */ React.createElement("div", { className: "rounded-lg border border-emerald-100 bg-white p-3" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500" }, t2("Completados")), /* @__PURE__ */ React.createElement("p", { className: "text-2xl font-bold text-emerald-600" }, agendaVisibleBookings.filter((b) => b.estado === "Completado").length)), /* @__PURE__ */ React.createElement("div", { className: "rounded-lg border border-blue-100 bg-white p-3" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500" }, t2("Profesionales")), /* @__PURE__ */ React.createElement("p", { className: "text-2xl font-bold text-blue-600" }, new Set(agendaVisibleBookings.map((b) => b.profesional_id || b.profesional_nombre)).size)))), agendaProColumns.length > 1 && (agendaMode !== "dia" || agendaEsMovil) && /* @__PURE__ */ React.createElement("div", { className: "flex gap-1 overflow-x-auto px-2 sm:px-5 pt-2 sm:pt-4" }, [...agendaProColumns, { key: "todos", nombre: t2("Todos"), avatar: "👥", color: "bg-gray-700" }].map((col) => {
+  })), /* @__PURE__ */ React.createElement("div", { className: "mt-3 flex flex-wrap items-center gap-2 text-xs", role: "group", "aria-label": t2("Filtrar por estado") }, /* @__PURE__ */ React.createElement("span", { className: "rounded-full bg-white border border-gray-200 px-2.5 py-1 text-gray-700" }, /* @__PURE__ */ React.createElement("b", null, agendaConteoBase.length), " ", agendaConteoBase.length === 1 ? t2("cita") : t2("citas")), ["Reservado", "Pendiente", "Completado", "Ausente"].map((est) => {
+    const i = agendaEstadoInfo[est];
+    const n = agendaConteos[est] || 0;
+    const activo = agendaEstadoFiltro === est;
+    if (n === 0 && !activo) return null;
+    return /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        key: est,
+        type: "button",
+        "aria-pressed": activo,
+        onClick: () => setAgendaEstadoFiltro(activo ? null : est),
+        className: "inline-flex items-center gap-1.5 rounded-full px-3 min-h-[32px] font-bold",
+        style: { background: activo ? i.pastilla : "#fff", color: activo ? i.pTexto : i.texto, border: "1.5px solid " + i.pastilla }
+      },
+      /* @__PURE__ */ React.createElement("span", { className: "rounded-full", style: { width: 8, height: 8, background: activo ? i.pTexto : i.pastilla } }),
+      n,
+      " ",
+      t2(i.etq)
+    );
+  })), /* @__PURE__ */ React.createElement("div", { className: "hidden sm:grid grid-cols-4 gap-3 mt-5" }, /* @__PURE__ */ React.createElement("div", { className: "rounded-lg border border-pink-100 bg-white p-3" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500" }, t2("Citas")), /* @__PURE__ */ React.createElement("p", { className: "text-2xl font-bold text-gray-900" }, agendaVisibleBookings.length)), /* @__PURE__ */ React.createElement("div", { className: "rounded-lg border border-amber-100 bg-white p-3" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500" }, t2("Pendientes")), /* @__PURE__ */ React.createElement("p", { className: "text-2xl font-bold text-amber-600" }, agendaVisibleBookings.filter((b) => b.estado === "Pendiente").length)), /* @__PURE__ */ React.createElement("div", { className: "rounded-lg border border-emerald-100 bg-white p-3" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500" }, t2("Completados")), /* @__PURE__ */ React.createElement("p", { className: "text-2xl font-bold text-emerald-600" }, agendaVisibleBookings.filter((b) => b.estado === "Completado").length)), /* @__PURE__ */ React.createElement("div", { className: "rounded-lg border border-blue-100 bg-white p-3" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500" }, t2("Profesionales")), /* @__PURE__ */ React.createElement("p", { className: "text-2xl font-bold text-blue-600" }, new Set(agendaVisibleBookings.map((b) => b.profesional_id || b.profesional_nombre)).size)))), agendaProColumns.length > 1 && (agendaMode !== "dia" || agendaEsMovil) && /* @__PURE__ */ React.createElement("div", { className: "flex gap-1 overflow-x-auto px-2 sm:px-5 pt-2 sm:pt-4" }, [...agendaProColumns, { key: "todos", nombre: t2("Todos"), avatar: "👥", color: "bg-gray-700" }].map((col) => {
     const sel = (agendaMode === "dia" ? agendaSelKey : agendaProFiltro || "todos") === col.key;
     const total = agendaChipCount(col);
     return /* @__PURE__ */ React.createElement(
@@ -4739,7 +4828,10 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
       /* @__PURE__ */ React.createElement("span", { className: `relative w-10 h-10 rounded-full flex items-center justify-center text-xl ${col.color || "bg-pink-500"}` }, col.avatar || String(col.nombre || "?").charAt(0).toUpperCase(), total > 0 && /* @__PURE__ */ React.createElement("span", { className: "absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-gray-900 text-white text-[10px] leading-4 text-center" }, total)),
       /* @__PURE__ */ React.createElement("span", { className: "text-[11px] font-medium text-gray-700 truncate max-w-full" }, col.nombre)
     );
-  })), agendaMode === "dia" && /* @__PURE__ */ React.createElement("div", { className: "p-2 sm:p-5" }, /* @__PURE__ */ React.createElement(
+  })), agendaMode === "dia" && agendaEsMovil && /* @__PURE__ */ React.createElement("div", { className: "p-3 space-y-2" }, agendaListaDia.length === 0 && /* @__PURE__ */ React.createElement("div", { className: "rounded-xl border border-dashed border-gray-200 bg-gray-50 p-4 text-center text-sm text-gray-500" }, t2("No hay citas para este día")), agendaListaDia.map((booking, idx) => {
+    const hora = horaCorta(booking.hora_inicio).split(" ");
+    return /* @__PURE__ */ React.createElement(React.Fragment, { key: booking._grupoVisualId || booking.id }, agendaAhoraIdx === idx && renderMarcadorAhora(), /* @__PURE__ */ React.createElement("div", { className: "grid gap-1.5", style: { gridTemplateColumns: "40px minmax(0, 1fr)" } }, /* @__PURE__ */ React.createElement("div", { className: "pt-2 text-right leading-tight text-gray-500" }, /* @__PURE__ */ React.createElement("span", { className: "block text-[12px] font-semibold" }, hora[0]), /* @__PURE__ */ React.createElement("span", { className: "block text-[10px]" }, hora[1])), renderTarjetaAgenda(booking)));
+  }), agendaAhoraIdx === agendaListaDia.length && agendaAhoraIdx > 0 && renderMarcadorAhora()), agendaMode === "dia" && !agendaEsMovil && /* @__PURE__ */ React.createElement("div", { className: "p-2 sm:p-5" }, /* @__PURE__ */ React.createElement(
     "div",
     {
       className: "border rounded-xl bg-white overflow-auto",
@@ -4760,17 +4852,15 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
     },
     /* @__PURE__ */ React.createElement("div", { style: { minWidth: `${agendaDiaMinWidth}px` } }, /* @__PURE__ */ React.createElement("div", { className: `${agendaMostrarUna ? "hidden" : "grid"} sticky top-0 z-20 bg-white border-b`, style: { gridTemplateColumns: agendaDiaGridCols } }, /* @__PURE__ */ React.createElement("div", { className: "sticky left-0 z-30 bg-white" }), agendaDiaColumns.map((col) => /* @__PURE__ */ React.createElement("div", { key: col.key, className: "flex flex-col items-center gap-0.5 py-2 px-1 border-l min-w-0" }, /* @__PURE__ */ React.createElement("div", { className: `w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center text-xl shadow-sm ${col.color || "bg-pink-500"}` }, col.avatar || String(col.nombre || "?").charAt(0).toUpperCase()), /* @__PURE__ */ React.createElement("p", { className: "text-xs font-semibold text-gray-800 truncate max-w-full" }, col.nombre), /* @__PURE__ */ React.createElement("span", { className: "text-[10px] text-gray-500" }, col.items.length, " ", t2("citas").toLowerCase())))), /* @__PURE__ */ React.createElement("div", { className: "grid relative", style: { gridTemplateColumns: agendaDiaGridCols, height: `${agendaGridHeight}px` } }, /* @__PURE__ */ React.createElement("div", { className: "sticky left-0 z-10 bg-gray-50 border-r" }, agendaHours.map((hour) => /* @__PURE__ */ React.createElement("div", { key: hour, className: "relative border-b border-gray-100 text-right pr-1 md:pr-2 text-[10px] md:text-xs text-gray-400", style: { height: `${60 * agendaPxPerMinute}px` } }, /* @__PURE__ */ React.createElement("span", { className: "relative -top-2" }, formatTo12Hour(`${String(hour).padStart(2, "0")}:00`).replace(":00", ""))))), agendaDiaColumns.map((col) => /* @__PURE__ */ React.createElement("div", { key: col.key, className: "relative border-l min-w-0" }, agendaHours.map((hour) => /* @__PURE__ */ React.createElement("div", { key: hour, className: "border-b border-gray-100", style: { height: `${60 * agendaPxPerMinute}px` } })), getAgendaLayoutBookings(col.items).map((booking) => {
       const alto = getBookingHeight(booking);
-      const color = col.key === "sin-profesional" ? "bg-gray-200 border-gray-400 text-gray-900" : agendaPastel[Math.max(0, agendaProColumns.indexOf(col)) % agendaPastel.length];
-      const pendiente = booking.estado === "Pendiente";
       return /* @__PURE__ */ React.createElement(
         "button",
         {
           key: booking._grupoVisualId || booking.id,
           onClick: () => abrirDetalleAgenda(booking),
-          className: `absolute rounded-lg border-l-4 ${agendaMostrarUna ? "px-3 py-2" : "px-1.5 py-1"} text-left overflow-hidden shadow-sm transition hover:shadow-md ${color} ${pendiente ? "ring-1 ring-amber-500 ring-inset" : ""} ${booking.estado === "Completado" || booking.estado === "Ausente" ? "opacity-70" : ""}`,
-          style: getAgendaCompactStyle(booking)
+          className: `absolute rounded-lg ${agendaMostrarUna ? "px-3 py-2" : "px-1.5 py-1"} text-left overflow-hidden shadow-sm transition hover:shadow-md`,
+          style: { ...getAgendaCompactStyle(booking), ...agendaBloqueStyle(booking.estado) }
         },
-        /* @__PURE__ */ React.createElement("span", { className: `block ${agendaMostrarUna ? "text-xs" : "text-[10px] md:text-xs"} font-semibold leading-tight truncate` }, agendaEstadoMarca[booking.estado] || "", rangoHora(booking), Number(booking.valoracion) > 0 && /* @__PURE__ */ React.createElement("span", { className: "ml-1" }, "⭐", Number(booking.valoracion))),
+        /* @__PURE__ */ React.createElement("span", { className: "flex items-center justify-between gap-1" }, /* @__PURE__ */ React.createElement("span", { className: `${agendaMostrarUna ? "text-xs" : "text-[10px] md:text-xs"} font-semibold leading-tight truncate` }, rangoHora(booking), Number(booking.valoracion) > 0 && /* @__PURE__ */ React.createElement("span", { className: "ml-1" }, "⭐", Number(booking.valoracion)), alto < (agendaMostrarUna ? 44 : 52) && /* @__PURE__ */ React.createElement("b", { className: "ml-1" }, "· ", booking.cliente_nombre)), alto >= 44 && renderPastillaEstado(booking.estado)),
         alto >= (agendaMostrarUna ? 44 : 52) && /* @__PURE__ */ React.createElement("span", { className: `block ${agendaMostrarUna ? "text-sm" : "text-[11px] md:text-sm"} font-bold leading-tight truncate` }, booking.cliente_nombre, marcaCumple(booking)),
         alto >= (agendaMostrarUna ? 60 : 68) && /* @__PURE__ */ React.createElement("span", { className: `block ${agendaMostrarUna ? "text-xs" : "text-[10px] md:text-xs"} leading-tight truncate opacity-80` }, booking._grupoVisual ? `${booking._reservasGrupo.length} ${t2("servicios")} - ${booking.servicio}` : booking.servicio)
       );
@@ -4813,11 +4903,12 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
           {
             key: booking._grupoVisualId || booking.id,
             onClick: () => abrirDetalleAgenda(booking),
-            className: `absolute rounded-lg border-l-4 px-1.5 py-1 text-left overflow-hidden shadow-sm ${agendaColorPro(booking)} ${booking.estado === "Pendiente" ? "ring-1 ring-amber-500 ring-inset" : ""} ${booking.estado === "Completado" || booking.estado === "Ausente" ? "opacity-70" : ""}`,
-            style: getAgendaCompactStyle(booking)
+            className: "absolute rounded-lg px-1.5 py-1 text-left overflow-hidden shadow-sm",
+            style: { ...getAgendaCompactStyle(booking), ...agendaBloqueStyle(booking.estado) }
           },
-          /* @__PURE__ */ React.createElement("span", { className: "block text-[10px] font-semibold leading-tight truncate" }, agendaEstadoMarca[booking.estado] || "", rangoHora(booking)),
+          /* @__PURE__ */ React.createElement("span", { className: "block text-[10px] font-semibold leading-tight truncate pr-4" }, rangoHora(booking)),
           alto >= 44 && /* @__PURE__ */ React.createElement("span", { className: "block text-xs font-bold leading-tight truncate" }, booking.cliente_nombre),
+          alto >= 44 && /* @__PURE__ */ React.createElement("span", { className: "absolute top-1 right-1" }, renderAvatarAgenda(booking, 16)),
           alto >= 60 && /* @__PURE__ */ React.createElement("span", { className: "block text-[10px] leading-tight truncate opacity-80" }, booking.servicio)
         );
       }));
@@ -4838,7 +4929,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
         className: `min-h-[68px] sm:min-h-[96px] rounded-lg border p-1 flex flex-col items-stretch text-left transition ${inMonth ? "" : "opacity-40"} ${isToday ? "bg-pink-50 border-pink-300" : "bg-white border-gray-100 hover:bg-gray-50"}`
       },
       /* @__PURE__ */ React.createElement("span", { className: `text-xs font-bold ${isToday ? "text-pink-600" : "text-gray-700"}` }, day.getDate()),
-      dayList.slice(0, 2).map((booking) => /* @__PURE__ */ React.createElement("span", { key: booking._grupoVisualId || booking.id, className: `mt-0.5 block truncate rounded px-1 text-[9px] sm:text-[11px] leading-4 ${agendaChipStyle[booking.estado] || "bg-gray-100 text-gray-700"}` }, primerNombre(booking))),
+      dayList.slice(0, 2).map((booking) => /* @__PURE__ */ React.createElement("span", { key: booking._grupoVisualId || booking.id, className: "mt-0.5 block truncate rounded px-1 text-[9px] sm:text-[11px] leading-4", style: { background: agendaInfoDe(booking.estado).fondo, color: agendaInfoDe(booking.estado).texto, borderLeft: "3px solid " + agendaInfoDe(booking.estado).borde } }, primerNombre(booking))),
       dayList.length > 2 && /* @__PURE__ */ React.createElement("span", { className: "mt-0.5 pl-0.5 text-[9px] sm:text-[11px] font-semibold text-gray-500" }, "+", dayList.length - 2)
     );
   }))), agendaMode === "semana" && /* @__PURE__ */ React.createElement("div", { className: "hidden md:block overflow-x-auto" }, /* @__PURE__ */ React.createElement("div", { className: "min-w-[1440px]" }, /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-[72px_repeat(7,minmax(190px,1fr))] border-b bg-white sticky top-0 z-10" }, /* @__PURE__ */ React.createElement("div", { className: "p-3 text-xs font-semibold text-gray-400 border-r" }, t2("Hora")), agendaDays.map((day) => {
@@ -4852,24 +4943,23 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
     const dayLayoutBookings = getAgendaLayoutBookings(dayBookings);
     const isToday = dateStr === agendaToday;
     return /* @__PURE__ */ React.createElement("div", { key: dateStr, className: `relative border-r last:border-r-0 ${isToday ? "bg-pink-50/40" : "bg-white"}` }, agendaHours.map((hour) => /* @__PURE__ */ React.createElement("div", { key: hour, className: "border-b border-gray-100", style: { height: `${60 * agendaPxPerMinute}px` } })), renderLineaAhora(dateStr), dayLayoutBookings.map((booking) => {
-      const statusClass = agendaStatusStyle[booking.estado] || "bg-gray-50 border-l-gray-500 border-gray-100 text-gray-900";
       const isShort = getBookingHeight(booking) < 76;
       return /* @__PURE__ */ React.createElement(
         "div",
         {
           key: booking._grupoVisualId || booking.id,
-          className: `absolute rounded-xl border border-l-4 shadow-sm hover:shadow-md transition p-2 overflow-hidden cursor-pointer ${statusClass}`,
-          style: getAgendaBookingStyle(booking),
+          className: "absolute rounded-xl shadow-sm hover:shadow-md transition p-2 overflow-hidden cursor-pointer",
+          style: { ...getAgendaBookingStyle(booking), ...agendaBloqueStyle(booking.estado) },
           title: `${booking.cliente_nombre} - ${booking._grupoVisual ? `${booking._reservasGrupo.length} servicios: ` : ""}${booking.servicio}`,
           onClick: () => abrirDetalleAgenda(booking)
         },
-        /* @__PURE__ */ React.createElement("div", { className: "flex h-full flex-col gap-1" }, /* @__PURE__ */ React.createElement("div", { className: "min-w-0" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold leading-tight" }, formatTo12Hour(booking.hora_inicio), " - ", formatTo12Hour(booking.hora_fin || calculateEndTime(booking.hora_inicio, booking.duracion || 60)), Number(booking.valoracion) > 0 && /* @__PURE__ */ React.createElement("span", { className: "ml-1", title: t2("Valoración de la clienta") }, "⭐", Number(booking.valoracion))), !isShort && /* @__PURE__ */ React.createElement("p", { className: "font-bold text-sm truncate" }, booking.cliente_nombre, marcaCumple(booking)), !isShort && /* @__PURE__ */ React.createElement("p", { className: "text-xs truncate opacity-90" }, booking._grupoVisual ? `${booking._reservasGrupo.length} servicios - ${booking.servicio}` : booking.servicio), !isShort && /* @__PURE__ */ React.createElement("p", { className: "text-xs truncate opacity-80" }, booking.profesional_nombre || booking.trabajador_nombre || "Sin profesional")), /* @__PURE__ */ React.createElement("button", { onClick: (event) => {
+        /* @__PURE__ */ React.createElement("div", { className: "flex h-full flex-col gap-1" }, /* @__PURE__ */ React.createElement("div", { className: "min-w-0" }, /* @__PURE__ */ React.createElement("p", { className: "flex items-center justify-between gap-1 text-xs font-bold leading-tight" }, /* @__PURE__ */ React.createElement("span", { className: "truncate" }, formatTo12Hour(booking.hora_inicio), " - ", formatTo12Hour(booking.hora_fin || calculateEndTime(booking.hora_inicio, booking.duracion || 60)), Number(booking.valoracion) > 0 && /* @__PURE__ */ React.createElement("span", { className: "ml-1", title: t2("Valoración de la clienta") }, "⭐", Number(booking.valoracion)), isShort && /* @__PURE__ */ React.createElement("b", { className: "ml-1" }, "· ", booking.cliente_nombre)), renderPastillaEstado(booking.estado)), !isShort && /* @__PURE__ */ React.createElement("p", { className: "font-bold text-sm truncate" }, booking.cliente_nombre, marcaCumple(booking)), !isShort && /* @__PURE__ */ React.createElement("p", { className: "text-xs truncate opacity-90" }, booking._grupoVisual ? `${booking._reservasGrupo.length} servicios - ${booking.servicio}` : booking.servicio), !isShort && /* @__PURE__ */ React.createElement("p", { className: "text-xs truncate opacity-80" }, booking.profesional_nombre || booking.trabajador_nombre || "Sin profesional")), /* @__PURE__ */ React.createElement("button", { onClick: (event) => {
           event.stopPropagation();
           abrirDetalleAgenda(booking);
         }, className: "mt-auto w-full bg-white/80 hover:bg-white text-gray-700 rounded px-2 py-1 text-[11px] font-bold" }, "Detalles"))
       );
     }));
-  })))), /* @__PURE__ */ React.createElement("div", { className: "p-4 border-t bg-gray-50 flex flex-wrap gap-3 text-xs" }, /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-2" }, /* @__PURE__ */ React.createElement("span", { className: "w-3 h-3 rounded bg-pink-500" }), t2("Reservado")), /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-2" }, /* @__PURE__ */ React.createElement("span", { className: "w-3 h-3 rounded bg-amber-400" }), t2("Pendiente")), /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-2" }, /* @__PURE__ */ React.createElement("span", { className: "w-3 h-3 rounded bg-emerald-500" }), t2("Completado")))), cobroEditando && /* @__PURE__ */ React.createElement("div", { className: "fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" }, /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-xl max-w-md w-full p-5 shadow-xl" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-start justify-between gap-4 border-b pb-3 mb-4" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("p", { className: "text-xs uppercase tracking-wide text-emerald-600 font-bold" }, t2("Cobro real")), /* @__PURE__ */ React.createElement("h3", { className: "text-xl font-bold text-gray-900" }, cobroEditando.cliente_nombre || t2("Cliente sin nombre")), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500" }, cobroEditando.servicio)), /* @__PURE__ */ React.createElement("button", { onClick: () => setCobroEditando(null), disabled: guardandoCobro, className: "text-gray-500 hover:text-gray-700 text-2xl leading-none" }, "×")), /* @__PURE__ */ React.createElement("div", { className: "space-y-4" }, cobroEditando._fidelizacionPremiada && /* @__PURE__ */ React.createElement("div", { className: "p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-sm font-semibold" }, cobroEditando._cualDescuento === "cumpleanos" ? t2("🎁 También es su cita premiada de fidelidad ({pct}%), pero se sugirió el descuento de cumpleaños porque es mayor.", { pct: cobroEditando._fidelizacionPct }) : t2("🎁 Esta es la cita premiada de fidelidad: {pct}% de descuento ya sugerido en el monto.", { pct: cobroEditando._fidelizacionPct })), cobroEditando._cumple && /* @__PURE__ */ React.createElement("div", { className: "p-3 rounded-lg bg-pink-50 border border-pink-200 text-pink-900 text-sm" }, /* @__PURE__ */ React.createElement("p", { className: "font-semibold" }, cobroEditando._cumple.tipo === "regalo" ? t2("🎂 Cumpleaños de {nombre}: regalo «{regalo}»", { nombre: cobroEditando.cliente_nombre || "", regalo: cobroEditando._cumple.regalo }) : cobroEditando._cualDescuento === "cumpleanos" ? t2("🎂 Cumpleaños de {nombre}: {pct}% de descuento ya sugerido en el monto.", { nombre: cobroEditando.cliente_nombre || "", pct: cobroEditando._cumple.pct }) : t2("🎂 Cumpleaños de {nombre}: {pct}% de descuento, pero se sugirió el de fidelidad porque es mayor.", { nombre: cobroEditando.cliente_nombre || "", pct: cobroEditando._cumple.pct })), /* @__PURE__ */ React.createElement("label", { className: "mt-2 flex items-start gap-2 min-h-[44px] items-center cursor-pointer" }, /* @__PURE__ */ React.createElement(
+  }))))), cobroEditando && /* @__PURE__ */ React.createElement("div", { className: "fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" }, /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-xl max-w-md w-full p-5 shadow-xl" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-start justify-between gap-4 border-b pb-3 mb-4" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("p", { className: "text-xs uppercase tracking-wide text-emerald-600 font-bold" }, t2("Cobro real")), /* @__PURE__ */ React.createElement("h3", { className: "text-xl font-bold text-gray-900" }, cobroEditando.cliente_nombre || t2("Cliente sin nombre")), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500" }, cobroEditando.servicio)), /* @__PURE__ */ React.createElement("button", { onClick: () => setCobroEditando(null), disabled: guardandoCobro, className: "text-gray-500 hover:text-gray-700 text-2xl leading-none" }, "×")), /* @__PURE__ */ React.createElement("div", { className: "space-y-4" }, cobroEditando._fidelizacionPremiada && /* @__PURE__ */ React.createElement("div", { className: "p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-sm font-semibold" }, cobroEditando._cualDescuento === "cumpleanos" ? t2("🎁 También es su cita premiada de fidelidad ({pct}%), pero se sugirió el descuento de cumpleaños porque es mayor.", { pct: cobroEditando._fidelizacionPct }) : t2("🎁 Esta es la cita premiada de fidelidad: {pct}% de descuento ya sugerido en el monto.", { pct: cobroEditando._fidelizacionPct })), cobroEditando._cumple && /* @__PURE__ */ React.createElement("div", { className: "p-3 rounded-lg bg-pink-50 border border-pink-200 text-pink-900 text-sm" }, /* @__PURE__ */ React.createElement("p", { className: "font-semibold" }, cobroEditando._cumple.tipo === "regalo" ? t2("🎂 Cumpleaños de {nombre}: regalo «{regalo}»", { nombre: cobroEditando.cliente_nombre || "", regalo: cobroEditando._cumple.regalo }) : cobroEditando._cualDescuento === "cumpleanos" ? t2("🎂 Cumpleaños de {nombre}: {pct}% de descuento ya sugerido en el monto.", { nombre: cobroEditando.cliente_nombre || "", pct: cobroEditando._cumple.pct }) : t2("🎂 Cumpleaños de {nombre}: {pct}% de descuento, pero se sugirió el de fidelidad porque es mayor.", { nombre: cobroEditando.cliente_nombre || "", pct: cobroEditando._cumple.pct })), /* @__PURE__ */ React.createElement("label", { className: "mt-2 flex items-start gap-2 min-h-[44px] items-center cursor-pointer" }, /* @__PURE__ */ React.createElement(
     "input",
     {
       type: "checkbox",

@@ -37,20 +37,54 @@ const FRASES_MOTIVACIONALES = [
     'Un negocio que cuida a su gente, dura.'
 ];
 
+const FRASES_MOTIVACIONALES_EN = [
+    'Today’s effort is tomorrow’s regular client.',
+    'It’s not about having time, it’s about making time.',
+    'Every full chair started as an appointment that almost got canceled.',
+    'Consistency beats talent when talent isn’t consistent.',
+    'One bad day doesn’t erase a good business.',
+    'What you hold on to with effort, luck can’t take away.',
+    'Nobody sees the extra hours, but everyone sees the result.',
+    'The salon you care for today is the one that will carry you tomorrow.',
+    'Small steps every day are worth more than one big leap a year.',
+    'Tired today, unstoppable tomorrow.',
+    'Your work today is the reputation people will recommend.',
+    'Don’t compare your beginning with someone else’s ending.',
+    'Every client who leaves happy is advertising you didn’t pay for.',
+    'Effort isn’t always noticed right away, but it is never wasted.',
+    'Do it well even if nobody is watching today.',
+    'A hard day is part of the same road, not a sign to stop.',
+    'What feels like routine today becomes experience in a year.',
+    'Discipline is what shows up when the motivation has left.',
+    'Nobody built a loyal clientele in a single week.',
+    'Look after your energy the way you look after your schedule.',
+    'Rest is also part of a job well done.',
+    'Every failed attempt leaves you better prepared for the next.',
+    'Your effort today isn’t visible until it adds up.',
+    'Starting over every morning is an achievement too.',
+    'Patience with your business matters as much as patience with your clients.',
+    'Nobody remembers what it cost, only what it was worth.',
+    'Whoever keeps going finds their place sooner or later.',
+    'Today counts too, even if it looks like an ordinary day.',
+    'You sow effort and reap results, even if they take time.',
+    'A business that takes care of its people lasts.'
+];
+
 function getDiaDelAnio(fecha) {
     const hoy = fecha || new Date();
     const inicio = new Date(hoy.getFullYear(), 0, 0);
     return Math.floor((hoy - inicio) / 86400000);
 }
 
-function getFraseDelDia(fecha) {
+function getFraseDelDia(fecha, idioma) {
     const dia = getDiaDelAnio(fecha);
-    return FRASES_MOTIVACIONALES[dia % FRASES_MOTIVACIONALES.length];
+    const banco = idioma === 'en' ? FRASES_MOTIVACIONALES_EN : FRASES_MOTIVACIONALES;
+    return banco[dia % banco.length];
 }
 
 if (typeof window !== 'undefined') {
     window.getFraseDelDia = getFraseDelDia;
 }
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { FRASES_MOTIVACIONALES, getDiaDelAnio, getFraseDelDia };
+    module.exports = { FRASES_MOTIVACIONALES, FRASES_MOTIVACIONALES_EN, getDiaDelAnio, getFraseDelDia };
 }

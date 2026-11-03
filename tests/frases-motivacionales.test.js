@@ -27,3 +27,11 @@ if (FRASES_MOTIVACIONALES.length > 1) {
 }
 
 console.log('frases-motivacionales.test.js OK');
+
+// Cada frase en español tiene su versión en inglés, en el mismo orden.
+{
+    const { FRASES_MOTIVACIONALES: es, FRASES_MOTIVACIONALES_EN: en } = require('../utils/frases-motivacionales.js');
+    assert.equal(en.length, es.length, 'el banco en inglés debe tener las mismas frases');
+    const dia = new Date(2026, 0, 15);
+    assert.equal(en.indexOf(getFraseDelDia(dia, 'en')), es.indexOf(getFraseDelDia(dia)), 'misma posición en ambos idiomas');
+}
