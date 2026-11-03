@@ -454,7 +454,7 @@
         'Quitar todas': 'Remove all',
         'Elegir horas': 'Pick hours',
         'Horarios permitidos': 'Allowed hours',
-        'Todos los horarios de la profesional': 'All of the professional's hours',
+        'Todos los horarios de la profesional': 'All of the professional’s hours',
         'Agregar todas': 'Add all',
         'Limpiar día': 'Clear day',
         'Copiar horarios de:': 'Copy schedule from:',
