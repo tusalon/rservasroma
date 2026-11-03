@@ -1,6 +1,6 @@
 ﻿// sw.js - Service Worker para Rservasroma
 
-const CACHE_NAME = 'rservasroma-v173';
+const CACHE_NAME = 'rservasroma-v174';
 const BASE = '/rservasroma';
 
 const urlsToCache = [
@@ -17,7 +17,7 @@ const urlsToCache = [
 
   // App principal (JSX pre-compilado en compiled/ â€” ver scripts/build-jsx.sh)
   `${BASE}/compiled/client-app.js?v=20261103-flotantes1`,
-  `${BASE}/compiled/admin-app.js?v=20261103-fase2r`,
+  `${BASE}/compiled/admin-app.js?v=20261103-fase2s`,
 
   // Utils
   `${BASE}/utils/api.js?v=20261103-cita2`,
@@ -43,7 +43,7 @@ const urlsToCache = [
   `${BASE}/utils/supabase-config.js?v=20260723-fotos`,
   `${BASE}/utils/timeLogic.js?v=20261023-combo1`,
   `${BASE}/utils/espacios.js?v=20261102-duracion1`,
-  `${BASE}/utils/turnos.js?v=20261103-cita2`,
+  `${BASE}/utils/turnos.js?v=20261103-cambiar1`,
   `${BASE}/utils/whatsapp-helper.js?v=20261103-cita2`,
   `${BASE}/utils/bienvenida.js?v=20261012-bienvenida2`,
   `${BASE}/utils/soporte.js?v=20261103-flotantes1`,
@@ -72,7 +72,8 @@ const urlsToCache = [
   `${BASE}/compiled/components/MultiProfesionalSelector.js?v=20261103-cita2`,
   `${BASE}/compiled/components/MultiTimeSlots.js?v=20261023-combo1`,
   `${BASE}/compiled/components/AnadirServicioTurno.js?v=20261103-cita2`,
-  `${BASE}/compiled/components/MyBookings.js?v=20261103-cita3`,
+  `${BASE}/compiled/components/CambiarServiciosTurno.js?v=20261103-cambiar1`,
+  `${BASE}/compiled/components/MyBookings.js?v=20261103-cambiar1`,
   `${BASE}/compiled/components/ProfesionalSelector.js?v=20261103-cita2`,
   `${BASE}/compiled/components/ServiceSelectionCategorias.js?v=20261103-cita2`,
   `${BASE}/compiled/components/TimeSlots.js?v=20261103-cita2`,
@@ -262,7 +263,7 @@ self.addEventListener('fetch', event => {
   // version aqui no bastaba para que una admin con el SW ya instalado
   // recibiera el archivo nuevo hasta que la cache vieja se vaciara sola).
   const esAssetCriticoAdmin = [
-    `${BASE}/compiled/admin-app.js?v=20261103-fase2r`,
+    `${BASE}/compiled/admin-app.js?v=20261103-fase2s`,
     `${BASE}/compiled/components/admin/EditarNegocio.js`,
     `${BASE}/utils/config-negocio-master.js`,
     `${BASE}/utils/native-push-notifications.js`,

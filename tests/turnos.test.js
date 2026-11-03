@@ -257,20 +257,111 @@ const patches = (llamadas) => llamadas.filter((l) => l.metodo === 'PATCH');
     assert.equal(sug.sugerencias.length, 0, 'sin profesionales para el servicio no hay nada que sugerir');
     assert.ok(sug.mensaje.length > 0);
 
+    // --- Reorganizar la cita: cambiar un servicio por otro, la profesional, el orden, quitar y anadir (pack de 5)
+    {
+        const pack = t.agruparTurnos([
+            fila(1, '10:00:00', '11:00:00', 'Manicura'),
+            fila(2, '11:00:00', '11:45:00', 'Pedicura', { profesional_id: 2, profesional_nombre: 'Sofia' }),
+            fila(3, '11:45:00', '12:15:00', 'Cejas'),
+            fila(4, '12:15:00', '13:15:00', 'Tinte'),
+            fila(5, '13:15:00', '13:45:00', 'Peinado')
+        ])[0];
+        assert.equal(pack.filas.length, 5, 'un pack de 5 servicios es un solo turno');
+        const igual = pack.filas.map((f) => ({ filaId: f.id, nombre: f.servicio, duracion: t.duracionDeFila(f), profesional_id: f.profesional_id, profesional_nombre: f.profesional_nombre }));
+
+        assert.equal(t.planReorganizar(pack, igual).sinCambios, true, 'sin tocar nada no hay nada que guardar');
+
+        // Cambiar la Pedicura (45) por Depilacion (30): la fila se edita y las de detras se corren 15 min hacia atras
+        const cambiado = igual.map((e) => (e.filaId === 2 ? { ...e, nombre: 'Depilacion', duracion: 30 } : e));
+        let plan = t.planReorganizar(pack, cambiado);
+        assert.deepEqual(plan.acciones.map((a) => a.tipo), ['editar', 'editar', 'editar', 'editar'], 'cambia la fila 2 y se corren las 3 de detras; la 1 no se toca');
+        assert.deepEqual(plan.acciones[0].cambios, { servicio: 'Depilacion', duracion: 30, hora_fin: '11:30' });
+        assert.deepEqual(plan.acciones[1].cambios, { hora_inicio: '11:30', hora_fin: '12:00' });
+        assert.equal(plan.fin, '13:30');
+
+        // Cambiar solo la profesional de un servicio
+        plan = t.planReorganizar(pack, igual.map((e) => (e.filaId === 3 ? { ...e, profesional_id: 2, profesional_nombre: 'Sofia' } : e)));
+        assert.equal(plan.acciones.length, 1);
+        assert.deepEqual(plan.acciones[0].cambios, { profesional_id: 2, profesional_nombre: 'Sofia' });
+
+        // Cambiar el pack entero: 5 servicios por 3 distintos (2 sobran) y uno nuevo al final
+        const otroPack = [
+            { filaId: 1, nombre: 'Gel', duracion: 60, profesional_id: 1, profesional_nombre: 'Juana' },
+            { filaId: 2, nombre: 'Spa', duracion: 45, profesional_id: 2, profesional_nombre: 'Sofia' },
+            { nombre: 'Masaje', duracion: 30, profesional_id: 1, profesional_nombre: 'Juana' }
+        ];
+        plan = t.planReorganizar(pack, otroPack);
+        assert.deepEqual(plan.acciones.map((a) => a.tipo), ['editar', 'editar', 'crear', 'cancelar', 'cancelar', 'cancelar']);
+        assert.deepEqual(plan.quitadas.map((f) => f.id), [3, 4, 5]);
+        assert.equal(plan.acciones[2].datos.hora_inicio, '11:45', 'el nuevo entra justo despues del ultimo que queda');
+
+        // Cambiar el orden: dos filas intercambian sitio sin perder su servicio
+        plan = t.planReorganizar(pack, [igual[1], igual[0], igual[2], igual[3], igual[4]]);
+        assert.deepEqual(plan.acciones.map((a) => a.cambios.hora_inicio), ['10:00', '10:45']);
+
+        // Mover el dia y la hora a la vez
+        plan = t.planReorganizar(pack, igual, { fecha: '2099-06-12', inicio: '09:00' });
+        assert.equal(plan.acciones.length, 5);
+        assert.ok(plan.acciones.every((a) => a.cambios.fecha === '2099-06-12'));
+
+        // --- Aplicarlo contra la base (simulada)
+        const dosProfesionales = [{ id: 1, nombre: 'Juana', fechas_libres: [] }, { id: 2, nombre: 'Sofia', fechas_libres: [] }];
+        let pr = pantalla({ profesionales: dosProfesionales });
+        const hechos = await pr.w.reorganizarTurno(pack, otroPack, { esAdmin: true });
+        const estados = patches(pr.llamadas).filter((l) => l.cuerpo.estado === 'Cancelado').map((l) => l.url.split('&id=eq.')[1]);
+        assert.deepEqual(estados, ['3', '4', '5'], 'las filas que sobran se cancelan');
+        assert.ok(pr.llamadas.some((l) => l.metodo === 'POST' && l.cuerpo.servicio === 'Masaje' && l.cuerpo.estado === 'Reservado'), 'el servicio nuevo se crea con el estado de la cita');
+        assert.equal(hechos.acciones.length, 6);
+        assert.ok(pr.llamadas.some((l) => l.metodo === 'LISTA_ESPERA'), 'lo que queda libre avisa a la lista de espera');
+
+        // Si el servicio nuevo no cabe (otra clienta ya tiene a Juana a esa hora), no se toca nada
+        pr = pantalla({ profesionales: dosProfesionales, reservas: [{ id: 90, fecha: '2099-06-10', hora_inicio: '11:45', hora_fin: '12:15', profesional_id: 1 }] });
+        await assert.rejects(() => pr.w.reorganizarTurno(pack, otroPack, { esAdmin: true }), (e) => e.code === 'HORARIO_OCUPADO');
+        assert.equal(patches(pr.llamadas).length + pr.llamadas.filter((l) => l.metodo === 'POST').length, 0, 'antes de guardar se comprueba que todo cabe');
+
+        // Si la base rechaza uno a media operacion, se deshace lo ya hecho
+        pr = pantalla({
+            profesionales: dosProfesionales,
+            falla: (metodo, url, cuerpo) => (metodo === 'POST' ? 500 : false)
+        });
+        await assert.rejects(() => pr.w.reorganizarTurno(pack, otroPack, { esAdmin: true }));
+        const deshechos = patches(pr.llamadas).filter((l) => l.cuerpo.estado === 'Reservado').map((l) => l.url.split('&id=eq.')[1]);
+        assert.deepEqual(deshechos.sort(), ['3', '4', '5'], 'las filas canceladas vuelven a su estado');
+        assert.ok(patches(pr.llamadas).some((l) => l.url.endsWith('id=eq.1') && l.cuerpo.servicio === 'Manicura'), 'las editadas vuelven a su servicio');
+
+        // Dos filas de la misma profesional que chocan un instante al reacomodarse: se reintenta en otro orden
+        let rechazos = 0;
+        pr = pantalla({
+            profesionales: dosProfesionales,
+            falla: (metodo, url) => (metodo === 'PATCH' && url.endsWith('id=eq.1') && rechazos++ === 0 ? 409 : false)
+        });
+        await pr.w.reorganizarTurno(pack, [igual[1], igual[0], igual[2], igual[3], igual[4]], { esAdmin: true });
+        assert.equal(patches(pr.llamadas).filter((l) => l.url.endsWith('id=eq.1')).length, 2, 'la fila rechazada se reintenta cuando ya hay sitio');
+
+        // Sin servicios no se puede dejar una cita
+        await assert.rejects(() => pr.w.reorganizarTurno(pack, [], {}), (e) => e.code === 'SIN_SERVICIOS');
+
+        // Horas libres para el pack reorganizado: las filas propias no estorban
+        pr = pantalla({ profesionales: dosProfesionales, reservas: [{ id: 1, fecha: '2099-06-10', hora_inicio: '10:00', hora_fin: '11:00' }] });
+        const horas = (await pr.w.horasParaReorganizar(pack, cambiado, '2099-06-10', { esAdmin: true })).horas;
+        assert.ok(horas.includes('10:00'), 'dejarlo donde esta sigue siendo posible aunque su propia fila ocupe ese hueco');
+    }
+
     // --- Que todo este conectado: las dos apps cargan el motor y la pantalla de anadir; el panel y la clienta lo usan
     const leer = (rel) => fs.readFileSync(path.join(__dirname, '..', rel), 'utf8');
     ['index.html', 'admin.html', 'sw.js'].forEach((archivo) => {
         const texto = leer(archivo);
         assert.ok(texto.includes('utils/turnos.js'), `${archivo} carga utils/turnos.js`);
         assert.ok(texto.includes('components/AnadirServicioTurno.js'), `${archivo} carga la pantalla de anadir servicio`);
+        assert.ok(texto.includes('components/CambiarServiciosTurno.js'), `${archivo} carga la pantalla de cambiar servicios`);
     });
     const misReservas = leer('components/MyBookings.js');
-    ['window.turnos.agruparTurnos', 'window.turnos.moverTurno', 'window.turnos.quitarServicio', '<AnadirServicioTurno'].forEach((uso) => {
+    ['window.turnos.agruparTurnos', 'window.turnos.moverTurno', 'window.turnos.quitarServicio', '<AnadirServicioTurno', '<CambiarServiciosTurno'].forEach((uso) => {
         assert.ok(misReservas.includes(uso), `MyBookings usa ${uso}`);
     });
     assert.ok(!/estado === 'Cancelado' \? 'Reservado'/.test(misReservas), 'la clienta ya no reactiva una cita cancelada saltandose el anticipo');
     const panel = leer('admin-app.js');
-    ['window.turnos.moverTurno', 'window.turnos.quitarServicio', 'window.turnos.patchFila', '<AnadirServicioTurno', 'turnoEditando'].forEach((uso) => {
+    ['window.turnos.moverTurno', 'window.turnos.quitarServicio', 'window.turnos.patchFila', '<AnadirServicioTurno', '<CambiarServiciosTurno', 'turnoEditando'].forEach((uso) => {
         assert.ok(panel.includes(uso), `el panel usa ${uso}`);
     });
     assert.ok(/servicio: e\.target\.value, fecha: '', hora_inicio: '', hora_fin: '', duracion_personalizada: ''/.test(panel), 'al cambiar de servicio la duracion la manda el servicio nuevo');

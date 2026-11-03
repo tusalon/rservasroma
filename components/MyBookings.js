@@ -31,6 +31,8 @@ function MyBookings({ cliente, onVolver, onRepetir }) {
 
     // Añadir un servicio a un turno (pantalla compartida: components/AnadirServicioTurno.js)
     const [anadiendoA, setAnadiendoA] = React.useState(null);
+    // Cambiar servicios, profesionales y orden de la cita (components/CambiarServiciosTurno.js)
+    const [cambiandoServiciosA, setCambiandoServiciosA] = React.useState(null);
 
     // Quitar un servicio de un turno
     const [confirmandoQuitar, setConfirmandoQuitar] = React.useState(null);
@@ -276,6 +278,12 @@ function MyBookings({ cliente, onVolver, onRepetir }) {
         } finally {
             setReprogramando(false);
         }
+    };
+
+    // ---- Cambiar servicios o profesionales del turno ----
+    const abrirCambiarServicios = (turno) => {
+        if (!puedeModificar(turno)) { mostrarToast('error', t('Ya no se puede cambiar esta cita desde la app. Escribe al salón.')); return; }
+        setCambiandoServiciosA(turno);
     };
 
     // ---- Añadir un servicio al turno ----
@@ -590,6 +598,14 @@ function MyBookings({ cliente, onVolver, onRepetir }) {
                                         )}
 
                                         {puedeModificarBooking && (
+                                            <button onClick={() => abrirCambiarServicios(booking)}
+                                                className="w-full py-2 rounded-lg font-medium transition flex items-center justify-center gap-2 bg-white hover:bg-pink-50 text-pink-700 border border-pink-300 mb-2">
+                                                <span>🔁</span>
+                                                {t('Cambiar servicios o profesionales')}
+                                            </button>
+                                        )}
+
+                                        {puedeModificarBooking && (
                                             <button onClick={() => abrirAnadir(booking)}
                                                 className="w-full py-2 rounded-lg font-medium transition flex items-center justify-center gap-2 bg-white hover:bg-pink-50 text-pink-700 border border-pink-300 mb-2">
                                                 <span>➕</span>
@@ -712,6 +728,20 @@ function MyBookings({ cliente, onVolver, onRepetir }) {
                         </div>
                     </div>
                 </div>
+            )}
+
+            {/* Modal: cambiar servicios o profesionales */}
+            {cambiandoServiciosA && (
+                <CambiarServiciosTurno
+                    turno={cambiandoServiciosA}
+                    onCerrar={() => setCambiandoServiciosA(null)}
+                    onError={(mensaje) => mostrarToast('error', mensaje)}
+                    onListo={async () => {
+                        mostrarToast('ok', t('Cita modificada.'));
+                        setCambiandoServiciosA(null);
+                        await cargarReservas();
+                    }}
+                />
             )}
 
             {/* Modal: añadir un servicio */}

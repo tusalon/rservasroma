@@ -652,6 +652,7 @@ function AdminApp() {
     // Turno de varios servicios que se esta editando (utils/turnos.js). Con un solo servicio se edita como siempre.
     const [turnoEditando, setTurnoEditando] = React.useState(null);
     const [anadiendoServicioTurno, setAnadiendoServicioTurno] = React.useState(false);
+    const [cambiandoServiciosTurno, setCambiandoServiciosTurno] = React.useState(false);
     const [quitandoServicioTurno, setQuitandoServicioTurno] = React.useState(false);
     const [nuevaReservaData, setNuevaReservaData] = React.useState({
         cliente_nombre: '',
@@ -5333,6 +5334,23 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                     />
                 )}
 
+                {cambiandoServiciosTurno && turnoEditando && (
+                    <CambiarServiciosTurno
+                        turno={turnoEditando}
+                        esAdmin={userRole === 'admin'}
+                        onCerrar={() => setCambiandoServiciosTurno(false)}
+                        onError={(mensaje) => alert(mensaje)}
+                        onListo={async () => {
+                            setCambiandoServiciosTurno(false);
+                            setShowNuevaReservaModal(false);
+                            setReservaEditando(null);
+                            setTurnoEditando(null);
+                            alert(t('Cita modificada.'));
+                            fetchBookings();
+                        }}
+                    />
+                )}
+
                 {anadiendoServicioTurno && turnoEditando && (
                     <AnadirServicioTurno
                         turno={turnoEditando}
@@ -5474,6 +5492,10 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                                                     </li>
                                                 ))}
                                             </ul>
+                                            <button type="button" onClick={() => setCambiandoServiciosTurno(true)} disabled={creandoReservaManual}
+                                                className="mt-3 w-full rounded-full bg-pink-500 text-white font-semibold py-2 text-sm disabled:opacity-50">
+                                                🔁 {t('Cambiar servicios o profesionales')}
+                                            </button>
                                             <button type="button" onClick={() => setAnadiendoServicioTurno(true)} disabled={creandoReservaManual}
                                                 className="mt-2 text-sm font-semibold text-pink-600 underline disabled:opacity-50">
                                                 ➕ {t('Añadir un servicio')}

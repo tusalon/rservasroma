@@ -17,6 +17,7 @@ function MyBookings({ cliente, onVolver, onRepetir }) {
   const [cargandoHorariosReprogramacion, setCargandoHorariosReprogramacion] = React.useState(false);
   const [mensajeReprogramacion, setMensajeReprogramacion] = React.useState("");
   const [anadiendoA, setAnadiendoA] = React.useState(null);
+  const [cambiandoServiciosA, setCambiandoServiciosA] = React.useState(null);
   const [confirmandoQuitar, setConfirmandoQuitar] = React.useState(null);
   const [quitando, setQuitando] = React.useState(false);
   const [confirmandoCancelacion, setConfirmandoCancelacion] = React.useState(null);
@@ -254,6 +255,13 @@ Ahora: ${fN} a las ${hN}`;
       setReprogramando(false);
     }
   };
+  const abrirCambiarServicios = (turno) => {
+    if (!puedeModificar(turno)) {
+      mostrarToast("error", t("Ya no se puede cambiar esta cita desde la app. Escribe al salón."));
+      return;
+    }
+    setCambiandoServiciosA(turno);
+  };
   const abrirAnadir = (turno) => {
     if (!puedeModificar(turno)) {
       mostrarToast("error", t("Ya no se puede cambiar esta cita desde la app. Escribe al salón."));
@@ -417,6 +425,14 @@ Ahora: ${fN} a las ${hN}`;
     ), puedeModificarBooking && /* @__PURE__ */ React.createElement(
       "button",
       {
+        onClick: () => abrirCambiarServicios(booking),
+        className: "w-full py-2 rounded-lg font-medium transition flex items-center justify-center gap-2 bg-white hover:bg-pink-50 text-pink-700 border border-pink-300 mb-2"
+      },
+      /* @__PURE__ */ React.createElement("span", null, "🔁"),
+      t("Cambiar servicios o profesionales")
+    ), puedeModificarBooking && /* @__PURE__ */ React.createElement(
+      "button",
+      {
         onClick: () => abrirAnadir(booking),
         className: "w-full py-2 rounded-lg font-medium transition flex items-center justify-center gap-2 bg-white hover:bg-pink-50 text-pink-700 border border-pink-300 mb-2"
       },
@@ -484,7 +500,19 @@ Ahora: ${fN} a las ${hN}`;
       className: "flex-1 py-2 rounded-full bg-pink-500 text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed"
     },
     reprogramando ? t("Guardando...") : t("Guardar cambio")
-  ))))), anadiendoA && /* @__PURE__ */ React.createElement(
+  ))))), cambiandoServiciosA && /* @__PURE__ */ React.createElement(
+    CambiarServiciosTurno,
+    {
+      turno: cambiandoServiciosA,
+      onCerrar: () => setCambiandoServiciosA(null),
+      onError: (mensaje) => mostrarToast("error", mensaje),
+      onListo: async () => {
+        mostrarToast("ok", t("Cita modificada."));
+        setCambiandoServiciosA(null);
+        await cargarReservas();
+      }
+    }
+  ), anadiendoA && /* @__PURE__ */ React.createElement(
     AnadirServicioTurno,
     {
       turno: anadiendoA,

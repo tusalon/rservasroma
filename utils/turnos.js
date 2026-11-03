@@ -257,8 +257,56 @@
         return (hora) => partes.every((parte) => permite(parte.servicio, aHora(aMin(hora) + parte.offset), dia));
     }
 
+    // ---- Reorganizar el turno: cambiar servicios, profesionales y orden de una vez --------------------
+    // `entradas` es la lista de servicios tal como debe quedar la cita, en orden y una por fila:
+    //   { filaId?, nombre, duracion, profesional_id, profesional_nombre }
+    // Con `filaId` se reutiliza esa fila (cambiar un servicio por otro es editarla); sin `filaId` se crea
+    // una nueva; las filas del turno que ya no aparecen se cancelan. Todas quedan seguidas desde `inicio`.
+    // Devuelve { acciones, filasNuevas, fin, quitadas, sinCambios }: `filasNuevas` sirve para buscar horas
+    // libres con horasLibresParaTurno (las filas nuevas llevan id 'nuevo-N').
+    function planReorganizar(turno, entradas, { fecha, inicio } = {}) {
+        const dia = fecha || turno.fecha;
+        let cursor = aMin(inicio || turno.hora_inicio);
+        const usadas = new Set();
+        const filasNuevas = [];
+        const acciones = [];
+        (entradas || []).forEach((entrada, indice) => {
+            const duracion = parseInt(entrada.duracion, 10) || 60;
+            const datos = {
+                servicio: entrada.nombre,
+                duracion,
+                profesional_id: entrada.profesional_id,
+                profesional_nombre: entrada.profesional_nombre || '',
+                fecha: dia,
+                hora_inicio: aHora(cursor),
+                hora_fin: aHora(cursor + duracion)
+            };
+            cursor += duracion;
+            const original = entrada.filaId != null
+                ? turno.filas.find((candidata) => String(candidata.id) === String(entrada.filaId)) : null;
+            if (original) usadas.add(String(original.id));
+            filasNuevas.push({ ...(original || {}), ...datos, id: original ? original.id : `nuevo-${indice}` });
+            if (!original) { acciones.push({ tipo: 'crear', datos }); return; }
+            // Solo se manda lo que cambia: una fila que no se toca no se vuelve a guardar.
+            const cambios = {};
+            if (normalizar(original.servicio) !== normalizar(datos.servicio)) cambios.servicio = datos.servicio;
+            if (duracionDeFila(original) !== duracion) cambios.duracion = duracion;
+            if (String(original.profesional_id) !== String(datos.profesional_id)) {
+                cambios.profesional_id = datos.profesional_id;
+                cambios.profesional_nombre = datos.profesional_nombre;
+            }
+            if (original.fecha !== dia) cambios.fecha = dia;
+            if (aMin(original.hora_inicio) !== aMin(datos.hora_inicio)) cambios.hora_inicio = datos.hora_inicio;
+            if (aMin(original.hora_inicio) !== aMin(datos.hora_inicio) || finDeFila(original) !== aMin(datos.hora_fin)) cambios.hora_fin = datos.hora_fin;
+            if (Object.keys(cambios).length) acciones.push({ tipo: 'editar', fila: original, cambios });
+        });
+        const quitadas = (turno.filas || []).filter((fila) => !usadas.has(String(fila.id)));
+        quitadas.forEach((fila) => acciones.push({ tipo: 'cancelar', fila }));
+        return { acciones, filasNuevas, fin: aHora(cursor), quitadas, sinCambios: acciones.length === 0 };
+    }
+
     const api = {
-        aMin, aHora, normalizar, duracionDeFila, agruparTurnos, planMoverTurno, planQuitarServicio,
+        aMin, aHora, normalizar, duracionDeFila, agruparTurnos, planMoverTurno, planQuitarServicio, planReorganizar,
         cabeEnProfesional, horasLibresTurno, huecosParaServicio, clasificarSugerencias, aceptanTodosLosServicios
     };
 
@@ -369,7 +417,7 @@
     }
 
     // Horas en que cabe el turno entero en `fecha`. Devuelve { horas, mensaje }.
-    async function horasLibresParaTurno(turno, fecha, { esAdmin = false } = {}) {
+    async function horasLibresParaTurno(turno, fecha, { esAdmin = false, ignorarIdsExtra = [] } = {}) {
         if (!turno || !fecha) return { horas: [], mensaje: '' };
         const hoy = fechaLocal(new Date());
         if (fecha < hoy) return { horas: [], mensaje: '' };
@@ -390,7 +438,8 @@
 
         const servicioDe = (profesionalId) => ordenadas
             .filter((fila) => String(fila.profesional_id) === String(profesionalId)).map((fila) => fila.servicio).join(' + ');
-        const contextosPorProfesional = await cargarContextos(profesionales, [fecha], servicioDe, ordenadas.map((fila) => fila.id), esAdmin);
+        const idsAIgnorar = [...ordenadas.map((fila) => fila.id), ...ignorarIdsExtra];
+        const contextosPorProfesional = await cargarContextos(profesionales, [fecha], servicioDe, idsAIgnorar, esAdmin);
         const contextos = Object.fromEntries(Object.entries(contextosPorProfesional).map(([id, dias]) => [id, dias[fecha]]));
 
         const base = aMin(ordenadas[0].hora_inicio);
@@ -403,7 +452,7 @@
         const horas = horasLibresTurno({
             filas: ordenadas.map((fila) => ({ profesionalId: fila.profesional_id, offset: aMin(fila.hora_inicio) - base, dur: duracionDeFila(fila) })),
             contextos,
-            ignorarIds: ordenadas.map((fila) => fila.id),
+            ignorarIds: idsAIgnorar,
             permiteInicio: (hora) => antelacion(hora) && aceptanServicios(hora)
         });
         return { horas, mensaje: horas.length ? '' : t('No hay horarios disponibles para esa fecha.') };
@@ -550,6 +599,113 @@
         return Array.isArray(filas) ? filas[0] : filas;
     }
 
+    // Horas de inicio en que cabe la cita como quedaria con `entradas` (cada servicio con su profesional,
+    // uno tras otro). Las filas actuales del turno no estorban, ni las que se van a quitar.
+    async function horasParaReorganizar(turno, entradas, fecha, { esAdmin = false } = {}) {
+        if (!entradas || !entradas.length) return { horas: [], mensaje: '' };
+        const { filasNuevas } = planReorganizar(turno, entradas, { fecha });
+        return horasLibresParaTurno({ filas: filasNuevas }, fecha, { esAdmin, ignorarIdsExtra: turno.filas.map((fila) => fila.id) });
+    }
+
+    async function crearFila(turno, datos) {
+        const base = turno.filas[0];
+        const respuesta = await fetch(`${window.SUPABASE_URL}/rest/v1/reservas`, {
+            method: 'POST',
+            headers: cabeceras({ 'Content-Type': 'application/json', Prefer: 'return=representation' }),
+            body: JSON.stringify({
+                negocio_id: negocioId(),
+                cliente_nombre: base.cliente_nombre,
+                cliente_whatsapp: base.cliente_whatsapp,
+                servicio: datos.servicio,
+                duracion: datos.duracion,
+                profesional_id: datos.profesional_id,
+                profesional_nombre: datos.profesional_nombre,
+                fecha: datos.fecha,
+                hora_inicio: datos.hora_inicio,
+                hora_fin: datos.hora_fin,
+                estado: turno.estado
+            })
+        });
+        if (!respuesta.ok) {
+            const texto = await respuesta.text().catch(() => '');
+            if (respuesta.status === 409 || /23P01|23505/.test(texto)) {
+                throw errorCon('HORARIO_OCUPADO', t('Ese horario acaba de ser tomado por otra persona. Elige otro horario.'));
+            }
+            throw errorCon('ERROR_GUARDAR', t('No se pudo guardar el cambio. Intenta de nuevo.'));
+        }
+        const filas = await respuesta.json();
+        return Array.isArray(filas) ? filas[0] : filas;
+    }
+
+    async function borrarFila(id) {
+        const respuesta = await fetch(`${window.SUPABASE_URL}/rest/v1/reservas?negocio_id=eq.${negocioId()}&id=eq.${id}`,
+            { method: 'DELETE', headers: cabeceras() });
+        return respuesta.ok;
+    }
+
+    // Deja la cita como dicen `entradas` (ver planReorganizar), empezando en `hora` el dia `fecha`.
+    // Orden: primero se quitan las filas que sobran (liberan huecos), luego se editan las que quedan y al
+    // final se crean las nuevas. Dos filas de la misma profesional pueden chocar un instante mientras se
+    // reacomodan: si la base rechaza una, se prueba otra y se reintenta. Si algo no se puede, se deshace
+    // todo y la cita queda como estaba. Devuelve el plan aplicado.
+    async function reorganizarTurno(turno, entradas, { fecha, hora, esAdmin = false } = {}) {
+        if (!entradas || !entradas.length) throw errorCon('SIN_SERVICIOS', t('La cita necesita al menos un servicio.'));
+        const dia = fecha || turno.fecha;
+        const inicio = hora || String(turno.hora_inicio).slice(0, 5);
+        const plan = planReorganizar(turno, entradas, { fecha: dia, inicio });
+        if (plan.sinCambios) return plan;
+
+        const { horas } = await horasParaReorganizar(turno, entradas, dia, { esAdmin });
+        if (!horas.includes(inicio)) {
+            throw errorCon('HORARIO_OCUPADO', t('Ese horario no está disponible para la cita con estos cambios. Elige otro horario.'));
+        }
+
+        const cambioDeMomento = plan.acciones.some((accion) => accion.tipo === 'editar'
+            && ('fecha' in accion.cambios || 'hora_inicio' in accion.cambios));
+        const deshacer = [];
+        try {
+            for (const accion of plan.acciones.filter((a) => a.tipo === 'cancelar')) {
+                await patchFila(accion.fila.id, { estado: 'Cancelado' });
+                deshacer.push(() => patchFila(accion.fila.id, { estado: accion.fila.estado }));
+            }
+            let pendientes = plan.acciones.filter((a) => a.tipo === 'editar');
+            let ultimoError = null;
+            while (pendientes.length) {
+                const quedan = [];
+                for (const accion of pendientes) {
+                    try {
+                        await patchFila(accion.fila.id, { ...accion.cambios, ...(cambioDeMomento ? REINICIAR_AVISOS : {}) });
+                        const anterior = {};
+                        Object.keys(accion.cambios).forEach((campo) => { anterior[campo] = accion.fila[campo]; });
+                        deshacer.push(() => patchFila(accion.fila.id, { ...anterior, ...(cambioDeMomento ? REINICIAR_AVISOS : {}) }));
+                    } catch (error) {
+                        if (error.code !== 'HORARIO_OCUPADO') throw error;
+                        ultimoError = error;
+                        quedan.push(accion);
+                    }
+                }
+                if (quedan.length === pendientes.length) throw ultimoError;
+                pendientes = quedan;
+            }
+            for (const accion of plan.acciones.filter((a) => a.tipo === 'crear')) {
+                const creada = await crearFila(turno, accion.datos);
+                deshacer.push(async () => { if (!(await borrarFila(creada.id))) await patchFila(creada.id, { estado: 'Cancelado' }); });
+            }
+        } catch (error) {
+            for (const volver of deshacer.reverse()) {
+                try { await volver(); } catch (e) { console.error('No se pudo deshacer un cambio de la cita', e); }
+            }
+            throw error;
+        }
+        // Lo que quedo libre (filas quitadas o movidas): que la lista de espera se entere.
+        for (const accion of plan.acciones) {
+            if (accion.tipo === 'crear') continue;
+            if (accion.tipo === 'editar' && !('hora_inicio' in accion.cambios || 'fecha' in accion.cambios || 'profesional_id' in accion.cambios)) continue;
+            try { await (window.notificarListaEsperaTurnoLiberado && window.notificarListaEsperaTurnoLiberado(accion.fila)); } catch (e) { /* no frena el cambio */ }
+        }
+        return plan;
+    }
+
     // Aviso al salon de lo que cambio la clienta (o la duena). Mismo canal que reprogramar.
     async function avisarCambio(titulo, lineas, turno) {
         try {
@@ -601,11 +757,14 @@
         'Los datos de la clienta no se cambian desde aquí.': 'The client details cannot be changed from here.',
         'No se pudieron guardar los cambios: {error}': 'The changes could not be saved: {error}',
         'Solo puedes editar tus propias reservas.': 'You can only edit your own bookings.',
-        'Atiende: {nombre}': 'Handled by: {nombre}'
+        'Atiende: {nombre}': 'Handled by: {nombre}',
+        'La cita necesita al menos un servicio.': 'The appointment needs at least one service.',
+        'Ese horario no está disponible para la cita con estos cambios. Elige otro horario.': 'That time is not available for the appointment with these changes. Choose another time.'
     });
 
     raiz.turnos = {
         ...api, horasLibresParaTurno, moverTurno, quitarServicio, sugerirParaServicio, anadirServicio, avisarCambio,
+        horasParaReorganizar, reorganizarTurno,
         patchFila, reiniciarAvisos: REINICIAR_AVISOS
     };
 })(typeof window !== 'undefined' ? window : globalThis);

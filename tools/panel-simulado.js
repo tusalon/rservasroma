@@ -9,6 +9,7 @@ const ID = 'sim-0000-0000-0000-000000000001';
 const hoy = new Date();
 const f = (d) => { const x = new Date(hoy.getTime() + d * 864e5); return x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0'); };
 
+const DIAS_LAB = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
 const TABLAS = {
   negocios: [{
     id: ID, slug: 'salon-prueba', nombre: 'Salón de Prueba', telefono: '53555555', codigo_pais: '53', configurado: true,
@@ -33,7 +34,13 @@ const TABLAS = {
     { id: 103, negocio_id: ID, fecha: f(1), hora_inicio: '09:00', hora_fin: '09:30', duracion: 30, cliente_nombre: 'Yanet Ruiz', cliente_whatsapp: '5353334455', servicio: 'Diseño de cejas', profesional_id: 2, profesional_nombre: 'Dayannis', estado: 'Reservado' },
     { id: 104, negocio_id: ID, fecha: f(-3), hora_inicio: '15:00', hora_fin: '16:00', duracion: 60, cliente_nombre: 'Rosa Díaz', cliente_whatsapp: '5354445566', servicio: 'Manicura en gel', profesional_id: 1, profesional_nombre: 'Ana', estado: 'Completado' }
   ],
-  horarios_profesionales: [1, 2, 3].map((p) => ({ id: p, negocio_id: ID, profesional_id: p, dia_semana: 'lunes', horas: [18, 20, 22, 24, 26, 28], dias: ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'] })),
+  // Lun-Sáb de 9:00 a 18:00 (índices de media hora 18..35), el formato que lee utils/config.js.
+  horarios_profesionales: [1, 2, 3].map((p) => ({
+    id: p, negocio_id: ID, profesional_id: p, horas: Array.from({ length: 18 }, (_, i) => 18 + i), dias: DIAS_LAB,
+    horarios_por_dia: Object.fromEntries(DIAS_LAB.map((d) => [d, Array.from({ length: 18 }, (_, i) => 18 + i)])), descansos_por_dia: {}
+  })),
+  // Quién hace qué: Ana manicura y cejas, Dayannis cejas, Leyanis pedicura y manicura.
+  servicios_profesionales: [[11, 1], [13, 1], [13, 2], [12, 3], [11, 3]].map(([sv, pr], i) => ({ id: i + 1, negocio_id: ID, servicio_id: sv, profesional_id: pr })),
   categorias_servicios: [{ id: 1, slug: 'manicura', nombre: 'Manicura', icono: '💅', activo: true, orden: 1 }, { id: 2, slug: 'pedicura', nombre: 'Pedicura', icono: '🦶', activo: true, orden: 2 }, { id: 3, slug: 'cejas', nombre: 'Cejas', icono: '👁️', activo: true, orden: 3 }],
   dias_cerrados: [{ id: 1, negocio_id: ID, fecha: f(10), motivo: 'Feriado' }]
 };
@@ -54,7 +61,24 @@ async function abrir({ ancho = 390, alto = 844, extra = '' } = {}) {
     peticiones[tabla] = (peticiones[tabla] || 0) + 1;
     const m = route.request().method();
     if (m !== 'GET' && m !== 'HEAD') return route.fulfill({ status: 201, contentType: 'application/json', body: '[]' });
-    const datos = TABLAS[tabla] || [];
+    // Filtros simples de PostgREST (col=eq.x, neq, lt, lte, gt, gte, in.(a,b)): sin ellos las consultas
+    // "citas ya pasadas" devolvían TODO y el panel marcaba como completadas hasta las de mañana.
+    const datos = (TABLAS[tabla] || []).filter((fila) => {
+      for (const [col, val] of u.searchParams) {
+        if (['select', 'order', 'limit', 'offset', 'negocio_id'].includes(col)) continue;
+        const m2 = /^(eq|neq|lt|lte|gt|gte|in)\.(.*)$/.exec(val);
+        if (!m2 || !(col in fila)) continue;
+        const [, op, arg] = m2; const v = String(fila[col]);
+        if (op === 'eq' && v !== arg) return false;
+        if (op === 'neq' && v === arg) return false;
+        if (op === 'lt' && !(v < arg)) return false;
+        if (op === 'lte' && !(v <= arg)) return false;
+        if (op === 'gt' && !(v > arg)) return false;
+        if (op === 'gte' && !(v >= arg)) return false;
+        if (op === 'in' && !arg.replace(/^\(|\)$/g, '').split(',').includes(v)) return false;
+      }
+      return true;
+    });
     const accept = route.request().headers()['accept'] || '';
     const unico = accept.includes('vnd.pgrst.object');
     route.fulfill({ status: 200, contentType: 'application/json', headers: { 'content-range': '0-' + Math.max(0, datos.length - 1) + '/' + datos.length }, body: JSON.stringify(unico ? (datos[0] || null) : datos) });

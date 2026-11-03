@@ -512,6 +512,7 @@ function AdminApp() {
   const [reservaEditando, setReservaEditando] = React.useState(null);
   const [turnoEditando, setTurnoEditando] = React.useState(null);
   const [anadiendoServicioTurno, setAnadiendoServicioTurno] = React.useState(false);
+  const [cambiandoServiciosTurno, setCambiandoServiciosTurno] = React.useState(false);
   const [quitandoServicioTurno, setQuitandoServicioTurno] = React.useState(false);
   const [nuevaReservaData, setNuevaReservaData] = React.useState({
     cliente_nombre: "",
@@ -4177,6 +4178,22 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
         await arreglarAviso(id, () => asignarParesServicioProfesional(pares));
       }
     }
+  ), cambiandoServiciosTurno && turnoEditando && /* @__PURE__ */ React.createElement(
+    CambiarServiciosTurno,
+    {
+      turno: turnoEditando,
+      esAdmin: userRole === "admin",
+      onCerrar: () => setCambiandoServiciosTurno(false),
+      onError: (mensaje) => alert(mensaje),
+      onListo: async () => {
+        setCambiandoServiciosTurno(false);
+        setShowNuevaReservaModal(false);
+        setReservaEditando(null);
+        setTurnoEditando(null);
+        alert(t2("Cita modificada."));
+        fetchBookings();
+      }
+    }
   ), anadiendoServicioTurno && turnoEditando && /* @__PURE__ */ React.createElement(
     AnadirServicioTurno,
     {
@@ -4260,6 +4277,16 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
     },
     t2("Quitar")
   )))), /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      type: "button",
+      onClick: () => setCambiandoServiciosTurno(true),
+      disabled: creandoReservaManual,
+      className: "mt-3 w-full rounded-full bg-pink-500 text-white font-semibold py-2 text-sm disabled:opacity-50"
+    },
+    "🔁 ",
+    t2("Cambiar servicios o profesionales")
+  ), /* @__PURE__ */ React.createElement(
     "button",
     {
       type: "button",
