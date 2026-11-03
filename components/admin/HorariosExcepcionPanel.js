@@ -239,7 +239,7 @@ function HorariosExcepcionPanel({ profesionalId, profesionalNombre, onCerrar }) 
     };
 
     const eliminar = async (excepcion) => {
-        if (!confirm(t('¿Eliminar la excepción del {inicio} al {fin}?', { inicio: excepcion.fecha_inicio, fin: excepcion.fecha_fin }))) return;
+        if (!(await window.confirmar(t('¿Eliminar la excepción del {inicio} al {fin}?', { inicio: excepcion.fecha_inicio, fin: excepcion.fecha_fin })))) return;
         try {
             await window.salonConfig.eliminarExcepcion(excepcion.id);
             await cargarExcepciones();

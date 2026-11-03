@@ -61,11 +61,11 @@ function ProfesionalesPanel() {
         if (consecuencias.futuras > 0) {
             const aviso = t('Este profesional tiene {n} citas futuras sin atender.').replace('{n}', consecuencias.futuras);
             if (profesional && profesional.activo &&
-                confirm(aviso + '\n\n' + t('¿Quieres desactivarlo en vez de eliminarlo? Dejará de aparecer para reservar y sus citas siguen en tu agenda.'))) {
+                (await window.confirmar(aviso + '\n\n' + t('¿Quieres desactivarlo en vez de eliminarlo? Dejará de aparecer para reservar y sus citas siguen en tu agenda.'), { peligro: false }))) {
                 await toggleActivo(id);
                 return;
             }
-            if (!confirm(aviso + '\n\n' + t('Si lo eliminas, esas citas se cancelarán y las clientas NO serán avisadas. ¿Eliminar de todos modos?'))) return;
+            if (!(await window.confirmar(aviso + '\n\n' + t('Si lo eliminas, esas citas se cancelarán y las clientas NO serán avisadas. ¿Eliminar de todos modos?')))) return;
             cancelarFuturas = true;
         }
 
@@ -77,7 +77,7 @@ function ProfesionalesPanel() {
             mensaje += '\n\n' + t('Estos servicios se quedarán sin ningún profesional y las clientas no podrán reservarlos:') +
                 '\n• ' + consecuencias.serviciosSinNadie.join('\n• ');
         }
-        if (!cancelarFuturas && !confirm(mensaje)) return;
+        if (!cancelarFuturas && !(await window.confirmar(mensaje))) return;
 
         try {
             console.log('🗑️ Eliminando profesional:', id);

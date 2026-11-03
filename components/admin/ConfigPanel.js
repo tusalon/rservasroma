@@ -585,7 +585,7 @@ function DiasCerradosGlobalesPanel() {
     };
 
     const handleEliminar = async (id) => {
-        if (!confirm(t('¿Seguro que quieres volver a abrir el local este día?'))) return;
+        if (!(await window.confirmar(t('¿Seguro que quieres volver a abrir el local este día?')))) return;
         
         try {
             const response = await fetch(

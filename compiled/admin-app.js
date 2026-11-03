@@ -2143,7 +2143,7 @@ function AdminApp() {
   };
   const quitarServicioDelTurno = async (item) => {
     if (!turnoEditando || quitandoServicioTurno) return;
-    if (!confirm(`${t2("¿Quitar este servicio del turno?")}
+    if (!await window.confirmar(`${t2("¿Quitar este servicio del turno?")}
 
 ${item.nombre}`)) return;
     setQuitandoServicioTurno(true);
@@ -2604,7 +2604,7 @@ Te esperamos.`;
       alert(t2("No tienes permiso para rechazar clientes."));
       return;
     }
-    if (!confirm(t2("¿Rechazar a {nombre}? No podrá reservar ni volver a registrarse con ese número.", { nombre: cliente.nombre || t2("esta clienta") }))) return;
+    if (!await window.confirmar(t2("¿Rechazar a {nombre}? No podrá reservar ni volver a registrarse con ese número.", { nombre: cliente.nombre || t2("esta clienta") }))) return;
     const bloqueado = await window.bloquearCliente?.({
       nombre: cliente.nombre,
       whatsapp: cliente.whatsapp,
@@ -2626,12 +2626,12 @@ Te esperamos.`;
     }
     const nombre = cliente?.nombre || nuevoBloqueo.nombre;
     const whatsapp = cliente?.whatsapp || normalizarTelefonoCompletoSeguro(nuevoBloqueo.whatsapp, nuevoBloqueo.codigo_pais || codigoPaisNegocio);
-    const motivo = cliente ? prompt("Motivo del bloqueo (opcional):", "") : nuevoBloqueo.motivo;
+    const motivo = cliente ? await window.pedirTexto(t2("Motivo del bloqueo (opcional):"), "") : nuevoBloqueo.motivo;
     if (!whatsapp) {
       alert(t2("Escribe el WhatsApp del cliente."));
       return;
     }
-    if (!confirm(t2("Bloquear al cliente +{telefono}?", { telefono: String(whatsapp).replace(/\D/g, "") }))) return;
+    if (!await window.confirmar(t2("Bloquear al cliente +{telefono}?", { telefono: String(whatsapp).replace(/\D/g, "") }))) return;
     const ok = await window.bloquearCliente?.({ nombre, whatsapp, motivo });
     if (ok) {
       setNuevoBloqueo({ nombre: "", whatsapp: "", codigo_pais: codigoPaisNegocio, motivo: "" });
@@ -2647,7 +2647,7 @@ Te esperamos.`;
       alert(t2("No tienes permiso para desbloquear clientes."));
       return;
     }
-    if (!confirm(t2("Desbloquear al cliente +{telefono}?", { telefono: String(whatsapp).replace(/\D/g, "") }))) return;
+    if (!await window.confirmar(t2("Desbloquear al cliente +{telefono}?", { telefono: String(whatsapp).replace(/\D/g, "") }))) return;
     const ok = await window.desbloquearCliente?.(whatsapp);
     if (ok) {
       await loadClientesBloqueados();
@@ -2661,7 +2661,7 @@ Te esperamos.`;
       alert(t2("No tienes permiso para eliminar clientes."));
       return;
     }
-    if (!confirm(t2("¿Seguro que quieres eliminar este cliente? Perderá el acceso a la app."))) return;
+    if (!await window.confirmar(t2("¿Seguro que quieres eliminar este cliente? Perderá el acceso a la app."))) return;
     try {
       if (typeof window.eliminarCliente !== "function") {
         alert(t2("Error: Función no disponible"));
@@ -2743,7 +2743,7 @@ Te esperamos.`;
     }
     const reservasGrupo = bookingData?._reservasGrupo || [];
     if (bookingData?._grupoVisual && reservasGrupo.length > 1) {
-      if (!confirm(t2('Confirmar que se recibió el pago de {nombre}? Los {n} servicios pasarán a "Reservado".', { nombre: bookingData.cliente_nombre, n: reservasGrupo.length }))) return;
+      if (!await window.confirmar(t2('Confirmar que se recibió el pago de {nombre}? Los {n} servicios pasarán a "Reservado".', { nombre: bookingData.cliente_nombre, n: reservasGrupo.length }))) return;
       try {
         for (const reserva of reservasGrupo) {
           const response = await fetch(
@@ -2806,7 +2806,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
         return;
       }
     }
-    if (!confirm(t2('Confirmar que se recibió el pago de {nombre}? El turno pasará a "Reservado".', { nombre: bookingData.cliente_nombre }))) return;
+    if (!await window.confirmar(t2('Confirmar que se recibió el pago de {nombre}? El turno pasará a "Reservado".', { nombre: bookingData.cliente_nombre }))) return;
     try {
       const response = await fetch(
         `${window.SUPABASE_URL}/rest/v1/reservas?negocio_id=eq.${getNegocioId()}&id=eq.${id}`,
@@ -2870,7 +2870,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
       alert(t2("No tienes permiso para borrar reservas canceladas."));
       return;
     }
-    if (!confirm(t2("Estas segura de querer borrar TODAS las reservas canceladas? Esta accion no se puede deshacer."))) return;
+    if (!await window.confirmar(t2("Estas segura de querer borrar TODAS las reservas canceladas? Esta accion no se puede deshacer."))) return;
     try {
       const negocioId = getNegocioId();
       const response = await fetch(
@@ -2910,7 +2910,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
     const reservasGrupo = bookingData?._reservasGrupo || [];
     const ids = reservasGrupo.length > 0 ? reservasGrupo.map((reserva) => reserva.id) : [bookingData.id];
     const detalle = reservasGrupo.length > 1 ? `la cita completa (${reservasGrupo.length} servicios)` : "esta cita";
-    if (!confirm(t2("Eliminar {detalle} del historial? Esta accion no se puede deshacer.", { detalle }))) return;
+    if (!await window.confirmar(t2("Eliminar {detalle} del historial? Esta accion no se puede deshacer.", { detalle }))) return;
     try {
       const negocioId = getNegocioId();
       const response = await fetch(
@@ -2999,11 +2999,11 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
     const reservasDelCobro = cobroEditando?._reservasGrupo?.length ? cobroEditando._reservasGrupo : [cobroEditando];
     const precioDeLosServicios = reservasDelCobro.reduce((total, reserva) => total + getPrecioServicioAgenda(reserva.servicio), 0);
     if (monedaCobro === monedaServicioDeReserva(cobroEditando) && window.cobroMoneda?.parecePesos(monto, precioDeLosServicios, monedaCobro)) {
-      const enPesos = window.confirm(t2("Escribiste {monto} {moneda}, pero estos servicios cuestan {precio} {moneda}. ¿Cobraste en pesos (CUP)?\n\nAceptar: guardar como pesos (CUP).\nCancelar: volver a revisar el monto.", {
+      const enPesos = await window.confirmar(t2("Escribiste {monto} {moneda}, pero estos servicios cuestan {precio} {moneda}. ¿Cobraste en pesos (CUP)?\n\nAceptar: guardar como pesos (CUP).\nCancelar: volver a revisar el monto.", {
         monto: monto.toLocaleString("es-CU"),
         precio: precioDeLosServicios.toLocaleString("es-CU"),
         moneda: monedaCobro
-      }));
+      }), { si: t2("Aceptar"), no: t2("Cancelar"), peligro: false });
       if (!enPesos) return;
       monedaCobro = "CUP";
     }
@@ -3110,8 +3110,8 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
     const ids = reservas.map((reserva) => reserva.id).filter(Boolean);
     const detalle = reservas.length > 1 ? `la cita completa (${reservas.length} servicios)` : "esta cita";
     if (!ids.length) return;
-    if (!confirm(t2("Marcar {detalle} como AUSENTE?", { detalle }))) return;
-    const enviarMensaje = confirm(t2("Quieres enviarle ahora el mensaje de inasistencia por WhatsApp?"));
+    if (!await window.confirmar(t2("Marcar {detalle} como AUSENTE?", { detalle }))) return;
+    const enviarMensaje = await window.confirmar(t2("Quieres enviarle ahora el mensaje de inasistencia por WhatsApp?"));
     try {
       const negocioId = getNegocioId();
       const response = await fetch(
@@ -3146,7 +3146,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
     }
     const reservasGrupo = bookingData?._reservasGrupo || [];
     if (bookingData?._grupoVisual && reservasGrupo.length > 1) {
-      if (!confirm(t2("¿Cancelar la cita completa de {nombre}? Se cancelarán {n} servicios.", { nombre: bookingData.cliente_nombre, n: reservasGrupo.length }))) return;
+      if (!await window.confirmar(t2("¿Cancelar la cita completa de {nombre}? Se cancelarán {n} servicios.", { nombre: bookingData.cliente_nombre, n: reservasGrupo.length }))) return;
       let todoOk = true;
       for (const reserva of reservasGrupo) {
         const ok2 = await cancelBooking(reserva.id, reserva);
@@ -3165,7 +3165,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
       }
       return;
     }
-    if (!confirm(t2("¿Cancelar reserva de {nombre}?", { nombre: bookingData.cliente_nombre }))) return;
+    if (!await window.confirmar(t2("¿Cancelar reserva de {nombre}?", { nombre: bookingData.cliente_nombre }))) return;
     const ok = await cancelBooking(id, bookingData);
     if (ok) {
       bookingData.cancelado_por = "admin";
@@ -3178,8 +3178,8 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
       alert(t2("Error al cancelar"));
     }
   };
-  const handleLogout = () => {
-    if (confirm(t2("¿Cerrar sesión?"))) {
+  const handleLogout = async () => {
+    if (await window.confirmar(t2("¿Cerrar sesión?"))) {
       localStorage.removeItem("adminAuth");
       localStorage.removeItem("adminUser");
       localStorage.removeItem("adminLoginTime");
@@ -3876,11 +3876,11 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
         await navigator.clipboard.writeText(texto);
         alert(t2("Resumen copiado"));
       } else {
-        window.prompt(t2("Copia el resumen:"), texto);
+        await window.pedirTexto(t2("Copia el resumen:"), texto, { largo: true, si: t2("Listo") });
       }
     } catch (error) {
       console.error("Error copiando resumen:", error);
-      window.prompt(t2("Copia el resumen:"), texto);
+      await window.pedirTexto(t2("Copia el resumen:"), texto, { largo: true, si: t2("Listo") });
     }
   };
   const descargarEstadisticasCSV = () => {
@@ -4637,8 +4637,8 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
     ), /* @__PURE__ */ React.createElement(
       "button",
       {
-        onClick: () => {
-          if (!confirm(t2("¿Poner el contador de fidelidad de esta clienta en 0/{n}?", { n: p.ciclo }))) return;
+        onClick: async () => {
+          if (!await window.confirmar(t2("¿Poner el contador de fidelidad de esta clienta en 0/{n}?", { n: p.ciclo }))) return;
           cambiarAjusteFidelizacion(
             clienteDetalle.cliente.whatsapp,
             window.ajusteParaReiniciar(completadas)

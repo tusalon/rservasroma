@@ -238,7 +238,7 @@ function FichaClientaPanel({ cliente, reservas, serviciosList, profesionalesList
     }
   };
   const eliminarVisita = async (visita) => {
-    if (!confirm(t("¿Eliminar esta visita y sus fotos? No se puede deshacer."))) return;
+    if (!await window.confirmar(t("¿Eliminar esta visita y sus fotos? No se puede deshacer."))) return;
     try {
       const rutas = fotos.filter((f) => String(f.visita_id) === String(visita.id)).map((f) => f.ruta);
       if (rutas.length) await llamar("/storage/v1/object/fichas-fotos", { method: "DELETE", body: JSON.stringify({ prefixes: rutas }) });

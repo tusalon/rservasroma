@@ -236,7 +236,7 @@ function ServiciosPanel() {
     };
 
     const eliminarServicio = async (id) => {
-        if (!confirm(t('¿Eliminar este servicio? También se eliminarán las asignaciones de profesionales.'))) return;
+        if (!(await window.confirmar(t('¿Eliminar este servicio? También se eliminarán las asignaciones de profesionales.')))) return;
         await window.salonServicios.eliminar(id);
         await cargarDatos();
     };
@@ -474,7 +474,7 @@ function CategoriasServiciosManager({ categorias, servicios, onChange }) {
     const eliminar = async (categoria) => {
         const id = categoriaId(categoria);
         const usados = servicios.filter(s => inferirCategoriaServicio(s, categorias) === id);
-        if (!confirm(t('¿Eliminar la categoría "{nombre}"? {aviso}', { nombre: categoriaNombre(categoria), aviso: usados.length ? t('Sus servicios pasarán a Otros.') : '' }))) return;
+        if (!(await window.confirmar(t('¿Eliminar la categoría "{nombre}"? {aviso}', { nombre: categoriaNombre(categoria), aviso: usados.length ? t('Sus servicios pasarán a Otros.') : '' })))) return;
 
         for (const servicio of usados) {
             await window.salonServicios.actualizar(servicio.id, { categoria: 'otros' });

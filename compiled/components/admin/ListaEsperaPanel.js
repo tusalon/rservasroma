@@ -98,7 +98,7 @@ function ListaEsperaPanel({ profesionalId = null, nombreSalon = "", onCambio }) 
     }
   };
   const quitar = async (fila) => {
-    if (!confirm(t("¿Quitar a {nombre} de la lista de espera?", { nombre: fila.cliente_nombre || "" }))) return;
+    if (!await window.confirmar(t("¿Quitar a {nombre} de la lista de espera?", { nombre: fila.cliente_nombre || "" }))) return;
     setTrabajando(fila.id);
     setAviso("");
     try {

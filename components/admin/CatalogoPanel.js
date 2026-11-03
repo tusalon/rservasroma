@@ -200,7 +200,7 @@ function CatalogoPanel() {
     };
 
     const eliminar = async (diseno) => {
-        if (!confirm(t('¿Eliminar "{titulo}" del catálogo?', { titulo: diseno.titulo }))) return;
+        if (!(await window.confirmar(t('¿Eliminar "{titulo}" del catálogo?', { titulo: diseno.titulo })))) return;
         // La foto se pasa para que también se borre de Cloudinary y no quede
         // ocupando cuota para siempre.
         const resultado = await window.catalogoEliminarDiseno(diseno.id, diseno.imagen_url);

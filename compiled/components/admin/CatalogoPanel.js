@@ -173,7 +173,7 @@ function CatalogoPanel() {
     cargar();
   };
   const eliminar = async (diseno) => {
-    if (!confirm(t('¿Eliminar "{titulo}" del catálogo?', { titulo: diseno.titulo }))) return;
+    if (!await window.confirmar(t('¿Eliminar "{titulo}" del catálogo?', { titulo: diseno.titulo }))) return;
     const resultado = await window.catalogoEliminarDiseno(diseno.id, diseno.imagen_url);
     if (!resultado.success) {
       alert(t("No se pudo eliminar."));
