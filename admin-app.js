@@ -5199,34 +5199,34 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
     const disponibilidadDays = getDaysInMonth(disponibilidadFecha);
 
     return (
-        <div className="min-h-screen bg-pink-50 p-3 sm:p-6 pb-28 sm:pb-28">
+        <div className="min-h-screen bg-pink-50 p-3 sm:p-6" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 160px)' }}>
             <div className="max-w-6xl mx-auto space-y-4">
                 
                 {/* HEADER CON LOGO */}
                 <div className="bg-white px-4 py-3 rounded-xl shadow-sm flex flex-row justify-between items-center gap-3 border-l-4 border-pink-500">
-                    <div className="flex items-center gap-3 min-w-0">
+                    <div className="flex items-center gap-2.5 min-w-0">
                         {logoNegocio ? (
                             <img 
                                 src={logoNegocio} 
                                 alt={nombreNegocio} 
-                                className="w-10 h-10 object-contain rounded-xl shadow-lg ring-2 ring-pink-300 bg-white p-1"
+                                className="w-12 h-12 shrink-0 object-contain rounded-xl ring-1 ring-pink-200 bg-white"
                                 onError={(e) => {
                                     e.target.onerror = null;
                                     e.target.style.display = 'none';
                                     const parent = e.target.parentElement;
                                     if (parent) {
-                                        parent.innerHTML = '<div class="w-10 h-10 bg-gradient-to-br from-pink-500 to-pink-600 rounded-xl shadow-lg flex items-center justify-center"><span class="text-2xl text-white"><i class="icon-calendar"></i></span></div>';
+                                        parent.innerHTML = '<div class="w-12 h-12 shrink-0 bg-gradient-to-br from-pink-500 to-pink-600 rounded-xl shadow-lg flex items-center justify-center"><span class="text-2xl text-white"><i class="icon-calendar"></i></span></div>';
                                     }
                                 }}
                             />
                         ) : (
-                            <div className="w-10 h-10 bg-gradient-to-br from-pink-500 to-pink-600 rounded-xl shadow-lg flex items-center justify-center">
+                            <div className="w-12 h-12 shrink-0 bg-gradient-to-br from-pink-500 to-pink-600 rounded-xl shadow-lg flex items-center justify-center">
                                 <span className="text-2xl text-white">✨</span>
                             </div>
                         )}
                         <div className="min-w-0">
-                            <h1 className="text-lg font-bold text-pink-800 leading-tight line-clamp-2 break-words">{nombreNegocio}</h1>
-                            <p className="text-xs text-pink-500">{t('Panel de Administración')}</p>
+                            <h1 className="text-[17px] font-bold text-pink-800 leading-tight line-clamp-2" style={{ overflowWrap: 'normal', wordBreak: 'normal' }}>{nombreNegocio}</h1>
+                            <p className="text-xs text-pink-500 leading-tight">{t('Panel de Administración')}</p>
                         </div>
                     </div>
 
@@ -5240,30 +5240,34 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                                 setConfigVersion(prev => prev + 1);
                                 fetchBookings();
                             }}
-                            className="flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg text-gray-600 hover:bg-gray-100"
+                            className="w-8 h-8 flex items-center justify-center rounded-full text-gray-600 hover:bg-gray-100"
                             title={t('Actualizar')}
+                            aria-label={t('Actualizar')}
                         >
                             <i className="icon-refresh-cw text-lg"></i>
-                            <span className="text-[11px] font-semibold">{t('Actualizar')}</span>
                         </button>
                         <button
                             onClick={handleLogout}
-                            className="flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg text-gray-600 hover:bg-gray-100"
+                            className="w-8 h-8 flex items-center justify-center rounded-full text-gray-600 hover:bg-gray-100"
                             title={t('Cerrar sesión')}
+                            aria-label={t('Cerrar sesión')}
                         >
                             <i className="icon-log-out text-lg"></i>
-                            <span className="text-[11px] font-semibold">{t('Salir')}</span>
                         </button>
-                        <window.LanguageToggle className="ml-1 shrink-0" />
+                        <window.LanguageToggle pequeno className="shrink-0" />
                     </div>
                 </div>
 
                 {fraseDelDia && (
-                    <div className="bg-white border-l-4 border-pink-400 text-gray-700 px-4 py-3 rounded-xl shadow-sm flex items-center justify-between gap-3">
-                        <p className="text-sm italic">{fraseDelDia}</p>
+                    <div className="px-4 py-3 rounded-2xl flex items-start gap-3 border border-pink-200" style={{ background: 'linear-gradient(135deg, #FFE4F1 0%, #FFF1F8 100%)' }}>
+                        <span className="text-2xl leading-none mt-0.5" aria-hidden="true">✨</span>
+                        <div className="min-w-0 flex-1">
+                            <p className="text-[11px] font-bold uppercase tracking-wide text-pink-600">{t('Frase del día')}</p>
+                            <p className="text-[15px] font-semibold leading-snug text-pink-950 mt-0.5">{fraseDelDia}</p>
+                        </div>
                         <button
                             onClick={cerrarFraseDelDia}
-                            className="text-gray-400 hover:text-gray-700 text-xl leading-none flex-shrink-0 w-8 h-8"
+                            className="text-pink-400 hover:text-pink-700 text-xl leading-none flex-shrink-0 w-8 h-8"
                             title={t('Cerrar')}
                             aria-label={t('Cerrar')}
                         >×</button>

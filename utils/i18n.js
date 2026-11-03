@@ -452,6 +452,7 @@
         'Horas para {dia}': 'Hours for {dia}',
         '{n} horarios': '{n} time slots',
         'Quitar todas': 'Remove all',
+        'Frase del día': 'Quote of the day',
         '{nombre} no recibirá citas estos días.': '{nombre} will not receive appointments on these days.',
         'El local completo estará cerrado estos días. Nadie recibirá citas.': 'The whole salon will be closed on these days. Nobody will receive appointments.',
         'Cuándo trabaja cada persona y los días cerrados': 'When each person works and the closed days',
@@ -1275,6 +1276,7 @@
         const className = (props && props.className) || "";
         const idioma = useIdioma();
         const h = React.createElement;
+        const pad = (props && props.pequeno) ? "px-2 py-1 " : "px-2.5 py-1 ";
         // compacto: un solo botón con el idioma actual que cambia al otro. Lo usa
         // la cabecera de la clienta, donde en el móvil no cabe el par ES | EN.
         if (props && props.compacto) {
@@ -1298,7 +1300,7 @@
                 {
                     type: "button",
                     onClick: () => setIdioma('es'),
-                    className: "px-2.5 py-1 rounded-full transition-colors " + (idioma === 'es' ? "bg-gray-900 text-white" : "text-gray-500"),
+                    className: pad + "rounded-full transition-colors " + (idioma === 'es' ? "bg-gray-900 text-white" : "text-gray-500"),
                     "aria-pressed": idioma === 'es'
                 },
                 "ES"
@@ -1308,7 +1310,7 @@
                 {
                     type: "button",
                     onClick: () => setIdioma('en'),
-                    className: "px-2.5 py-1 rounded-full transition-colors " + (idioma === 'en' ? "bg-gray-900 text-white" : "text-gray-500"),
+                    className: pad + "rounded-full transition-colors " + (idioma === 'en' ? "bg-gray-900 text-white" : "text-gray-500"),
                     "aria-pressed": idioma === 'en'
                 },
                 "EN"
