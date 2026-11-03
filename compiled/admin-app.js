@@ -4082,106 +4082,75 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
         }
       }
     }
-  ) : /* @__PURE__ */ React.createElement("div", { className: "w-12 h-12 bg-gradient-to-br from-pink-500 to-pink-600 rounded-xl shadow-lg flex items-center justify-center" }, /* @__PURE__ */ React.createElement("span", { className: "text-2xl text-white" }, "✨")), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h1", { className: "text-xl font-bold text-pink-800" }, nombreNegocio), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-pink-500" }, t2("Panel de Administración")))), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap items-center gap-2 w-full sm:w-auto" }, /* @__PURE__ */ React.createElement(
-    "button",
-    {
-      onClick: abrirModalNuevaReserva,
-      className: `${puedeGestionarReservas ? "flex" : "hidden"} items-center gap-2 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-4 py-2 rounded-lg transition-all transform hover:scale-105 shadow-md border border-green-400 flex-1 sm:flex-none justify-center`
-    },
-    /* @__PURE__ */ React.createElement("span", { className: "text-lg" }, "➕"),
-    /* @__PURE__ */ React.createElement("span", { className: "font-medium" }, t2("Nueva Reserva"))
-  ), /* @__PURE__ */ React.createElement(
-    "button",
-    {
-      onClick: abrirModalDisponibilidad,
-      className: "flex items-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-4 py-2 rounded-lg transition-all transform hover:scale-105 shadow-md border border-blue-400 flex-1 sm:flex-none justify-center",
-      title: t2("Ver disponibilidad mensual")
-    },
-    /* @__PURE__ */ React.createElement("span", { className: "text-lg" }, "📆"),
-    /* @__PURE__ */ React.createElement("span", { className: "font-medium" }, t2("Ver Disponibilidad"))
-  ), /* @__PURE__ */ React.createElement(
-    "button",
-    {
-      onClick: abrirEdicionNegocio,
-      className: `${puedeGestionarAvanzado ? "flex" : "hidden"} items-center gap-2 bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white px-4 py-2 rounded-lg transition-all transform hover:scale-105 shadow-md border border-pink-400 flex-1 sm:flex-none justify-center`
-    },
-    /* @__PURE__ */ React.createElement("span", { className: "text-lg" }, "🏢"),
-    /* @__PURE__ */ React.createElement("span", { className: "font-medium" }, t2("Editar Negocio"))
-  ), /* @__PURE__ */ React.createElement(
+  ) : /* @__PURE__ */ React.createElement("div", { className: "w-12 h-12 bg-gradient-to-br from-pink-500 to-pink-600 rounded-xl shadow-lg flex items-center justify-center" }, /* @__PURE__ */ React.createElement("span", { className: "text-2xl text-white" }, "✨")), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h1", { className: "text-xl font-bold text-pink-800" }, nombreNegocio), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-pink-500" }, t2("Panel de Administración")))), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-1.5 self-start sm:self-auto sm:order-last" }, /* @__PURE__ */ React.createElement(
     "button",
     {
       onClick: () => {
         cargarConfiguracion();
         setConfigVersion((prev) => prev + 1);
+        fetchBookings();
       },
-      className: "p-2 bg-pink-50 rounded-full hover:bg-pink-100 transition-all hover:scale-105 border border-pink-200",
-      title: t2("Recargar datos del negocio")
+      className: "flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg text-gray-600 hover:bg-gray-100",
+      title: t2("Actualizar")
     },
-    /* @__PURE__ */ React.createElement("i", { className: "icon-refresh-cw text-pink-600" })
-  ), /* @__PURE__ */ React.createElement(
-    "button",
-    {
-      onClick: fetchBookings,
-      className: "p-2 bg-pink-50 rounded-full hover:bg-pink-100 transition-all hover:scale-105 border border-pink-200",
-      title: t2("Actualizar reservas")
-    },
-    /* @__PURE__ */ React.createElement("i", { className: "icon-refresh-cw text-pink-600" })
+    /* @__PURE__ */ React.createElement("i", { className: "icon-refresh-cw text-lg" }),
+    /* @__PURE__ */ React.createElement("span", { className: "text-[11px] font-semibold" }, t2("Actualizar"))
   ), /* @__PURE__ */ React.createElement(
     "button",
     {
       onClick: handleLogout,
-      className: "p-2 bg-pink-50 rounded-full hover:bg-pink-100 transition-all hover:scale-105 border border-pink-200",
+      className: "flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg text-gray-600 hover:bg-gray-100",
       title: t2("Cerrar sesión")
     },
-    /* @__PURE__ */ React.createElement("i", { className: "icon-log-out text-pink-600" })
-  ), /* @__PURE__ */ React.createElement(window.LanguageToggle, null)), (() => {
-    return urlCliente ? /* @__PURE__ */ React.createElement("div", { style: {
-      marginTop: "8px",
-      background: "rgba(236,72,153,0.07)",
-      border: "1px solid rgba(236,72,153,0.2)",
-      borderRadius: "10px",
-      padding: "8px 14px",
-      display: "flex",
-      alignItems: "center",
-      gap: "10px",
-      flexWrap: "wrap",
-      width: "100%"
-    } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: "12px", color: "#9d174d", fontWeight: 600, whiteSpace: "nowrap" } }, "🔗 Enlace de clientes:"), /* @__PURE__ */ React.createElement("span", { style: { fontSize: "12px", color: "#be185d", wordBreak: "break-all", flex: 1 } }, urlCliente), /* @__PURE__ */ React.createElement(
-      "button",
-      {
-        type: "button",
-        onClick: () => {
-          navigator.clipboard.writeText(urlCliente).then(() => {
-            const btn = document.getElementById("btn-copiar-url");
-            if (btn) {
-              btn.textContent = "✅";
-              setTimeout(() => {
-                btn.textContent = "📋";
-              }, 1500);
-            }
-          });
-        },
-        id: "btn-copiar-url",
-        style: {
-          background: "#ec4899",
-          color: "white",
-          border: "none",
-          borderRadius: "6px",
-          padding: "4px 10px",
-          fontSize: "14px",
-          cursor: "pointer",
-          flexShrink: 0
-        },
-        title: t2("Copiar enlace")
+    /* @__PURE__ */ React.createElement("i", { className: "icon-log-out text-lg" }),
+    /* @__PURE__ */ React.createElement("span", { className: "text-[11px] font-semibold" }, t2("Salir"))
+  ), /* @__PURE__ */ React.createElement(window.LanguageToggle, { compacto: true })), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap items-center gap-2 w-full sm:w-auto" }, /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      onClick: abrirModalNuevaReserva,
+      className: `${puedeGestionarReservas ? "flex" : "hidden"} items-center justify-center gap-2 bg-pink-500 text-white px-5 py-2.5 rounded-full font-bold shadow-md flex-1 sm:flex-none`
+    },
+    /* @__PURE__ */ React.createElement("i", { className: "icon-plus" }),
+    /* @__PURE__ */ React.createElement("span", null, t2("Nueva Reserva"))
+  ), /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      onClick: abrirModalDisponibilidad,
+      className: "flex items-center justify-center gap-2 bg-white text-gray-800 border border-gray-200 px-4 py-2.5 rounded-full font-semibold flex-1 sm:flex-none",
+      title: t2("Ver disponibilidad mensual")
+    },
+    /* @__PURE__ */ React.createElement("i", { className: "icon-calendar" }),
+    /* @__PURE__ */ React.createElement("span", null, t2("Ver Disponibilidad"))
+  ), /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      onClick: abrirEdicionNegocio,
+      className: `${puedeGestionarAvanzado ? "flex" : "hidden"} items-center justify-center gap-2 bg-white text-gray-800 border border-gray-200 px-4 py-2.5 rounded-full font-semibold flex-1 sm:flex-none`
+    },
+    /* @__PURE__ */ React.createElement("i", { className: "icon-store" }),
+    /* @__PURE__ */ React.createElement("span", null, t2("Editar Negocio"))
+  )), urlCliente && /* @__PURE__ */ React.createElement("div", { className: "w-full flex items-center gap-2 rounded-xl bg-gray-50 px-3 py-2" }, /* @__PURE__ */ React.createElement("span", { className: "text-xs font-semibold text-gray-600 whitespace-nowrap" }, t2("Tu enlace para clientas")), /* @__PURE__ */ React.createElement("span", { className: "text-xs text-gray-800 truncate flex-1 min-w-0" }, urlCliente), /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      type: "button",
+      onClick: async () => {
+        try {
+          await navigator.clipboard.writeText(urlCliente);
+          window.avisar(t2("Enlace copiado"));
+        } catch (e) {
+          await window.pedirTexto(t2("Copia tu enlace:"), urlCliente, { si: t2("Listo") });
+        }
       },
-      "📋"
-    )) : null;
-  })()), fraseDelDia && /* @__PURE__ */ React.createElement("div", { className: "bg-gradient-to-r from-pink-500 to-fuchsia-500 text-white p-4 rounded-xl shadow-sm flex items-center justify-between gap-3" }, /* @__PURE__ */ React.createElement("p", { className: "font-medium italic" }, "💪 ", fraseDelDia), /* @__PURE__ */ React.createElement(
+      className: "shrink-0 px-3 py-1.5 rounded-full bg-white border border-gray-200 text-xs font-bold text-gray-800"
+    },
+    t2("Copiar")
+  ))), fraseDelDia && /* @__PURE__ */ React.createElement("div", { className: "bg-white border-l-4 border-pink-400 text-gray-700 px-4 py-3 rounded-xl shadow-sm flex items-center justify-between gap-3" }, /* @__PURE__ */ React.createElement("p", { className: "text-sm italic" }, fraseDelDia), /* @__PURE__ */ React.createElement(
     "button",
     {
       onClick: cerrarFraseDelDia,
-      className: "text-white/80 hover:text-white text-xl leading-none flex-shrink-0",
-      title: t2("Cerrar")
+      className: "text-gray-400 hover:text-gray-700 text-xl leading-none flex-shrink-0 w-8 h-8",
+      title: t2("Cerrar"),
+      "aria-label": t2("Cerrar")
     },
     "×"
   )), puedeGestionarAvanzado && pendientesConfiguracion.length > 0 ? /* @__PURE__ */ React.createElement(
@@ -4895,7 +4864,16 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
       className: "col-span-2 sm:col-span-1 border border-gray-300 bg-white text-gray-900 rounded-lg px-3 py-2 text-sm font-semibold shadow-sm min-h-[42px]",
       style: { colorScheme: "light" }
     }
-  ), /* @__PURE__ */ React.createElement("button", { onClick: () => setFilterDate(getCurrentLocalDate()), className: `px-3 py-2 rounded-lg text-sm font-bold border ${filterDate === getCurrentLocalDate() ? "bg-pink-500 text-white border-pink-500" : "bg-gray-100 text-gray-800 border-gray-200"}` }, t2("Hoy")), /* @__PURE__ */ React.createElement("button", { onClick: () => setFilterDate(formatDate(addDays(/* @__PURE__ */ new Date(), 1))), className: `px-3 py-2 rounded-lg text-sm font-bold border ${filterDate === formatDate(addDays(/* @__PURE__ */ new Date(), 1)) ? "bg-pink-500 text-white border-pink-500" : "bg-gray-100 text-gray-800 border-gray-200"}` }, t2("Mañana")), /* @__PURE__ */ React.createElement("button", { onClick: () => setFilterDate(""), className: `px-3 py-2 rounded-lg text-sm font-bold border ${!filterDate ? "bg-gray-900 text-white border-gray-900" : "bg-gray-100 text-gray-800 border-gray-200"}` }, t2("Todas")))), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-2 items-center" }, /* @__PURE__ */ React.createElement("button", { onClick: () => setStatusFilter("activas"), className: `px-4 py-2 rounded-lg text-sm font-medium ${statusFilter === "activas" ? "bg-pink-500 text-white" : "bg-gray-100 text-gray-700"}` }, t2("Activas ({n})", { n: activasCount })), /* @__PURE__ */ React.createElement("button", { onClick: () => setStatusFilter("pendientes"), className: `px-4 py-2 rounded-lg text-sm font-medium ${statusFilter === "pendientes" ? "bg-yellow-500 text-white" : "bg-gray-100 text-gray-700"}` }, t2("Pendientes ({n})", { n: pendientesCount })), /* @__PURE__ */ React.createElement("button", { onClick: () => setStatusFilter("completadas"), className: `px-4 py-2 rounded-lg text-sm font-medium ${statusFilter === "completadas" ? "bg-pink-500 text-white" : "bg-gray-100 text-gray-700"}` }, t2("Completadas ({n})", { n: completadasCount })), /* @__PURE__ */ React.createElement("button", { onClick: () => setStatusFilter("ausentes"), className: `px-4 py-2 rounded-lg text-sm font-medium ${statusFilter === "ausentes" ? "bg-slate-600 text-white" : "bg-gray-100 text-gray-700"}` }, t2("Ausentes ({n})", { n: ausentesCount })), /* @__PURE__ */ React.createElement("button", { onClick: () => setStatusFilter("canceladas"), className: `px-4 py-2 rounded-lg text-sm font-medium ${statusFilter === "canceladas" ? "bg-pink-500 text-white" : "bg-gray-100 text-gray-700"}` }, t2("Canceladas ({n})", { n: canceladasCount })), /* @__PURE__ */ React.createElement("button", { onClick: () => setStatusFilter("todas"), className: `px-4 py-2 rounded-lg text-sm font-medium ${statusFilter === "todas" ? "bg-pink-500 text-white" : "bg-gray-100 text-gray-700"}` }, t2("Todas ({n})", { n: bookingsVisiblesPorRol.length })), puedeGestionarAvanzado && statusFilter === "canceladas" && /* @__PURE__ */ React.createElement("button", { onClick: borrarCanceladas, className: "px-4 py-2 bg-red-700 text-white rounded-lg text-sm" }, "🗑️ ", t2("Borrar todas")))), loading ? /* @__PURE__ */ React.createElement("div", { className: "text-center py-12" }, /* @__PURE__ */ React.createElement("div", { className: "animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500 mx-auto" }), /* @__PURE__ */ React.createElement("p", { className: "text-pink-500 mt-4" }, t2("Cargando reservas..."))) : /* @__PURE__ */ React.createElement("div", { className: "space-y-3" }, filteredVisualBookings.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "text-center py-12 bg-white rounded-xl" }, /* @__PURE__ */ React.createElement("p", { className: "text-gray-500" }, t2("No hay reservas para mostrar"))) : filteredVisualBookings.map((b) => /* @__PURE__ */ React.createElement("div", { key: b._grupoVisualId || b.id, className: `bg-white p-4 rounded-xl shadow-sm border-l-4 ${b.estado === "Reservado" ? "border-l-pink-500" : b.estado === "Pendiente" ? "border-l-yellow-500" : b.estado === "Completado" ? "border-l-green-500" : b.estado === "Ausente" ? "border-l-slate-500" : "border-l-red-500"}` }, /* @__PURE__ */ React.createElement("div", { className: "flex justify-between mb-2" }, /* @__PURE__ */ React.createElement("span", { className: "font-semibold" }, window.formatFechaCompleta ? window.formatFechaCompleta(b.fecha) : b.fecha), /* @__PURE__ */ React.createElement("span", { className: "text-sm bg-pink-100 text-pink-700 px-2 py-1 rounded-full" }, formatTo12Hour(b.hora_inicio), b._grupoVisual ? ` - ${formatTo12Hour(b.hora_fin)}` : "")), /* @__PURE__ */ React.createElement("div", { className: "text-sm space-y-1" }, /* @__PURE__ */ React.createElement("p", null, /* @__PURE__ */ React.createElement("span", { className: "font-medium" }, t2("Cliente:")), " ", b.cliente_nombre), /* @__PURE__ */ React.createElement("p", null, /* @__PURE__ */ React.createElement("span", { className: "font-medium" }, "WhatsApp:"), " ", b.cliente_whatsapp), /* @__PURE__ */ React.createElement("p", null, /* @__PURE__ */ React.createElement("span", { className: "font-medium" }, t2("Servicio:")), " ", b.servicio), /* @__PURE__ */ React.createElement("p", null, /* @__PURE__ */ React.createElement("span", { className: "font-medium" }, "👩‍🎨 ", t2("Profesional:")), " ", b.profesional_nombre || b.trabajador_nombre), b.diseno_titulo && /* @__PURE__ */ React.createElement("div", { className: "mt-2 flex items-center gap-2 rounded-lg bg-pink-50 border border-pink-100 p-2" }, b.diseno_imagen_url && /* @__PURE__ */ React.createElement(
+  ), /* @__PURE__ */ React.createElement("button", { onClick: () => setFilterDate(getCurrentLocalDate()), className: `px-3 py-2 rounded-lg text-sm font-bold border ${filterDate === getCurrentLocalDate() ? "bg-pink-500 text-white border-pink-500" : "bg-gray-100 text-gray-800 border-gray-200"}` }, t2("Hoy")), /* @__PURE__ */ React.createElement("button", { onClick: () => setFilterDate(formatDate(addDays(/* @__PURE__ */ new Date(), 1))), className: `px-3 py-2 rounded-lg text-sm font-bold border ${filterDate === formatDate(addDays(/* @__PURE__ */ new Date(), 1)) ? "bg-pink-500 text-white border-pink-500" : "bg-gray-100 text-gray-800 border-gray-200"}` }, t2("Mañana")), /* @__PURE__ */ React.createElement("button", { onClick: () => setFilterDate(""), className: `px-3 py-2 rounded-lg text-sm font-bold border ${!filterDate ? "bg-gray-900 text-white border-gray-900" : "bg-gray-100 text-gray-800 border-gray-200"}` }, t2("Todas")))), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-2 items-center" }, /* @__PURE__ */ React.createElement("button", { onClick: () => setStatusFilter("activas"), className: `px-4 py-2 rounded-lg text-sm font-medium ${statusFilter === "activas" ? "bg-pink-500 text-white" : "bg-gray-100 text-gray-700"}` }, t2("Activas ({n})", { n: activasCount })), /* @__PURE__ */ React.createElement("button", { onClick: () => setStatusFilter("pendientes"), className: `px-4 py-2 rounded-lg text-sm font-medium ${statusFilter === "pendientes" ? "bg-yellow-500 text-white" : "bg-gray-100 text-gray-700"}` }, t2("Pendientes ({n})", { n: pendientesCount })), /* @__PURE__ */ React.createElement("button", { onClick: () => setStatusFilter("completadas"), className: `px-4 py-2 rounded-lg text-sm font-medium ${statusFilter === "completadas" ? "bg-pink-500 text-white" : "bg-gray-100 text-gray-700"}` }, t2("Completadas ({n})", { n: completadasCount })), /* @__PURE__ */ React.createElement("button", { onClick: () => setStatusFilter("ausentes"), className: `px-4 py-2 rounded-lg text-sm font-medium ${statusFilter === "ausentes" ? "bg-slate-600 text-white" : "bg-gray-100 text-gray-700"}` }, t2("Ausentes ({n})", { n: ausentesCount })), /* @__PURE__ */ React.createElement("button", { onClick: () => setStatusFilter("canceladas"), className: `px-4 py-2 rounded-lg text-sm font-medium ${statusFilter === "canceladas" ? "bg-pink-500 text-white" : "bg-gray-100 text-gray-700"}` }, t2("Canceladas ({n})", { n: canceladasCount })), /* @__PURE__ */ React.createElement("button", { onClick: () => setStatusFilter("todas"), className: `px-4 py-2 rounded-lg text-sm font-medium ${statusFilter === "todas" ? "bg-pink-500 text-white" : "bg-gray-100 text-gray-700"}` }, t2("Todas ({n})", { n: bookingsVisiblesPorRol.length })), puedeGestionarAvanzado && statusFilter === "canceladas" && /* @__PURE__ */ React.createElement("button", { onClick: borrarCanceladas, className: "px-4 py-2 bg-red-700 text-white rounded-lg text-sm" }, "🗑️ ", t2("Borrar todas")))), loading ? /* @__PURE__ */ React.createElement("div", { className: "text-center py-12" }, /* @__PURE__ */ React.createElement("div", { className: "animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500 mx-auto" }), /* @__PURE__ */ React.createElement("p", { className: "text-pink-500 mt-4" }, t2("Cargando reservas..."))) : /* @__PURE__ */ React.createElement("div", { className: "space-y-3" }, filteredVisualBookings.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "text-center py-12 bg-white rounded-xl" }, /* @__PURE__ */ React.createElement("p", { className: "text-gray-500" }, t2("No hay reservas para mostrar"))) : filteredVisualBookings.map((b) => /* @__PURE__ */ React.createElement("div", { key: b._grupoVisualId || b.id, className: `bg-white p-4 rounded-xl shadow-sm border-l-4 ${b.estado === "Reservado" ? "border-l-pink-500" : b.estado === "Pendiente" ? "border-l-yellow-500" : b.estado === "Completado" ? "border-l-green-500" : b.estado === "Ausente" ? "border-l-slate-500" : "border-l-red-500"}` }, /* @__PURE__ */ React.createElement("div", { className: "flex justify-between mb-2" }, /* @__PURE__ */ React.createElement("span", { className: "font-semibold" }, window.formatFechaCompleta ? window.formatFechaCompleta(b.fecha) : b.fecha), /* @__PURE__ */ React.createElement("span", { className: "text-sm bg-pink-100 text-pink-700 px-2 py-1 rounded-full" }, formatTo12Hour(b.hora_inicio), b._grupoVisual ? ` - ${formatTo12Hour(b.hora_fin)}` : "")), /* @__PURE__ */ React.createElement("div", { className: "text-sm space-y-1" }, /* @__PURE__ */ React.createElement("p", null, /* @__PURE__ */ React.createElement("span", { className: "font-medium" }, t2("Cliente:")), " ", b.cliente_nombre), /* @__PURE__ */ React.createElement("p", null, /* @__PURE__ */ React.createElement("span", { className: "font-medium" }, "WhatsApp:"), " ", /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      type: "button",
+      className: "text-green-700 font-semibold underline underline-offset-2",
+      onClick: () => window.enviarWhatsApp?.(b.cliente_whatsapp, t2("Hola {nombre}", { nombre: String(b.cliente_nombre || "").split(" ")[0] }))
+    },
+    "+",
+    String(b.cliente_whatsapp || "").replace(/\D/g, "")
+  )), /* @__PURE__ */ React.createElement("p", null, /* @__PURE__ */ React.createElement("span", { className: "font-medium" }, t2("Servicio:")), " ", b.servicio), /* @__PURE__ */ React.createElement("p", null, /* @__PURE__ */ React.createElement("span", { className: "font-medium" }, "👩‍🎨 ", t2("Profesional:")), " ", b.profesional_nombre || b.trabajador_nombre), b.diseno_titulo && /* @__PURE__ */ React.createElement("div", { className: "mt-2 flex items-center gap-2 rounded-lg bg-pink-50 border border-pink-100 p-2" }, b.diseno_imagen_url && /* @__PURE__ */ React.createElement(
     "img",
     {
       src: window.urlImagenCloudinary ? window.urlImagenCloudinary(b.diseno_imagen_url, 120) : b.diseno_imagen_url,
@@ -4903,7 +4881,31 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
       loading: "lazy",
       className: "w-12 h-12 rounded-lg object-cover shrink-0"
     }
-  ), /* @__PURE__ */ React.createElement("div", { className: "min-w-0" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold text-pink-700" }, t2("Elegido del catálogo")), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-700 truncate" }, b.diseno_titulo))), b._grupoVisual && /* @__PURE__ */ React.createElement("div", { className: "mt-2 rounded-lg bg-pink-50 border border-pink-100 p-2 space-y-1" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold text-pink-700" }, t2("Cita agrupada: {n} servicios consecutivos", { n: b._reservasGrupo.length })), b._reservasGrupo.map((item) => /* @__PURE__ */ React.createElement("p", { key: item.id, className: "text-xs text-gray-700" }, formatTo12Hour(item.hora_inicio), " - ", formatTo12Hour(item.hora_fin || calculateEndTime(item.hora_inicio, item.duracion || 60)), " - ", item.servicio, " - ", item.profesional_nombre || item.trabajador_nombre || t2("Sin profesional")))), Number(b.monto_cobrado || 0) > 0 && /* @__PURE__ */ React.createElement("div", { className: "mt-2 rounded-lg bg-green-50 border border-green-100 p-2" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold text-green-700" }, t2("Cobro real: {monto}", { monto: Number(b.monto_cobrado).toLocaleString(idioma === "en" ? "en-US" : "es-CU") + " " + monedaDelCobro(b) })), b.notas_cobro && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-green-700 mt-1" }, b.notas_cobro))), /* @__PURE__ */ React.createElement("div", { className: "flex justify-between items-center mt-3 pt-2 border-t" }, /* @__PURE__ */ React.createElement("span", { className: "flex items-center gap-2" }, /* @__PURE__ */ React.createElement("span", { className: `px-2 py-1 rounded-full text-xs font-semibold ${b.estado === "Reservado" ? "bg-pink-100 text-pink-700" : b.estado === "Pendiente" ? "bg-yellow-100 text-yellow-700" : b.estado === "Completado" ? "bg-green-100 text-green-700" : b.estado === "Ausente" ? "bg-slate-100 text-slate-700" : "bg-red-100 text-red-700"}` }, t2(b.estado)), Number(b.valoracion) > 0 && /* @__PURE__ */ React.createElement("span", { className: "px-2 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700 whitespace-nowrap", title: t2("Valoracion de la clienta") }, "⭐ ", Number(b.valoracion)), Number(b.valoracion_servicio) > 0 && /* @__PURE__ */ React.createElement("span", { className: "px-2 py-1 rounded-full text-xs font-semibold bg-pink-100 text-pink-700 whitespace-nowrap", title: t2("Valoracion del servicio") }, "✨ ", Number(b.valoracion_servicio))), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap justify-end gap-2" }, puedeEditarReserva(b) && (b.estado === "Pendiente" || b.estado === "Reservado") && /* @__PURE__ */ React.createElement("button", { onClick: () => abrirModalReprogramar(b), className: "px-3 py-1 bg-blue-500 text-white rounded-lg text-sm hover:bg-blue-600" }, t2("Reprogramar")), puedeGestionarReservas && b.estado === "Pendiente" && /* @__PURE__ */ React.createElement("button", { onClick: () => confirmarPago(b.id, b), className: "px-3 py-1 bg-green-500 text-white rounded-lg text-sm hover:bg-green-600" }, t2("Confirmar pago")), puedeGestionarReservas && b.estado === "Reservado" && /* @__PURE__ */ React.createElement("button", { onClick: () => handleCancel(b.id, b), className: "px-3 py-1 bg-red-500 text-white rounded-lg text-sm hover:bg-red-600" }, "❌ ", t2("Cancelar")), puedeGestionarReservas && b.estado === "Completado" && /* @__PURE__ */ React.createElement("button", { onClick: () => abrirModalCobro(b), className: "px-3 py-1 bg-emerald-500 text-white rounded-lg text-sm hover:bg-emerald-600" }, Number(b.monto_cobrado || 0) > 0 ? t2("Editar cobro") : t2("Cobro real")), puedeGestionarReservas && turnoYaPaso(b) && b.estado !== "Cancelado" && b.estado !== "Ausente" && /* @__PURE__ */ React.createElement("button", { onClick: () => marcarAusencia(b), className: "px-3 py-1 bg-slate-600 text-white rounded-lg text-sm hover:bg-slate-700" }, t2("Marcar ausencia")), puedeGestionarAvanzado && (b.estado === "Cancelado" || b.estado === "Completado" || b.estado === "Ausente") && /* @__PURE__ */ React.createElement("button", { onClick: () => eliminarReservaHistorial(b), className: "px-3 py-1 bg-gray-700 text-white rounded-lg text-sm hover:bg-gray-800" }, t2("Eliminar"))))))))));
+  ), /* @__PURE__ */ React.createElement("div", { className: "min-w-0" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold text-pink-700" }, t2("Elegido del catálogo")), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-700 truncate" }, b.diseno_titulo))), b._grupoVisual && /* @__PURE__ */ React.createElement("div", { className: "mt-2 rounded-lg bg-pink-50 border border-pink-100 p-2 space-y-1" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold text-pink-700" }, t2("Cita agrupada: {n} servicios consecutivos", { n: b._reservasGrupo.length })), b._reservasGrupo.map((item) => /* @__PURE__ */ React.createElement("p", { key: item.id, className: "text-xs text-gray-700" }, formatTo12Hour(item.hora_inicio), " - ", formatTo12Hour(item.hora_fin || calculateEndTime(item.hora_inicio, item.duracion || 60)), " - ", item.servicio, " - ", item.profesional_nombre || item.trabajador_nombre || t2("Sin profesional")))), Number(b.monto_cobrado || 0) > 0 && /* @__PURE__ */ React.createElement("div", { className: "mt-2 rounded-lg bg-green-50 border border-green-100 p-2" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold text-green-700" }, t2("Cobro real: {monto}", { monto: Number(b.monto_cobrado).toLocaleString(idioma === "en" ? "en-US" : "es-CU") + " " + monedaDelCobro(b) })), b.notas_cobro && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-green-700 mt-1" }, b.notas_cobro))), /* @__PURE__ */ React.createElement("div", { className: "flex justify-between items-center mt-3 pt-2 border-t" }, /* @__PURE__ */ React.createElement("span", { className: "flex items-center gap-2" }, /* @__PURE__ */ React.createElement("span", { className: `px-2 py-1 rounded-full text-xs font-semibold ${b.estado === "Reservado" ? "bg-pink-100 text-pink-700" : b.estado === "Pendiente" ? "bg-yellow-100 text-yellow-700" : b.estado === "Completado" ? "bg-green-100 text-green-700" : b.estado === "Ausente" ? "bg-slate-100 text-slate-700" : "bg-red-100 text-red-700"}` }, t2(b.estado)), Number(b.valoracion) > 0 && /* @__PURE__ */ React.createElement("span", { className: "px-2 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700 whitespace-nowrap", title: t2("Valoracion de la clienta") }, "⭐ ", Number(b.valoracion)), Number(b.valoracion_servicio) > 0 && /* @__PURE__ */ React.createElement("span", { className: "px-2 py-1 rounded-full text-xs font-semibold bg-pink-100 text-pink-700 whitespace-nowrap", title: t2("Valoracion del servicio") }, "✨ ", Number(b.valoracion_servicio))), (() => {
+    const acciones = [
+      puedeGestionarReservas && b.estado === "Pendiente" && { texto: t2("Confirmar pago"), hacer: () => confirmarPago(b.id, b) },
+      puedeGestionarReservas && b.estado === "Completado" && { texto: Number(b.monto_cobrado || 0) > 0 ? t2("Editar cobro") : t2("Cobro real"), hacer: () => abrirModalCobro(b) },
+      puedeEditarReserva(b) && (b.estado === "Pendiente" || b.estado === "Reservado") && { texto: t2("Reprogramar"), hacer: () => abrirModalReprogramar(b) },
+      puedeGestionarReservas && turnoYaPaso(b) && b.estado !== "Cancelado" && b.estado !== "Ausente" && { texto: t2("Marcar ausencia"), hacer: () => marcarAusencia(b) },
+      puedeGestionarReservas && b.estado === "Reservado" && { texto: t2("Cancelar"), hacer: () => handleCancel(b.id, b), peligro: true },
+      puedeGestionarAvanzado && (b.estado === "Cancelado" || b.estado === "Completado" || b.estado === "Ausente") && { texto: t2("Eliminar"), hacer: () => eliminarReservaHistorial(b), peligro: true }
+    ].filter(Boolean);
+    if (acciones.length === 0) return null;
+    const principal = acciones.find((a) => !a.peligro);
+    const resto = acciones.filter((a) => a !== principal);
+    return /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-end gap-2" }, principal && /* @__PURE__ */ React.createElement("button", { onClick: principal.hacer, className: "px-4 py-1.5 bg-pink-500 text-white rounded-full text-sm font-bold" }, principal.texto), resto.length > 0 && /* @__PURE__ */ React.createElement("details", { className: "relative" }, /* @__PURE__ */ React.createElement("summary", { className: "list-none cursor-pointer px-3 py-1.5 rounded-full border border-gray-200 bg-white text-sm font-semibold text-gray-700 select-none" }, t2("Más"), " ▾"), /* @__PURE__ */ React.createElement("div", { className: "absolute right-0 bottom-full mb-2 z-20 min-w-[11rem] bg-white rounded-xl shadow-xl border border-gray-100 py-1" }, resto.map((a) => /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        key: a.texto,
+        onClick: (e) => {
+          e.currentTarget.closest("details").open = false;
+          a.hacer();
+        },
+        className: `block w-full text-left px-4 py-2.5 text-sm font-semibold hover:bg-gray-50 ${a.peligro ? "text-red-600" : "text-gray-800"}`
+      },
+      a.texto
+    )))));
+  })())))))));
 }
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(/* @__PURE__ */ React.createElement(AdminApp, null));

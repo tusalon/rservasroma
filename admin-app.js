@@ -5154,117 +5154,91 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                         </div>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-                        {/* BOTÓN NUEVA RESERVA */}
-                        <button
-                            onClick={abrirModalNuevaReserva}
-                            className={`${puedeGestionarReservas ? 'flex' : 'hidden'} items-center gap-2 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-4 py-2 rounded-lg transition-all transform hover:scale-105 shadow-md border border-green-400 flex-1 sm:flex-none justify-center`}
-                        >
-                            <span className="text-lg">➕</span>
-                            <span className="font-medium">{t('Nueva Reserva')}</span>
-                        </button>
-
-                        {/* BOTÓN CALENDARIO DE DISPONIBILIDAD */}
-                        <button
-                            onClick={abrirModalDisponibilidad}
-                            className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-4 py-2 rounded-lg transition-all transform hover:scale-105 shadow-md border border-blue-400 flex-1 sm:flex-none justify-center"
-                            title={t('Ver disponibilidad mensual')}
-                        >
-                            <span className="text-lg">📆</span>
-                            <span className="font-medium">{t('Ver Disponibilidad')}</span>
-                        </button>
-
-                        <button
-                            onClick={abrirEdicionNegocio}
-                            className={`${puedeGestionarAvanzado ? 'flex' : 'hidden'} items-center gap-2 bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white px-4 py-2 rounded-lg transition-all transform hover:scale-105 shadow-md border border-pink-400 flex-1 sm:flex-none justify-center`}
-                        >
-                            <span className="text-lg">🏢</span>
-                            <span className="font-medium">{t('Editar Negocio')}</span>
-                        </button>
-
+                    {/* Arriba a la derecha solo lo de la sesión: actualizar (datos del
+                        negocio y citas a la vez), salir e idioma, con su nombre. */}
+                    <div className="flex items-center gap-1.5 self-start sm:self-auto sm:order-last">
                         <button
                             onClick={() => {
                                 cargarConfiguracion();
                                 setConfigVersion(prev => prev + 1);
+                                fetchBookings();
                             }}
-                            className="p-2 bg-pink-50 rounded-full hover:bg-pink-100 transition-all hover:scale-105 border border-pink-200"
-                            title={t('Recargar datos del negocio')}
+                            className="flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg text-gray-600 hover:bg-gray-100"
+                            title={t('Actualizar')}
                         >
-                            <i className="icon-refresh-cw text-pink-600"></i>
+                            <i className="icon-refresh-cw text-lg"></i>
+                            <span className="text-[11px] font-semibold">{t('Actualizar')}</span>
                         </button>
-
-                        <button
-                            onClick={fetchBookings}
-                            className="p-2 bg-pink-50 rounded-full hover:bg-pink-100 transition-all hover:scale-105 border border-pink-200"
-                            title={t('Actualizar reservas')}
-                        >
-                            <i className="icon-refresh-cw text-pink-600"></i>
-                        </button>
-
                         <button
                             onClick={handleLogout}
-                            className="p-2 bg-pink-50 rounded-full hover:bg-pink-100 transition-all hover:scale-105 border border-pink-200"
+                            className="flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg text-gray-600 hover:bg-gray-100"
                             title={t('Cerrar sesión')}
                         >
-                            <i className="icon-log-out text-pink-600"></i>
+                            <i className="icon-log-out text-lg"></i>
+                            <span className="text-[11px] font-semibold">{t('Salir')}</span>
                         </button>
-
-                        <window.LanguageToggle />
+                        <window.LanguageToggle compacto />
                     </div>
 
-                    {(() => {
-                        return urlCliente ? (
-                            <div style={{
-                                marginTop: '8px',
-                                background: 'rgba(236,72,153,0.07)',
-                                border: '1px solid rgba(236,72,153,0.2)',
-                                borderRadius: '10px',
-                                padding: '8px 14px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '10px',
-                                flexWrap: 'wrap',
-                                width: '100%'
-                            }}>
-                                <span style={{ fontSize: '12px', color: '#9d174d', fontWeight: 600, whiteSpace: 'nowrap' }}>
-                                    🔗 Enlace de clientes:
-                                </span>
-                                <span style={{ fontSize: '12px', color: '#be185d', wordBreak: 'break-all', flex: 1 }}>
-                                    {urlCliente}
-                                </span>
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        navigator.clipboard.writeText(urlCliente).then(() => {
-                                            const btn = document.getElementById('btn-copiar-url');
-                                            if (btn) { btn.textContent = '✅'; setTimeout(() => { btn.textContent = '📋'; }, 1500); }
-                                        });
-                                    }}
-                                    id="btn-copiar-url"
-                                    style={{
-                                        background: '#ec4899',
-                                        color: 'white',
-                                        border: 'none',
-                                        borderRadius: '6px',
-                                        padding: '4px 10px',
-                                        fontSize: '14px',
-                                        cursor: 'pointer',
-                                        flexShrink: 0
-                                    }}
-                                    title={t('Copiar enlace')}
-                                >📋</button>
-                            </div>
-                        ) : null;
-                    })()}
+                    {/* Un solo botón fuerte (nueva cita); lo demás en blanco. Antes eran
+                        tres botones de colores distintos con emoji y nada destacaba. */}
+                    <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                        <button
+                            onClick={abrirModalNuevaReserva}
+                            className={`${puedeGestionarReservas ? 'flex' : 'hidden'} items-center justify-center gap-2 bg-pink-500 text-white px-5 py-2.5 rounded-full font-bold shadow-md flex-1 sm:flex-none`}
+                        >
+                            <i className="icon-plus"></i>
+                            <span>{t('Nueva Reserva')}</span>
+                        </button>
+                        <button
+                            onClick={abrirModalDisponibilidad}
+                            className="flex items-center justify-center gap-2 bg-white text-gray-800 border border-gray-200 px-4 py-2.5 rounded-full font-semibold flex-1 sm:flex-none"
+                            title={t('Ver disponibilidad mensual')}
+                        >
+                            <i className="icon-calendar"></i>
+                            <span>{t('Ver Disponibilidad')}</span>
+                        </button>
+                        <button
+                            onClick={abrirEdicionNegocio}
+                            className={`${puedeGestionarAvanzado ? 'flex' : 'hidden'} items-center justify-center gap-2 bg-white text-gray-800 border border-gray-200 px-4 py-2.5 rounded-full font-semibold flex-1 sm:flex-none`}
+                        >
+                            <i className="icon-store"></i>
+                            <span>{t('Editar Negocio')}</span>
+                        </button>
+                    </div>
+
+                    {urlCliente && (
+                        <div className="w-full flex items-center gap-2 rounded-xl bg-gray-50 px-3 py-2">
+                            <span className="text-xs font-semibold text-gray-600 whitespace-nowrap">{t('Tu enlace para clientas')}</span>
+                            <span className="text-xs text-gray-800 truncate flex-1 min-w-0">{urlCliente}</span>
+                            <button
+                                type="button"
+                                onClick={async () => {
+                                    // Sin el aviso, si el teléfono no dejaba copiar no pasaba nada
+                                    // y la dueña creía que sí se había copiado.
+                                    try {
+                                        await navigator.clipboard.writeText(urlCliente);
+                                        window.avisar(t('Enlace copiado'));
+                                    } catch (e) {
+                                        await window.pedirTexto(t('Copia tu enlace:'), urlCliente, { si: t('Listo') });
+                                    }
+                                }}
+                                className="shrink-0 px-3 py-1.5 rounded-full bg-white border border-gray-200 text-xs font-bold text-gray-800"
+                            >
+                                {t('Copiar')}
+                            </button>
+                        </div>
+                    )}
                 </div>
 
                 {fraseDelDia && (
-                    <div className="bg-gradient-to-r from-pink-500 to-fuchsia-500 text-white p-4 rounded-xl shadow-sm flex items-center justify-between gap-3">
-                        <p className="font-medium italic">💪 {fraseDelDia}</p>
+                    <div className="bg-white border-l-4 border-pink-400 text-gray-700 px-4 py-3 rounded-xl shadow-sm flex items-center justify-between gap-3">
+                        <p className="text-sm italic">{fraseDelDia}</p>
                         <button
                             onClick={cerrarFraseDelDia}
-                            className="text-white/80 hover:text-white text-xl leading-none flex-shrink-0"
+                            className="text-gray-400 hover:text-gray-700 text-xl leading-none flex-shrink-0 w-8 h-8"
                             title={t('Cerrar')}
+                            aria-label={t('Cerrar')}
                         >×</button>
                     </div>
                 )}
@@ -7116,7 +7090,12 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                                             </div>
                                             <div className="text-sm space-y-1">
                                                 <p><span className="font-medium">{t('Cliente:')}</span> {b.cliente_nombre}</p>
-                                                <p><span className="font-medium">WhatsApp:</span> {b.cliente_whatsapp}</p>
+                                                <p><span className="font-medium">WhatsApp:</span>{' '}
+                                                    <button type="button" className="text-green-700 font-semibold underline underline-offset-2"
+                                                        onClick={() => window.enviarWhatsApp?.(b.cliente_whatsapp, t('Hola {nombre}', { nombre: String(b.cliente_nombre || '').split(' ')[0] }))}>
+                                                        +{String(b.cliente_whatsapp || '').replace(/\D/g, '')}
+                                                    </button>
+                                                </p>
                                                 <p><span className="font-medium">{t('Servicio:')}</span> {b.servicio}</p>
                                                 <p><span className="font-medium">👩‍🎨 {t('Profesional:')}</span> {b.profesional_nombre || b.trabajador_nombre}</p>
                                                 {b.diseno_titulo && (
@@ -7165,28 +7144,42 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                                                         </span>
                                                     )}
                                                 </span>
-                                                <div className="flex flex-wrap justify-end gap-2">
-                                                    {puedeEditarReserva(b) && (b.estado === 'Pendiente' || b.estado === 'Reservado') && (
-                                                        <button onClick={() => abrirModalReprogramar(b)} className="px-3 py-1 bg-blue-500 text-white rounded-lg text-sm hover:bg-blue-600">{t('Reprogramar')}</button>
-                                                    )}
-                                                    {puedeGestionarReservas && b.estado === 'Pendiente' && (
-                                                        <button onClick={() => confirmarPago(b.id, b)} className="px-3 py-1 bg-green-500 text-white rounded-lg text-sm hover:bg-green-600">{t('Confirmar pago')}</button>
-                                                    )}
-                                                    {puedeGestionarReservas && b.estado === 'Reservado' && (
-                                                        <button onClick={() => handleCancel(b.id, b)} className="px-3 py-1 bg-red-500 text-white rounded-lg text-sm hover:bg-red-600">❌ {t('Cancelar')}</button>
-                                                    )}
-                                                    {puedeGestionarReservas && b.estado === 'Completado' && (
-                                                        <button onClick={() => abrirModalCobro(b)} className="px-3 py-1 bg-emerald-500 text-white rounded-lg text-sm hover:bg-emerald-600">
-                                                            {Number(b.monto_cobrado || 0) > 0 ? t('Editar cobro') : t('Cobro real')}
-                                                        </button>
-                                                    )}
-                                                    {puedeGestionarReservas && turnoYaPaso(b) && b.estado !== 'Cancelado' && b.estado !== 'Ausente' && (
-                                                        <button onClick={() => marcarAusencia(b)} className="px-3 py-1 bg-slate-600 text-white rounded-lg text-sm hover:bg-slate-700">{t('Marcar ausencia')}</button>
-                                                    )}
-                                                    {puedeGestionarAvanzado && (b.estado === 'Cancelado' || b.estado === 'Completado' || b.estado === 'Ausente') && (
-                                                        <button onClick={() => eliminarReservaHistorial(b)} className="px-3 py-1 bg-gray-700 text-white rounded-lg text-sm hover:bg-gray-800">{t('Eliminar')}</button>
-                                                    )}
-                                                </div>
+                                                {/* Una acción principal según el estado y el resto en "Más":
+                                                    antes eran hasta seis botones de seis colores. Cancelar
+                                                    y eliminar van en rojo dentro de "Más". */}
+                                                {(() => {
+                                                    const acciones = [
+                                                        puedeGestionarReservas && b.estado === 'Pendiente' && { texto: t('Confirmar pago'), hacer: () => confirmarPago(b.id, b) },
+                                                        puedeGestionarReservas && b.estado === 'Completado' && { texto: Number(b.monto_cobrado || 0) > 0 ? t('Editar cobro') : t('Cobro real'), hacer: () => abrirModalCobro(b) },
+                                                        puedeEditarReserva(b) && (b.estado === 'Pendiente' || b.estado === 'Reservado') && { texto: t('Reprogramar'), hacer: () => abrirModalReprogramar(b) },
+                                                        puedeGestionarReservas && turnoYaPaso(b) && b.estado !== 'Cancelado' && b.estado !== 'Ausente' && { texto: t('Marcar ausencia'), hacer: () => marcarAusencia(b) },
+                                                        puedeGestionarReservas && b.estado === 'Reservado' && { texto: t('Cancelar'), hacer: () => handleCancel(b.id, b), peligro: true },
+                                                        puedeGestionarAvanzado && (b.estado === 'Cancelado' || b.estado === 'Completado' || b.estado === 'Ausente') && { texto: t('Eliminar'), hacer: () => eliminarReservaHistorial(b), peligro: true }
+                                                    ].filter(Boolean);
+                                                    if (acciones.length === 0) return null;
+                                                    const principal = acciones.find(a => !a.peligro);
+                                                    const resto = acciones.filter(a => a !== principal);
+                                                    return (
+                                                        <div className="flex items-center justify-end gap-2">
+                                                            {principal && (
+                                                                <button onClick={principal.hacer} className="px-4 py-1.5 bg-pink-500 text-white rounded-full text-sm font-bold">{principal.texto}</button>
+                                                            )}
+                                                            {resto.length > 0 && (
+                                                                <details className="relative">
+                                                                    <summary className="list-none cursor-pointer px-3 py-1.5 rounded-full border border-gray-200 bg-white text-sm font-semibold text-gray-700 select-none">{t('Más')} ▾</summary>
+                                                                    <div className="absolute right-0 bottom-full mb-2 z-20 min-w-[11rem] bg-white rounded-xl shadow-xl border border-gray-100 py-1">
+                                                                        {resto.map(a => (
+                                                                            <button key={a.texto} onClick={(e) => { e.currentTarget.closest('details').open = false; a.hacer(); }}
+                                                                                className={`block w-full text-left px-4 py-2.5 text-sm font-semibold hover:bg-gray-50 ${a.peligro ? 'text-red-600' : 'text-gray-800'}`}>
+                                                                                {a.texto}
+                                                                            </button>
+                                                                        ))}
+                                                                    </div>
+                                                                </details>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })()}
                                             </div>
                                         </div>
                                     ))
