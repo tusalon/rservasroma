@@ -18,7 +18,7 @@ function ProfesionalSelector({ onSelect, selectedProfesional, selectedService })
       if (window.salonProfesionales) {
         const activos = await window.salonProfesionales.getAll(true);
         setTodosProfesionales(activos || []);
-        filtrarPorServicio(activos || []);
+        await filtrarPorServicio(activos || []);
       }
     } catch (error) {
       console.error("Error cargando profesionales:", error);
@@ -76,13 +76,13 @@ function ProfesionalSelector({ onSelect, selectedProfesional, selectedService })
     },
     "💬 ",
     t("Reservar por WhatsApp")
-  )) : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3" }, profesionales.map((prof) => /* @__PURE__ */ React.createElement(
+  )) : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 md:grid-cols-3 gap-3" }, profesionales.map((prof) => /* @__PURE__ */ React.createElement(
     "button",
     {
       key: prof.id,
       onClick: () => onSelect(prof),
-      className: `p-4 rounded-xl border-2 text-left transition-all duration-200 transform hover:scale-105 ${selectedProfesional?.id === prof.id ? "border-pink-500 bg-pink-50 ring-2 ring-pink-300 shadow-lg" : "border-pink-200 bg-white/80 backdrop-blur-sm hover:border-pink-400 hover:bg-pink-50/50 hover:shadow-md"}`
+      className: `p-4 rounded-2xl bg-white shadow-sm text-center transition-shadow ${selectedProfesional?.id === prof.id ? "ring-2 ring-pink-500" : "hover:shadow-md"}`
     },
-    /* @__PURE__ */ React.createElement("div", { className: "flex flex-col items-center text-center" }, /* @__PURE__ */ React.createElement("div", { className: `w-16 h-16 ${prof.color || "bg-pink-500"} rounded-full flex items-center justify-center text-3xl mb-3 shadow-md ring-2 ring-pink-300/50` }, prof.avatar || "✨"), /* @__PURE__ */ React.createElement("span", { className: "font-bold text-pink-800 text-lg block" }, prof.nombre), /* @__PURE__ */ React.createElement("span", { className: "text-sm text-pink-500 mt-1" }, prof.especialidad), selectedProfesional?.id === prof.id && /* @__PURE__ */ React.createElement("div", { className: "mt-2 text-pink-600 text-sm font-semibold" }, t("Seleccionada")))
+    /* @__PURE__ */ React.createElement("div", { className: "flex flex-col items-center text-center min-w-0" }, /* @__PURE__ */ React.createElement("div", { className: `w-16 h-16 ${prof.color || "bg-pink-500"} rounded-full flex items-center justify-center text-3xl mb-3 shadow-md` }, prof.avatar || "✨"), /* @__PURE__ */ React.createElement("span", { className: "font-bold text-gray-900 text-base block break-words" }, prof.nombre), /* @__PURE__ */ React.createElement("span", { className: "text-sm text-gray-500 mt-1" }, prof.especialidad), selectedProfesional?.id === prof.id && /* @__PURE__ */ React.createElement("div", { className: "mt-2 text-pink-600 text-sm font-semibold" }, t("Seleccionada")))
   )))));
 }

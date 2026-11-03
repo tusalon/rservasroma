@@ -1,6 +1,6 @@
 ﻿// sw.js - Service Worker para Rservasroma
 
-const CACHE_NAME = 'rservasroma-v160';
+const CACHE_NAME = 'rservasroma-v161';
 const BASE = '/rservasroma';
 
 const urlsToCache = [
@@ -16,7 +16,7 @@ const urlsToCache = [
   `${BASE}/manifest.json`,
 
   // App principal (JSX pre-compilado en compiled/ â€” ver scripts/build-jsx.sh)
-  `${BASE}/compiled/client-app.js?v=20261103-fase2b`,
+  `${BASE}/compiled/client-app.js?v=20261103-pasos1`,
   `${BASE}/compiled/admin-app.js?v=20261102-espacios60`,
 
   // Utils
@@ -30,7 +30,7 @@ const urlsToCache = [
   `${BASE}/utils/native-push-notifications.js?v=20260722-platform-v4`,
   `${BASE}/utils/offline-panel.js`,
   `${BASE}/utils/config-negocio-master.js?v=20261103-fase1`,
-  `${BASE}/utils/i18n.js?v=20261103-fase2`,
+  `${BASE}/utils/i18n.js?v=20261103-pasos1`,
   `${BASE}/utils/cuba-geo.js?v=20260727-wizard-ubicacion1`,
   `${BASE}/utils/phone-utils.js?v=20261012-eeuu1`,
   `${BASE}/utils/profesionales.js?v=20261018-elimprof2`,
@@ -72,7 +72,7 @@ const urlsToCache = [
   `${BASE}/compiled/components/MultiTimeSlots.js?v=20261023-combo1`,
   `${BASE}/compiled/components/AnadirServicioTurno.js?v=20261021-turnos1`,
   `${BASE}/compiled/components/MyBookings.js?v=20261103-fase2`,
-  `${BASE}/compiled/components/ProfesionalSelector.js?v=20261103-fase1`,
+  `${BASE}/compiled/components/ProfesionalSelector.js?v=20261103-pasos1`,
   `${BASE}/compiled/components/ServiceSelectionCategorias.js?v=20260731-marca`,
   `${BASE}/compiled/components/TimeSlots.js?v=20261103-fase2`,
   `${BASE}/compiled/components/WelcomeScreen.js?v=20261103-fase2`,

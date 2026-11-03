@@ -197,6 +197,9 @@ function ClientApp() {
     const [selectedDate, setSelectedDate] = React.useState('');
     const [selectedTime, setSelectedTime] = React.useState('');
     const [bookingConfirmed, setBookingConfirmed] = React.useState(null);
+    // La reserva va de a un paso por pantalla: 0 servicio, 1 profesional,
+    // 2 día, 3 hora. Arriba, un ticket que se llena con cada elección.
+    const [paso, setPaso] = React.useState(0);
     const [userRol, setUserRol] = React.useState('cliente');
     const [history, setHistory] = React.useState(['auth']);
     const [horariosPorDia, setHorariosPorDia] = React.useState({});
@@ -279,6 +282,7 @@ function ClientApp() {
             const pasoAnterior = event.state && event.state.step;
             if (!pasoAnterior) return;
             setStep(pasoAnterior);
+            if (pasoAnterior === 'service') setPaso(event.state.paso || 0);
             setHistory(prev => {
                 const idx = prev.lastIndexOf(pasoAnterior);
                 return idx >= 0 ? prev.slice(0, idx + 1) : [pasoAnterior];
@@ -298,41 +302,23 @@ function ClientApp() {
         try { window.history.pushState({ step: newStep }, ''); } catch (e) {}
     };
 
+    // Cada paso de la reserva entra en el historial: el atrás del teléfono
+    // vuelve al paso anterior, no fuera de la reserva.
+    const irAPaso = (n) => {
+        setPaso(n);
+        try { window.history.pushState({ step: 'service', paso: n }, ''); } catch (e) {}
+    };
+
     const goBack = () => {
         if (history.length <= 1) return;
         // popstate sincroniza step e history internos.
         window.history.back();
     };
 
-    // ============================================
-    // FUNCIONES DE SCROLL AUTOMÁTICO
-    // ============================================
+    // Cada paso empieza arriba, con el ticket a la vista.
     React.useEffect(() => {
-        if (selectedService) {
-            setTimeout(() => {
-                document.getElementById('profesional-section')?.scrollIntoView({ 
-                    behavior: 'smooth', 
-                    block: 'center' 
-                });
-            }, 300);
-        }
-    }, [selectedService]);
-
-    React.useEffect(() => {
-        if (selectedProfesional) {
-            setTimeout(() => {
-                document.getElementById('calendar-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }, 100);
-        }
-    }, [selectedProfesional]);
-
-    React.useEffect(() => {
-        if (selectedDate) {
-            setTimeout(() => {
-                document.getElementById('time-section')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            }, 100);
-        }
-    }, [selectedDate]);
+        if (step === 'service') window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, [paso, step]);
 
     // ============================================
     // MANEJO DE ACCESO
@@ -352,6 +338,7 @@ function ClientApp() {
 
     const handleStartBooking = () => {
         setDisenoElegido(null);
+        setPaso(0);
         navigateTo('service');
     };
 
@@ -412,9 +399,7 @@ function ClientApp() {
 
                 if (candidatos.length === 1) {
                     setSelectedProfesional(candidatos[0]);
-                    setTimeout(() => {
-                        document.getElementById('calendar-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    }, 150);
+                    irAPaso(2);
                     return;
                 }
             }
@@ -422,9 +407,7 @@ function ClientApp() {
             console.error('Error auto-seleccionando profesional:', e);
         }
 
-        setTimeout(() => {
-            document.getElementById('profesional-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }, 150);
+        irAPaso(1);
     };
 
     const handleNoAvailability = React.useCallback(() => {
@@ -453,6 +436,7 @@ function ClientApp() {
         setSelectedProfesional(null);
         setSelectedDate('');
         setSelectedTime('');
+        setPaso(0);
         setStep('service');
         setBookingConfirmed(null);
     };
@@ -471,7 +455,10 @@ function ClientApp() {
             const profesional = (profesionales || []).find(p => String(p.id) === String(turno.profesional_id || turno.trabajador_id));
             const asignados = window.getProfesionalesPorServicio ? await window.getProfesionalesPorServicio(servicio.id) : [];
             const lahace = !asignados?.length || asignados.some(p => String(p.id) === String(profesional?.id));
-            if (profesional && profesional.activo !== false && lahace) setSelectedProfesional(profesional);
+            if (profesional && profesional.activo !== false && lahace) {
+                setSelectedProfesional(profesional);
+                irAPaso(2);
+            }
         } catch (e) {
             console.error('No se pudo repetir la cita:', e);
         }
@@ -542,7 +529,6 @@ function ClientApp() {
                         />
                         
                         <div className="max-w-3xl mx-auto px-4 py-4 space-y-4 pb-20">
-                            <CumpleClienteCard cliente={cliente} />
                             {/* Diseño traído del catálogo: se muestra durante todo
                                 el flujo para que la clienta no dude de que reserva
                                 el trabajo que eligió. */}
@@ -561,71 +547,104 @@ function ClientApp() {
                                 </div>
                             )}
 
-                            {/* SECCIÓN 1: SERVICIOS */}
-                            <ServiceSelection 
-                                onSelect={handleServiceSelect} 
-                                selectedService={selectedService}
-                            />
-                            
-                            {/* SECCIÓN 2: PROFESIONALES - CON selectedService */}
-                            {selectedService && (
-                                <div id="profesional-section">
-                                    {selectedService.esMultiple ? (
-                                        <MultiProfesionalSelector
-                                            onSelect={setSelectedProfesional}
-                                            selectedProfesional={selectedProfesional}
-                                            selectedService={selectedService}
-                                        />
-                                    ) : (
-                                        <ProfesionalSelector
-                                            onSelect={setSelectedProfesional}
-                                            selectedProfesional={selectedProfesional}
-                                            selectedService={selectedService}
-                                        />
-                                    )}
-                                </div>
-                            )}
-                            
-                            {/* SECCIÓN 3: CALENDARIO */}
-                            {selectedProfesional && (
-                                <div id="calendar-section">
-                                    <Calendar 
-                                        onDateSelect={setSelectedDate} 
-                                        selectedDate={selectedDate}
-                                        profesional={selectedProfesional?.esMultiple ? selectedProfesional.asignaciones[0]?.profesional : selectedProfesional}
-                                        profesionalCompleto={selectedProfesional}
-                                        service={selectedService}
-                                        onHorariosCargados={setHorariosPorDia}
-                                    />
-                                </div>
-                            )}
-                            
-                            {/* SECCIÓN 4: HORARIOS */}
-                            {selectedDate && (
-                                <div id="time-section">
-                                    {selectedService.esMultiple ? (
-                                        <MultiTimeSlots
-                                            service={selectedService}
-                                            date={selectedDate}
-                                            profesional={selectedProfesional}
-                                            onTimeSelect={setSelectedTime}
-                                            selectedTime={selectedTime}
-                                            onNoAvailability={handleNoAvailability}
-                                        />
-                                    ) : (
-                                        <TimeSlots
-                                            service={selectedService}
-                                            date={selectedDate}
-                                            profesional={selectedProfesional}
-                                            cliente={cliente}
-                                            onTimeSelect={setSelectedTime}
-                                            selectedTime={selectedTime}
-                                            horariosPorDia={horariosPorDia}
-                                        />
-                                    )}
-                                </div>
-                            )}
-                            
+                            {(() => {
+                                const t = window.t;
+                                const clave = (p) => p?.esMultiple ? (p.asignaciones || []).map(a => a.profesional?.id).join(',') : p?.id;
+                                const alcanzable = [true, !!selectedService, !!(selectedService && selectedProfesional), !!(selectedService && selectedProfesional && selectedDate)];
+                                const visible = alcanzable[paso] ? paso : alcanzable.lastIndexOf(true);
+                                const fechaCorta = (f) => {
+                                    const d = new Date(`${f}T12:00:00`);
+                                    return Number.isNaN(d.getTime()) ? f : d.toLocaleDateString(window.getIdioma?.() === 'en' ? 'en' : 'es', { weekday: 'short', day: 'numeric', month: 'short' });
+                                };
+                                const ticket = [
+                                    [t('Servicio'), selectedService?.nombre],
+                                    [t('Con'), selectedProfesional ? (selectedProfesional.esMultiple ? t('Varias') : selectedProfesional.nombre) : ''],
+                                    [t('Día'), selectedDate ? fechaCorta(selectedDate) : ''],
+                                    [t('Hora'), selectedTime && window.formatTo12Hour ? window.formatTo12Hour(selectedTime) : selectedTime]
+                                ];
+                                const pregunta = [t('¿Qué te hacemos hoy?'), t('¿Con quién?'), t('¿Qué día?'), t('¿A qué hora?')][visible];
+                                const partes = pregunta.match(/^(.*\s)(\S+)(\?)$/);
+                                // Al volver al paso de profesional, el selector de combos
+                                // repite la misma elección al montarse: solo se avanza si cambió.
+                                const elegirProfesional = (p) => {
+                                    const cambio = clave(p) !== clave(selectedProfesional);
+                                    setSelectedProfesional(p);
+                                    if (p && (!p.esMultiple || cambio)) irAPaso(2);
+                                };
+                                return (
+                                    <>
+                                        {/* El ticket de la cita: se llena con cada elección y cada
+                                            hueco lleva de vuelta a ese paso. */}
+                                        <div className="bg-white rounded-2xl shadow-sm p-1.5 grid gap-1" style={{ gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }}>
+                                            {ticket.map(([etiqueta, valor], n) => (
+                                                <button key={n} type="button" disabled={!alcanzable[n]} onClick={() => irAPaso(n)}
+                                                    className={`min-w-0 text-left rounded-xl px-2 py-1.5 transition-colors ${n === visible ? 'bg-pink-50' : ''}`}>
+                                                    <span className={`block text-[11px] font-bold uppercase tracking-wide ${n === visible ? 'text-pink-600' : 'text-gray-500'}`}>{etiqueta}</span>
+                                                    <span className={`block text-sm font-bold truncate ${valor ? 'text-gray-900' : 'text-gray-300'}`}>{valor || '—'}</span>
+                                                </button>
+                                            ))}
+                                        </div>
+                                        <div className="h-1 rounded-full bg-gray-200 overflow-hidden">
+                                            <div className="h-full bg-pink-500 rounded-full transition-all duration-300"
+                                                style={{ width: `${selectedTime ? 100 : (visible + 1) * 20}%` }}></div>
+                                        </div>
+                                        <div>
+                                            <p className="text-xs font-bold uppercase tracking-wider text-gray-500">{t('Paso {n} de 4', { n: visible + 1 })}</p>
+                                            <h2 className="text-2xl font-extrabold text-gray-900 mt-1">
+                                                {partes ? <>{partes[1]}<span className="text-pink-600">{partes[2]}</span>{partes[3]}</> : pregunta}
+                                            </h2>
+                                        </div>
+
+                                        {/* paso-reserva oculta el título numerado de cada
+                                            componente ("1. Elige tu servicio"...): aquí la
+                                            pregunta grande hace ese papel. Ver index.html. */}
+                                        <div key={visible} className="paso-reserva animate-fade-in space-y-4">
+                                            {visible === 0 && (
+                                                <>
+                                                    <CumpleClienteCard cliente={cliente} />
+                                                    <ServiceSelection onSelect={handleServiceSelect} selectedService={selectedService} />
+                                                </>
+                                            )}
+                                            {visible === 1 && (selectedService.esMultiple ? (
+                                                <MultiProfesionalSelector onSelect={elegirProfesional} selectedProfesional={selectedProfesional} selectedService={selectedService} />
+                                            ) : (
+                                                <ProfesionalSelector onSelect={elegirProfesional} selectedProfesional={selectedProfesional} selectedService={selectedService} />
+                                            ))}
+                                            {visible === 2 && (
+                                                <Calendar
+                                                    onDateSelect={(fecha) => { setSelectedDate(fecha); setSelectedTime(''); irAPaso(3); }}
+                                                    selectedDate={selectedDate}
+                                                    profesional={selectedProfesional?.esMultiple ? selectedProfesional.asignaciones[0]?.profesional : selectedProfesional}
+                                                    profesionalCompleto={selectedProfesional}
+                                                    service={selectedService}
+                                                    onHorariosCargados={setHorariosPorDia}
+                                                />
+                                            )}
+                                            {visible === 3 && (selectedService.esMultiple ? (
+                                                <MultiTimeSlots
+                                                    service={selectedService}
+                                                    date={selectedDate}
+                                                    profesional={selectedProfesional}
+                                                    onTimeSelect={setSelectedTime}
+                                                    selectedTime={selectedTime}
+                                                    onNoAvailability={handleNoAvailability}
+                                                />
+                                            ) : (
+                                                <TimeSlots
+                                                    service={selectedService}
+                                                    date={selectedDate}
+                                                    profesional={selectedProfesional}
+                                                    cliente={cliente}
+                                                    onTimeSelect={setSelectedTime}
+                                                    selectedTime={selectedTime}
+                                                    horariosPorDia={horariosPorDia}
+                                                />
+                                            ))}
+                                        </div>
+                                    </>
+                                );
+                            })()}
+
                             {/* SECCIÓN 5: CONFIRMACIÓN */}
                             {selectedTime && (
                                 <BookingForm
@@ -650,6 +669,7 @@ function ClientApp() {
                                         // relleno (riesgo de reservar duplicado).
                                         setSelectedTime('');
                                         setSelectedDate('');
+                                        setPaso(0);
                                         navigateTo('confirmation');
                                     }}
                                     onCancel={() => setSelectedTime('')}
