@@ -117,23 +117,14 @@ const id2 = catalogo.catalogoIdDispositivo();
 assert.equal(id1, id2, 'El mismo dispositivo debe reusar su huella, no generar una nueva');
 
 // --- Precios en el catalogo compartido ---
-// Lo que protege: la duena elige al compartir si la galeria sale con precios.
-// Dos cosas pueden salir mal y las dos se ven feas en publico: que el enlace
-// normal empiece a ensenar precios solo, y que un servicio sin precio puesto
-// aparezca como "0 CUP" debajo de la foto.
+// Lo que protege: cada foto ensena el precio de su servicio, y un servicio
+// sin precio puesto no puede aparecer como "0 CUP" debajo de la foto.
 {
     const servicios = cargar('servicios.js');
     const modulo = cargar('catalogo.js');
     modulo.formatearPrecioServicio = servicios.formatearPrecioServicio;
     modulo.getPrecioServicioBase = servicios.getPrecioServicioBase;
     modulo.getPrecioServicioHasta = servicios.getPrecioServicioHasta;
-
-    // El parametro solo lo pone quien comparte.
-    assert.equal(modulo.catalogoQuierePrecios('?ir=catalogo&precios=1'), true);
-    assert.equal(modulo.catalogoQuierePrecios('ir=catalogo&precios=1'), true, 'Da igual que venga con "?" o sin el');
-    assert.equal(modulo.catalogoQuierePrecios('?ir=catalogo'), false, 'El enlace de siempre sigue saliendo sin precios');
-    assert.equal(modulo.catalogoQuierePrecios(''), false);
-    assert.equal(modulo.catalogoQuierePrecios('?precios=0'), false);
 
     const mapa = modulo.catalogoMapaPrecios([
         { id: 'a', precio: 500, precio_moneda: 'CUP' },
@@ -168,13 +159,8 @@ assert.equal(id1, id2, 'El mismo dispositivo debe reusar su huella, no generar u
     assert.equal(
         construir({}),
         'https://tusalon.github.io/rservasroma/?s=yuly_nails&ir=catalogo',
-        'Sin elegir nada, el enlace es el de siempre'
+        'El enlace abre la galeria; los precios salen siempre, sin parametro'
     );
-    assert.equal(
-        construir({}, { conPrecios: true }),
-        'https://tusalon.github.io/rservasroma/?s=yuly_nails&ir=catalogo&precios=1'
-    );
-    assert.equal(construir({}, { conPrecios: false }).includes('precios'), false);
 }
 
 // --- Reordenar: renumera 1..N y solo toca lo que cambia ---

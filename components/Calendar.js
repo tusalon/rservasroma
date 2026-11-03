@@ -485,32 +485,6 @@ function Calendar({ onDateSelect, selectedDate, profesional, profesionalCompleto
                     </div>
                 </div>
             </div>
-
-            {profesional && (
-                <div className="text-xs text-pink-600 bg-pink-50 p-3 rounded-lg border border-pink-200">
-                    <div className="flex items-center gap-2">
-                        <span className="text-pink-400 text-lg">📅</span>
-                        <span>
-                            <strong>{t('Dias que trabaja {nombre}:', { nombre: profesional.nombre })}</strong>{' '}
-                            {diasLaborales.length > 0
-                                ? diasLaborales.map(d => d.charAt(0).toUpperCase() + d.slice(1)).join(', ')
-                                : t('Todos los dias (sin configuracion especifica)')}
-                        </span>
-                    </div>
-                    {fechasLibresProfesional.length > 0 && (
-                        <div className="flex items-center gap-2 mt-2">
-                            <span className="text-orange-500 text-lg">○</span>
-                            <span><strong>{t('Dias libres:')}</strong> {t('{n} dia(s) no disponible(s)', { n: fechasLibresProfesional.length })}</span>
-                        </div>
-                    )}
-                    {diasCerrados.length > 0 && (
-                        <div className="flex items-center gap-2 mt-2">
-                            <span className="text-red-400 text-lg">×</span>
-                            <span><strong>{t('Dias cerrados del local:')}</strong> {t('{n} dia(s) no disponible(s)', { n: diasCerrados.length })}</span>
-                        </div>
-                    )}
-                </div>
-            )}
         </div>
     );
 }

@@ -13,14 +13,8 @@ function Catalogo({ onGoBack, onReservarDiseno, cliente }) {
     const [config, setConfig] = React.useState(null);
     const [precios, setPrecios] = React.useState({});
 
-    // Los precios solo salen si el enlace que compartio el salon los pide. Y
-    // solo entonces se piden los servicios: sin la opcion no se gasta ni una
-    // consulta de mas al abrir la galeria.
-    const mostrarPrecios = React.useMemo(
-        () => (window.catalogoQuierePrecios ? window.catalogoQuierePrecios() : false),
-        []
-    );
-
+    // Cada foto ensena el precio del servicio que tiene enlazado: la clienta
+    // no deberia enamorarse de un diseno sin saber cuanto cuesta.
     React.useEffect(() => {
         let vivo = true;
         Promise.all([
@@ -30,7 +24,7 @@ function Catalogo({ onGoBack, onReservarDiseno, cliente }) {
             // tumba el Promise.all entero y la galeria sale vacia aunque las
             // fotos ya estuvieran descargadas. Los precios son un adorno; los
             // disenos, no.
-            mostrarPrecios && window.salonServicios
+            window.salonServicios
                 ? window.salonServicios.getAll(true).catch(() => null)
                 : Promise.resolve(null)
         ]).then(([lista, configData, servicios]) => {
@@ -41,7 +35,7 @@ function Catalogo({ onGoBack, onReservarDiseno, cliente }) {
             setCargando(false);
         }).catch(() => vivo && setCargando(false));
         return () => { vivo = false; };
-    }, [mostrarPrecios]);
+    }, []);
 
     // El color va por asegurarColorVisible porque hay salones con el blanco
     // como color de marca: sin esto el botón de reservar queda blanco sobre

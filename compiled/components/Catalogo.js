@@ -7,10 +7,6 @@ function Catalogo({ onGoBack, onReservarDiseno, cliente }) {
   const [abierto, setAbierto] = React.useState(null);
   const [config, setConfig] = React.useState(null);
   const [precios, setPrecios] = React.useState({});
-  const mostrarPrecios = React.useMemo(
-    () => window.catalogoQuierePrecios ? window.catalogoQuierePrecios() : false,
-    []
-  );
   React.useEffect(() => {
     let vivo = true;
     Promise.all([
@@ -20,7 +16,7 @@ function Catalogo({ onGoBack, onReservarDiseno, cliente }) {
       // tumba el Promise.all entero y la galeria sale vacia aunque las
       // fotos ya estuvieran descargadas. Los precios son un adorno; los
       // disenos, no.
-      mostrarPrecios && window.salonServicios ? window.salonServicios.getAll(true).catch(() => null) : Promise.resolve(null)
+      window.salonServicios ? window.salonServicios.getAll(true).catch(() => null) : Promise.resolve(null)
     ]).then(([lista, configData, servicios]) => {
       if (!vivo) return;
       setDisenos(lista || []);
@@ -31,7 +27,7 @@ function Catalogo({ onGoBack, onReservarDiseno, cliente }) {
     return () => {
       vivo = false;
     };
-  }, [mostrarPrecios]);
+  }, []);
   const colorPrimario = window.asegurarColorVisible ? window.asegurarColorVisible(config?.color_primario, "#ec4899") : config?.color_primario || "#ec4899";
   const grupos = React.useMemo(() => window.catalogoAgrupar(disenos), [disenos]);
   const gruposVisibles = React.useMemo(() => categoria === "todas" ? grupos : grupos.filter((g) => g.nombre === categoria), [grupos, categoria]);

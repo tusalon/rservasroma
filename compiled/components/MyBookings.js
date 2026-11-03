@@ -322,7 +322,7 @@ Ahora: ${fN} a las ${hN}`;
       className: "flex-1 py-2 rounded-lg bg-red-500 text-white font-medium"
     },
     t("Sí, quitar")
-  )))), /* @__PURE__ */ React.createElement("div", { className: "bg-white/90 backdrop-blur-sm shadow-sm sticky top-0 z-10 border-b border-pink-200" }, /* @__PURE__ */ React.createElement("div", { className: "max-w-3xl mx-auto px-4 py-4 flex justify-between items-center" }, /* @__PURE__ */ React.createElement("button", { onClick: onVolver, className: "flex items-center gap-2 text-pink-600 hover:text-pink-800 transition" }, /* @__PURE__ */ React.createElement("i", { className: "icon-arrow-left text-xl" }), /* @__PURE__ */ React.createElement("span", { className: "font-medium" }, t("Volver"))), /* @__PURE__ */ React.createElement("h1", { className: "text-xl font-bold text-pink-800" }, "✨ ", t("Mis Reservas")), /* @__PURE__ */ React.createElement("div", { className: "w-20" }))), /* @__PURE__ */ React.createElement("div", { className: "max-w-3xl mx-auto px-4 py-6" }, /* @__PURE__ */ React.createElement("div", { className: "bg-white/80 backdrop-blur-sm border border-pink-200 rounded-lg p-4 mb-6" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3" }, /* @__PURE__ */ React.createElement("div", { className: "w-10 h-10 bg-pink-500 rounded-full flex items-center justify-center text-white font-bold" }, cliente.nombre.charAt(0)), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("p", { className: "font-medium text-pink-800" }, cliente.nombre), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-pink-600" }, cliente.whatsapp)))), mensajeError && /* @__PURE__ */ React.createElement("div", { className: "bg-pink-100 border border-pink-300 text-pink-700 p-3 rounded-lg mb-4 text-sm" }, mensajeError), /* @__PURE__ */ React.createElement("div", { className: "flex gap-2 mb-6 overflow-x-auto pb-2" }, [
+  )))), /* @__PURE__ */ React.createElement("div", { className: "bg-white/90 backdrop-blur-sm shadow-sm sticky top-0 z-10 border-b border-pink-200" }, /* @__PURE__ */ React.createElement("div", { className: "max-w-3xl mx-auto px-4 py-4 flex justify-between items-center" }, /* @__PURE__ */ React.createElement("button", { onClick: onVolver, className: "flex items-center gap-2 text-pink-600 hover:text-pink-800 transition" }, /* @__PURE__ */ React.createElement("i", { className: "icon-arrow-left text-xl" }), /* @__PURE__ */ React.createElement("span", { className: "font-medium" }, t("Volver"))), /* @__PURE__ */ React.createElement("h1", { className: "text-xl font-bold text-pink-800" }, "✨ ", t("Mis Reservas")), /* @__PURE__ */ React.createElement("div", { className: "w-20" }))), /* @__PURE__ */ React.createElement("div", { className: "max-w-3xl mx-auto px-4 py-6" }, mensajeError && /* @__PURE__ */ React.createElement("div", { className: "bg-pink-100 border border-pink-300 text-pink-700 p-3 rounded-lg mb-4 text-sm" }, mensajeError), /* @__PURE__ */ React.createElement("div", { className: "flex gap-2 mb-6 overflow-x-auto pb-2" }, [
     ["proximas", t("Próximas ({n})", { n: proximasCount })],
     ["historial", t("Historial ({n})", { n: historialCount })],
     ["canceladas", t("Canceladas ({n})", { n: canceladasCount })]
@@ -371,7 +371,16 @@ Ahora: ${fN} a las ${hN}`;
         }
       },
       "⭐"
-    ))), guardandoValoracion === booking.id && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-yellow-600 mt-2" }, t("Guardando...")))), booking.estado !== "Cancelado" && calendarLink && /* @__PURE__ */ React.createElement(
+    ))), guardandoValoracion === booking.id && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-yellow-600 mt-2" }, t("Guardando...")))), booking.estado === "Pendiente" && /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        onClick: () => window.contactarSalonWhatsApp?.(
+          `Hola! Reservé ${booking.servicio} para el ${fechaConDia} a las ${horaLegible(booking.hora_inicio)} y quiero enviar el anticipo.`
+        ),
+        className: "w-full py-3 rounded-full font-bold transition flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 text-white shadow-sm mb-3"
+      },
+      t("Enviar el anticipo por WhatsApp")
+    ), booking.estado !== "Cancelado" && calendarLink && /* @__PURE__ */ React.createElement(
       "a",
       {
         href: calendarLink,
@@ -402,11 +411,11 @@ Ahora: ${fN} a las ${hN}`;
       {
         onClick: () => handleCancelarReserva(booking),
         disabled: cancelando !== null || !puedeCancelarBooking,
-        className: `w-full py-2 rounded-lg font-medium transition flex items-center justify-center gap-2
-                                                    ${puedeCancelarBooking ? "bg-pink-100 hover:bg-pink-200 text-pink-700" : "bg-pink-50 text-pink-400 cursor-not-allowed"}
-                                                    disabled:opacity-50 disabled:cursor-not-allowed`
+        className: `w-full py-2 text-sm font-semibold transition flex items-center justify-center gap-2
+                                                    ${puedeCancelarBooking ? "text-red-600 hover:underline" : "text-gray-400 cursor-not-allowed"}
+                                                    disabled:cursor-not-allowed`
       },
-      cancelando === booking.id ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "animate-spin h-4 w-4 border-2 border-pink-600 border-t-transparent rounded-full" }), t("Cancelando...")) : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("span", null, "❌"), puedeCancelarBooking ? t("Cancelar turno") : t("No se puede cancelar aún"))
+      cancelando === booking.id ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "animate-spin h-4 w-4 border-2 border-red-600 border-t-transparent rounded-full" }), t("Cancelando...")) : puedeCancelarBooking ? t("Cancelar turno") : t("No se puede cancelar aún")
     )));
   }))), reservaReprogramando && /* @__PURE__ */ React.createElement("div", { className: "fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-4" }, /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-t-2xl sm:rounded-2xl shadow-xl w-full max-w-lg max-h-[92vh] overflow-y-auto" }, /* @__PURE__ */ React.createElement("div", { className: "sticky top-0 bg-white border-b border-pink-100 p-4 flex items-center justify-between" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h2", { className: "text-lg font-bold text-pink-800" }, t("Cambiar fecha y hora")), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-pink-500" }, reservaReprogramando.servicio)), /* @__PURE__ */ React.createElement(
     "button",

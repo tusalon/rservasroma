@@ -116,11 +116,6 @@ function ProfesionalSelector({ onSelect, selectedProfesional, selectedService })
                 </div>
             ) : (
                 <>
-                    {selectedService && (
-                        <div className="text-xs text-pink-600 bg-pink-50 p-2 rounded-lg border border-pink-200">
-                            {t('Mostrando solo profesionales que realizan "{servicio}"', { servicio: selectedService.nombre })}
-                        </div>
-                    )}
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                         {profesionales.map(prof => (
                             <button
@@ -143,10 +138,6 @@ function ProfesionalSelector({ onSelect, selectedProfesional, selectedService })
                     </div>
                 </>
             )}
-
-            <div className="text-xs text-pink-500 bg-pink-50 p-3 rounded-lg border border-pink-200">
-                {t('Cada profesional tiene su propia agenda. Despues de elegir, podras ver sus horarios disponibles.')}
-            </div>
         </div>
     );
 }

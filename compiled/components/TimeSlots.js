@@ -14,6 +14,7 @@ function TimeSlots({ service, date, profesional, cliente, onTimeSelect, selected
   const [maxAntelacionDias, setMaxAntelacionDias] = React.useState(30);
   const [minAntelacionHoras, setMinAntelacionHoras] = React.useState(2);
   const [toast, setToast] = React.useState(null);
+  const [verEspera, setVerEspera] = React.useState(false);
   const toastTimerRef = React.useRef(null);
   const mostrarToast = (tipo, texto) => {
     setToast({ tipo, texto });
@@ -276,27 +277,30 @@ function TimeSlots({ service, date, profesional, cliente, onTimeSelect, selected
     },
     /* @__PURE__ */ React.createElement("span", null, toast.tipo === "ok" ? "✅" : "❌"),
     /* @__PURE__ */ React.createElement("span", null, toast.texto)
-  ), /* @__PURE__ */ React.createElement("h2", { className: "text-lg font-semibold text-pink-700 flex items-center gap-2" }, /* @__PURE__ */ React.createElement("span", { className: "text-2xl" }, "⏰"), t("4. Elige un horario con {nombre}", { nombre: profesional.nombre }), selectedTime && /* @__PURE__ */ React.createElement("span", { className: "text-xs bg-pink-100 text-pink-700 px-2 py-1 rounded-full ml-2" }, "✓ ", t("Horario seleccionado"))), loading ? /* @__PURE__ */ React.createElement("div", { className: "flex justify-center py-8" }, /* @__PURE__ */ React.createElement("div", { className: "animate-spin rounded-full h-8 w-8 border-b-2 border-pink-500" })) : error ? /* @__PURE__ */ React.createElement("div", { className: "p-4 bg-pink-50 text-pink-600 rounded-lg text-sm border border-pink-200" }, error) : slots.length === 0 && occupiedSlots.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "text-center p-8 bg-pink-50 rounded-xl border border-pink-200" }, /* @__PURE__ */ React.createElement("div", { className: "text-5xl text-pink-400 mb-3" }, "⏰❌"), /* @__PURE__ */ React.createElement("p", { className: "text-pink-700 font-medium" }, t("No hay horarios disponibles para {nombre} el {fecha}", { nombre: profesional.nombre, fecha: formatDateLocal(date) })), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-pink-500 mt-1" }, t("Prueba con otra fecha"))) : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "text-sm bg-gradient-to-r from-pink-50 to-pink-100 p-4 rounded-xl border border-pink-200" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2 text-pink-700" }, /* @__PURE__ */ React.createElement("span", { className: "text-pink-500" }, "⏰"), /* @__PURE__ */ React.createElement("span", { className: "font-medium" }, t("Horarios disponibles de {nombre} para {fecha}:", { nombre: profesional.nombre, fecha: formatDateLocal(date) })))), date === getCurrentLocalDate() && /* @__PURE__ */ React.createElement("div", { className: "text-sm text-pink-600 bg-pink-50 p-3 rounded-lg flex items-center gap-2 border border-pink-200" }, /* @__PURE__ */ React.createElement("span", { className: "text-pink-500" }, "⏰"), /* @__PURE__ */ React.createElement("span", null, t("Hoy solo se muestran horarios con al menos {n} hora{s} de anticipación.", {
+  ), /* @__PURE__ */ React.createElement("h2", { className: "text-lg font-semibold text-pink-700 flex items-center gap-2" }, /* @__PURE__ */ React.createElement("span", { className: "text-2xl" }, "⏰"), t("4. Elige un horario con {nombre}", { nombre: profesional.nombre }), selectedTime && /* @__PURE__ */ React.createElement("span", { className: "text-xs bg-pink-100 text-pink-700 px-2 py-1 rounded-full ml-2" }, "✓ ", t("Horario seleccionado"))), loading ? /* @__PURE__ */ React.createElement("div", { className: "flex justify-center py-8" }, /* @__PURE__ */ React.createElement("div", { className: "animate-spin rounded-full h-8 w-8 border-b-2 border-pink-500" })) : error ? /* @__PURE__ */ React.createElement("div", { className: "p-4 bg-pink-50 text-pink-600 rounded-lg text-sm border border-pink-200" }, error) : slots.length === 0 && occupiedSlots.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "text-center p-8 bg-pink-50 rounded-xl border border-pink-200" }, /* @__PURE__ */ React.createElement("div", { className: "text-5xl text-pink-400 mb-3" }, "⏰❌"), /* @__PURE__ */ React.createElement("p", { className: "text-pink-700 font-medium" }, t("No hay horarios disponibles para {nombre} el {fecha}", { nombre: profesional.nombre, fecha: formatDateLocal(date) })), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-pink-500 mt-1" }, t("Prueba con otra fecha"))) : /* @__PURE__ */ React.createElement(React.Fragment, null, date === getCurrentLocalDate() && /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-600" }, t("Hoy solo se muestran horarios con al menos {n} hora{s} de anticipación.", {
     n: minAntelacionHoras,
     s: minAntelacionHoras === 1 ? "" : "s"
-  }))), slots.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 mt-4" }, slots.map((time24h) => {
-    const time12h = formatTo12Hour(time24h);
-    const isSelected = selectedTime === time24h;
-    const esMediaHora = time24h.includes(":30");
-    return /* @__PURE__ */ React.createElement(
-      "button",
-      {
-        key: time24h,
-        onClick: () => onTimeSelect(time24h),
-        className: `
-                                        py-3 px-2 rounded-lg text-base font-semibold transition-all transform flex flex-col items-center
-                                        ${isSelected ? "bg-gradient-to-r from-pink-500 to-pink-600 text-white shadow-lg scale-105 ring-2 ring-pink-300" : "bg-white text-pink-700 border-2 border-pink-200 hover:border-pink-400 hover:bg-pink-50 hover:scale-105 hover:shadow-md"}
-                                    `
-      },
-      /* @__PURE__ */ React.createElement("span", { className: "text-sm" }, esMediaHora ? "⏱️" : "⌛"),
-      /* @__PURE__ */ React.createElement("span", null, time12h)
-    );
-  })), occupiedSlots.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4" }, /* @__PURE__ */ React.createElement("div", { className: "mb-3" }, /* @__PURE__ */ React.createElement("p", { className: "font-semibold text-amber-800" }, t("Turnos ocupados con lista de espera")), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-amber-700" }, t("Puedes anotarte en un turno ocupado. Solo se permite una clienta en espera por horario."))), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 sm:grid-cols-3 gap-3" }, occupiedSlots.map((slot) => {
+  })), [
+    [t("Por la mañana"), slots.filter((h) => h < "12:00")],
+    [t("Por la tarde"), slots.filter((h) => h >= "12:00")]
+  ].filter(([, lista]) => lista.length > 0).map(([titulo, lista]) => /* @__PURE__ */ React.createElement("div", { key: titulo }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold uppercase tracking-wider text-gray-500 mb-2" }, titulo), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2" }, lista.map((time24h) => /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      key: time24h,
+      onClick: () => onTimeSelect(time24h),
+      className: `py-3 rounded-full text-base font-semibold tabular-nums transition-colors
+                                            ${selectedTime === time24h ? "bg-pink-500 text-white shadow-md" : "bg-white text-gray-800 border border-pink-200 hover:border-pink-400"}`
+    },
+    formatTo12Hour(time24h)
+  ))))), occupiedSlots.length > 0 && slots.length > 0 && !verEspera && /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      type: "button",
+      onClick: () => setVerEspera(true),
+      className: "w-full rounded-xl border border-dashed border-gray-300 py-3 text-sm font-semibold text-gray-600"
+    },
+    t("¿No ves tu hora? Ponte en lista de espera")
+  ), occupiedSlots.length > 0 && (verEspera || slots.length === 0) && /* @__PURE__ */ React.createElement("div", { className: "mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4" }, /* @__PURE__ */ React.createElement("div", { className: "mb-3" }, /* @__PURE__ */ React.createElement("p", { className: "font-semibold text-amber-800" }, t("Turnos ocupados con lista de espera")), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-amber-700" }, t("Puedes anotarte en un turno ocupado. Solo se permite una clienta en espera por horario."))), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 sm:grid-cols-3 gap-3" }, occupiedSlots.map((slot) => {
     const yaTieneEspera = Boolean(waitlistSlots[slot.hora]);
     const cargando = joiningWaitlist === slot.hora;
     return /* @__PURE__ */ React.createElement(
@@ -312,5 +316,5 @@ function TimeSlots({ service, date, profesional, cliente, onTimeSelect, selected
       /* @__PURE__ */ React.createElement("span", null, window.formatTo12Hour ? window.formatTo12Hour(slot.hora) : slot.hora),
       /* @__PURE__ */ React.createElement("span", { className: "text-xs font-medium mt-1" }, cargando ? t("Guardando...") : yaTieneEspera ? t("Lista ocupada") : t("Lista de espera"))
     );
-  }))), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-pink-400 mt-3 text-center" }, "⏰ ", t("Toca un horario para continuar"))));
+  })))));
 }

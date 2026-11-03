@@ -20,6 +20,9 @@ function TimeSlots({ service, date, profesional, cliente, onTimeSelect, selected
     // el dominio ("...github.io dice:"), lo que rompe la marca del salón.
     // Mismo patrón que ya usa MyBookings.
     const [toast, setToast] = React.useState(null);
+    // La lista de espera va plegada: son turnos ocupados, no una opción igual
+    // de buena que un horario libre.
+    const [verEspera, setVerEspera] = React.useState(false);
     const toastTimerRef = React.useRef(null);
 
     const mostrarToast = (tipo, texto) => {
@@ -393,54 +396,50 @@ function TimeSlots({ service, date, profesional, cliente, onTimeSelect, selected
                 </div>
             ) : (
                 <>
-                    <div className="text-sm bg-gradient-to-r from-pink-50 to-pink-100 p-4 rounded-xl border border-pink-200">
-                        <div className="flex items-center gap-2 text-pink-700">
-                            <span className="text-pink-500">⏰</span>
-                            <span className="font-medium">
-                                {t('Horarios disponibles de {nombre} para {fecha}:', { nombre: profesional.nombre, fecha: formatDateLocal(date) })}
-                            </span>
-                        </div>
-                    </div>
-
                     {date === getCurrentLocalDate() && (
-                        <div className="text-sm text-pink-600 bg-pink-50 p-3 rounded-lg flex items-center gap-2 border border-pink-200">
-                            <span className="text-pink-500">⏰</span>
-                            <span>
-                                {t('Hoy solo se muestran horarios con al menos {n} hora{s} de anticipación.', {
-                                    n: minAntelacionHoras,
-                                    s: minAntelacionHoras === 1 ? '' : 's'
-                                })}
-                            </span>
-                        </div>
-                    )}
-                    
-                    {slots.length > 0 && (
-                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 mt-4">
-                        {slots.map(time24h => {
-                            const time12h = formatTo12Hour(time24h);
-                            const isSelected = selectedTime === time24h;
-                            const esMediaHora = time24h.includes(':30');
-                            
-                            return (
-                                <button
-                                    key={time24h}
-                                    onClick={() => onTimeSelect(time24h)}
-                                    className={`
-                                        py-3 px-2 rounded-lg text-base font-semibold transition-all transform flex flex-col items-center
-                                        ${isSelected
-                                            ? 'bg-gradient-to-r from-pink-500 to-pink-600 text-white shadow-lg scale-105 ring-2 ring-pink-300'
-                                            : 'bg-white text-pink-700 border-2 border-pink-200 hover:border-pink-400 hover:bg-pink-50 hover:scale-105 hover:shadow-md'}
-                                    `}
-                                >
-                                    <span className="text-sm">{esMediaHora ? '⏱️' : '⌛'}</span>
-                                    <span>{time12h}</span>
-                                </button>
-                            );
-                        })}
-                    </div>
+                        <p className="text-sm text-gray-600">
+                            {t('Hoy solo se muestran horarios con al menos {n} hora{s} de anticipación.', {
+                                n: minAntelacionHoras,
+                                s: minAntelacionHoras === 1 ? '' : 's'
+                            })}
+                        </p>
                     )}
 
-                    {occupiedSlots.length > 0 && (
+                    {/* Píldoras de tres en fila, separadas en mañana y tarde: se
+                        leen de un vistazo y caben más horarios por pantalla. */}
+                    {[
+                        [t('Por la mañana'), slots.filter(h => h < '12:00')],
+                        [t('Por la tarde'), slots.filter(h => h >= '12:00')]
+                    ].filter(([, lista]) => lista.length > 0).map(([titulo, lista]) => (
+                        <div key={titulo}>
+                            <p className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">{titulo}</p>
+                            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
+                                {lista.map(time24h => (
+                                    <button
+                                        key={time24h}
+                                        onClick={() => onTimeSelect(time24h)}
+                                        className={`py-3 rounded-full text-base font-semibold tabular-nums transition-colors
+                                            ${selectedTime === time24h
+                                                ? 'bg-pink-500 text-white shadow-md'
+                                                : 'bg-white text-gray-800 border border-pink-200 hover:border-pink-400'}`}
+                                    >
+                                        {formatTo12Hour(time24h)}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    ))}
+
+                    {/* Sin ningún horario libre, la lista de espera es lo único
+                        que hay: se ve abierta, no escondida tras el enlace. */}
+                    {occupiedSlots.length > 0 && slots.length > 0 && !verEspera && (
+                        <button type="button" onClick={() => setVerEspera(true)}
+                            className="w-full rounded-xl border border-dashed border-gray-300 py-3 text-sm font-semibold text-gray-600">
+                            {t('¿No ves tu hora? Ponte en lista de espera')}
+                        </button>
+                    )}
+
+                    {occupiedSlots.length > 0 && (verEspera || slots.length === 0) && (
                         <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4">
                             <div className="mb-3">
                                 <p className="font-semibold text-amber-800">{t('Turnos ocupados con lista de espera')}</p>
@@ -471,10 +470,6 @@ function TimeSlots({ service, date, profesional, cliente, onTimeSelect, selected
                             </div>
                         </div>
                     )}
-                    
-                    <p className="text-xs text-pink-400 mt-3 text-center">
-                        ⏰ {t('Toca un horario para continuar')}
-                    </p>
                 </>
             )}
         </div>

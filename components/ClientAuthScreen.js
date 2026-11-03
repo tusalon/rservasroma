@@ -340,7 +340,6 @@ function ClientAuthScreen({ onAccessGranted, onGoBack, disenoPendiente }) {
                             </div>
                         )}
                         <h1 className="text-3xl font-bold text-white mt-4">{nombreNegocio}</h1>
-                        <p className="text-pink-300 mt-1">🌸 {t('Espacio de belleza y cuidado')} 🌸</p>
                     </div>
 
                     {/* Llegó desde el catálogo compartido en redes: se le
@@ -425,7 +424,7 @@ function ClientAuthScreen({ onAccessGranted, onGoBack, disenoPendiente }) {
                                 />
                             </div>
                             {!necesitaNombre && !esProfesional && (
-                                <p className="text-xs text-pink-300/70 mt-1">
+                                <p className="text-sm text-white/90 mt-1.5">
                                     {t('Si ya reservaste antes, entrarás directo sin contraseña.')}
                                 </p>
                             )}
@@ -483,7 +482,7 @@ function ClientAuthScreen({ onAccessGranted, onGoBack, disenoPendiente }) {
                                                 ))}
                                             </select>
                                         </div>
-                                        <p className="mt-1 text-xs text-pink-100/80">{window.cumpleanos.bonificacionConfig(config).activa ? t('Tu salón puede tener un detalle para ti ese día.') : t('Así tu salón podrá felicitarte ese día.')}</p>
+                                        <p className="mt-1.5 text-sm text-white/90">{window.cumpleanos.bonificacionConfig(config).activa ? t('Tu salón puede tener un detalle para ti ese día.') : t('Así tu salón podrá felicitarte ese día.')}</p>
                                     </div>
                                 )}
                             </div>
@@ -553,9 +552,6 @@ function ClientAuthScreen({ onAccessGranted, onGoBack, disenoPendiente }) {
                         </div>
                     </form>
                     )}
-
-                    <div className="absolute -bottom-6 -right-6 text-7xl opacity-20 rotate-12 select-none">💇‍♀️</div>
-                    <div className="absolute top-1/2 -translate-y-1/2 -right-8 text-5xl opacity-10 select-none">🌸</div>
                 </div>
             </div>
         </div>

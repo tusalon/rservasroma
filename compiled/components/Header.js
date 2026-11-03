@@ -16,15 +16,15 @@ function Header({ cliente, onLogout, onMisReservas, onGoBack, userRol, showBackB
     }
   };
   const tieneAcceso = userRol === "admin" || userRol === "profesional";
-  return /* @__PURE__ */ React.createElement("header", { className: "bg-white shadow-sm sticky top-0 z-50" }, /* @__PURE__ */ React.createElement("div", { className: "max-w-3xl mx-auto px-4 py-4 flex justify-between items-center" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2" }, showBackButton && onGoBack && /* @__PURE__ */ React.createElement(
+  return /* @__PURE__ */ React.createElement("header", { className: "bg-white shadow-sm sticky top-0 z-50" }, /* @__PURE__ */ React.createElement("div", { className: "max-w-3xl mx-auto px-4 py-4 flex justify-between items-center" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2 min-w-0 flex-1" }, showBackButton && onGoBack && /* @__PURE__ */ React.createElement(
     "button",
     {
       onClick: onGoBack,
-      className: "w-9 h-9 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 transition-colors mr-2",
+      className: "w-9 h-9 shrink-0 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 transition-colors mr-2",
       title: t("Volver")
     },
     /* @__PURE__ */ React.createElement("i", { className: "icon-arrow-left text-gray-600" })
-  ), /* @__PURE__ */ React.createElement("div", { className: "w-8 h-8 bg-pink-600 rounded-full flex items-center justify-center text-white" }, /* @__PURE__ */ React.createElement("i", { className: "icon-calendar text-lg" })), /* @__PURE__ */ React.createElement("h1", { className: "text-xl font-bold text-gray-800" }, nombreNegocio)), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3" }, cliente && /* @__PURE__ */ React.createElement("div", { className: "hidden sm:flex items-center gap-1 text-sm text-gray-600" }, /* @__PURE__ */ React.createElement("i", { className: "icon-user-check text-green-500" }), /* @__PURE__ */ React.createElement("span", { className: "font-medium" }, cliente.nombre)), cliente && onMisReservas && userRol === "cliente" && /* @__PURE__ */ React.createElement(
+  ), /* @__PURE__ */ React.createElement("div", { className: "w-8 h-8 shrink-0 bg-pink-600 rounded-full flex items-center justify-center text-white" }, /* @__PURE__ */ React.createElement("i", { className: "icon-calendar text-lg" })), /* @__PURE__ */ React.createElement("h1", { className: "text-xl font-bold text-gray-800 truncate min-w-0" }, nombreNegocio)), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3 shrink-0 ml-2" }, cliente && /* @__PURE__ */ React.createElement("div", { className: "hidden sm:flex items-center gap-1 text-sm text-gray-600" }, /* @__PURE__ */ React.createElement("i", { className: "icon-user-check text-green-500" }), /* @__PURE__ */ React.createElement("span", { className: "font-medium" }, cliente.nombre)), cliente && onMisReservas && userRol === "cliente" && /* @__PURE__ */ React.createElement(
     "button",
     {
       onClick: onMisReservas,

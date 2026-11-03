@@ -270,8 +270,7 @@ function BookingForm({ service, profesional, date, time, onSubmit, onCancel, cli
         <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 p-4 animate-fade-in">
             <div className="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-6 shadow-xl space-y-6 border-2 border-pink-300">
                 <div className="flex justify-between items-center border-b border-pink-200 pb-4">
-                    <h3 className="text-xl font-bold text-pink-800 flex items-center gap-2">
-                        <span>✨</span>
+                    <h3 className="text-xl font-bold text-pink-800">
                         {t('Confirmar Reserva')}
                     </h3>
                     <button onClick={onCancel} className="text-pink-400 hover:text-pink-600">
@@ -280,50 +279,34 @@ function BookingForm({ service, profesional, date, time, onSubmit, onCancel, cli
                 </div>
 
                 <div className="space-y-4">
-                    <div className="bg-gradient-to-r from-pink-50 to-pink-100 p-4 rounded-xl border border-pink-200 space-y-2">
-                        <div className="flex items-center gap-3 text-pink-700">
-                            <span className="text-2xl">
-                                {service.nombre.toLowerCase().includes('corte') ? '💇‍♀️' :
-                                 service.nombre.toLowerCase().includes('peinado') ? '💆‍♀️' :
-                                 service.nombre.toLowerCase().includes('maquillaje') ? '💄' :
-                                 service.nombre.toLowerCase().includes('pesta') ? '👁️' : '✨'}
-                            </span>
-                            <span className="font-medium">{service.nombre}</span>
-                        </div>
-
-                        <div className="flex items-center gap-3 text-pink-700">
-                            <span className="text-2xl">👩‍🎨</span>
-                            <span>{t('Con:')} <strong>{profesional.nombre}</strong></span>
-                        </div>
-
-                        <div className="flex items-center gap-3 text-pink-700">
-                            <span className="text-2xl">📅</span>
-                            <span>{window.formatFechaCompleta ? window.formatFechaCompleta(date) : date}</span>
-                        </div>
-                        <div className="flex items-center gap-3 text-pink-700">
-                            <span className="text-2xl">⏰</span>
-                            <span>{window.formatTo12Hour ? window.formatTo12Hour(time) : time} ({service.duracion} min)</span>
-                        </div>
-                        {!service.esMultiple && window.formatearPrecioServicio && window.formatearPrecioServicio(service) && (
-                            <div className="flex items-center gap-3 text-pink-700">
-                                <span className="text-2xl">💵</span>
-                                <span>{t('Precio:')} <strong>{window.formatearPrecioServicio(service)}</strong></span>
+                    {/* Resumen como un ticket: etiqueta a la izquierda, dato a la
+                        derecha. Sin emojis: todo pesaba igual y nada destacaba. */}
+                    <div className="rounded-xl border border-pink-200 px-4 divide-y divide-dashed divide-pink-200 text-sm">
+                        {[
+                            [t('Servicio'), `${service.nombre} · ${service.duracion} min`],
+                            [t('Profesional'), profesional.nombre],
+                            [t('Fecha'), window.formatFechaCompleta ? window.formatFechaCompleta(date) : date],
+                            [t('Hora'), window.formatTo12Hour ? window.formatTo12Hour(time) : time],
+                            !service.esMultiple && window.formatearPrecioServicio && window.formatearPrecioServicio(service)
+                                ? [t('Precio'), window.formatearPrecioServicio(service)] : null
+                        ].filter(Boolean).map(([etiqueta, valor]) => (
+                            <div key={etiqueta} className="flex justify-between gap-4 py-2.5">
+                                <span className="text-gray-500">{etiqueta}</span>
+                                <span className="font-semibold text-gray-800 text-right">{valor}</span>
                             </div>
-                        )}
+                        ))}
                         {anticipoInfo?.requiere && anticipoInfo.monto > 0 && (
-                            <div className="flex items-center gap-3 text-amber-700 bg-amber-50 -mx-2 px-2 py-1 rounded-lg">
-                                <span className="text-2xl">💰</span>
-                                <span>{t('Anticipo para confirmar:')} <strong>{anticipoInfo.monto} {anticipoInfo.moneda}</strong></span>
+                            <div className="flex justify-between gap-4 py-2.5 text-amber-800">
+                                <span>{t('Anticipo para confirmar:')}</span>
+                                <span className="font-bold text-right">{anticipoInfo.monto} {anticipoInfo.moneda}</span>
                             </div>
                         )}
                     </div>
 
                     <form onSubmit={handleSubmit} className="space-y-4">
-                        <div className="bg-pink-50 p-3 rounded-lg border border-pink-200">
-                            <p className="text-sm text-pink-700">
-                                <span className="font-semibold">{t('Tus datos:')}</span> {cliente.nombre} - +{cliente.whatsapp}
-                            </p>
-                        </div>
+                        <p className="text-xs text-gray-500">
+                            {t('Tus datos:')} {cliente.nombre} · +{cliente.whatsapp}
+                        </p>
 
                         {error && (
                             <div className="text-pink-600 text-sm bg-pink-100 p-3 rounded-lg flex items-start gap-2 border border-pink-300">
@@ -335,29 +318,17 @@ function BookingForm({ service, profesional, date, time, onSubmit, onCancel, cli
                         <button
                             type="submit"
                             disabled={submitting}
-                            className="w-full py-3.5 rounded-xl font-bold transition-colors disabled:cursor-not-allowed flex justify-center items-center gap-2 shadow-lg"
-                            style={{
-                                background: submitting
-                                    ? 'linear-gradient(135deg, #5b21b6, #7c3aed)'
-                                    : 'linear-gradient(135deg, #5b21b6, #db2777)',
-                                color: '#fff',
-                                WebkitTextFillColor: '#fff',
-                                border: '1px solid rgba(91, 33, 182, 0.35)',
-                                opacity: 1
-                            }}
+                            className="w-full py-3.5 rounded-full font-bold text-lg transition-opacity disabled:cursor-not-allowed disabled:opacity-70 flex justify-center items-center gap-2 shadow-lg"
+                            // El color del salón (ya corregido para que el blanco
+                            // no quede invisible), no un morado fijo.
+                            style={{ background: 'var(--brand-primary, #FF1493)', color: '#fff', WebkitTextFillColor: '#fff' }}
                         >
                             {submitting ? (
                                 <>
                                     <div className="animate-spin rounded-full h-4 w-4 border-2 border-white/30 border-t-white"></div>
                                     {t('Procesando...')}
                                 </>
-                            ) : (
-                                <>
-                                    <span>✨</span>
-                                    {t('Confirmar Reserva')}
-                                    <span>✨</span>
-                                </>
-                            )}
+                            ) : t('Confirmar Reserva')}
                         </button>
                     </form>
                 </div>

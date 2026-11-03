@@ -26,24 +26,26 @@ function Header({ cliente, onLogout, onMisReservas, onGoBack, userRol, showBackB
     return (
         <header className="bg-white shadow-sm sticky top-0 z-50">
             <div className="max-w-3xl mx-auto px-4 py-4 flex justify-between items-center">
-                <div className="flex items-center gap-2">
+                {/* min-w-0 + truncate: el nombre del salón va en una línea; antes,
+                    con "Mis Citas" al lado, se partía en tres. */}
+                <div className="flex items-center gap-2 min-w-0 flex-1">
                     {showBackButton && onGoBack && (
                         <button
                             onClick={onGoBack}
-                            className="w-9 h-9 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 transition-colors mr-2"
+                            className="w-9 h-9 shrink-0 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 transition-colors mr-2"
                             title={t('Volver')}
                         >
                             <i className="icon-arrow-left text-gray-600"></i>
                         </button>
                     )}
 
-                    <div className="w-8 h-8 bg-pink-600 rounded-full flex items-center justify-center text-white">
+                    <div className="w-8 h-8 shrink-0 bg-pink-600 rounded-full flex items-center justify-center text-white">
                         <i className="icon-calendar text-lg"></i>
                     </div>
-                    <h1 className="text-xl font-bold text-gray-800">{nombreNegocio}</h1>
+                    <h1 className="text-xl font-bold text-gray-800 truncate min-w-0">{nombreNegocio}</h1>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 shrink-0 ml-2">
                     {cliente && (
                         <div className="hidden sm:flex items-center gap-1 text-sm text-gray-600">
                             <i className="icon-user-check text-green-500"></i>

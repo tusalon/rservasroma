@@ -382,18 +382,6 @@ function MyBookings({ cliente, onVolver }) {
 
             <div className="max-w-3xl mx-auto px-4 py-6">
 
-                <div className="bg-white/80 backdrop-blur-sm border border-pink-200 rounded-lg p-4 mb-6">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-pink-500 rounded-full flex items-center justify-center text-white font-bold">
-                            {cliente.nombre.charAt(0)}
-                        </div>
-                        <div>
-                            <p className="font-medium text-pink-800">{cliente.nombre}</p>
-                            <p className="text-sm text-pink-600">{cliente.whatsapp}</p>
-                        </div>
-                    </div>
-                </div>
-
                 {mensajeError && (
                     <div className="bg-pink-100 border border-pink-300 text-pink-700 p-3 rounded-lg mb-4 text-sm">{mensajeError}</div>
                 )}
@@ -552,6 +540,17 @@ function MyBookings({ cliente, onVolver }) {
                                             )
                                         )}
 
+                                        {/* Pendiente = falta el anticipo. Antes la tarjeta lo
+                                            decía sin decir cómo enviarlo; quien cerró la
+                                            confirmación no tenía por dónde pagar. */}
+                                        {booking.estado === 'Pendiente' && (
+                                            <button onClick={() => window.contactarSalonWhatsApp?.(
+                                                    `Hola! Reservé ${booking.servicio} para el ${fechaConDia} a las ${horaLegible(booking.hora_inicio)} y quiero enviar el anticipo.`)}
+                                                className="w-full py-3 rounded-full font-bold transition flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 text-white shadow-sm mb-3">
+                                                {t('Enviar el anticipo por WhatsApp')}
+                                            </button>
+                                        )}
+
                                         {booking.estado !== 'Cancelado' && calendarLink && (
                                             <a href={calendarLink} target="_blank" rel="noopener noreferrer"
                                                 className="w-full py-2 rounded-lg font-medium transition flex items-center justify-center gap-2 bg-white hover:bg-pink-50 text-pink-700 border border-pink-300 mb-2">
@@ -579,13 +578,15 @@ function MyBookings({ cliente, onVolver }) {
                                         {booking.estado !== 'Cancelado' && (
                                             <button onClick={() => handleCancelarReserva(booking)}
                                                 disabled={cancelando !== null || !puedeCancelarBooking}
-                                                className={`w-full py-2 rounded-lg font-medium transition flex items-center justify-center gap-2
-                                                    ${puedeCancelarBooking ? 'bg-pink-100 hover:bg-pink-200 text-pink-700' : 'bg-pink-50 text-pink-400 cursor-not-allowed'}
-                                                    disabled:opacity-50 disabled:cursor-not-allowed`}>
+                                                // Enlace, no botón: cancelar no puede pesar lo
+                                                // mismo que cambiar la fecha o pagar.
+                                                className={`w-full py-2 text-sm font-semibold transition flex items-center justify-center gap-2
+                                                    ${puedeCancelarBooking ? 'text-red-600 hover:underline' : 'text-gray-400 cursor-not-allowed'}
+                                                    disabled:cursor-not-allowed`}>
                                                 {cancelando === booking.id ? (
-                                                    <><div className="animate-spin h-4 w-4 border-2 border-pink-600 border-t-transparent rounded-full"></div>{t('Cancelando...')}</>
+                                                    <><div className="animate-spin h-4 w-4 border-2 border-red-600 border-t-transparent rounded-full"></div>{t('Cancelando...')}</>
                                                 ) : (
-                                                    <><span>❌</span>{puedeCancelarBooking ? t('Cancelar turno') : t('No se puede cancelar aún')}</>
+                                                    puedeCancelarBooking ? t('Cancelar turno') : t('No se puede cancelar aún')
                                                 )}
                                             </button>
                                         )}

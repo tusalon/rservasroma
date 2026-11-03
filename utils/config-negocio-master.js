@@ -560,14 +560,10 @@ window.construirUrlClientesNegocio = construirUrlClientesNegocio;
 
 // Enlace que comparte el salon en Instagram o WhatsApp: abre la app de la
 // clienta directamente en el catalogo, sin pedir acceso para mirar.
-function construirUrlCatalogoNegocio(config = null, opciones = {}) {
+function construirUrlCatalogoNegocio(config = null) {
     const base = construirUrlClientesNegocio(config);
     if (!base) return '';
-    // "precios=1" solo se pone cuando la duena lo elige al compartir. Sin el
-    // parametro la galeria sale sin precios, como siempre, para que los
-    // enlaces que ya circulan no cambien de aspecto solos.
-    const precios = opciones && opciones.conPrecios ? '&precios=1' : '';
-    return base + (base.includes('?') ? '&' : '?') + 'ir=catalogo' + precios;
+    return base + (base.includes('?') ? '&' : '?') + 'ir=catalogo';
 }
 window.construirUrlCatalogoNegocio = construirUrlCatalogoNegocio;
 

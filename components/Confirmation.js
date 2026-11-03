@@ -117,16 +117,30 @@ function Confirmation({ booking, onReset }) {
 
             {esPendientePago ? (
                 <>
-                    <h2 className="text-2xl font-bold text-amber-700 mb-2">⏳ {t('¡Ya casi! Falta el anticipo')}</h2>
-                    <p className="text-amber-700 mb-6 max-w-xs mx-auto">
+                    <h2 className="text-2xl font-bold text-amber-700 mb-2">{t('¡Ya casi! Falta el anticipo')}</h2>
+                    <p className="text-amber-700 mb-5 max-w-xs mx-auto">
                         {textoAnticipo
                             ? t('Tu turno quedará confirmado cuando envíes el anticipo de {monto}. Si no se recibe a tiempo, el horario se libera.', { monto: textoAnticipo })
                             : t('Tu turno quedará confirmado cuando envíes el anticipo. Si no se recibe a tiempo, el horario se libera.')}
                     </p>
+                    {/* Es lo único que la clienta tiene que hacer aquí: arriba,
+                        antes del resumen, no al fondo de la pantalla. */}
+                    {linkWhatsAppAnticipo && (
+                        <a
+                            href={linkWhatsAppAnticipo}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="w-full max-w-sm mb-6 bg-green-500 text-white py-4 rounded-full font-bold text-lg hover:bg-green-600 transition-colors flex items-center justify-center gap-2 shadow-md"
+                        >
+                            {textoAnticipo
+                                ? t('Enviar anticipo de {monto} por WhatsApp', { monto: textoAnticipo })
+                                : t('Coordinar el anticipo por WhatsApp')}
+                        </a>
+                    )}
                 </>
             ) : (
                 <>
-                    <h2 className="text-2xl font-bold text-pink-800 mb-2">✨ {t('¡Turno Reservado!')} ✨</h2>
+                    <h2 className="text-2xl font-bold text-pink-800 mb-2">{t('¡Turno Reservado!')}</h2>
                     <p className="text-pink-600 mb-6 max-w-xs mx-auto" style={mensajePropio ? { whiteSpace: 'pre-line' } : undefined}>
                         {mensajePropio || t('Tu cita ha sido agendada correctamente')}
                     </p>
@@ -170,31 +184,9 @@ function Confirmation({ booking, onReset }) {
             </div>
 
             {esPendientePago ? (
-                <div className="bg-amber-50 border border-amber-300 rounded-lg p-4 mb-6 max-w-sm w-full">
-                    <div className="flex items-center gap-3 mb-3">
-                        <div className="w-10 h-10 bg-amber-500 rounded-full flex items-center justify-center text-white text-xl">
-                            💰
-                        </div>
-                        <div className="text-left">
-                            <p className="font-medium text-amber-800">{t('El salón ya recibió tu solicitud')}</p>
-                            <p className="text-xs text-amber-700">
-                                {textoAnticipo
-                                    ? t('Envía el anticipo de {monto} para confirmar tu turno', { monto: textoAnticipo })
-                                    : t('Envía el anticipo para confirmar tu turno')}
-                            </p>
-                        </div>
-                    </div>
-                    {linkWhatsAppAnticipo && (
-                        <a
-                            href={linkWhatsAppAnticipo}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="w-full bg-green-500 text-white py-3 rounded-xl font-bold hover:bg-green-600 transition-colors flex items-center justify-center gap-2 shadow-sm"
-                        >
-                            💬 {t('Coordinar el anticipo por WhatsApp')}
-                        </a>
-                    )}
-                </div>
+                <p className="text-sm text-amber-800 mb-6 max-w-sm">
+                    {t('El salón ya recibió tu solicitud')}. {t('Si cierras esta pantalla, el botón del anticipo también está en «Mis Reservas».')}
+                </p>
             ) : (
                 <div className="bg-pink-100 border border-pink-300 rounded-lg p-4 mb-6 max-w-sm w-full">
                     <div className="flex items-center gap-3">
@@ -262,9 +254,7 @@ function Confirmation({ booking, onReset }) {
                     onClick={onReset}
                     className="w-full bg-pink-500 text-white py-4 rounded-full font-bold hover:bg-pink-600 transition-colors flex items-center justify-center gap-2 text-lg shadow-md"
                 >
-                    <span>✨</span>
                     {t('Reservar otro turno')}
-                    <span>✨</span>
                 </button>
 
                 {telefonoDuenno && (

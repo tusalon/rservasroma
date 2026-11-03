@@ -45,21 +45,6 @@ function catalogoPromedio(diseno) {
     return Math.round(suma / conteo);
 }
 
-// El enlace que reparte el salon decide si la galeria ensena precios: lo pone
-// la duena al compartir (ver components/admin/CatalogoPanel.js). Sin el
-// parametro no se ensenan, que es como funciono el catalogo hasta ahora, asi
-// que los enlaces que ya andan por Instagram siguen viendose igual.
-//
-// No es un candado: la clienta ve los precios de todas formas al elegir el
-// servicio para reservar. Es una decision de presentacion de la galeria.
-function catalogoQuierePrecios(busqueda) {
-    const texto = typeof busqueda === 'string'
-        ? busqueda
-        : (typeof window !== 'undefined' && window.location ? window.location.search : '');
-    const valor = new URLSearchParams(String(texto || '').replace(/^\?/, '')).get('precios');
-    return valor === '1' || valor === 'true' || valor === 'si';
-}
-
 // Precio ya formateado de cada servicio, listo para pintarlo bajo el diseno.
 // Los servicios sin precio puesto se quedan fuera a proposito: un "0 CUP"
 // espanta mas que no poner nada.
@@ -390,7 +375,6 @@ window.catalogoCrearDiseno = catalogoCrearDiseno;
 window.catalogoActualizarDiseno = catalogoActualizarDiseno;
 window.catalogoEliminarDiseno = catalogoEliminarDiseno;
 window.catalogoReordenar = catalogoReordenar;
-window.catalogoQuierePrecios = catalogoQuierePrecios;
 window.catalogoMapaPrecios = catalogoMapaPrecios;
 
 console.log('✅ catalogo.js funciones disponibles');
