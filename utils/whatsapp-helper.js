@@ -596,9 +596,9 @@ ${lineaDireccion}
 ${mensajePagoConfig || `
 💰 *Para confirmar tu turno*, envía el *anticipo de ${montoAnticipoFormateado || montoAnticipo}* por:
 
-🏦 *Transferencia bancaria:*
-   Tarjeta a transferir: ${configNegocio.cbu || 'XXXX XXXX XXXX XXXX'}
-   Alias: ${configNegocio.alias || 'alias.no.configurado'}
+📲 *Transfermóvil:*
+   Tarjeta: ${configNegocio.cbu || 'XXXX XXXX XXXX XXXX'}${configNegocio.alias ? `
+   Móvil a confirmar: ${configNegocio.alias}` : ''}
 
 📱 *Enviar comprobante a este WhatsApp:*
    ${window.formatearTelefono ? window.formatearTelefono(configNegocio.telefono, configNegocio.codigo_pais) : `+${configNegocio.telefono || '00000000'}`}
@@ -837,9 +837,9 @@ ${lineaDireccion}
 ${mensajePagoConfig || `
 💰 *Para confirmar tu turno*, envía el *anticipo de ${montoAnticipoFormateado || montoAnticipo}* por:
 
-🏦 *Transferencia bancaria:*
-   Tarjeta a transferir: ${configNegocio.cbu || 'XXXX XXXX XXXX XXXX'}
-   Alias: ${configNegocio.alias || 'alias.no.configurado'}
+📲 *Transfermóvil:*
+   Tarjeta: ${configNegocio.cbu || 'XXXX XXXX XXXX XXXX'}${configNegocio.alias ? `
+   Móvil a confirmar: ${configNegocio.alias}` : ''}
 
 📱 *Enviar comprobante a este WhatsApp:*
    ${window.formatearTelefono ? window.formatearTelefono(configNegocio.telefono, configNegocio.codigo_pais) : `+${configNegocio.telefono || '00000000'}`}

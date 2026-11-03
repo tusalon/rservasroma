@@ -252,9 +252,9 @@ function SetupWizard() {
         if (step === 1) {
             const pais = paisTelefono();
             if (!config.nombre.trim()) return t('El nombre del negocio es obligatorio');
-            if (!config.codigo_pais) return t('Selecciona el pais del telefono');
-            if (!config.telefono_whatsapp || config.telefono_whatsapp.length < Math.min(Number(pais.localLength || 8), 8)) return t('Ingresa un telefono valido');
-            if (config.email && !config.email.includes('@')) return t('El email no es valido');
+            if (!config.codigo_pais) return t('Selecciona el país del teléfono');
+            if (!config.telefono_whatsapp || config.telefono_whatsapp.length < Math.min(Number(pais.localLength || 8), 8)) return t('Ingresa un teléfono válido');
+            if (config.email && !config.email.includes('@')) return t('El email no es válido');
             if (!config.provincia.trim()) return esNegocioCuba
                 ? t('Selecciona la provincia de tu negocio')
                 : t('Escribe el estado o provincia de tu negocio');
@@ -271,9 +271,9 @@ function SetupWizard() {
             return '';
         }
         if (step === 2) {
-            if (profesionalesValidos().length === 0) return t('Agrega al menos un profesional con WhatsApp y contrasena');
+            if (profesionalesValidos().length === 0) return t('Agrega al menos un profesional con WhatsApp y contraseña');
             const incompleto = config.profesionales.find(p => p.nombre.trim() && (!p.telefono.trim() || !p.password.trim()));
-            if (incompleto) return t('Cada profesional con nombre necesita WhatsApp y contrasena');
+            if (incompleto) return t('Cada profesional con nombre necesita WhatsApp y contraseña');
             return '';
         }
         if (step === 3) {
@@ -716,7 +716,7 @@ function SetupWizard() {
                     </div>
                     <h1 className="text-2xl font-bold text-gray-900">{t('¡Vamos a dejar tu salón listo!')}</h1>
                     <p className="text-gray-600 mt-3 leading-relaxed">
-                        {t('Para que tus clientas puedan reservar necesitamos algunos datos: tu negocio, quien atiende, que servicios ofreces y tus horarios. Puedes cambiar todo despues desde el panel.')}
+                        {t('Para que tus clientas puedan reservar necesitamos algunos datos: tu negocio, quien atiende, que servicios ofreces y tus horarios. Puedes cambiar todo después desde el panel.')}
                     </p>
                     <div className="mt-6 space-y-2 text-left">
                         {PASOS.map((nombre, i) => (
@@ -916,7 +916,7 @@ function SetupWizard() {
                                         <option value="3">👑 {t('Avanzado')}</option>
                                     </select>
                                     <input type="tel" value={p.telefono} onChange={(e) => actualizarProfesional(i, 'telefono', window.normalizarTelefonoLocal ? window.normalizarTelefonoLocal(e.target.value, config.codigo_pais) : e.target.value.replace(/\D/g, ''))} className="w-full border rounded-lg px-3 py-2" placeholder={'WhatsApp +' + config.codigo_pais} />
-                                    <input type="password" value={p.password} onChange={(e) => actualizarProfesional(i, 'password', e.target.value)} className="w-full border rounded-lg px-3 py-2" placeholder={t('Contrasena de acceso *')} />
+                                    <input type="password" value={p.password} onChange={(e) => actualizarProfesional(i, 'password', e.target.value)} className="w-full border rounded-lg px-3 py-2" placeholder={t('Contraseña de acceso *')} />
                                 </div>
                                 <p className="text-xs text-gray-500 -mt-2">
                                     {t('👑 Avanzado ve todo el negocio (recomendado si es la dueña). ⭐ Intermedio ve agenda y clientes. 🔰 Basico solo ve su propia agenda.')}
@@ -944,7 +944,7 @@ function SetupWizard() {
                         <div className="flex items-start justify-between gap-4">
                             <div>
                                 <h2 className="text-xl font-bold mb-1">✨ {t('Servicios')}</h2>
-                                <p className="text-sm text-gray-500 mb-3">{t('Empieza con uno y agrega los que necesites con precio, duracion y reglas.')}</p>
+                                <p className="text-sm text-gray-500 mb-3">{t('Empieza con uno y agrega los que necesites con precio, duración y reglas.')}</p>
                             </div>
                             <button type="button" onClick={agregarServicio} className="px-3 py-2 bg-pink-600 text-white rounded-full text-sm font-semibold hover:bg-pink-700">{t('Anadir servicio')}</button>
                         </div>
@@ -956,7 +956,7 @@ function SetupWizard() {
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                     <input type="text" value={s.nombre} onChange={(e) => actualizarServicio(i, 'nombre', e.target.value)} className="w-full border rounded-lg px-3 py-2" placeholder={t('Nombre del servicio *')} />
-                                    <input type="text" value={s.duracion} onChange={(e) => actualizarServicio(i, 'duracion', e.target.value.replace(/\D/g, ''))} className="w-full border rounded-lg px-3 py-2" placeholder={t('Duracion en minutos')} inputMode="numeric" />
+                                    <input type="text" value={s.duracion} onChange={(e) => actualizarServicio(i, 'duracion', e.target.value.replace(/\D/g, ''))} className="w-full border rounded-lg px-3 py-2" placeholder={t('Duración en minutos')} inputMode="numeric" />
                                 </div>
                                 <textarea value={s.descripcion} onChange={(e) => actualizarServicio(i, 'descripcion', e.target.value)} className="w-full border rounded-lg px-3 py-2" rows="3" placeholder={t('Descripcion')} />
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">

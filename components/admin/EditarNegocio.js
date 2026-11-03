@@ -40,7 +40,7 @@ function EditarNegocio() {
         anticipos_por_servicio: false,
         tipo_anticipo: 'fijo',
         valor_anticipo: '',
-        mensaje_pago: 'Para confirmar tu turno, realiza el pago del anticipo de ${monto_anticipo} a la siguiente cuenta:\n\nCBU: {cbu}\nAlias: {alias}\nTitular: {titular}\n\nTienes {tiempo_vencimiento} horas para realizar el pago. Si no se confirma el pago en ese tiempo, el turno se liberará automáticamente.',
+        mensaje_pago: 'Para confirmar tu cita, envía el anticipo de {monto_anticipo} por Transfermóvil:\n\nTarjeta: {cbu}\nMóvil a confirmar: {alias}\nTitular: {titular}\n\nTienes {tiempo_vencimiento} horas para pagar. Si no llega en ese tiempo, la cita se libera.',
         cbu: '',
         alias: '',
         titular: '',
@@ -139,7 +139,7 @@ function EditarNegocio() {
                     anticipos_por_servicio: configData.anticipos_por_servicio === true,
                     tipo_anticipo: configData.tipo_anticipo || 'fijo',
                     valor_anticipo: configData.valor_anticipo || '',
-                    mensaje_pago: configData.mensaje_pago || 'Para confirmar tu turno, realiza el pago del anticipo de ${monto_anticipo} a la siguiente cuenta:\n\nCBU: {cbu}\nAlias: {alias}\nTitular: {titular}\n\nTienes {tiempo_vencimiento} horas para realizar el pago. Si no se confirma el pago en ese tiempo, el turno se liberará automáticamente.',
+                    mensaje_pago: configData.mensaje_pago || 'Para confirmar tu cita, envía el anticipo de {monto_anticipo} por Transfermóvil:\n\nTarjeta: {cbu}\nMóvil a confirmar: {alias}\nTitular: {titular}\n\nTienes {tiempo_vencimiento} horas para pagar. Si no llega en ese tiempo, la cita se libera.',
                     cbu: configData.cbu || '',
                     alias: configData.alias || '',
                     titular: configData.titular || '',
@@ -263,7 +263,7 @@ function EditarNegocio() {
             console.log('🔍 Verificando negocioId:', negocioId);
             
             if (!negocioId) {
-                throw new Error(t('No hay ID de negocio. Por favor, iniciá sesión nuevamente.'));
+                throw new Error(t('No se encontró tu salón. Vuelve a iniciar sesión.'));
             }
 
             // Subir logo si hay uno nuevo
@@ -451,7 +451,7 @@ function EditarNegocio() {
                             </div>
                             <div>
                                 <h1 className="text-2xl font-bold text-gray-900">{t('Editar Negocio')}</h1>
-                                <p className="text-sm text-gray-500">{t('Modificá los datos de tu negocio')}</p>
+                                <p className="text-sm text-gray-500">{t('Cambia los datos de tu negocio')}</p>
                             </div>
                         </div>
                         <div className="flex items-center gap-2">
@@ -814,7 +814,7 @@ function EditarNegocio() {
                                         </button>
                                     ))}
                                 </div>
-                                <p className="text-xs text-gray-500 mt-2">{t('Esta imagen se vera en la pantalla de acceso y bienvenida de la clienta.')}</p>
+                                <p className="text-xs text-gray-500 mt-2">{t('Esta imagen se verá en la pantalla de acceso y bienvenida de la clienta.')}</p>
                             </div>
 
                             {/* Horario de atención */}
@@ -844,7 +844,7 @@ function EditarNegocio() {
                                 <div className="flex items-center justify-between bg-gray-50 p-4 rounded-lg">
                                     <div>
                                         <label className="font-medium text-gray-700">{t('Requerir anticipo para reservas')}</label>
-                                        <p className="text-xs text-gray-500 mt-1">{t('Si activás, los clientes deberán pagar un anticipo para confirmar el turno')}</p>
+                                        <p className="text-xs text-gray-500 mt-1">{t('Si lo activas, las clientas deberán pagar un anticipo para confirmar la cita')}</p>
                                     </div>
                                     <label className="relative inline-flex items-center cursor-pointer">
                                         <input
@@ -892,7 +892,7 @@ function EditarNegocio() {
                                                 >
                                                     <div className="text-2xl mb-2">💰</div>
                                                     <div className="font-medium">{t('Monto fijo')}</div>
-                                                    <div className="text-xs text-gray-500 mt-1">{t('Ej: $500 por turno')}</div>
+                                                    <div className="text-xs text-gray-500 mt-1">{t('Ej: 500 por cita')}</div>
                                                 </button>
                                                 <button
                                                     type="button"
@@ -913,7 +913,7 @@ function EditarNegocio() {
                                         {/* Valor del anticipo */}
                                         <div className={config.anticipos_por_servicio ? 'opacity-60' : ''}>
                                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                {config.tipo_anticipo === 'fijo' ? t('Monto global del anticipo ($)') : t('Porcentaje global del servicio (%)')}
+                                                {config.tipo_anticipo === 'fijo' ? t('Monto global del anticipo') : t('Porcentaje global del servicio (%)')}
                                             </label>
                                             <input
                                                 type="number"
@@ -944,12 +944,12 @@ function EditarNegocio() {
                                                 <option value="24">{t('{n} horas', { n: 24 })}</option>
                                                 <option value="48">{t('{n} horas', { n: 48 })}</option>
                                             </select>
-                                            <p className="text-xs text-gray-500 mt-1">{t('Si no paga en este tiempo, la reserva se elimina y el horario queda libre automaticamente')}</p>
+                                            <p className="text-xs text-gray-500 mt-1">{t('Si no paga en este tiempo, la reserva se elimina y el horario queda libre automáticamente')}</p>
                                         </div>
 
                                         {/* Datos bancarios */}
                                         <div className="space-y-3 p-4 bg-gray-50 rounded-lg">
-                                            <h3 className="font-medium text-gray-700">{t('Datos de la cuenta')}</h3>
+                                            <h3 className="font-medium text-gray-700">{t('Datos para Transfermóvil')}</h3>
 
                                             <div>
                                                 <label className="block text-xs text-gray-500 mb-1">{t('Banco')}</label>
@@ -958,30 +958,31 @@ function EditarNegocio() {
                                                     value={config.banco}
                                                     onChange={(e) => setConfig({...config, banco: e.target.value})}
                                                     className="w-full border rounded-lg px-3 py-2 text-sm"
-                                                    placeholder="Ej: Banco Santander"
+                                                    placeholder="Ej: BANDEC, BPA o Metropolitano"
                                                 />
                                             </div>
                                             
                                             <div>
-                                                <label className="block text-xs text-gray-500 mb-1">{t('CBU (22 dígitos)')}</label>
+                                                <label className="block text-xs text-gray-500 mb-1">{t('Número de tarjeta (16 dígitos)')}</label>
                                                 <input
                                                     type="text"
                                                     value={config.cbu}
                                                     onChange={(e) => setConfig({...config, cbu: e.target.value.replace(/\D/g, '')})}
                                                     className="w-full border rounded-lg px-3 py-2 text-sm"
-                                                    placeholder="0000000000000000000000"
-                                                    maxLength="22"
+                                                    placeholder="9200 0000 0000 0000"
+                                                    inputMode="numeric"
+                                                    maxLength="16"
                                                 />
                                             </div>
                                             
                                             <div>
-                                                <label className="block text-xs text-gray-500 mb-1">{t('Alias')}</label>
+                                                <label className="block text-xs text-gray-500 mb-1">{t('Móvil a confirmar')}</label>
                                                 <input
                                                     type="text"
                                                     value={config.alias}
                                                     onChange={(e) => setConfig({...config, alias: e.target.value})}
                                                     className="w-full border rounded-lg px-3 py-2 text-sm"
-                                                    placeholder="Ej: SALON.BELLEZA"
+                                                    placeholder="Ej: 53 5555 5555"
                                                 />
                                             </div>
                                             
@@ -1016,8 +1017,8 @@ function EditarNegocio() {
                                                     <span><code>{'{fecha}'}</code> - {t('Fecha del turno')}</span>
                                                     <span><code>{'{hora}'}</code> - {t('Hora del turno')}</span>
                                                     <span><code>{'{profesional}'}</code> - {t('Profesional')}</span>
-                                                    <span><code>{'{cbu}'}</code> - CBU</span>
-                                                    <span><code>{'{alias}'}</code> - {t('Alias')}</span>
+                                                    <span><code>{'{cbu}'}</code> - {t('Número de tarjeta')}</span>
+                                                    <span><code>{'{alias}'}</code> - {t('Móvil a confirmar')}</span>
                                                     <span><code>{'{titular}'}</code> - {t('Titular')}</span>
                                                     <span><code>{'{banco}'}</code> - {t('Banco')}</span>
                                                     <span><code>{'{tiempo_vencimiento}'}</code> - {t('Horas para pagar')}</span>

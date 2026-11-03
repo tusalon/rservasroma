@@ -316,7 +316,7 @@
        si ya hay sesión viva para saltarse el formulario en vez de volver a pedir
        la clave (la APK arranca siempre por aquí). -->
   <script src="utils/config-negocio-master.js?v=20261008-espera1"></script>
-  <script src="utils/i18n.js?v=20261103-cabecera1"></script>
+  <script src="utils/i18n.js?v=20261103-textos1"></script>
   <!-- phone-utils normaliza el teléfono del profesional al mismo formato local
        con el que se guardó; auth-profesionales trae loginProfesional(). -->
   <script src="utils/phone-utils.js?v=20261012-eeuu1"></script>
@@ -525,7 +525,7 @@
           { headers: { 'apikey': window.SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + window.SUPABASE_ANON_KEY } }
         );
 
-        if (!response.ok) throw new Error(window.t('Error de conexión. Intentá de nuevo.'));
+        if (!response.ok) throw new Error(window.t('Error de conexión. Inténtalo de nuevo.'));
 
         var negocios = await response.json();
 
@@ -616,7 +616,7 @@
         }, 900);
 
       } catch (error) {
-        errorMsg.textContent = error.message || window.t('Error al conectar. Intentá de nuevo.');
+        errorMsg.textContent = error.message || window.t('No se pudo conectar. Inténtalo de nuevo.');
         errorMsg.classList.remove('hidden');
         mensaje.classList.add('hidden');
         btn.disabled = false;

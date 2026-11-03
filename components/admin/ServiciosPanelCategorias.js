@@ -206,7 +206,7 @@ function ServiciosPanel() {
             : await window.salonServicios.crear(servicio);
 
         if (!resultado) {
-            alert(t('No se pudo guardar el servicio. Revisa la consola para ver el detalle de Supabase.'));
+            alert(t('No se pudo guardar el servicio. Revisa tu conexión e inténtalo de nuevo.'));
             return;
         }
 
@@ -449,7 +449,7 @@ function CategoriasServiciosManager({ categorias, servicios, onChange }) {
             : await window.salonCategoriasServicios?.crear(payload);
 
         if (!result) {
-            alert(t('No se pudo guardar la categoría. Revisa si ya corriste el SQL de categorías.'));
+            alert(t('No se pudo guardar la categoría. Inténtalo de nuevo; si sigue fallando, escribe a soporte.'));
             return;
         }
         // El nombre ya existia (mismo slug): no se crea otra; se avisa en vez de parecer que se creo.
@@ -482,7 +482,7 @@ function CategoriasServiciosManager({ categorias, servicios, onChange }) {
 
         const ok = await window.salonCategoriasServicios?.eliminar(categoria.id);
         if (!ok) {
-            alert(t('No se pudo eliminar la categoría. Revisa si ya corriste el SQL de categorías.'));
+            alert(t('No se pudo eliminar la categoría. Inténtalo de nuevo; si sigue fallando, escribe a soporte.'));
             return;
         }
         await onChange();

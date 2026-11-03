@@ -37,7 +37,7 @@ function EditarNegocio() {
     anticipos_por_servicio: false,
     tipo_anticipo: "fijo",
     valor_anticipo: "",
-    mensaje_pago: "Para confirmar tu turno, realiza el pago del anticipo de ${monto_anticipo} a la siguiente cuenta:\n\nCBU: {cbu}\nAlias: {alias}\nTitular: {titular}\n\nTienes {tiempo_vencimiento} horas para realizar el pago. Si no se confirma el pago en ese tiempo, el turno se liberará automáticamente.",
+    mensaje_pago: "Para confirmar tu cita, envía el anticipo de {monto_anticipo} por Transfermóvil:\n\nTarjeta: {cbu}\nMóvil a confirmar: {alias}\nTitular: {titular}\n\nTienes {tiempo_vencimiento} horas para pagar. Si no llega en ese tiempo, la cita se libera.",
     cbu: "",
     alias: "",
     titular: "",
@@ -124,7 +124,7 @@ function EditarNegocio() {
           anticipos_por_servicio: configData.anticipos_por_servicio === true,
           tipo_anticipo: configData.tipo_anticipo || "fijo",
           valor_anticipo: configData.valor_anticipo || "",
-          mensaje_pago: configData.mensaje_pago || "Para confirmar tu turno, realiza el pago del anticipo de ${monto_anticipo} a la siguiente cuenta:\n\nCBU: {cbu}\nAlias: {alias}\nTitular: {titular}\n\nTienes {tiempo_vencimiento} horas para realizar el pago. Si no se confirma el pago en ese tiempo, el turno se liberará automáticamente.",
+          mensaje_pago: configData.mensaje_pago || "Para confirmar tu cita, envía el anticipo de {monto_anticipo} por Transfermóvil:\n\nTarjeta: {cbu}\nMóvil a confirmar: {alias}\nTitular: {titular}\n\nTienes {tiempo_vencimiento} horas para pagar. Si no llega en ese tiempo, la cita se libera.",
           cbu: configData.cbu || "",
           alias: configData.alias || "",
           titular: configData.titular || "",
@@ -235,7 +235,7 @@ function EditarNegocio() {
     try {
       console.log("🔍 Verificando negocioId:", negocioId);
       if (!negocioId) {
-        throw new Error(t("No hay ID de negocio. Por favor, iniciá sesión nuevamente."));
+        throw new Error(t("No se encontró tu salón. Vuelve a iniciar sesión."));
       }
       let logo_url = config.logo_url;
       if (config.logo_file) {
@@ -379,7 +379,7 @@ function EditarNegocio() {
   }
   const paisTelefonoActual = paisesTelefono.find((pais) => pais.codigo === config.codigo_pais) || paisesTelefono[0];
   const esNegocioCuba = String(config.codigo_pais || "53").replace(/\D/g, "") === "53";
-  return /* @__PURE__ */ React.createElement("div", { className: "min-h-screen bg-gray-100 py-8 px-4" }, /* @__PURE__ */ React.createElement("div", { className: "max-w-4xl mx-auto" }, /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-xl shadow-sm p-6" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between mb-6 pb-4 border-b" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3" }, /* @__PURE__ */ React.createElement("div", { className: "w-12 h-12 bg-amber-600 rounded-xl flex items-center justify-center" }, /* @__PURE__ */ React.createElement("i", { className: "icon-building text-2xl text-white" })), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h1", { className: "text-2xl font-bold text-gray-900" }, t("Editar Negocio")), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500" }, t("Modificá los datos de tu negocio")))), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2" }, /* @__PURE__ */ React.createElement(window.LanguageToggle, null), /* @__PURE__ */ React.createElement(
+  return /* @__PURE__ */ React.createElement("div", { className: "min-h-screen bg-gray-100 py-8 px-4" }, /* @__PURE__ */ React.createElement("div", { className: "max-w-4xl mx-auto" }, /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-xl shadow-sm p-6" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between mb-6 pb-4 border-b" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3" }, /* @__PURE__ */ React.createElement("div", { className: "w-12 h-12 bg-amber-600 rounded-xl flex items-center justify-center" }, /* @__PURE__ */ React.createElement("i", { className: "icon-building text-2xl text-white" })), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h1", { className: "text-2xl font-bold text-gray-900" }, t("Editar Negocio")), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500" }, t("Cambia los datos de tu negocio")))), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2" }, /* @__PURE__ */ React.createElement(window.LanguageToggle, null), /* @__PURE__ */ React.createElement(
     "button",
     {
       onClick: () => window.location.href = window.construirRutaConSlug("admin.html"),
@@ -590,7 +590,7 @@ function EditarNegocio() {
     },
     /* @__PURE__ */ React.createElement("img", { src: opcion.image, alt: opcion.label, className: "h-24 w-full object-cover" }),
     /* @__PURE__ */ React.createElement("div", { className: "p-3" }, /* @__PURE__ */ React.createElement("p", { className: "text-sm font-semibold text-gray-900" }, t(opcion.label)), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-1" }, t(opcion.description)))
-  ))), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-2" }, t("Esta imagen se vera en la pantalla de acceso y bienvenida de la clienta."))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, t("Horario de atención")), /* @__PURE__ */ React.createElement(
+  ))), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-2" }, t("Esta imagen se verá en la pantalla de acceso y bienvenida de la clienta."))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, t("Horario de atención")), /* @__PURE__ */ React.createElement(
     "input",
     {
       type: "text",
@@ -599,7 +599,7 @@ function EditarNegocio() {
       className: "w-full border rounded-lg px-3 py-2",
       placeholder: t("Lun-Vie 9:00-20:00, Sáb 9:00-18:00")
     }
-  ))), /* @__PURE__ */ React.createElement("div", { className: "pt-4 border-t" }, /* @__PURE__ */ React.createElement("h2", { className: "text-lg font-semibold mb-4 flex items-center gap-2" }, /* @__PURE__ */ React.createElement("i", { className: "icon-coin-stack text-amber-500" }), "💰 ", t("Anticipos")), /* @__PURE__ */ React.createElement("div", { className: "space-y-4" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between bg-gray-50 p-4 rounded-lg" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "font-medium text-gray-700" }, t("Requerir anticipo para reservas")), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-1" }, t("Si activás, los clientes deberán pagar un anticipo para confirmar el turno"))), /* @__PURE__ */ React.createElement("label", { className: "relative inline-flex items-center cursor-pointer" }, /* @__PURE__ */ React.createElement(
+  ))), /* @__PURE__ */ React.createElement("div", { className: "pt-4 border-t" }, /* @__PURE__ */ React.createElement("h2", { className: "text-lg font-semibold mb-4 flex items-center gap-2" }, /* @__PURE__ */ React.createElement("i", { className: "icon-coin-stack text-amber-500" }), "💰 ", t("Anticipos")), /* @__PURE__ */ React.createElement("div", { className: "space-y-4" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between bg-gray-50 p-4 rounded-lg" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "font-medium text-gray-700" }, t("Requerir anticipo para reservas")), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-1" }, t("Si lo activas, las clientas deberán pagar un anticipo para confirmar la cita"))), /* @__PURE__ */ React.createElement("label", { className: "relative inline-flex items-center cursor-pointer" }, /* @__PURE__ */ React.createElement(
     "input",
     {
       type: "checkbox",
@@ -624,7 +624,7 @@ function EditarNegocio() {
     },
     /* @__PURE__ */ React.createElement("div", { className: "text-2xl mb-2" }, "💰"),
     /* @__PURE__ */ React.createElement("div", { className: "font-medium" }, t("Monto fijo")),
-    /* @__PURE__ */ React.createElement("div", { className: "text-xs text-gray-500 mt-1" }, t("Ej: $500 por turno"))
+    /* @__PURE__ */ React.createElement("div", { className: "text-xs text-gray-500 mt-1" }, t("Ej: 500 por cita"))
   ), /* @__PURE__ */ React.createElement(
     "button",
     {
@@ -635,7 +635,7 @@ function EditarNegocio() {
     /* @__PURE__ */ React.createElement("div", { className: "text-2xl mb-2" }, "📊"),
     /* @__PURE__ */ React.createElement("div", { className: "font-medium" }, t("Porcentaje")),
     /* @__PURE__ */ React.createElement("div", { className: "text-xs text-gray-500 mt-1" }, t("Ej: 30% del servicio"))
-  ))), /* @__PURE__ */ React.createElement("div", { className: config.anticipos_por_servicio ? "opacity-60" : "" }, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, config.tipo_anticipo === "fijo" ? t("Monto global del anticipo ($)") : t("Porcentaje global del servicio (%)")), /* @__PURE__ */ React.createElement(
+  ))), /* @__PURE__ */ React.createElement("div", { className: config.anticipos_por_servicio ? "opacity-60" : "" }, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, config.tipo_anticipo === "fijo" ? t("Monto global del anticipo") : t("Porcentaje global del servicio (%)")), /* @__PURE__ */ React.createElement(
     "input",
     {
       type: "number",
@@ -660,33 +660,34 @@ function EditarNegocio() {
     /* @__PURE__ */ React.createElement("option", { value: "12" }, t("{n} horas", { n: 12 })),
     /* @__PURE__ */ React.createElement("option", { value: "24" }, t("{n} horas", { n: 24 })),
     /* @__PURE__ */ React.createElement("option", { value: "48" }, t("{n} horas", { n: 48 }))
-  ), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-1" }, t("Si no paga en este tiempo, la reserva se elimina y el horario queda libre automaticamente"))), /* @__PURE__ */ React.createElement("div", { className: "space-y-3 p-4 bg-gray-50 rounded-lg" }, /* @__PURE__ */ React.createElement("h3", { className: "font-medium text-gray-700" }, t("Datos de la cuenta")), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-xs text-gray-500 mb-1" }, t("Banco")), /* @__PURE__ */ React.createElement(
+  ), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-1" }, t("Si no paga en este tiempo, la reserva se elimina y el horario queda libre automáticamente"))), /* @__PURE__ */ React.createElement("div", { className: "space-y-3 p-4 bg-gray-50 rounded-lg" }, /* @__PURE__ */ React.createElement("h3", { className: "font-medium text-gray-700" }, t("Datos para Transfermóvil")), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-xs text-gray-500 mb-1" }, t("Banco")), /* @__PURE__ */ React.createElement(
     "input",
     {
       type: "text",
       value: config.banco,
       onChange: (e) => setConfig({ ...config, banco: e.target.value }),
       className: "w-full border rounded-lg px-3 py-2 text-sm",
-      placeholder: "Ej: Banco Santander"
+      placeholder: "Ej: BANDEC, BPA o Metropolitano"
     }
-  )), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-xs text-gray-500 mb-1" }, t("CBU (22 dígitos)")), /* @__PURE__ */ React.createElement(
+  )), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-xs text-gray-500 mb-1" }, t("Número de tarjeta (16 dígitos)")), /* @__PURE__ */ React.createElement(
     "input",
     {
       type: "text",
       value: config.cbu,
       onChange: (e) => setConfig({ ...config, cbu: e.target.value.replace(/\D/g, "") }),
       className: "w-full border rounded-lg px-3 py-2 text-sm",
-      placeholder: "0000000000000000000000",
-      maxLength: "22"
+      placeholder: "9200 0000 0000 0000",
+      inputMode: "numeric",
+      maxLength: "16"
     }
-  )), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-xs text-gray-500 mb-1" }, t("Alias")), /* @__PURE__ */ React.createElement(
+  )), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-xs text-gray-500 mb-1" }, t("Móvil a confirmar")), /* @__PURE__ */ React.createElement(
     "input",
     {
       type: "text",
       value: config.alias,
       onChange: (e) => setConfig({ ...config, alias: e.target.value }),
       className: "w-full border rounded-lg px-3 py-2 text-sm",
-      placeholder: "Ej: SALON.BELLEZA"
+      placeholder: "Ej: 53 5555 5555"
     }
   )), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-xs text-gray-500 mb-1" }, t("Titular")), /* @__PURE__ */ React.createElement(
     "input",
@@ -705,7 +706,7 @@ function EditarNegocio() {
       className: "w-full border rounded-lg px-3 py-2",
       rows: "8"
     }
-  ), /* @__PURE__ */ React.createElement("div", { className: "bg-blue-50 p-3 rounded-lg mt-2 text-xs" }, /* @__PURE__ */ React.createElement("p", { className: "font-medium text-blue-700 mb-2" }, t("Variables disponibles:")), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 gap-2 text-blue-600" }, /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("code", null, "{monto_anticipo}"), " - ", t("Monto calculado")), /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("code", null, "{servicio}"), " - ", t("Nombre del servicio")), /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("code", null, "{fecha}"), " - ", t("Fecha del turno")), /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("code", null, "{hora}"), " - ", t("Hora del turno")), /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("code", null, "{profesional}"), " - ", t("Profesional")), /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("code", null, "{cbu}"), " - CBU"), /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("code", null, "{alias}"), " - ", t("Alias")), /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("code", null, "{titular}"), " - ", t("Titular")), /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("code", null, "{banco}"), " - ", t("Banco")), /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("code", null, "{tiempo_vencimiento}"), " - ", t("Horas para pagar")))))))), /* @__PURE__ */ React.createElement("div", { className: "pt-4 border-t" }, /* @__PURE__ */ React.createElement("h2", { className: "text-lg font-semibold mb-4 flex items-center gap-2" }, "🎁 ", t("Fidelización")), /* @__PURE__ */ React.createElement("div", { className: "space-y-4" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between bg-gray-50 p-4 rounded-lg" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "font-medium text-gray-700" }, t("Premiar clientes frecuentes")), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-1" }, t("Si activas, cada N citas completadas la siguiente cita de la clienta tiene un descuento automático."))), /* @__PURE__ */ React.createElement("label", { className: "relative inline-flex items-center cursor-pointer" }, /* @__PURE__ */ React.createElement(
+  ), /* @__PURE__ */ React.createElement("div", { className: "bg-blue-50 p-3 rounded-lg mt-2 text-xs" }, /* @__PURE__ */ React.createElement("p", { className: "font-medium text-blue-700 mb-2" }, t("Variables disponibles:")), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 gap-2 text-blue-600" }, /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("code", null, "{monto_anticipo}"), " - ", t("Monto calculado")), /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("code", null, "{servicio}"), " - ", t("Nombre del servicio")), /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("code", null, "{fecha}"), " - ", t("Fecha del turno")), /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("code", null, "{hora}"), " - ", t("Hora del turno")), /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("code", null, "{profesional}"), " - ", t("Profesional")), /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("code", null, "{cbu}"), " - ", t("Número de tarjeta")), /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("code", null, "{alias}"), " - ", t("Móvil a confirmar")), /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("code", null, "{titular}"), " - ", t("Titular")), /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("code", null, "{banco}"), " - ", t("Banco")), /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("code", null, "{tiempo_vencimiento}"), " - ", t("Horas para pagar")))))))), /* @__PURE__ */ React.createElement("div", { className: "pt-4 border-t" }, /* @__PURE__ */ React.createElement("h2", { className: "text-lg font-semibold mb-4 flex items-center gap-2" }, "🎁 ", t("Fidelización")), /* @__PURE__ */ React.createElement("div", { className: "space-y-4" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between bg-gray-50 p-4 rounded-lg" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "font-medium text-gray-700" }, t("Premiar clientes frecuentes")), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-1" }, t("Si activas, cada N citas completadas la siguiente cita de la clienta tiene un descuento automático."))), /* @__PURE__ */ React.createElement("label", { className: "relative inline-flex items-center cursor-pointer" }, /* @__PURE__ */ React.createElement(
     "input",
     {
       type: "checkbox",

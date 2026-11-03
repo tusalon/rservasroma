@@ -215,7 +215,7 @@ function HorariosPorDiaPanel({ profesionalId, profesionalNombre, onGuardar, onCa
       className: "bg-amber-600 text-white px-3 py-2 rounded-lg text-sm hover:bg-amber-700"
     },
     t("Agregar")
-  )), /* @__PURE__ */ React.createElement("div", { className: "space-y-2" }, (descansosPorDia[diaSeleccionado] || []).length === 0 ? /* @__PURE__ */ React.createElement("p", { className: "text-xs text-amber-700" }, t("Sin descansos para este dia.")) : (descansosPorDia[diaSeleccionado] || []).map((descanso, index) => /* @__PURE__ */ React.createElement("div", { key: `${descanso.inicio}-${descanso.fin}-${index}`, className: "flex justify-between items-center bg-white border border-amber-100 rounded-lg px-3 py-2 text-sm" }, /* @__PURE__ */ React.createElement("span", { className: "text-gray-700" }, formatearHora(descanso.inicio), " - ", formatearHora(descanso.fin)), /* @__PURE__ */ React.createElement(
+  )), /* @__PURE__ */ React.createElement("div", { className: "space-y-2" }, (descansosPorDia[diaSeleccionado] || []).length === 0 ? /* @__PURE__ */ React.createElement("p", { className: "text-xs text-amber-700" }, t("Sin descansos para este día.")) : (descansosPorDia[diaSeleccionado] || []).map((descanso, index) => /* @__PURE__ */ React.createElement("div", { key: `${descanso.inicio}-${descanso.fin}-${index}`, className: "flex justify-between items-center bg-white border border-amber-100 rounded-lg px-3 py-2 text-sm" }, /* @__PURE__ */ React.createElement("span", { className: "text-gray-700" }, formatearHora(descanso.inicio), " - ", formatearHora(descanso.fin)), /* @__PURE__ */ React.createElement(
     "button",
     {
       type: "button",

@@ -1948,7 +1948,7 @@ function AdminApp() {
                     if (esCerrado) return { hora, estado: 'Cerrado', detalle: t('Local cerrado') };
                     if (esPasado) return { hora, estado: 'Pasado', detalle: t('Fecha pasada') };
                     if (esLibre) return { hora, estado: 'Libre', detalle: t('{nombre} no trabaja', { nombre: profesionalObj?.nombre || t('Profesional') }) };
-                    if (!trabaja) return { hora, estado: 'No trabaja', detalle: t('Dia no laboral') };
+                    if (!trabaja) return { hora, estado: 'No trabaja', detalle: t('Día no laboral') };
                     if (slotTieneDescanso(slotStart, slotEnd, descansosDelDia)) return { hora, estado: 'Descanso', detalle: t('Descanso configurado') };
 
                     const reserva = reservasDia.find(item => {
@@ -2417,7 +2417,7 @@ function AdminApp() {
                 `Disponibilidad semanal - ${nombreNegocio}`,
                 `Disponibilidad semanal de ${nombreNegocio}`
             );
-            if (!compartido) alert(t('Imagen generada. Si no se abrio el menu de compartir, revisa Descargas.'));
+            if (!compartido) alert(t('Imagen generada. Si no se abrió el menú de compartir, revisa Descargas.'));
         } catch (error) {
             console.error('Error generando imagen de disponibilidad:', error);
             compartirDisponibilidadSemanalTexto();
@@ -2586,7 +2586,7 @@ function AdminApp() {
         // Sin datos cargados el calendario saldria con todos los dias en
         // "Sin turnos", que es justo lo contrario de lo que se quiere anunciar.
         if (!diasMesConDatos) {
-            alert(t('Todavia no se cargo la disponibilidad del mes. Intenta de nuevo.'));
+            alert(t('Todavía no se cargo la disponibilidad del mes. Intenta de nuevo.'));
             return;
         }
         try {
@@ -2597,7 +2597,7 @@ function AdminApp() {
                 `Disponibilidad mensual - ${nombreNegocio}`,
                 `Disponibilidad mensual de ${nombreNegocio}`
             );
-            if (!compartido) alert(t('Imagen mensual generada. Si no se abrio el menu de compartir, revisa Descargas.'));
+            if (!compartido) alert(t('Imagen mensual generada. Si no se abrió el menú de compartir, revisa Descargas.'));
         } catch (error) {
             // Mismo respaldo que la semanal: si el canvas falla en un movil
             // viejo, al menos se comparte el texto en vez de no compartir nada.
@@ -2754,7 +2754,7 @@ function AdminApp() {
             const totalServiciosManual = getTotalManualServicios(serviciosSeleccionados);
             const usaDuracionPersonalizada = tieneDuracionManualPersonalizada();
             if (duracionTotal <= 0) {
-                alert(t('La duracion de la cita debe ser mayor que 0 minutos.'));
+                alert(t('La duración de la cita debe ser mayor que 0 minutos.'));
                 return;
             }
             const endTime = getHoraFinManual(serviciosSeleccionados);
@@ -3056,7 +3056,7 @@ function AdminApp() {
             const texto = await file.text();
             const clientes = parseClientesCsv(texto);
             if (clientes.length === 0) {
-                alert(t('No se encontraron clientes validos. Usa columnas nombre,whatsapp.'));
+                alert(t('No se encontraron clientes válidos. Usa columnas nombre,whatsapp.'));
                 return;
             }
 
@@ -3485,7 +3485,7 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
             alert(t('No tienes permiso para borrar reservas canceladas.'));
             return;
         }
-        if (!(await window.confirmar(t('Estas segura de querer borrar TODAS las reservas canceladas? Esta accion no se puede deshacer.')))) return;
+        if (!(await window.confirmar(t('¿Borrar TODAS las reservas canceladas? No se puede deshacer.')))) return;
         
         try {
             const negocioId = getNegocioId();
@@ -3533,7 +3533,7 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
         const reservasGrupo = bookingData?._reservasGrupo || [];
         const ids = reservasGrupo.length > 0 ? reservasGrupo.map(reserva => reserva.id) : [bookingData.id];
         const detalle = reservasGrupo.length > 1 ? `la cita completa (${reservasGrupo.length} servicios)` : 'esta cita';
-        if (!(await window.confirmar(t('Eliminar {detalle} del historial? Esta accion no se puede deshacer.', { detalle })))) return;
+        if (!(await window.confirmar(t('Eliminar {detalle} del historial? Esta acción no se puede deshacer.', { detalle })))) return;
 
         try {
             const negocioId = getNegocioId();
@@ -3637,7 +3637,7 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
 
         const monto = Number(String(cobroForm.monto_cobrado || '').replace(',', '.'));
         if (Number.isNaN(monto) || monto < 0) {
-            alert(t('Ingresa un monto cobrado valido.'));
+            alert(t('Ingresa un monto cobrado válido.'));
             return;
         }
 
@@ -4741,17 +4741,17 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
     const crearResumenEstadisticasTexto = (stats) => {
         const lineas = [
             t('Resumen de {nombre}', { nombre: nombreNegocio }),
-            t('Periodo: {periodo}', { periodo: stats.rango.titulo }),
+            t('Período: {periodo}', { periodo: stats.rango.titulo }),
             '',
             t('Cobro real: {monto}', { monto: formatMoneyEstadistica(stats.cobroReal) }),
             t('Ingreso estimado: {monto}', { monto: formatMoneyEstadistica(stats.ingresoEstimado) }),
             t('Ticket promedio: {monto}', { monto: formatMoneyEstadistica(stats.ticketPromedio) }),
             stats.valoracionesCount
-                ? t('Valoracion de reserva: {promedio}/5 ({n} valoraciones)', { promedio: stats.valoracionPromedio.toFixed(1), n: stats.valoracionesCount })
-                : t('Valoracion de reserva: sin datos'),
+                ? t('Valoración de reserva: {promedio}/5 ({n} valoraciones)', { promedio: stats.valoracionPromedio.toFixed(1), n: stats.valoracionesCount })
+                : t('Valoración de reserva: sin datos'),
             stats.valoracionServicioCount
-                ? t('Valoracion del servicio: {promedio}/5 ({n} valoraciones)', { promedio: stats.valoracionServicioPromedio.toFixed(1), n: stats.valoracionServicioCount })
-                : t('Valoracion del servicio: sin datos'),
+                ? t('Valoración del servicio: {promedio}/5 ({n} valoraciones)', { promedio: stats.valoracionServicioPromedio.toFixed(1), n: stats.valoracionServicioCount })
+                : t('Valoración del servicio: sin datos'),
             '',
             t('Citas: {n}', { n: stats.totalCitas }),
             t('Completadas: {n}', { n: stats.estados.Completado }),
@@ -4770,7 +4770,7 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
         }
 
         if (stats.topServicios.length) {
-            lineas.push('', t('Servicios mas pedidos:'));
+            lineas.push('', t('Servicios más pedidos:'));
             stats.topServicios.slice(0, 3).forEach(item => {
                 lineas.push(`- ${item.nombre}: ${item.total}`);
             });
@@ -4822,7 +4822,7 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
             { label: t('Canceladas'), value: stats.estados.Cancelado, tone: 'text-red-700 bg-red-50 border-red-100' },
             { label: t('Ausentes'), value: stats.estados.Ausente, tone: 'text-slate-700 bg-slate-50 border-slate-100' },
             { label: t('Sin cobro'), value: stats.citasSinCobro, tone: 'text-amber-700 bg-amber-50 border-amber-100' },
-            { label: t('Valoracion'), value: stats.valoracionesCount ? `⭐ ${stats.valoracionPromedio.toFixed(1)} (${stats.valoracionesCount})` : t('Sin datos'), tone: 'text-yellow-700 bg-yellow-50 border-yellow-100' },
+            { label: t('Valoración'), value: stats.valoracionesCount ? `⭐ ${stats.valoracionPromedio.toFixed(1)} (${stats.valoracionesCount})` : t('Sin datos'), tone: 'text-yellow-700 bg-yellow-50 border-yellow-100' },
             { label: t('Servicio'), value: stats.valoracionServicioCount ? `✨ ${stats.valoracionServicioPromedio.toFixed(1)} (${stats.valoracionServicioCount})` : t('Sin datos'), tone: 'text-pink-700 bg-pink-50 border-pink-100' }
         ];
 
@@ -4831,7 +4831,7 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                 <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
                     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                         <div>
-                            <p className="text-xs uppercase tracking-wide text-pink-500 font-bold">{t('Estadisticas')}</p>
+                            <p className="text-xs uppercase tracking-wide text-pink-500 font-bold">{t('Estadísticas')}</p>
                             <h2 className="text-2xl font-bold text-gray-900">{stats.rango.titulo}</h2>
                             <p className="text-sm text-gray-500">{t('Desde {inicio} hasta {fin}', { inicio: stats.rango.inicio, fin: stats.rango.fin })}</p>
                         </div>
@@ -4877,8 +4877,8 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                                 [t('Canceladas'), `${stats.estados.Cancelado} (${stats.tasaCanceladas}%)`],
                                 [t('Ausentes'), `${stats.estados.Ausente} (${stats.tasaAusentes}%)`],
                                 [t('Ticket promedio real'), formatMoneyEstadistica(stats.ticketPromedio)],
-                                [t('Valoracion de reserva'), stats.valoracionesCount ? `⭐ ${stats.valoracionPromedio.toFixed(1)} / 5 (${stats.valoracionesCount})` : t('Sin datos')],
-                                [t('Valoracion del servicio'), stats.valoracionServicioCount ? `✨ ${stats.valoracionServicioPromedio.toFixed(1)} / 5 (${stats.valoracionServicioCount})` : t('Sin datos')]
+                                [t('Valoración de reserva'), stats.valoracionesCount ? `⭐ ${stats.valoracionPromedio.toFixed(1)} / 5 (${stats.valoracionesCount})` : t('Sin datos')],
+                                [t('Valoración del servicio'), stats.valoracionServicioCount ? `✨ ${stats.valoracionServicioPromedio.toFixed(1)} / 5 (${stats.valoracionServicioCount})` : t('Sin datos')]
                             ].map(([label, value]) => (
                                 <div key={label} className="flex justify-between gap-3 text-sm border-b border-gray-100 pb-2 last:border-b-0">
                                     <span className="text-gray-500">{label}</span>
@@ -4891,7 +4891,7 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                     <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
                         <h3 className="font-bold text-gray-900 mb-4">{t('Profesionales')}</h3>
                         <div className="space-y-3">
-                            {stats.topProfesionales.length === 0 ? <p className="text-sm text-gray-500">{t('No hay datos en este periodo.')}</p> : stats.topProfesionales.map(item => (
+                            {stats.topProfesionales.length === 0 ? <p className="text-sm text-gray-500">{t('No hay datos en este período.')}</p> : stats.topProfesionales.map(item => (
                                 <div key={item.nombre} className="rounded-lg bg-gray-50 border border-gray-100 p-3">
                                     <div className="flex justify-between gap-3">
                                         <p className="font-bold text-gray-900 truncate">{item.nombre}</p>
@@ -4904,9 +4904,9 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                     </div>
 
                     <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
-                        <h3 className="font-bold text-gray-900 mb-4">{t('Servicios mas pedidos')}</h3>
+                        <h3 className="font-bold text-gray-900 mb-4">{t('Servicios más pedidos')}</h3>
                         <div className="space-y-3">
-                            {stats.topServicios.length === 0 ? <p className="text-sm text-gray-500">{t('No hay datos en este periodo.')}</p> : stats.topServicios.map(item => (
+                            {stats.topServicios.length === 0 ? <p className="text-sm text-gray-500">{t('No hay datos en este período.')}</p> : stats.topServicios.map(item => (
                                 <div key={item.nombre} className="rounded-lg bg-gray-50 border border-gray-100 p-3">
                                     <div className="flex justify-between gap-3">
                                         <p className="font-bold text-gray-900 truncate">{item.nombre}</p>
@@ -4921,17 +4921,17 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
 
                 <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
-                        <h3 className="font-bold text-gray-900">{t('Detalle por dia')}</h3>
-                        <p className="text-sm text-gray-500">{t('{n} dias con movimiento', { n: stats.dias.length })}</p>
+                        <h3 className="font-bold text-gray-900">{t('Detalle por día')}</h3>
+                        <p className="text-sm text-gray-500">{t('{n} días con movimiento', { n: stats.dias.length })}</p>
                     </div>
                     {stats.dias.length === 0 ? (
-                        <p className="text-sm text-gray-500">{t('No hay reservas en este periodo.')}</p>
+                        <p className="text-sm text-gray-500">{t('No hay reservas en este período.')}</p>
                     ) : (
                         <div className="overflow-x-auto">
                             <table className="min-w-full text-sm">
                                 <thead>
                                     <tr className="text-left text-gray-500 border-b">
-                                        <th className="py-2 pr-3">{t('Dia')}</th>
+                                        <th className="py-2 pr-3">{t('Día')}</th>
                                         <th className="py-2 pr-3">{t('Total')}</th>
                                         <th className="py-2 pr-3">{t('Completadas')}</th>
                                         <th className="py-2 pr-3">{t('Pendientes')}</th>
@@ -4969,7 +4969,7 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
         tabs.push({ id: 'agenda', icono: '📋', label: t('Agenda') });
 
         if (puedeVerEstadisticas) {
-            tabs.push({ id: 'estadisticas', icono: 'Stats', label: t('Estadisticas') });
+            tabs.push({ id: 'estadisticas', icono: '📊', label: t('Estadísticas') });
         }
         if (userRole === 'admin' || (userRole === 'profesional' && userNivel >= 2)) {
             tabs.push({ id: 'configuracion', icono: '⚙️', label: t('Configuración') });
@@ -5548,7 +5548,7 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                                 </div>
                                 {userRole === 'admin' && nuevaReservaData.servicio && !turnoEditando && (
                                     <div className="rounded-xl border border-pink-100 bg-pink-50 p-3">
-                                        <label className="block text-sm font-medium text-pink-800 mb-1">{t('Duracion para esta cita (min)')}</label>
+                                        <label className="block text-sm font-medium text-pink-800 mb-1">{t('Duración para esta cita (min)')}</label>
                                         <input
                                             type="number"
                                             min="5"
@@ -5565,7 +5565,7 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                                             placeholder={t('Usar {min} min', { min: getDuracionManualConfigurada(getServiciosManualSeleccionados()) })}
                                         />
                                         <p className="text-xs text-pink-700 mt-1">
-                                            {t('Dejalo vacio para usar la duracion configurada. Si escribes un tiempo, solo aplica a esta cita.')}
+                                            {t('Dejalo vacio para usar la duración configurada. Si escribes un tiempo, solo aplica a esta cita.')}
                                         </p>
                                         {tieneDuracionManualPersonalizada() && (
                                             <p className="text-xs font-semibold text-pink-800 mt-1">
@@ -5648,7 +5648,7 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                                                         else className += " text-gray-700 hover:bg-pink-50 cursor-pointer";
                                                         
                                                         return (
-                                                            <button key={idx} onClick={() => handleDateSelect(date)} disabled={fechaDeshabilitada} className={className} title={esCerrado ? t('Dia cerrado, disponible para admin') : esPasado ? t('Fecha pasada') : ""}>
+                                                            <button key={idx} onClick={() => handleDateSelect(date)} disabled={fechaDeshabilitada} className={className} title={esCerrado ? t('Día cerrado, disponible para admin') : esPasado ? t('Fecha pasada') : ""}>
                                                                 {date.getDate()}
                                                             </button>
                                                         );
@@ -5691,13 +5691,13 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                                         {nuevaReservaData.hora_inicio && !turnoEditando && !esModoVariosProfesionales() && (
                                             <p className="text-xs text-gray-500 mb-3">
                                                 {nuevaReservaData.hora_fin
-                                                    ? t('Duracion calculada: {min} min segun inicio y fin.', { min: getDuracionManualTotal(getServiciosManualSeleccionados()) })
-                                                    : t('Duracion calculada: {min} min segun el servicio o la duracion personalizada.', { min: getDuracionManualTotal(getServiciosManualSeleccionados()) })}
+                                                    ? t('Duración calculada: {min} min segun inicio y fin.', { min: getDuracionManualTotal(getServiciosManualSeleccionados()) })
+                                                    : t('Duración calculada: {min} min segun el servicio o la duración personalizada.', { min: getDuracionManualTotal(getServiciosManualSeleccionados()) })}
                                             </p>
                                         )}
                                         {modoHorarioManualCompleto && horariosDisponibles.length > 0 && (
                                             <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-                                                {t('Modo admin: este dia no tiene horario normal para el profesional. Puedes elegir cualquier hora libre del dia, siempre que no choque con otra cita.')}
+                                                {t('Modo admin: este día no tiene horario normal para el profesional. Puedes elegir cualquier hora libre del día, siempre que no choque con otra cita.')}
                                             </div>
                                         )}
                                         {horariosDisponibles.length > 0 ? (
@@ -5789,7 +5789,7 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
 
                                 <div className="divide-y rounded-xl border bg-white">
                                     <div className="flex items-center justify-between p-4"><span className="font-semibold text-gray-800">{t('Cliente')}</span><span className="text-right text-gray-600">{agendaDetalleBooking.cliente_nombre || t('Sin nombre')} &gt;</span></div>
-                                    <div className="flex items-center justify-between p-4"><span className="font-semibold text-gray-800">WhatsApp</span><button onClick={() => window.enviarWhatsApp?.(agendaDetalleBooking.cliente_whatsapp, `Hola ${agendaDetalleBooking.cliente_nombre || ''}`)} className="text-right text-pink-600 font-semibold">+{agendaDetalleBooking.cliente_whatsapp || t('Sin numero')} &gt;</button></div>
+                                    <div className="flex items-center justify-between p-4"><span className="font-semibold text-gray-800">WhatsApp</span><button onClick={() => window.enviarWhatsApp?.(agendaDetalleBooking.cliente_whatsapp, `Hola ${agendaDetalleBooking.cliente_nombre || ''}`)} className="text-right text-pink-600 font-semibold">+{agendaDetalleBooking.cliente_whatsapp || t('Sin número')} &gt;</button></div>
                                     <div className="flex items-center justify-between p-4"><span className="font-semibold text-gray-800">{t('Precio del servicio')}</span><span className="font-bold text-gray-900">{formatMoneyEstadistica(resumen.costoServicios)}</span></div>
                                     <div className="flex items-center justify-between p-4"><span className="font-semibold text-gray-800">{t('Anticipo requerido')}</span><span className={`font-bold ${resumen.requiereAnticipo ? 'text-amber-700' : 'text-gray-500'}`}>{resumen.requiereAnticipo ? t('Si') : t('No')}</span></div>
                                     {resumen.requiereAnticipo && <div className="flex items-center justify-between p-4"><div><p className="font-semibold text-gray-800">{t('Monto del anticipo')}</p><p className="text-sm text-gray-500">{resumen.tipoAnticipo === 'porcentaje' ? t('{n}% del servicio', { n: resumen.valorAnticipo }) : t('Monto fijo')}</p></div><span className="font-bold text-amber-700">{formatMoneyEstadistica(resumen.anticipo)}</span></div>}
@@ -5803,7 +5803,7 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
 
                                 {Number(agendaDetalleBooking.valoracion_servicio) > 0 && (
                                     <div className="mt-5 rounded-xl border border-pink-200 bg-pink-50 p-4">
-                                        <p className="text-xs font-bold uppercase text-pink-600 mb-1">{t('Valoracion del servicio')}</p>
+                                        <p className="text-xs font-bold uppercase text-pink-600 mb-1">{t('Valoración del servicio')}</p>
                                         <div className="flex items-center gap-2">
                                             <span className="text-2xl leading-none">{'⭐'.repeat(Number(agendaDetalleBooking.valoracion_servicio))}</span>
                                             <span className="font-bold text-gray-900">{Number(agendaDetalleBooking.valoracion_servicio)}/5</span>
@@ -5814,7 +5814,7 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
 
                                 {Number(agendaDetalleBooking.valoracion) > 0 && (
                                     <div className="mt-5 rounded-xl border border-yellow-200 bg-yellow-50 p-4">
-                                        <p className="text-xs font-bold uppercase text-yellow-600 mb-1">{t('Valoracion de la clienta')}</p>
+                                        <p className="text-xs font-bold uppercase text-yellow-600 mb-1">{t('Valoración de la clienta')}</p>
                                         <div className="flex items-center gap-2">
                                             <span className="text-2xl leading-none">{'⭐'.repeat(Number(agendaDetalleBooking.valoracion))}</span>
                                             <span className="font-bold text-gray-900">{Number(agendaDetalleBooking.valoracion)}/5</span>
@@ -6246,7 +6246,7 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                                                             <span className="px-2.5 py-1 rounded-full bg-white border text-xs font-semibold text-gray-700">{t('Score {n}/100', { n: score.score })}</span>
                                                         </div>
                                                         <p className="text-sm text-gray-500 mt-1">+{cliente.whatsapp}</p>
-                                                        <p className="text-xs text-gray-500 mt-1">{t('Ultima cita:')} {ultimaCita}</p>
+                                                        <p className="text-xs text-gray-500 mt-1">{t('Última cita:')} {ultimaCita}</p>
                                                         <p className="text-xs font-semibold text-pink-600 mt-2">{t('Tocar para ver todos sus turnos')}</p>
                                                     </div>
 
@@ -6832,7 +6832,7 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                                                                 <div className="min-w-0">
                                                                     <p className="text-xs font-bold leading-tight">
                                                                         {formatTo12Hour(booking.hora_inicio)} - {formatTo12Hour(booking.hora_fin || calculateEndTime(booking.hora_inicio, booking.duracion || 60))}
-                                                                        {Number(booking.valoracion) > 0 && <span className="ml-1" title={t('Valoracion de la clienta')}>⭐{Number(booking.valoracion)}</span>}
+                                                                        {Number(booking.valoracion) > 0 && <span className="ml-1" title={t('Valoración de la clienta')}>⭐{Number(booking.valoracion)}</span>}
                                                                     </p>
                                                                     {!isShort && <p className="font-bold text-sm truncate">{booking.cliente_nombre}{marcaCumple(booking)}</p>}
                                                                     {!isShort && <p className="text-xs truncate opacity-90">{booking._grupoVisual ? `${booking._reservasGrupo.length} servicios - ${booking.servicio}` : booking.servicio}</p>}
@@ -7134,12 +7134,12 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                                                         {t(b.estado)}
                                                     </span>
                                                     {Number(b.valoracion) > 0 && (
-                                                        <span className="px-2 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700 whitespace-nowrap" title={t('Valoracion de la clienta')}>
+                                                        <span className="px-2 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700 whitespace-nowrap" title={t('Valoración de la clienta')}>
                                                             ⭐ {Number(b.valoracion)}
                                                         </span>
                                                     )}
                                                     {Number(b.valoracion_servicio) > 0 && (
-                                                        <span className="px-2 py-1 rounded-full text-xs font-semibold bg-pink-100 text-pink-700 whitespace-nowrap" title={t('Valoracion del servicio')}>
+                                                        <span className="px-2 py-1 rounded-full text-xs font-semibold bg-pink-100 text-pink-700 whitespace-nowrap" title={t('Valoración del servicio')}>
                                                             ✨ {Number(b.valoracion_servicio)}
                                                         </span>
                                                     )}

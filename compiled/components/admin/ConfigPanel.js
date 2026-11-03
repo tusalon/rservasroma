@@ -132,7 +132,7 @@ function ConfigPanel({ profesionalId, modoRestringido, profesionalInicial = null
       min: "0",
       step: "5"
     }
-  ))), /* @__PURE__ */ React.createElement("div", { className: "mb-4" }, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-2" }, t("Antelacion maxima para reservar")), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-4 sm:grid-cols-5 gap-2" }, opcionesAntelacion.map((opcion) => /* @__PURE__ */ React.createElement(
+  ))), /* @__PURE__ */ React.createElement("div", { className: "mb-4" }, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-2" }, t("Antelación máxima para reservar")), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-4 sm:grid-cols-5 gap-2" }, opcionesAntelacion.map((opcion) => /* @__PURE__ */ React.createElement(
     "button",
     {
       key: opcion.value,
@@ -148,7 +148,7 @@ function ConfigPanel({ profesionalId, modoRestringido, profesionalInicial = null
     },
     /* @__PURE__ */ React.createElement("span", { className: "text-lg mb-1" }, opcion.icon),
     /* @__PURE__ */ React.createElement("span", null, opcion.label)
-  )))), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, t("Antelacion minima para reservar (horas)")), /* @__PURE__ */ React.createElement(
+  )))), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, t("Antelación mínima para reservar (horas)")), /* @__PURE__ */ React.createElement(
     "input",
     {
       type: "number",
@@ -161,7 +161,7 @@ function ConfigPanel({ profesionalId, modoRestringido, profesionalInicial = null
       min: "0",
       step: "1"
     }
-  ), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-1" }, t("Ej: 2 evita reservar turnos con menos de 2 horas."))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, t("Antelacion minima para cancelar (horas)")), /* @__PURE__ */ React.createElement(
+  ), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-1" }, t("Ej: 2 evita reservar turnos con menos de 2 horas."))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, t("Antelación mínima para cancelar (horas)")), /* @__PURE__ */ React.createElement(
     "input",
     {
       type: "number",
@@ -360,7 +360,7 @@ function DiasCerradosGlobalesPanel() {
   }, []);
   const handleAgregar = async () => {
     if (!fecha) {
-      alert(t("Por favor, seleccioná una fecha."));
+      alert(t("Elige una fecha."));
       return;
     }
     const negocioId = getNegocioId();
@@ -396,7 +396,7 @@ function DiasCerradosGlobalesPanel() {
       } else {
         const error = await response.text();
         console.error("Error al agregar:", error);
-        alert(t("Error al agregar el día cerrado. Verificá tu conexión."));
+        alert(t("No se pudo cerrar ese día. Revisa tu conexión e inténtalo de nuevo."));
       }
     } catch (error) {
       console.error("Error:", error);

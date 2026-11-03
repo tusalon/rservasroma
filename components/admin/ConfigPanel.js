@@ -189,7 +189,7 @@ function ConfigPanel({ profesionalId, modoRestringido, profesionalInicial = null
                         
                         <div className="mb-4">
                             <label className="block text-sm font-medium text-gray-700 mb-2">
-                                {t('Antelacion maxima para reservar')}
+                                {t('Antelación máxima para reservar')}
                             </label>
                             <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
                                 {opcionesAntelacion.map(opcion => (
@@ -217,7 +217,7 @@ function ConfigPanel({ profesionalId, modoRestringido, profesionalInicial = null
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    {t('Antelacion minima para reservar (horas)')}
+                                    {t('Antelación mínima para reservar (horas)')}
                                 </label>
                                 <input
                                     type="number"
@@ -237,7 +237,7 @@ function ConfigPanel({ profesionalId, modoRestringido, profesionalInicial = null
 
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    {t('Antelacion minima para cancelar (horas)')}
+                                    {t('Antelación mínima para cancelar (horas)')}
                                 </label>
                                 <input
                                     type="number"
@@ -536,7 +536,7 @@ function DiasCerradosGlobalesPanel() {
 
     const handleAgregar = async () => {
         if (!fecha) {
-            alert(t('Por favor, seleccioná una fecha.'));
+            alert(t('Elige una fecha.'));
             return;
         }
 
@@ -576,7 +576,7 @@ function DiasCerradosGlobalesPanel() {
             } else {
                 const error = await response.text();
                 console.error('Error al agregar:', error);
-                alert(t('Error al agregar el día cerrado. Verificá tu conexión.'));
+                alert(t('No se pudo cerrar ese día. Revisa tu conexión e inténtalo de nuevo.'));
             }
         } catch (error) {
             console.error('Error:', error);

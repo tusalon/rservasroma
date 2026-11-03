@@ -160,7 +160,7 @@ function ServiciosPanel() {
   const guardarServicio = async (servicio) => {
     const resultado = editando ? await window.salonServicios.actualizar(editando.id, servicio) : await window.salonServicios.crear(servicio);
     if (!resultado) {
-      alert(t("No se pudo guardar el servicio. Revisa la consola para ver el detalle de Supabase."));
+      alert(t("No se pudo guardar el servicio. Revisa tu conexión e inténtalo de nuevo."));
       return;
     }
     setMostrarForm(false);
@@ -294,7 +294,7 @@ function CategoriasServiciosManager({ categorias, servicios, onChange }) {
     };
     const result = editando ? await window.salonCategoriasServicios?.actualizar(editando.id, payload) : await window.salonCategoriasServicios?.crear(payload);
     if (!result) {
-      alert(t("No se pudo guardar la categoría. Revisa si ya corriste el SQL de categorías."));
+      alert(t("No se pudo guardar la categoría. Inténtalo de nuevo; si sigue fallando, escribe a soporte."));
       return;
     }
     if (result.yaExistia && !editando) {
@@ -321,7 +321,7 @@ function CategoriasServiciosManager({ categorias, servicios, onChange }) {
     }
     const ok = await window.salonCategoriasServicios?.eliminar(categoria.id);
     if (!ok) {
-      alert(t("No se pudo eliminar la categoría. Revisa si ya corriste el SQL de categorías."));
+      alert(t("No se pudo eliminar la categoría. Inténtalo de nuevo; si sigue fallando, escribe a soporte."));
       return;
     }
     await onChange();
