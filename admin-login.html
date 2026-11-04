@@ -42,72 +42,102 @@
   <link href="utils/legacy-ios-fallback.css?v=20260904-bordes1" rel="stylesheet">
 
   <style>
+    /* Acceso al panel: claro, limpio y con Roma asomando. Con el teléfono en modo oscuro se oscurece solo. */
+    :root {
+      --fondo-a: #EEE3FF; --fondo-b: #FFD9EA;
+      --tarjeta: #FFFFFF; --tinta: #2E1A47; --tinta-2: #6E5C80;
+      --campo: #F6F2FA; --linea: rgba(46, 26, 71, 0.10);
+      --rosa: #FF1493; --rosa-fuerte: #D10F7B; --error: #C8261B;
+      --sombra: 0 30px 80px rgba(150, 70, 170, 0.22), 0 2px 0 rgba(255, 255, 255, 0.9) inset;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --fondo-a: #17111F; --fondo-b: #2B1233;
+        --tarjeta: #221B2B; --tinta: #FFFFFF; --tinta-2: rgba(255, 255, 255, 0.64);
+        --campo: rgba(255, 255, 255, 0.07); --linea: rgba(255, 255, 255, 0.12);
+        --rosa-fuerte: #FF6BB5; --error: #FF8077;
+        --sombra: 0 30px 80px rgba(0, 0, 0, 0.55);
+      }
+    }
+
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
       min-height: 100vh;
-      background: #1A1A1A;
+      min-height: 100dvh;
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 24px 16px;
+      padding: 112px 16px 32px;
       font-family: var(--font-brand, system-ui), system-ui, -apple-system, sans-serif;
+      color: var(--tinta);
+      background-color: var(--fondo-a);
+      background-image:
+        radial-gradient(55% 38% at 12% 6%, rgba(255, 150, 205, 0.55), transparent 70%),
+        radial-gradient(50% 38% at 92% 28%, rgba(180, 150, 255, 0.45), transparent 70%),
+        linear-gradient(180deg, var(--fondo-a), var(--fondo-b));
+      background-attachment: fixed;
     }
+
+    .stack { position: relative; width: 100%; max-width: 400px; }
+
+    /* Roma asoma por detrás del borde de la tarjeta */
+    .roma {
+      position: absolute;
+      left: 50%;
+      bottom: calc(100% - 20px);
+      width: 184px;
+      height: 112px;
+      margin-left: -92px;
+      overflow: hidden;
+      pointer-events: none;
+    }
+    .roma img {
+      position: absolute;
+      left: 0; top: 4px;
+      width: 100%;
+      transform-origin: 50% 100%;
+      animation: asoma 0.55s ease-out both, saluda 6s ease-in-out 1.2s infinite;
+    }
+    @keyframes asoma { from { transform: translateY(70%); opacity: 0; } 60% { opacity: 1; } to { transform: translateY(0); opacity: 1; } }
+    @keyframes saluda { 0%, 88%, 100% { transform: rotate(0); } 92% { transform: rotate(-2.5deg); } 96% { transform: rotate(2deg); } }
 
     .card {
-      background: #242424;
-      border-radius: 24px;
-      padding: 36px 32px;
-      width: 100%;
-      max-width: 400px;
-      box-shadow: 0 24px 64px rgba(0,0,0,0.5);
-      animation: fadeIn 0.4s ease-out;
+      position: relative;
+      background: var(--tarjeta);
+      border-radius: 28px;
+      padding: 34px 28px 28px;
+      box-shadow: var(--sombra);
+      border: 1px solid var(--linea);
+      animation: entra 0.45s ease-out;
     }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(16px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-
-    .logo-wrap {
-      width: 88px;
-      height: 88px;
-      border-radius: 22px;
-      overflow: hidden;
-      margin: 0 auto 20px;
-      box-shadow: 0 8px 32px rgba(255,20,147,0.35);
-      border: 2px solid rgba(255,20,147,0.4);
-    }
-
-    .logo-wrap img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
+    @keyframes entra { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
 
     .title {
       text-align: center;
-      font-size: 28px;
+      font-size: 30px;
       font-weight: 800;
-      color: #fff;
-      letter-spacing: -0.5px;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+      color: var(--tinta);
     }
+    .title span { color: var(--rosa); }
 
     .subtitle {
       text-align: center;
       font-size: 14px;
-      color: rgba(255,255,255,0.45);
-      margin-top: 6px;
-      margin-bottom: 32px;
+      color: var(--tinta-2);
+      margin-top: 8px;
+      margin-bottom: 28px;
     }
 
-    .field { margin-bottom: 18px; }
+    .field { margin-bottom: 16px; }
 
     label {
       display: block;
       font-size: 13px;
       font-weight: 600;
-      color: #FF1493;
+      color: var(--tinta);
       margin-bottom: 8px;
     }
 
@@ -115,50 +145,67 @@
 
     input, select {
       width: 100%;
-      background: rgba(255,255,255,0.06);
-      border: 1.5px solid rgba(255,255,255,0.10);
-      border-radius: 12px;
-      padding: 14px 16px;
-      font-size: 15px;
-      color: #fff;
+      height: 52px;
+      background: var(--campo);
+      border: 1.5px solid transparent;
+      border-radius: 14px;
+      padding: 0 16px;
+      font-size: 16px;
+      font-family: inherit;
+      color: var(--tinta);
       outline: none;
-      transition: border-color 0.2s;
+      transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
     }
-
-    input:focus, select:focus { border-color: #FF1493; }
-    select { appearance: none; cursor: pointer; margin-bottom: 8px; }
-    select option { background: #1A1A1A; color: #fff; }
-    input::placeholder { color: rgba(255,255,255,0.25); }
+    input:focus, select:focus {
+      border-color: var(--rosa);
+      box-shadow: 0 0 0 4px rgba(255, 20, 147, 0.14);
+    }
+    input::placeholder { color: var(--tinta-2); opacity: 0.55; }
+    select {
+      appearance: none;
+      cursor: pointer;
+      margin-bottom: 8px;
+      padding-right: 40px;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+    }
+    select option { background: var(--tarjeta); color: var(--tinta); }
+    #password { padding-right: 52px; }
 
     .toggle-eye {
       position: absolute;
-      right: 14px;
+      right: 6px;
       top: 50%;
       transform: translateY(-50%);
+      width: 40px; height: 40px;
+      display: flex; align-items: center; justify-content: center;
       background: none;
       border: none;
+      border-radius: 12px;
       cursor: pointer;
-      color: rgba(255,255,255,0.35);
-      font-size: 18px;
-      padding: 4px;
-      line-height: 1;
+      color: var(--tinta-2);
     }
-
-    .toggle-eye:hover { color: #FF1493; }
+    .toggle-eye:hover { color: var(--rosa-fuerte); }
+    .toggle-eye:focus-visible { outline: 2px solid var(--rosa); outline-offset: 0; }
+    .toggle-eye svg { width: 20px; height: 20px; }
+    .toggle-eye .ojo-cerrado { display: none; }
+    .toggle-eye.on .ojo-abierto { display: none; }
+    .toggle-eye.on .ojo-cerrado { display: block; }
 
     #mensaje {
       text-align: center;
       font-size: 13px;
-      color: rgba(255,255,255,0.6);
-      margin-bottom: 16px;
+      color: var(--tinta-2);
+      margin-bottom: 14px;
       min-height: 18px;
     }
 
     .recordar {
       display: flex;
       align-items: flex-start;
-      gap: 10px;
-      margin: -4px 0 4px;
+      gap: 12px;
+      margin: 4px 0 20px;
       cursor: pointer;
       text-align: left;
     }
@@ -166,49 +213,38 @@
       width: 20px;
       height: 20px;
       margin: 1px 0 0;
-      accent-color: #FF1493;
+      accent-color: var(--rosa);
       flex-shrink: 0;
       cursor: pointer;
+      box-shadow: none;
     }
-    /* La tarjeta del login es oscura (#242424): estos textos van claros, como
-       el titulo y el subtitulo. Con los grises de una tarjeta blanca quedaban
-       casi invisibles sobre el fondo. */
-    .recordar strong {
-      display: block;
-      font-size: 14px;
-      font-weight: 600;
-      color: #fff;
-    }
-    .recordar small {
-      display: block;
-      font-size: 12px;
-      color: rgba(255,255,255,0.45);
-      line-height: 1.4;
-      margin-top: 2px;
-    }
+    .recordar strong { display: block; font-size: 14px; font-weight: 600; color: var(--tinta); }
+    .recordar small { display: block; font-size: 12px; color: var(--tinta-2); line-height: 1.45; margin-top: 2px; }
 
     .btn-login {
       width: 100%;
-      background: #FF1493;
+      height: 54px;
+      background: linear-gradient(135deg, #FF1493 0%, #FF4FA8 100%);
       color: #fff;
       border: none;
       border-radius: 9999px;
-      padding: 15px;
       font-size: 16px;
       font-weight: 700;
+      font-family: inherit;
       cursor: pointer;
-      transition: background 0.2s, transform 0.15s;
-      margin-top: 8px;
+      box-shadow: 0 12px 28px rgba(255, 20, 147, 0.34);
+      transition: transform 0.15s, box-shadow 0.2s, filter 0.2s;
     }
-
-    .btn-login:hover { background: #C71585; transform: scale(1.02); }
+    .btn-login:hover { filter: brightness(1.05); box-shadow: 0 14px 32px rgba(255, 20, 147, 0.42); }
     .btn-login:active { transform: scale(0.98); }
-    .btn-login:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+    .btn-login:focus-visible { outline: 3px solid rgba(255, 20, 147, 0.4); outline-offset: 3px; }
+    .btn-login:disabled { opacity: 0.6; cursor: not-allowed; box-shadow: none; }
 
     #errorMsg {
       text-align: center;
       font-size: 13px;
-      color: #FF4444;
+      font-weight: 600;
+      color: var(--error);
       margin-top: 14px;
       min-height: 18px;
     }
@@ -217,54 +253,61 @@
     .link-modo {
       display: block;
       width: 100%;
-      margin-top: 18px;
+      margin-top: 14px;
       background: none;
       border: 0;
-      padding: 6px;
-      color: #FF1493;
+      padding: 10px 6px;
+      color: var(--rosa-fuerte);
       font-size: 14px;
       font-weight: 600;
       font-family: inherit;
       cursor: pointer;
-      text-decoration: underline;
+      border-radius: 12px;
     }
+    .link-modo:hover { text-decoration: underline; text-underline-offset: 3px; }
+    .link-modo:focus-visible { outline: 2px solid var(--rosa); }
 
     .lang-toggle {
       position: absolute;
-      top: 18px;
-      right: 18px;
+      top: -48px;
+      right: 2px;
       display: inline-flex;
-      border: 1px solid rgba(255,255,255,0.15);
+      background: rgba(255, 255, 255, 0.6);
+      border: 1px solid var(--linea);
       border-radius: 9999px;
       padding: 2px;
     }
     .lang-toggle button {
       border: none;
       background: transparent;
-      color: rgba(255,255,255,0.55);
+      color: var(--tinta-2);
       font-size: 12px;
       font-weight: 700;
-      padding: 4px 10px;
+      font-family: inherit;
+      padding: 5px 10px;
       border-radius: 9999px;
       cursor: pointer;
     }
-    .lang-toggle button.active { background: #FF1493; color: #fff; }
+    .lang-toggle button.active { background: var(--rosa-fuerte); color: #fff; }
+    @media (prefers-color-scheme: dark) { .lang-toggle { background: rgba(255, 255, 255, 0.08); } .lang-toggle button.active { color: #1A1020; } }
+
+    @media (prefers-reduced-motion: reduce) {
+      .roma img, .card { animation: none; }
+    }
   </style>
 </head>
 
 <body>
-  <div class="card" style="position: relative;">
+  <main class="stack">
+    <div class="roma" aria-hidden="true"><img src="images/roma/poses/saluda.webp" alt="" width="184"></div>
+  <div class="card">
 
     <div class="lang-toggle">
       <button type="button" id="langEs">ES</button>
       <button type="button" id="langEn">EN</button>
     </div>
 
-    <div class="logo-wrap">
-      <img src="icons/icon-192x192.png" alt="Rservasroma">
-    </div>
-
-    <h1 class="title">Rservasroma</h1>
+    <h1 class="title">Rservas<span>roma</span></h1>
     <p class="subtitle" id="txtSubtitle">Panel de administración</p>
 
     <div id="mensaje" class="hidden"></div>
@@ -290,7 +333,10 @@
         <label for="password" id="txtLabelPassword">Contraseña</label>
         <div class="input-wrap">
           <input type="password" id="password" placeholder="••••••••" required autocomplete="current-password">
-          <button type="button" class="toggle-eye" id="togglePwd" title="Mostrar contraseña">👁</button>
+          <button type="button" class="toggle-eye" id="togglePwd" title="Mostrar contraseña" aria-label="Mostrar contraseña">
+            <svg class="ojo-abierto" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>
+            <svg class="ojo-cerrado" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3l18 18"/><path d="M10.6 5.1A10.7 10.7 0 0 1 12 5c6.4 0 10 7 10 7a17.6 17.6 0 0 1-3.2 4.1M6.6 6.6A17.4 17.4 0 0 0 2 12s3.6 7 10 7a10.5 10.5 0 0 0 4.4-1"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>
+          </button>
         </div>
       </div>
 
@@ -310,6 +356,7 @@
     <div id="errorMsg" class="hidden"></div>
 
   </div>
+  </main>
 
   <script src="utils/supabase-config.js?v=20260723-fotos"></script>
   <!-- config-negocio-master trae sesionPanelVigente(): esta página necesita saber
@@ -373,7 +420,7 @@
       document.getElementById('txtLabelTelefono').textContent = window.t('Tu teléfono');
       document.getElementById('txtLabelPassword').textContent = window.t('Contraseña');
       document.getElementById('btnEntrar').textContent = window.t('Entrar →');
-      document.getElementById('togglePwd').title = window.t('Mostrar contraseña');
+      document.getElementById('togglePwd').title = window.t('Mostrar contraseña'); document.getElementById('togglePwd').setAttribute('aria-label', window.t('Mostrar contraseña'));
       document.getElementById('txtRecordarTitulo').textContent = window.t('Mantener sesión iniciada');
       document.getElementById('txtRecordarNota').textContent = window.t('No te vuelve a pedir la contraseña en este teléfono. Actívalo solo si el celular es tuyo.');
       aplicarModoLogin();
@@ -435,6 +482,8 @@
     document.getElementById('togglePwd').addEventListener('click', function() {
       var input = document.getElementById('password');
       input.type = input.type === 'password' ? 'text' : 'password';
+      this.classList.toggle('on', input.type === 'text');
+      this.setAttribute('aria-pressed', String(input.type === 'text'));
     });
 
     function esConfiguradoTrue(valor) {
