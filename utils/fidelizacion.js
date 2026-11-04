@@ -92,6 +92,32 @@ function ajusteQuitandoUnaCita(citas, ajusteFilas) {
     return primera ? ajuste + (primera.filas || [primera]).length : ajuste;
 }
 
+// ─── Tarjeta de fidelidad de la clienta ─────────────────────────────────────
+// Lo que ve ELLA: cuántos sellos lleva y cuánto le falta. Sale de las mismas cuentas que el contador de la ficha
+// de la clienta en el panel (citas por visita, menos el ajuste manual), así los dos números no pueden discrepar.
+//   citas: citas completadas de la clienta, de la más vieja a la más nueva (turnos.agruparTurnos).
+// Devuelve { activa:false } si el salón no tiene fidelización; si no:
+//   sellos  cuántas citas normales tiene el ciclo (N)        llenos  cuántas lleva marcadas (0..N)
+//   faltan  citas completadas que faltan para el descuento   premiada  su PRÓXIMA cita ya lleva el descuento
+//   pct     porcentaje de descuento                          visitas   citas que cuentan en total
+//   recienPremiada  acaba de cerrar un ciclo (la cita premiada ya se completó) y empieza una tarjeta nueva
+function tarjetaFidelizacion(config, citas, ajusteFilas) {
+    const fid = getFidelizacionConfig(config);
+    if (!fid.activa) return { activa: false };
+    const visitas = citasContadas(citas, ajusteFilas).length;
+    const p = progresoFidelizacion(visitas, 0, fid.ciclo);
+    return {
+        activa: true,
+        pct: fid.pct,
+        sellos: fid.ciclo - 1,
+        llenos: Math.min(p.enCiclo, fid.ciclo - 1),
+        faltan: p.faltan,
+        premiada: p.premiada,
+        visitas,
+        recienPremiada: visitas > 0 && visitas % fid.ciclo === 0
+    };
+}
+
 // ─── Acceso a datos (tabla fidelizacion_ajustes) ────────────────────────────
 // Separado a proposito de las funciones de arriba: esas son cuentas puras y
 // tienen prueba en tests/fidelizacion.test.js; estas hablan con la red.
@@ -129,6 +155,22 @@ async function cargarAjustesFidelizacion(negocioId) {
     }
 }
 
+// El ajuste de UNA clienta (la tarjeta de ella no necesita el de todo el salón). 0 si no hay o si la tabla no existe.
+async function cargarAjusteFidelizacionClienta(negocioId, whatsappNormalizado) {
+    if (!negocioId || !whatsappNormalizado) return 0;
+    try {
+        const respuesta = await fetch(
+            `${window.SUPABASE_URL}/rest/v1/fidelizacion_ajustes?negocio_id=eq.${encodeURIComponent(negocioId)}&whatsapp=eq.${encodeURIComponent(whatsappNormalizado)}&select=ajuste&limit=1`,
+            { headers: cabecerasFidelizacion(), cache: 'no-store' }
+        );
+        if (!respuesta.ok) return 0;
+        const filas = await respuesta.json();
+        return Array.isArray(filas) && filas[0] ? (parseInt(filas[0].ajuste, 10) || 0) : 0;
+    } catch (error) {
+        return 0;
+    }
+}
+
 async function guardarAjusteFidelizacion(negocioId, whatsapp, ajuste) {
     if (!negocioId || !whatsapp) return { success: false };
     try {
@@ -158,6 +200,8 @@ async function guardarAjusteFidelizacion(negocioId, whatsapp, ajuste) {
 }
 
 if (typeof window !== 'undefined') {
+    window.tarjetaFidelizacion = tarjetaFidelizacion;
+    window.cargarAjusteFidelizacionClienta = cargarAjusteFidelizacionClienta;
     window.cargarAjustesFidelizacion = cargarAjustesFidelizacion;
     window.guardarAjusteFidelizacion = guardarAjusteFidelizacion;
     window.getFidelizacionConfig = getFidelizacionConfig;
@@ -180,6 +224,7 @@ if (typeof module !== 'undefined' && module.exports) {
         ajusteQuitandoUna,
         citasContadas,
         posicionDeCita,
-        ajusteQuitandoUnaCita
+        ajusteQuitandoUnaCita,
+        tarjetaFidelizacion
     };
 }

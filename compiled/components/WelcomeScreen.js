@@ -203,7 +203,7 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol, onMisReservas, onC
           },
           /* @__PURE__ */ React.createElement("span", { className: "min-w-0 flex-1" }, /* @__PURE__ */ React.createElement("span", { className: "block text-xs font-bold uppercase tracking-wide text-gray-500" }, t("Tu próxima cita")), /* @__PURE__ */ React.createElement("span", { className: "block font-bold text-gray-900 truncate" }, window.formatFechaCompleta ? window.formatFechaCompleta(proxima.fecha) : proxima.fecha, " · ", window.formatTo12Hour ? window.formatTo12Hour(proxima.hora_inicio) : proxima.hora_inicio), /* @__PURE__ */ React.createElement("span", { className: `block text-sm truncate ${proxima.estado === "Pendiente" ? "text-amber-700 font-semibold" : "text-gray-600"}` }, proxima.estado === "Pendiente" ? t("Falta el anticipo · toca para enviarlo") : proxima.servicio)),
           /* @__PURE__ */ React.createElement("span", { className: "text-gray-400 text-xl" }, "›")
-        ), /* @__PURE__ */ React.createElement(
+        ), cliente && window.TarjetaFidelidad && /* @__PURE__ */ React.createElement(window.TarjetaFidelidad, { cliente, config, onReservar: onStart }), /* @__PURE__ */ React.createElement(
           "button",
           {
             onClick: onStart,

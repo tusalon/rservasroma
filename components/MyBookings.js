@@ -408,6 +408,10 @@ function MyBookings({ cliente, onVolver, onRepetir }) {
                     <div className="bg-pink-100 border border-pink-300 text-pink-700 p-3 rounded-lg mb-4 text-sm">{mensajeError}</div>
                 )}
 
+                {cliente && window.TarjetaFidelidad && (
+                    <div className="mb-5"><window.TarjetaFidelidad cliente={cliente} /></div>
+                )}
+
                 <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
                     {[
                         ['proximas',   t('Próximas ({n})', { n: proximasCount })],

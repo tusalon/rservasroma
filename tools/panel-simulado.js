@@ -46,10 +46,20 @@ const TABLAS = {
 };
 
 const peticiones = {};
-async function abrir({ ancho = 390, alto = 844, extra = '' } = {}) {
+// `cliente`: abre la app de las clientas (index.html) con esa clienta ya registrada en vez del panel.
+// `tablas`: filas que se suman o sustituyen a las de TABLAS (p. ej. { reservas: [...], negocios: [...] }).
+async function abrir({ ancho = 390, alto = 844, extra = '', cliente = null, tablas = {} } = {}) {
   const browser = await chromium.launch({ channel: 'msedge' });
   const ctx = await browser.newContext({ viewport: { width: ancho, height: alto }, deviceScaleFactor: 2, hasTouch: ancho < 700 });
-  await ctx.addInitScript((id) => {
+  Object.assign(TABLAS, tablas);
+  if (cliente) {
+    await ctx.addInitScript(([id, c]) => {
+      localStorage.setItem('negocioId', id); localStorage.setItem('negocioSlug', 'salon-prueba'); localStorage.setItem('negocioNombre', 'Salón de Prueba');
+      const dato = JSON.stringify({ ...c, negocio_scope: 'slug:salon-prueba' });
+      localStorage.setItem('clienteAuth:slug:salon-prueba', dato); localStorage.setItem('clienteAuth', dato);
+    }, [ID, cliente]);
+  }
+  if (!cliente) await ctx.addInitScript((id) => {
     localStorage.setItem('adminAuth', 'true'); localStorage.setItem('adminUser', 'sim'); localStorage.setItem('adminLoginTime', String(Date.now()));
     localStorage.setItem('negocioId', id); localStorage.setItem('adminSlug', 'salon-prueba'); localStorage.setItem('negocioSlug', 'salon-prueba');
     localStorage.setItem('negocioNombre', 'Salón de Prueba'); localStorage.setItem('userRole', 'admin');
@@ -89,7 +99,7 @@ async function abrir({ ancho = 390, alto = 844, extra = '' } = {}) {
   const errores = [];
   page.on('pageerror', (e) => errores.push(e.message));
   page.on('console', (m) => { if (m.type() === 'error' && !/Failed to load resource|net::ERR/.test(m.text())) errores.push('console: ' + m.text().slice(0, 160)); });
-  await page.goto('http://localhost:3457/admin.html?s=salon-prueba' + extra);
+  await page.goto('http://localhost:3457/' + (cliente ? '' : 'admin.html') + '?s=salon-prueba' + extra);
   await page.waitForTimeout(3500);
   return { browser, page, errores };
 }

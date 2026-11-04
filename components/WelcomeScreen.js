@@ -299,6 +299,9 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol, onMisReservas, onC
                             </button>
                         )}
 
+                        {/* Tarjeta de fidelidad: cuánto le falta para su descuento (solo si el salón la tiene activa). */}
+                        {cliente && window.TarjetaFidelidad && <window.TarjetaFidelidad cliente={cliente} config={config} onReservar={onStart} />}
+
                         {/* Botón principal */}
                         <button onClick={onStart}
                             className="w-full text-white font-bold py-3 rounded-full shadow-lg transition-all active:scale-[0.98] flex items-center justify-center gap-2 border"

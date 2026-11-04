@@ -1,6 +1,6 @@
 ﻿// sw.js - Service Worker para Rservasroma
 
-const CACHE_NAME = 'rservasroma-v181';
+const CACHE_NAME = 'rservasroma-v182';
 const BASE = '/rservasroma';
 
 const urlsToCache = [
@@ -52,7 +52,7 @@ const urlsToCache = [
   `${BASE}/utils/legacy-ios-fallback.css?v=20260904-bordes1`,
   `${BASE}/utils/roma-typography.css?v=20260731-tipografia`,
   `${BASE}/utils/roma-theme.js?v=20260731-tipografia`,
-  `${BASE}/utils/fidelizacion.js?v=20261023-combo1`,
+  `${BASE}/utils/fidelizacion.js?v=20261104-fid1`,
   `${BASE}/utils/cumpleanos.js?v=20261018-cumple2`,
   `${BASE}/utils/compartir-servicios.js?v=20261019-compartirapk1`,
   `${BASE}/utils/panel-sesion.js?v=20261019-ficha1`,
@@ -99,11 +99,12 @@ const urlsToCache = [
   `${BASE}/images/roma/poses/senala.webp`,
   `${BASE}/images/roma/poses/susto.webp`,
   `${BASE}/images/roma/poses/tablet.webp`,
-  `${BASE}/compiled/components/MyBookings.js?v=20261103-cambiar1`,
+  `${BASE}/compiled/components/MyBookings.js?v=20261104-fid1`,
   `${BASE}/compiled/components/ProfesionalSelector.js?v=20261103-cita2`,
   `${BASE}/compiled/components/ServiceSelectionCategorias.js?v=20261103-cita2`,
   `${BASE}/compiled/components/TimeSlots.js?v=20261103-cita2`,
-  `${BASE}/compiled/components/WelcomeScreen.js?v=20261103-cita3`,
+  `${BASE}/compiled/components/TarjetaFidelidad.js?v=20261104-fid1`,
+  `${BASE}/compiled/components/WelcomeScreen.js?v=20261104-fid1`,
   `${BASE}/compiled/components/WhatsAppButton.js?v=20261103-cita2`,
 
   // Componentes admin (compilados)
