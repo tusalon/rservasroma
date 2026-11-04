@@ -5227,6 +5227,13 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
     const days = getDaysInMonth(currentDate);
     const disponibilidadDays = getDaysInMonth(disponibilidadFecha);
 
+    // Lo que Roma le cuenta a la dueña al abrirse: citas de hoy, citas esperando anticipo y clientas por aprobar.
+    const romaContexto = {
+        citasHoy: agruparReservasVisuales(bookingsVisiblesPorRol.filter(b => b.fecha === agendaToday && b.estado !== 'Cancelado')).length,
+        pendientesPago: agruparReservasVisuales(bookingsVisiblesPorRol.filter(b => b.estado === 'Pendiente' && b.fecha >= agendaToday)).length,
+        clientasNuevas: clientesPendientes.length
+    };
+
     // ---- Agenda: tarjetas de cita (lista del dia en el movil) ----
     const agendaProDe = (b) => {
         const k = agendaProKeyDe(b);
@@ -7495,6 +7502,21 @@ className="absolute rounded-xl shadow-sm hover:shadow-md transition p-2 overflow
                     </>
                 )}
             </div>
+
+            {/* Roma, la pug asistente: botón flotante a la derecha. Contesta sin IA (utils/roma-asistente.js)
+                y sus botones llevan a la pantalla correcta o abren la acción. */}
+            <AsistenteRoma
+                idioma={idioma}
+                contexto={romaContexto}
+                disponible={(tabId) => tabsDisponibles.some(tab => tab.id === tabId)}
+                onIr={(tabId) => { setTabActivo(tabId); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                onAccion={(nombre) => {
+                    if (nombre === 'nueva-reserva') { if (puedeGestionarReservas) abrirModalNuevaReserva(); else alert(t('Tu nivel de acceso solo permite ver reservas.')); }
+                    else if (nombre === 'copiar-enlace') copiarEnlaceClientas();
+                    else if (nombre === 'datos-negocio') abrirEdicionNegocio();
+                    else if (nombre === 'soporte') { if (window.abrirSoporteRservas) window.abrirSoporteRservas(); }
+                }}
+            />
 
             {/* Barra de secciones, siempre a mano abajo: una píldora flotante. La sección activa
                 lleva el color de la marca con un brillo suave; las demás, el icono en gris. */}

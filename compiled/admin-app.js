@@ -4130,6 +4130,11 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
   const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
   const days = getDaysInMonth(currentDate);
   const disponibilidadDays = getDaysInMonth(disponibilidadFecha);
+  const romaContexto = {
+    citasHoy: agruparReservasVisuales(bookingsVisiblesPorRol.filter((b) => b.fecha === agendaToday && b.estado !== "Cancelado")).length,
+    pendientesPago: agruparReservasVisuales(bookingsVisiblesPorRol.filter((b) => b.estado === "Pendiente" && b.fecha >= agendaToday)).length,
+    clientasNuevas: clientesPendientes.length
+  };
   const agendaProDe = (b) => {
     const k = agendaProKeyDe(b);
     return (profesionalesList || []).find((pr) => String(pr.id) === k) || null;
@@ -5077,6 +5082,27 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
       a.texto
     )))));
   })())))))), /* @__PURE__ */ React.createElement(
+    AsistenteRoma,
+    {
+      idioma,
+      contexto: romaContexto,
+      disponible: (tabId) => tabsDisponibles.some((tab) => tab.id === tabId),
+      onIr: (tabId) => {
+        setTabActivo(tabId);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      },
+      onAccion: (nombre) => {
+        if (nombre === "nueva-reserva") {
+          if (puedeGestionarReservas) abrirModalNuevaReserva();
+          else alert(t2("Tu nivel de acceso solo permite ver reservas."));
+        } else if (nombre === "copiar-enlace") copiarEnlaceClientas();
+        else if (nombre === "datos-negocio") abrirEdicionNegocio();
+        else if (nombre === "soporte") {
+          if (window.abrirSoporteRservas) window.abrirSoporteRservas();
+        }
+      }
+    }
+  ), /* @__PURE__ */ React.createElement(
     "nav",
     {
       "aria-label": t2("Secciones"),
