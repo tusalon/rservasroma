@@ -32,28 +32,14 @@ function TarjetaFidelidad({ cliente, config: configProp, onReservar }) {
   }, []);
   React.useEffect(() => {
     const fid = config && window.getFidelizacionConfig ? window.getFidelizacionConfig(config) : null;
-    if (!fid || !fid.activa || !cliente?.whatsapp || !window.tarjetaFidelizacion) {
+    if (!fid || !fid.activa || !cliente?.whatsapp || !window.cargarTarjetaClienta) {
       setTarjeta(null);
       return void 0;
     }
     let vigente = true;
-    (async () => {
-      try {
-        const negocioId = window.getNegocioId?.() || localStorage.getItem("negocioId") || window.NEGOCIO_ID_POR_DEFECTO;
-        const respuesta = await fetch(
-          `${window.SUPABASE_URL}/rest/v1/reservas?negocio_id=eq.${negocioId}&cliente_whatsapp=eq.${encodeURIComponent(cliente.whatsapp)}&estado=eq.Completado&select=*&limit=500`,
-          { headers: { "apikey": window.SUPABASE_ANON_KEY, "Authorization": `Bearer ${window.SUPABASE_ANON_KEY}` } }
-        );
-        if (!respuesta.ok) return;
-        const filas = await respuesta.json();
-        const telefono = window.normalizarTelefonoLocal ? window.normalizarTelefonoLocal(cliente.whatsapp, config.codigo_pais || null) : String(cliente.whatsapp).replace(/\D/g, "");
-        const ajuste = await window.cargarAjusteFidelizacionClienta(negocioId, telefono);
-        const normalizadas = (Array.isArray(filas) ? filas : []).map((f) => ({ ...f, cliente_whatsapp: telefono }));
-        const citas = window.turnos?.agruparTurnos ? window.turnos.agruparTurnos(normalizadas) : normalizadas.map((f) => ({ id: f.id, filas: [f] }));
-        if (vigente) setTarjeta(window.tarjetaFidelizacion(config, citas, ajuste));
-      } catch (e) {
-      }
-    })();
+    window.cargarTarjetaClienta(config, cliente).then((t2) => {
+      if (vigente) setTarjeta(t2);
+    });
     return () => {
       vigente = false;
     };
@@ -67,10 +53,11 @@ function TarjetaFidelidad({ cliente, config: configProp, onReservar }) {
     const v = parseInt(n, 16);
     return Number.isFinite(v) ? `rgba(${v >> 16 & 255}, ${v >> 8 & 255}, ${v & 255}, ${a})` : hex;
   };
-  const { sellos, llenos, faltan, premiada, pct, recienPremiada } = tarjeta;
+  const { sellos, llenos, faltan, premiada, pct, recienPremiada, pendientes } = tarjeta;
+  const yaReservada = premiada && pendientes > 0;
   const tam = sellos <= 6 ? 40 : sellos <= 10 ? 32 : 26;
-  const titulo = premiada ? t("🎁 ¡Tu próxima cita tiene {pct}% de descuento!", { pct }) : faltan === 1 ? t("¡Solo te falta 1 cita!") : t("Te faltan {n} citas", { n: faltan });
-  const detalle = premiada ? t("Resérvala y el descuento se aplica al cobrar.") : faltan === 1 ? t("Y tu siguiente cita tendrá {pct}% de descuento.", { pct }) : t("Completa tus citas y la siguiente tendrá {pct}% de descuento.", { pct });
+  const titulo = yaReservada ? t("🎁 ¡Tu cita reservada lleva {pct}% de descuento!", { pct }) : premiada ? t("🎁 ¡Tu próxima cita tiene {pct}% de descuento!", { pct }) : faltan === 1 ? t("¡Solo te falta 1 cita!") : t("Te faltan {n} citas", { n: faltan });
+  const detalle = yaReservada ? t("Se aplica solo, al cobrar tu próxima cita.") : premiada ? t("Resérvala y el descuento se aplica al cobrar.") : faltan === 1 ? t("Y tu siguiente cita tendrá {pct}% de descuento.", { pct }) : t("Completa tus citas y la siguiente tendrá {pct}% de descuento.", { pct });
   return /* @__PURE__ */ React.createElement(
     "section",
     {
@@ -121,7 +108,7 @@ function TarjetaFidelidad({ cliente, config: configProp, onReservar }) {
         "🎁"
       )
     ),
-    premiada && onReservar && /* @__PURE__ */ React.createElement(
+    premiada && !yaReservada && onReservar && /* @__PURE__ */ React.createElement(
       "button",
       {
         type: "button",
@@ -140,6 +127,8 @@ function TarjetaFidelidad({ cliente, config: configProp, onReservar }) {
   Object.assign(en, {
     "Tu tarjeta de fidelidad": "Your loyalty card",
     "🎁 ¡Tu próxima cita tiene {pct}% de descuento!": "🎁 Your next appointment has {pct}% off!",
+    "🎁 ¡Tu cita reservada lleva {pct}% de descuento!": "🎁 Your booked appointment has {pct}% off!",
+    "Se aplica solo, al cobrar tu próxima cita.": "It is applied automatically when your next appointment is charged.",
     "¡Solo te falta 1 cita!": "Just 1 appointment to go!",
     "Te faltan {n} citas": "{n} appointments to go",
     "Completa tus citas y la siguiente tendrá {pct}% de descuento.": "Complete your appointments and the next one gets {pct}% off.",

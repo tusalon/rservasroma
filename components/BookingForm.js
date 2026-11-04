@@ -34,6 +34,23 @@ function BookingForm({ service, profesional, date, time, onSubmit, onCancel, cli
         return () => { vigente = false; };
     }, [service]);
 
+    // Descuento de fidelidad: si esta es su cita premiada, se lo decimos ANTES de confirmar. Sin cuentas de precio
+    // (hay servicios "desde X hasta Y" y combos): el panel suma el descuento solo al cobrar. Si ya tiene otra cita
+    // reservada, el descuento le toca a esa y aquí no se promete nada.
+    const [descuentoFidelidad, setDescuentoFidelidad] = React.useState(0);
+    React.useEffect(() => {
+        let vigente = true;
+        (async () => {
+            try {
+                if (!window.cargarTarjetaClienta || !cliente?.whatsapp) return;
+                const configNegocio = await window.cargarConfiguracionNegocio();
+                const tarjeta = await window.cargarTarjetaClienta(configNegocio, cliente);
+                if (vigente && tarjeta && tarjeta.premiada && !tarjeta.pendientes) setDescuentoFidelidad(tarjeta.pct);
+            } catch (e) {}
+        })();
+        return () => { vigente = false; };
+    }, [cliente?.whatsapp]);
+
     // indiceToHoraLegible, timeToMinutes, variantesHorarioPermitido, servicioPermiteHorario
     // y slotTieneDescanso viven en utils/timeLogic.js (cargado antes que este componente).
     // estaDentroBloqueTrabajo se eliminó: no tenía ningún sitio de llamada (código muerto).
@@ -302,6 +319,13 @@ function BookingForm({ service, profesional, date, time, onSubmit, onCancel, cli
                             </div>
                         )}
                     </div>
+
+                    {descuentoFidelidad > 0 && (
+                        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                            <p className="font-bold">{t('🎁 ¡Esta cita lleva {pct}% de descuento!', { pct: descuentoFidelidad })}</p>
+                            <p className="text-xs mt-0.5">{t('Es tu premio de fidelidad: se aplica solo cuando te cobren.')}</p>
+                        </div>
+                    )}
 
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <p className="text-xs text-gray-500">

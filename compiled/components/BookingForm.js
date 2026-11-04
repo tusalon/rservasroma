@@ -22,6 +22,22 @@ function BookingForm({ service, profesional, date, time, onSubmit, onCancel, cli
       vigente = false;
     };
   }, [service]);
+  const [descuentoFidelidad, setDescuentoFidelidad] = React.useState(0);
+  React.useEffect(() => {
+    let vigente = true;
+    (async () => {
+      try {
+        if (!window.cargarTarjetaClienta || !cliente?.whatsapp) return;
+        const configNegocio = await window.cargarConfiguracionNegocio();
+        const tarjeta = await window.cargarTarjetaClienta(configNegocio, cliente);
+        if (vigente && tarjeta && tarjeta.premiada && !tarjeta.pendientes) setDescuentoFidelidad(tarjeta.pct);
+      } catch (e) {
+      }
+    })();
+    return () => {
+      vigente = false;
+    };
+  }, [cliente?.whatsapp]);
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (submittingRef.current) return;
@@ -207,7 +223,7 @@ function BookingForm({ service, profesional, date, time, onSubmit, onCancel, cli
     [t("Fecha"), window.formatFechaCompleta ? window.formatFechaCompleta(date) : date],
     [t("Hora"), window.formatTo12Hour ? window.formatTo12Hour(time) : time],
     !service.esMultiple && window.formatearPrecioServicio && window.formatearPrecioServicio(service) ? [t("Precio"), window.formatearPrecioServicio(service)] : null
-  ].filter(Boolean).map(([etiqueta, valor]) => /* @__PURE__ */ React.createElement("div", { key: etiqueta, className: "flex justify-between gap-4 py-2.5" }, /* @__PURE__ */ React.createElement("span", { className: "text-gray-500" }, etiqueta), /* @__PURE__ */ React.createElement("span", { className: "font-semibold text-gray-800 text-right" }, valor))), anticipoInfo?.requiere && anticipoInfo.monto > 0 && /* @__PURE__ */ React.createElement("div", { className: "flex justify-between gap-4 py-2.5 text-amber-800" }, /* @__PURE__ */ React.createElement("span", null, t("Anticipo para confirmar:")), /* @__PURE__ */ React.createElement("span", { className: "font-bold text-right" }, anticipoInfo.monto, " ", anticipoInfo.moneda))), /* @__PURE__ */ React.createElement("form", { onSubmit: handleSubmit, className: "space-y-4" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500" }, t("Tus datos:"), " ", cliente.nombre, " · +", cliente.whatsapp), error && /* @__PURE__ */ React.createElement("div", { className: "text-pink-600 text-sm bg-pink-100 p-3 rounded-lg flex items-start gap-2 border border-pink-300" }, /* @__PURE__ */ React.createElement("span", { className: "text-pink-500" }, "⚠️"), error), /* @__PURE__ */ React.createElement(
+  ].filter(Boolean).map(([etiqueta, valor]) => /* @__PURE__ */ React.createElement("div", { key: etiqueta, className: "flex justify-between gap-4 py-2.5" }, /* @__PURE__ */ React.createElement("span", { className: "text-gray-500" }, etiqueta), /* @__PURE__ */ React.createElement("span", { className: "font-semibold text-gray-800 text-right" }, valor))), anticipoInfo?.requiere && anticipoInfo.monto > 0 && /* @__PURE__ */ React.createElement("div", { className: "flex justify-between gap-4 py-2.5 text-amber-800" }, /* @__PURE__ */ React.createElement("span", null, t("Anticipo para confirmar:")), /* @__PURE__ */ React.createElement("span", { className: "font-bold text-right" }, anticipoInfo.monto, " ", anticipoInfo.moneda))), descuentoFidelidad > 0 && /* @__PURE__ */ React.createElement("div", { className: "rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900" }, /* @__PURE__ */ React.createElement("p", { className: "font-bold" }, t("🎁 ¡Esta cita lleva {pct}% de descuento!", { pct: descuentoFidelidad })), /* @__PURE__ */ React.createElement("p", { className: "text-xs mt-0.5" }, t("Es tu premio de fidelidad: se aplica solo cuando te cobren."))), /* @__PURE__ */ React.createElement("form", { onSubmit: handleSubmit, className: "space-y-4" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500" }, t("Tus datos:"), " ", cliente.nombre, " · +", cliente.whatsapp), error && /* @__PURE__ */ React.createElement("div", { className: "text-pink-600 text-sm bg-pink-100 p-3 rounded-lg flex items-start gap-2 border border-pink-300" }, /* @__PURE__ */ React.createElement("span", { className: "text-pink-500" }, "⚠️"), error), /* @__PURE__ */ React.createElement(
     "button",
     {
       type: "submit",

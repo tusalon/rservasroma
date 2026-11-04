@@ -207,6 +207,9 @@
         'Precio:': 'Price:',
         'Anticipo para confirmar:': 'Deposit to confirm:',
         'Tus datos:': 'Your info:',
+        '🎁 ¡Esta cita lleva {pct}% de descuento!': '🎁 This appointment gets {pct}% off!',
+        'Es tu premio de fidelidad: se aplica solo cuando te cobren.': 'It is your loyalty reward: applied automatically when you are charged.',
+        '🎁 {pct}% de fidelidad (se sugiere al cobrar)': '🎁 {pct}% loyalty (suggested at checkout)',
         'Procesando...': 'Processing...',
 
         // components/Confirmation.js

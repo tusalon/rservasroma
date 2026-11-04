@@ -171,6 +171,44 @@ async function cargarAjusteFidelizacionClienta(negocioId, whatsappNormalizado) {
     }
 }
 
+// La tarjeta de UNA clienta ya calculada, para quien la pinte (tarjeta de bienvenida, resumen de la reserva).
+// Devuelve null si la fidelizacion no esta activa, si falta el telefono o si algo falla: sin tarjeta es mejor
+// que una tarjeta equivocada. Ademas de lo de tarjetaFidelizacion trae `pendientes`: citas suyas YA reservadas
+// que aun no ocurren. Si la proxima cita es la premiada y ya tiene otra reservada antes, el descuento le toca a
+// esa otra, no a la que esta reservando ahora.
+async function cargarTarjetaClienta(config, cliente) {
+    try {
+        const fid = getFidelizacionConfig(config);
+        if (!fid.activa || !cliente || !cliente.whatsapp) return null;
+        const negocioId = window.getNegocioId?.() || localStorage.getItem('negocioId') || window.NEGOCIO_ID_POR_DEFECTO;
+        const respuesta = await fetch(
+            `${window.SUPABASE_URL}/rest/v1/reservas?negocio_id=eq.${negocioId}&cliente_whatsapp=eq.${encodeURIComponent(cliente.whatsapp)}&estado=in.(Completado,Reservado,Pendiente)&select=*&limit=500`,
+            { headers: cabecerasFidelizacion() }
+        );
+        if (!respuesta.ok) return null;
+        const todas = await respuesta.json();
+        // El ajuste de la duena se guarda con el telefono normalizado, igual que lo normaliza el panel.
+        const telefono = window.normalizarTelefonoLocal
+            ? window.normalizarTelefonoLocal(cliente.whatsapp, config.codigo_pais || null)
+            : String(cliente.whatsapp).replace(/\D/g, '');
+        const ajuste = await cargarAjusteFidelizacionClienta(negocioId, telefono);
+        const agrupar = (filas) => {
+            const normalizadas = filas.map(f => ({ ...f, cliente_whatsapp: telefono }));
+            return window.turnos && window.turnos.agruparTurnos
+                ? window.turnos.agruparTurnos(normalizadas)
+                : normalizadas.map(f => ({ id: f.id, filas: [f] }));
+        };
+        const lista = Array.isArray(todas) ? todas : [];
+        const ahora = new Date();
+        const hoy = ahora.getFullYear() + '-' + String(ahora.getMonth() + 1).padStart(2, '0') + '-' + String(ahora.getDate()).padStart(2, '0');
+        const tarjeta = tarjetaFidelizacion(config, agrupar(lista.filter(f => f.estado === 'Completado')), ajuste);
+        const pendientes = agrupar(lista.filter(f => f.estado !== 'Completado' && String(f.fecha) >= hoy)).length;
+        return Object.assign({}, tarjeta, { pendientes });
+    } catch (error) {
+        return null;
+    }
+}
+
 async function guardarAjusteFidelizacion(negocioId, whatsapp, ajuste) {
     if (!negocioId || !whatsapp) return { success: false };
     try {
@@ -202,6 +240,7 @@ async function guardarAjusteFidelizacion(negocioId, whatsapp, ajuste) {
 if (typeof window !== 'undefined') {
     window.tarjetaFidelizacion = tarjetaFidelizacion;
     window.cargarAjusteFidelizacionClienta = cargarAjusteFidelizacionClienta;
+    window.cargarTarjetaClienta = cargarTarjetaClienta;
     window.cargarAjustesFidelizacion = cargarAjustesFidelizacion;
     window.guardarAjusteFidelizacion = guardarAjusteFidelizacion;
     window.getFidelizacionConfig = getFidelizacionConfig;

@@ -4358,6 +4358,23 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
         return window.posicionDeCita(getCitasCompletadasCliente(phone), reservaId, ajustesFidelizacion[phone] || 0);
     };
 
+    // Descuento de fidelidad que lleva una cita que AUN no ocurrió: la duena lo ve antes de que llegue la
+    // clienta, no solo al cobrar. Solo la primera cita pendiente de la clienta lo lleva (las siguientes no:
+    // el contador no ha avanzado todavia). Devuelve el porcentaje o 0.
+    const getDescuentoFidelidadProximo = (reserva) => {
+        const fid = window.getFidelizacionConfig(config);
+        if (!fid.activa || !reserva || !['Reservado', 'Pendiente'].includes(reserva.estado)) return 0;
+        const phone = normalizePhone(reserva.cliente_whatsapp);
+        if (!phone) return 0;
+        const tarjeta = window.tarjetaFidelizacion(config, getCitasCompletadasCliente(phone), ajustesFidelizacion[phone] || 0);
+        if (!tarjeta.premiada) return 0;
+        const primeraFecha = bookings
+            .filter(b => ['Reservado', 'Pendiente'].includes(b.estado) && normalizePhone(b.cliente_whatsapp) === phone)
+            .map(b => String(b.fecha))
+            .sort()[0];
+        return primeraFecha === String(reserva.fecha) ? fid.pct : 0;
+    };
+
     // Guarda el nuevo ajuste y lo refleja al momento. Se pinta primero y se
     // guarda después (igual que el orden del catálogo): en 3G, esperar al
     // servidor para ver moverse el contador hace que se toque el botón dos
@@ -5965,7 +5982,7 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                                     <div className="flex items-center justify-between p-4"><span className="font-semibold text-gray-800">{t('Anticipo requerido')}</span><span className={`font-bold ${resumen.requiereAnticipo ? 'text-amber-700' : 'text-gray-500'}`}>{resumen.requiereAnticipo ? t('Si') : t('No')}</span></div>
                                     {resumen.requiereAnticipo && <div className="flex items-center justify-between p-4"><div><p className="font-semibold text-gray-800">{t('Monto del anticipo')}</p><p className="text-sm text-gray-500">{resumen.tipoAnticipo === 'porcentaje' ? t('{n}% del servicio', { n: resumen.valorAnticipo }) : t('Monto fijo')}</p></div><span className="font-bold text-amber-700">{formatMoneyEstadistica(resumen.anticipo)}</span></div>}
                                     <div className="flex items-center justify-between p-4"><span className="font-semibold text-gray-800">{t('Coste de servicios')}</span><span className="text-gray-600">{formatMoneyEstadistica(resumen.costoServicios)}</span></div>
-                                    <div className="flex items-center justify-between p-4"><span className="font-semibold text-gray-800">{t('Descuento')}</span><span className="text-gray-600">{t('No')}</span></div>
+                                    <div className="flex items-center justify-between p-4"><span className="font-semibold text-gray-800">{t('Descuento')}</span>{(() => { const pctFid = getDescuentoFidelidadProximo(agendaDetalleBooking); return pctFid > 0 ? <span className="text-right font-bold text-amber-700">{t('🎁 {pct}% de fidelidad (se sugiere al cobrar)', { pct: pctFid })}</span> : <span className="text-gray-600">{t('No')}</span>; })()}</div>
                                     <div className="flex items-center justify-between p-4"><span className="font-semibold text-gray-800">{t('Coste total')}</span><span className="text-gray-600">{formatMoneyEstadistica(resumen.totalMostrar)}</span></div>
                                     <div className="flex items-center justify-between p-4"><div><p className="font-semibold text-gray-800">{t('Deposito')}</p><p className="text-sm text-gray-500">{resumen.requiereAnticipo ? (agendaDetalleBooking.estado === 'Pendiente' ? t('Pendiente de recibir') : t('Aplica para esta cita')) : t('No aplica')}</p></div><span className="text-gray-600">{formatMoneyEstadistica(resumen.anticipo)}</span></div>
                                     <div className="flex items-center justify-between p-4"><span className="font-semibold text-gray-800">{t('Total pendiente')}</span><span className="font-bold text-gray-900">{formatMoneyEstadistica(resumen.pendiente)}</span></div>

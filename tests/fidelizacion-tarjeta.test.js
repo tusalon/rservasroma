@@ -54,3 +54,10 @@ const comp = leer('components/TarjetaFidelidad.js');
     assert.ok(comp.includes("'" + clave + "':"), 'falta la traducción al inglés de: ' + clave));
 
 console.log('fidelizacion-tarjeta: ok');
+
+// Descuento visible antes de cobrar: la reserva de la clienta y la ficha de la cita en el panel lo anuncian.
+assert.match(leer('utils/fidelizacion.js'), /window\.cargarTarjetaClienta\s*=/);
+assert.match(leer('components/TarjetaFidelidad.js'), /cargarTarjetaClienta/);
+assert.match(leer('components/BookingForm.js'), /cargarTarjetaClienta/);
+assert.match(leer('admin-app.js'), /getDescuentoFidelidadProximo\(agendaDetalleBooking\)/);
+console.log('fidelizacion-tarjeta (descuento visible): ok');
