@@ -1,6 +1,6 @@
 ﻿// sw.js - Service Worker para Rservasroma
 
-const CACHE_NAME = 'rservasroma-v180';
+const CACHE_NAME = 'rservasroma-v181';
 const BASE = '/rservasroma';
 
 const urlsToCache = [
@@ -17,7 +17,7 @@ const urlsToCache = [
 
   // App principal (JSX pre-compilado en compiled/ â€” ver scripts/build-jsx.sh)
   `${BASE}/compiled/client-app.js?v=20261103-flotantes1`,
-  `${BASE}/compiled/admin-app.js?v=20261103-roma1`,
+  `${BASE}/compiled/admin-app.js?v=20261104-roma2`,
 
   // Utils
   `${BASE}/utils/api.js?v=20261103-cita2`,
@@ -30,12 +30,12 @@ const urlsToCache = [
   `${BASE}/utils/native-push-notifications.js?v=20260722-platform-v4`,
   `${BASE}/utils/offline-panel.js`,
   `${BASE}/utils/config-negocio-master.js?v=20261103-cita2`,
-  `${BASE}/utils/i18n.js?v=20261103-roma1`,
+  `${BASE}/utils/i18n.js?v=20261104-roma2`,
   `${BASE}/utils/cuba-geo.js?v=20260727-wizard-ubicacion1`,
   `${BASE}/utils/phone-utils.js?v=20261012-eeuu1`,
   `${BASE}/utils/profesionales.js?v=20261018-elimprof2`,
   `${BASE}/utils/push-config.js?v=20260717-push-activo`,
-  `${BASE}/utils/push-notifications.js?v=20261103-roma1`,
+  `${BASE}/utils/push-notifications.js?v=20261104-roma2`,
   `${BASE}/utils/servicios.js?v=20261021-espacios2`,
   `${BASE}/utils/storage.js?v=20260905-soporte1`,
   `${BASE}/utils/catalogo.js?v=20261103-fase1`,
@@ -47,7 +47,7 @@ const urlsToCache = [
   `${BASE}/utils/whatsapp-helper.js?v=20261103-cita2`,
   `${BASE}/utils/bienvenida.js?v=20261012-bienvenida2`,
   `${BASE}/utils/soporte.js?v=20261103-flotantes1`,
-  `${BASE}/utils/roma-asistente.js?v=20261103-roma1`,
+  `${BASE}/utils/roma-asistente.js?v=20261104-roma2`,
   `${BASE}/utils/avisos-panel.js?v=20261103-avisos1`,
   `${BASE}/utils/legacy-ios-fallback.css?v=20260904-bordes1`,
   `${BASE}/utils/roma-typography.css?v=20260731-tipografia`,
@@ -74,9 +74,31 @@ const urlsToCache = [
   `${BASE}/compiled/components/MultiTimeSlots.js?v=20261023-combo1`,
   `${BASE}/compiled/components/AnadirServicioTurno.js?v=20261103-cita2`,
   `${BASE}/compiled/components/CambiarServiciosTurno.js?v=20261103-cambiar1`,
-  `${BASE}/compiled/components/admin/AsistenteRoma.js?v=20261103-roma1`,
-  `${BASE}/images/roma/roma-cara-96.webp`,
-  `${BASE}/images/roma/roma-cara-256.webp`,
+  `${BASE}/compiled/components/admin/AsistenteRoma.js?v=20261104-roma2`,
+  `${BASE}/images/roma/poses/alcancia.webp`,
+  `${BASE}/images/roma/poses/calculadora.webp`,
+  `${BASE}/images/roma/poses/cara-alegre.webp`,
+  `${BASE}/images/roma/poses/cara-cerrados.webp`,
+  `${BASE}/images/roma/poses/cara-curiosa.webp`,
+  `${BASE}/images/roma/poses/cara-duda.webp`,
+  `${BASE}/images/roma/poses/cara-guino.webp`,
+  `${BASE}/images/roma/poses/cara-preocupada.webp`,
+  `${BASE}/images/roma/poses/cara-sorpresa.webp`,
+  `${BASE}/images/roma/poses/cara-tierna.webp`,
+  `${BASE}/images/roma/poses/celebra.webp`,
+  `${BASE}/images/roma/poses/celular.webp`,
+  `${BASE}/images/roma/poses/corazon.webp`,
+  `${BASE}/images/roma/poses/crece.webp`,
+  `${BASE}/images/roma/poses/lupa.webp`,
+  `${BASE}/images/roma/poses/megafono.webp`,
+  `${BASE}/images/roma/poses/piensa.webp`,
+  `${BASE}/images/roma/poses/porfa.webp`,
+  `${BASE}/images/roma/poses/presenta.webp`,
+  `${BASE}/images/roma/poses/pulgar.webp`,
+  `${BASE}/images/roma/poses/saluda.webp`,
+  `${BASE}/images/roma/poses/senala.webp`,
+  `${BASE}/images/roma/poses/susto.webp`,
+  `${BASE}/images/roma/poses/tablet.webp`,
   `${BASE}/compiled/components/MyBookings.js?v=20261103-cambiar1`,
   `${BASE}/compiled/components/ProfesionalSelector.js?v=20261103-cita2`,
   `${BASE}/compiled/components/ServiceSelectionCategorias.js?v=20261103-cita2`,
@@ -85,18 +107,18 @@ const urlsToCache = [
   `${BASE}/compiled/components/WhatsAppButton.js?v=20261103-cita2`,
 
   // Componentes admin (compilados)
-  `${BASE}/compiled/components/admin/ConfigPanel.js?v=20261103-roma1`,
+  `${BASE}/compiled/components/admin/ConfigPanel.js?v=20261104-roma2`,
   `${BASE}/compiled/components/admin/EspaciosPanel.js?v=20261021-espacios2`,
-  `${BASE}/compiled/components/admin/CatalogoPanel.js?v=20261103-roma1`,
+  `${BASE}/compiled/components/admin/CatalogoPanel.js?v=20261104-roma2`,
   `${BASE}/compiled/components/admin/RomaHubActivacion.js?v=20260731-marca`,
   `${BASE}/compiled/components/admin/EditarNegocio.js?v=20261103-cita1`,
   `${BASE}/compiled/components/admin/HorariosPorDiaPanel.js?v=20261103-textos1`,
   `${BASE}/compiled/components/admin/HorariosExcepcionPanel.js?v=20261103-textos1`,
   `${BASE}/compiled/components/admin/ListaEsperaPanel.js?v=20261103-cita1`,
   `${BASE}/compiled/components/admin/ClientasNuevasPanel.js?v=20261012-bienvenida2`,
-  `${BASE}/compiled/components/admin/ProfesionalesPanel.js?v=20261103-roma1`,
+  `${BASE}/compiled/components/admin/ProfesionalesPanel.js?v=20261104-roma2`,
   `${BASE}/compiled/components/admin/ImportarServicios.js?v=20260723-jsx1`,
-  `${BASE}/compiled/components/admin/ServiciosPanelCategorias.js?v=20261103-roma1`,
+  `${BASE}/compiled/components/admin/ServiciosPanelCategorias.js?v=20261104-roma2`,
   `${BASE}/compiled/components/admin/FichaClientaPanel.js?v=20261103-avisos1`,
   `${BASE}/compiled/components/admin/SetupWizard.js?v=20261103-cita2`,
 
@@ -267,7 +289,7 @@ self.addEventListener('fetch', event => {
   // version aqui no bastaba para que una admin con el SW ya instalado
   // recibiera el archivo nuevo hasta que la cache vieja se vaciara sola).
   const esAssetCriticoAdmin = [
-    `${BASE}/compiled/admin-app.js?v=20261103-roma1`,
+    `${BASE}/compiled/admin-app.js?v=20261104-roma2`,
     `${BASE}/compiled/components/admin/EditarNegocio.js`,
     `${BASE}/utils/config-negocio-master.js`,
     `${BASE}/utils/native-push-notifications.js`,

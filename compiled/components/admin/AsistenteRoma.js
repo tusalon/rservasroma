@@ -4,19 +4,20 @@
   estilo.id = "roma-asistente-css";
   estilo.textContent = `
         @keyframes roma-respira { 0%, 100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-4px) scale(1.03); } }
-        @keyframes roma-saluda { 0%, 86%, 100% { transform: rotate(0); } 89% { transform: rotate(-9deg); } 93% { transform: rotate(8deg); } 97% { transform: rotate(-5deg); } }
+        @keyframes roma-asoma { from { transform: translateY(70%) scale(.92); opacity: 0; } 60% { transform: translateY(-4%) scale(1.02); opacity: 1; } to { transform: translateY(0) scale(1); opacity: 1; } }
         @keyframes roma-aro { 0% { box-shadow: 0 0 0 0 rgba(255,20,147,.45); } 70%, 100% { box-shadow: 0 0 0 14px rgba(255,20,147,0); } }
         @keyframes roma-entra { from { transform: translateY(24px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         @keyframes roma-punto { 0%, 80%, 100% { opacity: .25; transform: translateY(0); } 40% { opacity: 1; transform: translateY(-3px); } }
         .roma-boton { animation: roma-respira 3.2s ease-in-out infinite; }
-        .roma-cara { animation: roma-saluda 9s ease-in-out infinite; transform-origin: 50% 80%; }
+        .roma-asoma { animation: roma-asoma .42s ease-out both; transform-origin: 50% 100%; }
         .roma-aro { animation: roma-aro 2.4s ease-out infinite; }
         .roma-hoja { animation: roma-entra .26s ease-out; }
         .roma-punto { animation: roma-punto 1s ease-in-out infinite; }
-        @media (prefers-reduced-motion: reduce) { .roma-boton, .roma-cara, .roma-aro, .roma-hoja, .roma-punto { animation: none !important; } }
+        @media (prefers-reduced-motion: reduce) { .roma-boton, .roma-asoma, .roma-aro, .roma-hoja, .roma-punto { animation: none !important; } }
     `;
   document.head.appendChild(estilo);
 })();
+const romaImg = (nombre) => "images/roma/poses/" + nombre + ".webp";
 function AsistenteRoma({ idioma = "es", contexto = {}, disponible = () => true, onIr, onAccion }) {
   window.useIdioma();
   const t = window.t;
@@ -25,6 +26,8 @@ function AsistenteRoma({ idioma = "es", contexto = {}, disponible = () => true, 
   const [texto, setTexto] = React.useState("");
   const [escribiendo, setEscribiendo] = React.useState(false);
   const [globo, setGlobo] = React.useState(false);
+  const [pose, setPose] = React.useState("saluda");
+  const [guino, setGuino] = React.useState(false);
   const finRef = React.useRef(null);
   React.useEffect(() => {
     let visto = false;
@@ -47,6 +50,18 @@ function AsistenteRoma({ idioma = "es", contexto = {}, disponible = () => true, 
     };
   }, []);
   React.useEffect(() => {
+    if (abierto) return void 0;
+    let cierra;
+    const id = setInterval(() => {
+      setGuino(true);
+      cierra = setTimeout(() => setGuino(false), 650);
+    }, 8e3);
+    return () => {
+      clearInterval(id);
+      clearTimeout(cierra);
+    };
+  }, [abierto]);
+  React.useEffect(() => {
     if (finRef.current) finRef.current.scrollIntoView({ block: "end" });
   }, [mensajes, escribiendo, abierto]);
   const accionesVisibles = (acciones) => (acciones || []).filter((a) => a.tab ? disponible(a.tab) : true);
@@ -56,6 +71,7 @@ function AsistenteRoma({ idioma = "es", contexto = {}, disponible = () => true, 
     if (mensajes.length === 0) {
       const s = window.romaAsistente.saludo(contexto, idioma);
       setMensajes([{ de: "roma", texto: s.texto, acciones: accionesVisibles(s.acciones) }]);
+      setPose(s.pose || "saluda");
     }
   };
   const preguntar = (pregunta) => {
@@ -64,9 +80,11 @@ function AsistenteRoma({ idioma = "es", contexto = {}, disponible = () => true, 
     setMensajes((prev) => [...prev, { de: "yo", texto: limpio }]);
     setTexto("");
     setEscribiendo(true);
+    setPose("piensa");
     const r = window.romaAsistente.responder(limpio, idioma);
     setTimeout(() => {
       setEscribiendo(false);
+      setPose(r.pose || "saluda");
       setMensajes((prev) => [...prev, { de: "roma", texto: r.texto, acciones: accionesVisibles(r.acciones) }]);
     }, 450);
   };
@@ -78,12 +96,14 @@ function AsistenteRoma({ idioma = "es", contexto = {}, disponible = () => true, 
     }
     if (a.accion === "copiar-enlace") {
       onAccion && onAccion(a.accion);
+      setPose("pulgar");
       setMensajes((prev) => [...prev, { de: "roma", texto: idioma === "en" ? "Done, your link is copied. Paste it wherever you want to share it." : "Listo, tu enlace está copiado. Pégalo donde quieras compartirlo." }]);
       return;
     }
     setAbierto(false);
     onAccion && onAccion(a.accion);
   };
+  const pendientes = (contexto.pendientesPago || 0) + (contexto.clientasNuevas || 0);
   const sugerencias = window.romaAsistente.sugerencias(idioma);
   const soloSaludo = mensajes.length <= 1;
   return /* @__PURE__ */ React.createElement(React.Fragment, null, !abierto && /* @__PURE__ */ React.createElement("div", { className: "fixed z-30 flex flex-col items-end gap-2", style: { right: "12px", bottom: "calc(env(safe-area-inset-bottom, 0px) + 92px)" } }, globo && /* @__PURE__ */ React.createElement("button", { type: "button", onClick: abrir, className: "roma-hoja max-w-[200px] rounded-2xl rounded-br-sm bg-white px-3 py-2 text-left text-[13px] font-semibold text-pink-900 shadow-lg border border-pink-100" }, t("¿Te ayudo?")), /* @__PURE__ */ React.createElement(
@@ -97,27 +117,34 @@ function AsistenteRoma({ idioma = "es", contexto = {}, disponible = () => true, 
     },
     /* @__PURE__ */ React.createElement("span", { className: "roma-aro absolute inset-0 rounded-full" }),
     /* @__PURE__ */ React.createElement(
-      "img",
+      "span",
       {
-        src: "images/roma/roma-cara-96.webp",
-        alt: "",
-        width: "60",
-        height: "60",
-        className: "roma-cara relative rounded-full object-cover border-2 border-white shadow-lg",
-        style: { width: "60px", height: "60px" }
-      }
-    )
-  )), abierto && /* @__PURE__ */ React.createElement("div", { className: "fixed inset-0 z-50 flex items-end justify-center bg-black/40", onClick: () => setAbierto(false) }, /* @__PURE__ */ React.createElement(
+        className: "relative block overflow-hidden rounded-full border-2 border-white shadow-lg",
+        style: { width: "60px", height: "60px", background: "linear-gradient(160deg, #FFE4F1 0%, #FFB6D9 100%)" }
+      },
+      /* @__PURE__ */ React.createElement(
+        "img",
+        {
+          src: romaImg(guino ? "cara-guino" : "cara-alegre"),
+          alt: "",
+          width: "60",
+          height: "60",
+          className: "absolute left-0 w-full",
+          style: { top: "6px" }
+        }
+      )
+    ),
+    pendientes > 0 && /* @__PURE__ */ React.createElement("span", { className: "absolute -right-1 -top-1 flex h-5 min-w-[20px] items-center justify-center rounded-full border-2 border-white bg-pink-600 px-1 text-[11px] font-extrabold leading-none text-white" }, pendientes > 9 ? "9+" : pendientes)
+  )), abierto && /* @__PURE__ */ React.createElement("div", { className: "fixed inset-0 z-50 flex items-end justify-center bg-black/40", onClick: () => setAbierto(false) }, /* @__PURE__ */ React.createElement("div", { className: "roma-hoja relative w-full max-w-md", onClick: (e) => e.stopPropagation() }, /* @__PURE__ */ React.createElement("div", { "aria-hidden": "true", className: "pointer-events-none absolute right-5 overflow-hidden", style: { bottom: "calc(min(82vh, 640px) - 10px)", width: "112px", height: "92px" } }, /* @__PURE__ */ React.createElement("img", { key: pose, src: romaImg(pose), alt: "", className: "roma-asoma absolute left-0 top-1 w-full" })), /* @__PURE__ */ React.createElement(
     "div",
     {
       role: "dialog",
       "aria-label": t("Roma, tu asistente"),
-      className: "roma-hoja flex w-full max-w-md flex-col rounded-t-3xl bg-white shadow-2xl",
-      style: { height: "min(82vh, 640px)" },
-      onClick: (e) => e.stopPropagation()
+      className: "relative flex w-full flex-col rounded-t-3xl bg-white shadow-2xl",
+      style: { height: "min(82vh, 640px)" }
     },
-    /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3 border-b border-pink-100 px-4 py-3", style: { background: "linear-gradient(135deg, #FFE4F1 0%, #FFF1F8 100%)" } }, /* @__PURE__ */ React.createElement("img", { src: "images/roma/roma-cara-256.webp", alt: "", width: "48", height: "48", className: "rounded-full object-cover border-2 border-white shadow", style: { width: "48px", height: "48px" } }), /* @__PURE__ */ React.createElement("div", { className: "min-w-0 flex-1" }, /* @__PURE__ */ React.createElement("p", { className: "text-base font-extrabold leading-tight text-pink-900" }, "Roma"), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-pink-700" }, t("Tu asistente en RservasRoma"))), /* @__PURE__ */ React.createElement("button", { type: "button", onClick: () => setAbierto(false), "aria-label": t("Cerrar"), className: "h-10 w-10 rounded-full text-2xl leading-none text-pink-700 hover:bg-white/70" }, "×")),
-    /* @__PURE__ */ React.createElement("div", { className: "flex-1 space-y-3 overflow-y-auto px-4 py-4" }, mensajes.map((m, i) => /* @__PURE__ */ React.createElement("div", { key: i, className: m.de === "yo" ? "flex justify-end" : "flex items-start gap-2" }, m.de === "roma" && /* @__PURE__ */ React.createElement("img", { src: "images/roma/roma-cara-96.webp", alt: "", className: "mt-0.5 h-8 w-8 shrink-0 rounded-full object-cover" }), /* @__PURE__ */ React.createElement("div", { className: "min-w-0 max-w-[85%]" }, /* @__PURE__ */ React.createElement(
+    /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3 border-b border-pink-100 px-4 py-3", style: { background: "linear-gradient(135deg, #FFE4F1 0%, #FFF1F8 100%)" } }, /* @__PURE__ */ React.createElement("span", { className: "relative block shrink-0 overflow-hidden rounded-full border-2 border-white shadow", style: { width: "48px", height: "48px", background: "linear-gradient(160deg, #FFE4F1 0%, #FFB6D9 100%)" } }, /* @__PURE__ */ React.createElement("img", { src: romaImg("cara-alegre"), alt: "", width: "48", height: "48", className: "absolute left-0 w-full", style: { top: "5px" } })), /* @__PURE__ */ React.createElement("div", { className: "min-w-0 flex-1" }, /* @__PURE__ */ React.createElement("p", { className: "text-base font-extrabold leading-tight text-pink-900" }, "Roma"), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-pink-700" }, t("Tu asistente en RservasRoma"))), /* @__PURE__ */ React.createElement("button", { type: "button", onClick: () => setAbierto(false), "aria-label": t("Cerrar"), className: "h-10 w-10 rounded-full text-2xl leading-none text-pink-700 hover:bg-white/70" }, "×")),
+    /* @__PURE__ */ React.createElement("div", { className: "flex-1 space-y-3 overflow-y-auto px-4 py-4" }, mensajes.map((m, i) => /* @__PURE__ */ React.createElement("div", { key: i, className: m.de === "yo" ? "flex justify-end" : "flex items-start gap-2" }, m.de === "roma" && /* @__PURE__ */ React.createElement("span", { className: "relative mt-0.5 block h-8 w-8 shrink-0 overflow-hidden rounded-full", style: { background: "linear-gradient(160deg, #FFE4F1 0%, #FFB6D9 100%)" } }, /* @__PURE__ */ React.createElement("img", { src: romaImg("cara-alegre"), alt: "", className: "absolute left-0 w-full", style: { top: "3px" } })), /* @__PURE__ */ React.createElement("div", { className: "min-w-0 max-w-[85%]" }, /* @__PURE__ */ React.createElement(
       "p",
       {
         className: m.de === "yo" ? "rounded-2xl rounded-br-sm px-3 py-2 text-[15px] leading-snug text-white" : "rounded-2xl rounded-tl-sm bg-pink-50 px-3 py-2 text-[15px] leading-snug text-pink-950",
@@ -134,7 +161,7 @@ function AsistenteRoma({ idioma = "es", contexto = {}, disponible = () => true, 
       },
       a.etq,
       " ›"
-    )))))), escribiendo && /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2" }, /* @__PURE__ */ React.createElement("img", { src: "images/roma/roma-cara-96.webp", alt: "", className: "h-8 w-8 shrink-0 rounded-full object-cover" }), /* @__PURE__ */ React.createElement("div", { className: "flex gap-1 rounded-2xl rounded-tl-sm bg-pink-50 px-3 py-3", "aria-label": t("Roma está escribiendo") }, [0, 1, 2].map((n) => /* @__PURE__ */ React.createElement("span", { key: n, className: "roma-punto h-2 w-2 rounded-full bg-pink-400", style: { animationDelay: n * 0.15 + "s" } })))), soloSaludo && !escribiendo && /* @__PURE__ */ React.createElement("div", { className: "pt-1" }, /* @__PURE__ */ React.createElement("p", { className: "mb-2 text-xs font-semibold text-gray-500" }, t("Preguntas frecuentes")), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-2" }, sugerencias.map((p) => /* @__PURE__ */ React.createElement(
+    )))))), escribiendo && /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2" }, /* @__PURE__ */ React.createElement("span", { className: "relative block h-8 w-8 shrink-0 overflow-hidden rounded-full", style: { background: "linear-gradient(160deg, #FFE4F1 0%, #FFB6D9 100%)" } }, /* @__PURE__ */ React.createElement("img", { src: romaImg("cara-curiosa"), alt: "", className: "absolute left-0 w-full", style: { top: "3px" } })), /* @__PURE__ */ React.createElement("div", { className: "flex gap-1 rounded-2xl rounded-tl-sm bg-pink-50 px-3 py-3", "aria-label": t("Roma está escribiendo") }, [0, 1, 2].map((n) => /* @__PURE__ */ React.createElement("span", { key: n, className: "roma-punto h-2 w-2 rounded-full bg-pink-400", style: { animationDelay: n * 0.15 + "s" } })))), soloSaludo && !escribiendo && /* @__PURE__ */ React.createElement("div", { className: "pt-1" }, /* @__PURE__ */ React.createElement("p", { className: "mb-2 text-xs font-semibold text-gray-500" }, t("Preguntas frecuentes")), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-2" }, sugerencias.map((p) => /* @__PURE__ */ React.createElement(
       "button",
       {
         key: p,
@@ -176,7 +203,7 @@ function AsistenteRoma({ idioma = "es", contexto = {}, disponible = () => true, 
         t("Enviar")
       )
     )
-  )));
+  ))));
 }
 (function() {
   const en = window.__I18N_EN__ || (window.__I18N_EN__ = {});

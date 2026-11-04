@@ -5,8 +5,9 @@
 // Cuando haya IA (función `ayudante` de Supabase), responder() sigue siendo el plan B si no hay conexión.
 //
 // API (window.romaAsistente y module.exports):
-//   responder(texto, idioma)  -> { id, texto, acciones: [{ etq, tab? | accion? }] }
-//   saludo(contexto, idioma)  -> { texto, acciones }   contexto: { citasHoy, pendientesPago, clientasNuevas }
+//   responder(texto, idioma)  -> { id, texto, pose, acciones: [{ etq, tab? | accion? }] }
+//   saludo(contexto, idioma)  -> { texto, pose, acciones }   contexto: { citasHoy, pendientesPago, clientasNuevas }
+// `pose` es el nombre de una imagen de images/roma/poses/ (POSES): la pose que Roma pone al contestar.
 //   sugerencias(idioma)       -> [texto de pregunta frecuente, ...]
 // Una acción lleva `tab` (id de pantalla del panel) o `accion` ('nueva-reserva', 'copiar-enlace',
 // 'datos-negocio', 'soporte'). El panel decide si la persona puede usarla.
@@ -138,6 +139,20 @@
             acc: [] }
     ];
 
+    // Poses de cuerpo que existen en images/roma/poses/<nombre>.webp (las caras son 'cara-*', van aparte).
+    const POSES = ['saluda', 'presenta', 'megafono', 'pulgar', 'piensa', 'tablet', 'celular', 'corazon', 'lupa',
+        'calculadora', 'alcancia', 'crece', 'celebra', 'susto', 'porfa', 'senala'];
+    const CARAS = ['cara-alegre', 'cara-guino', 'cara-duda', 'cara-sorpresa', 'cara-preocupada', 'cara-tierna', 'cara-cerrados', 'cara-curiosa'];
+
+    // Qué pose pone Roma según de qué trate la respuesta.
+    const POSE_POR_INTENCION = {
+        'cerrar-dia': 'piensa', horario: 'tablet', servicio: 'calculadora', profesional: 'presenta', catalogo: 'corazon',
+        enlace: 'megafono', 'nueva-reserva': 'tablet', 'mover-cita': 'piensa', cancelar: 'susto', pago: 'alcancia',
+        ausente: 'piensa', cobro: 'alcancia', clientas: 'presenta', nuevas: 'saluda', espera: 'piensa', numeros: 'crece',
+        finanzas: 'calculadora', fidelidad: 'corazon', negocio: 'presenta', ajustes: 'tablet', idioma: 'senala',
+        avisos: 'megafono', soporte: 'susto', quien: 'saluda', saludo: 'saluda', nada: 'lupa'
+    };
+
     const PREGUNTAS = [
         { es: '¿Cómo cierro un día?', en: 'How do I close a day?' },
         { es: '¿Cómo cambio un precio?', en: 'How do I change a price?' },
@@ -167,13 +182,14 @@
         if (!mejor) {
             return {
                 id: 'nada',
+                pose: POSE_POR_INTENCION.nada,
                 texto: k === 'en'
                     ? 'I didn’t get that one. Try other words, or pick something I can help with:'
                     : 'Esa no la entendí bien. Prueba con otras palabras, o elige algo en lo que te puedo ayudar:',
                 acciones: resolverAcciones(['agenda', 'horarios', 'servicios', 'soporte'], k)
             };
         }
-        return { id: mejor.id, texto: mejor[k], acciones: resolverAcciones(mejor.acc, k) };
+        return { id: mejor.id, texto: mejor[k], pose: POSE_POR_INTENCION[mejor.id] || 'saluda', acciones: resolverAcciones(mejor.acc, k) };
     }
 
     function plural(n, uno, varios) { return n === 1 ? uno : varios; }
@@ -204,7 +220,9 @@
         if (!lineas.length) lineas.push(k === 'en' ? 'Everything is up to date.' : 'Todo está al día.');
         const abre = k === 'en' ? 'Hi, I’m Roma! ' : '¡Hola, soy Roma! ';
         const cierra = k === 'en' ? ' What do you need?' : ' ¿Qué necesitas?';
-        return { texto: abre + lineas.join(' ') + cierra, acciones: resolverAcciones(acciones.slice(0, 3), k) };
+        // al día -> celebra; algo esperando su anticipo o su visto bueno -> megáfono; si no, saluda
+        const pose = !acciones.length ? 'celebra' : (c.pendientesPago > 0 || c.clientasNuevas > 0 ? 'megafono' : 'saluda');
+        return { texto: abre + lineas.join(' ') + cierra, pose, acciones: resolverAcciones(acciones.slice(0, 3), k) };
     }
 
     function sugerencias(idioma) {
@@ -212,7 +230,7 @@
         return PREGUNTAS.map(p => p[k]);
     }
 
-    const api = { responder, saludo, sugerencias, normalizar, INTENCIONES };
+    const api = { responder, saludo, sugerencias, normalizar, INTENCIONES, POSES, CARAS, POSE_POR_INTENCION };
     if (typeof window !== 'undefined') window.romaAsistente = api;
     if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })();

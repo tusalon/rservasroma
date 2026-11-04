@@ -62,7 +62,18 @@ assert.match(leer('admin.html'), /utils\/roma-asistente\.js/);
 assert.match(leer('admin.html'), /compiled\/components\/admin\/AsistenteRoma\.js/);
 assert.match(leer('sw.js'), /utils\/roma-asistente\.js/);
 assert.match(leer('sw.js'), /compiled\/components\/admin\/AsistenteRoma\.js/);
-assert.match(leer('sw.js'), /images\/roma\/roma-cara-256\.webp/);
+roma.POSES.concat(roma.CARAS).forEach(nombre => {
+    assert.ok(fs.existsSync(require('node:path').join(__dirname, '..', 'images/roma/poses/' + nombre + '.webp')), 'falta la imagen de la pose ' + nombre);
+    assert.match(leer('sw.js'), new RegExp('images/roma/poses/' + nombre + '\.webp'), 'sw.js no cachea la pose ' + nombre);
+});
 assert.match(leer('admin-app.js'), /<AsistenteRoma/);
+
+// Cada respuesta trae una pose que existe; el saludo celebra si todo está al día y llama la atención si hay algo esperando.
+Object.entries(roma.POSE_POR_INTENCION).forEach(([id, pose]) => assert.ok(roma.POSES.includes(pose), id + ' usa una pose que no existe: ' + pose));
+roma.INTENCIONES.forEach(it => assert.ok(roma.POSE_POR_INTENCION[it.id], 'la intención ' + it.id + ' no tiene pose'));
+assert.ok(roma.POSES.includes(roma.responder('asdfgh qwerty', 'es').pose));
+assert.equal(roma.saludo({}, 'es').pose, 'celebra');
+assert.equal(roma.saludo({ pendientesPago: 1 }, 'es').pose, 'megafono');
+assert.equal(roma.saludo({ citasHoy: 2 }, 'es').pose, 'saluda');
 
 console.log('roma-asistente: ok');
