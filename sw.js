@@ -1,6 +1,6 @@
 ﻿// sw.js - Service Worker para Rservasroma
 
-const CACHE_NAME = 'rservasroma-v184';
+const CACHE_NAME = 'rservasroma-v185';
 const BASE = '/rservasroma';
 
 const urlsToCache = [
@@ -30,7 +30,7 @@ const urlsToCache = [
   `${BASE}/utils/native-push-notifications.js?v=20260722-platform-v4`,
   `${BASE}/utils/offline-panel.js`,
   `${BASE}/utils/config-negocio-master.js?v=20261103-cita2`,
-  `${BASE}/utils/i18n.js?v=20261104-auto1`,
+  `${BASE}/utils/i18n.js?v=20261105-calido1`,
   `${BASE}/utils/cuba-geo.js?v=20260727-wizard-ubicacion1`,
   `${BASE}/utils/phone-utils.js?v=20261012-eeuu1`,
   `${BASE}/utils/profesionales.js?v=20261018-elimprof2`,
@@ -49,7 +49,7 @@ const urlsToCache = [
   `${BASE}/utils/soporte.js?v=20261103-flotantes1`,
   `${BASE}/utils/roma-asistente.js?v=20261104-roma2`,
   `${BASE}/utils/avisos-panel.js?v=20261103-avisos1`,
-  `${BASE}/utils/legacy-ios-fallback.css?v=20260904-bordes1`,
+  `${BASE}/utils/legacy-ios-fallback.css?v=20261105-calido1`,
   `${BASE}/utils/roma-typography.css?v=20260731-tipografia`,
   `${BASE}/utils/roma-theme.js?v=20260731-tipografia`,
   `${BASE}/utils/fidelizacion.js?v=20261104-auto1`,
@@ -66,7 +66,7 @@ const urlsToCache = [
   `${BASE}/compiled/components/BookingForm.js?v=20261104-auto1`,
   `${BASE}/compiled/components/Catalogo.js?v=20261103-sello1`,
   `${BASE}/compiled/components/Calendar.js?v=20261103-fase2`,
-  `${BASE}/compiled/components/ClientAuthScreen.js?v=20261103-fase2b`,
+  `${BASE}/compiled/components/ClientAuthScreen.js?v=20261105-calido1`,
   `${BASE}/compiled/components/Confirmation.js?v=20261103-cita3`,
   `${BASE}/compiled/components/Header.js?v=20261103-cita3`,
   `${BASE}/compiled/components/InstallButton.js?v=20260723-jsx1`,
@@ -104,7 +104,7 @@ const urlsToCache = [
   `${BASE}/compiled/components/ServiceSelectionCategorias.js?v=20261103-cita2`,
   `${BASE}/compiled/components/TimeSlots.js?v=20261103-cita2`,
   `${BASE}/compiled/components/TarjetaFidelidad.js?v=20261104-auto1`,
-  `${BASE}/compiled/components/WelcomeScreen.js?v=20261104-fid1`,
+  `${BASE}/compiled/components/WelcomeScreen.js?v=20261105-calido1`,
   `${BASE}/compiled/components/WhatsAppButton.js?v=20261103-cita2`,
 
   // Componentes admin (compilados)

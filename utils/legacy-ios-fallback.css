@@ -318,7 +318,7 @@ button {
     inset: 0;
     z-index: 0;
     overflow: hidden;
-    background: #111827;
+    background: #f472b6;
 }
 
 .client-auth-background-image,
@@ -335,15 +335,15 @@ button {
 .client-welcome-overlay {
     position: absolute;
     inset: 0;
-    background: rgba(0, 0, 0, .46);
+    background: linear-gradient(180deg, rgba(255, 20, 147, .2) 0%, rgba(24, 10, 16, .3) 40%, rgba(24, 10, 16, .62) 100%);
 }
 
 .client-auth-card,
 .client-welcome-card {
     width: 100%;
-    background: rgba(0, 0, 0, .22);
-    border: 1px solid rgba(249, 168, 212, .42);
-    box-shadow: 0 24px 70px rgba(0, 0, 0, .28);
+    background: #fffaf8;
+    border: 1px solid rgba(255, 255, 255, .85);
+    box-shadow: 0 24px 60px rgba(24, 10, 16, .34);
 }
 
 .step-active {

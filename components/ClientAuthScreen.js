@@ -1,8 +1,8 @@
 ﻿// components/ClientAuthScreen.js - Login por teléfono con registro automático
 
 // Cumpleaños con los meses en píldoras y, al elegir uno, sus días: más rápido
-// que dos listas desplegables de 31 y 12 opciones. Lo usan el registro (fondo
-// oscuro) y la tarjeta de cumpleaños de client-app.js (fondo claro).
+// que dos listas desplegables de 31 y 12 opciones. Lo usan el registro y la
+// tarjeta de cumpleaños de client-app.js, los dos sobre fondo claro (claro=true).
 // Columnas en línea: legacy-ios-fallback.css pasa grid-cols-3/4 a dos.
 function SelectorCumple({ dia, mes, onCambio, claro = false }) {
     const normal = claro ? 'bg-gray-100 text-gray-800' : 'bg-white/15 text-white';
@@ -334,6 +334,7 @@ function ClientAuthScreen({ onAccessGranted, onGoBack, disenoPendiente }) {
 
     const nombreNegocio = config?.nombre || 'Mi Salón';
     const logoUrl = config?.logo_url;
+    const inicial = String(nombreNegocio).trim().charAt(0).toUpperCase() || '✨';
     const paisTelefono = window.getPhoneCountryConfig ? window.getPhoneCountryConfig({ codigo_pais: codigoPaisCliente }) : { codigo: '53', bandera: '🇨🇺', ejemplo: '51234567', localLength: 8 };
     const paisesTelefono = window.PHONE_COUNTRIES || [paisTelefono];
     const fondoPortada = {
@@ -342,66 +343,82 @@ function ClientAuthScreen({ onAccessGranted, onGoBack, disenoPendiente }) {
             : (config?.imagen_fondo_url || 'https://images.unsplash.com/photo-1604654894610-df63bc536371?q=60&w=800&auto=format&fit=crop'),
         label: 'Fondo de salon'
     };
-    // Uno para todos: ver WelcomeScreen.js. La especialidad dice "Uñas" en
-    // 405 de 440 negocios, sean de lo que sean.
-    const sticker = '✨';
+    // Degradado con los colores del salón: el botón y los detalles siguen su marca.
+    const degradadoMarca = 'linear-gradient(135deg, var(--brand-primary), var(--brand-secondary))';
+    const totalPasos = window.cumpleanos ? 2 : 1;
+    const pasoActual = pasoCumple ? 2 : 1;
+
+    // Título y frase de apoyo de cada momento del registro: una sola idea por pantalla.
+    const titulo = !necesitaNombre ? t('Entra con tu WhatsApp')
+        : pasoCumple ? t('¿Cuándo es tu cumple?')
+        : t('¡Qué bueno conocerte!');
+    const apoyo = !necesitaNombre ? (esProfesional ? '' : t('Si ya reservaste antes, entrarás directo sin contraseña.'))
+        : pasoCumple ? (window.cumpleanos?.bonificacionConfig(config).activa
+            ? t('Tu salón puede tener un detalle para ti ese día.')
+            : t('Así tu salón podrá felicitarte ese día.'))
+        : t('Número nuevo — solo necesitamos tu nombre para registrarte.');
+
+    const campo = 'w-full px-4 py-3.5 rounded-2xl outline-none transition text-base';
 
     return (
-        <div className="client-auth-screen min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
-            <div className="client-auth-background absolute inset-0 z-0 bg-gradient-to-br from-pink-200 via-pink-300 to-pink-400">
+        <div className="client-auth-screen min-h-screen flex items-center justify-center p-4 relative overflow-y-auto">
+            <div className="client-auth-background absolute inset-0 z-0"
+                style={{ background: degradadoMarca }}>
                 <img
                     src={fondoPortada.image}
                     alt={t('Fondo de salón')}
                     onLoad={() => setImagenCargada(true)}
                     className={`client-auth-background-image w-full h-full object-cover transition-opacity duration-700 ${imagenCargada ? 'opacity-100' : 'opacity-0'}`}
                 />
-                <div className="client-auth-overlay absolute inset-0 bg-black/40"></div>
+                <div className="client-auth-overlay absolute inset-0"></div>
             </div>
 
             {onGoBack && (
                 <button
                     onClick={onGoBack}
-                    className="client-auth-back absolute top-4 left-4 z-20 w-10 h-10 bg-pink-500/80 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-pink-600 transition-colors border border-pink-300"
+                    className="client-auth-back absolute top-4 left-4 z-20 rounded-full flex items-center justify-center transition-colors"
+                    style={{ backgroundColor: 'rgba(255,255,255,0.88)', boxShadow: '0 4px 14px rgba(20,8,14,0.25)' }}
                     title={t('Volver')}
                 >
-                    <i className="icon-arrow-left text-white text-xl"></i>
+                    <i className="icon-arrow-left text-xl" style={{ color: '#1f2937' }}></i>
                 </button>
             )}
 
-            <div className="client-auth-content relative z-10 max-w-md w-full mx-auto">
-                <div className="client-auth-card bg-black/15 backdrop-blur-[1px] p-8 rounded-2xl shadow-2xl border border-pink-300/25">
-                    <div className="text-center mb-6">
+            <div className="client-auth-content relative z-10 max-w-md w-full mx-auto" style={{ paddingTop: 48 }}>
+                <div className="client-auth-card">
+                    {/* Logo del salón, asomando por el borde de la tarjeta */}
+                    <div className="mx-auto flex items-center justify-center rounded-full overflow-hidden"
+                        style={{ width: 88, height: 88, marginTop: -44, background: '#fff', border: '4px solid #fff', boxShadow: '0 10px 26px rgba(var(--brand-primary-rgb), 0.32)' }}>
                         {logoUrl ? (
-                            <img
-                                src={logoUrl}
-                                alt={nombreNegocio}
-                                className="w-20 h-20 object-contain mx-auto rounded-xl ring-4 ring-pink-300/35 bg-white/70"
-                            />
+                            <img src={logoUrl} alt={nombreNegocio} className="w-full h-full object-contain" />
                         ) : (
-                            <div className="w-20 h-20 rounded-xl mx-auto flex items-center justify-center bg-pink-500 ring-4 ring-pink-300/35">
-                                <span className="text-3xl">{sticker}</span>
-                            </div>
+                            <span className="w-full h-full flex items-center justify-center text-4xl font-extrabold text-white"
+                                style={{ background: degradadoMarca }}>{inicial}</span>
                         )}
-                        <h1 className="text-3xl font-bold text-white mt-4">{nombreNegocio}</h1>
+                    </div>
+
+                    <div className="text-center mt-3">
+                        <p className="text-sm text-gray-500">{t('Bienvenida a')}</p>
+                        <h1 className="text-2xl font-extrabold text-gray-900 leading-tight break-words">{nombreNegocio}</h1>
                     </div>
 
                     {/* Llegó desde el catálogo compartido en redes: se le
                         recuerda qué diseño está a punto de reservar, para que el
                         formulario no parezca un peaje salido de la nada. */}
                     {disenoPendiente && (
-                        <div className="mb-4 flex items-center gap-3 bg-white/15 border border-white/25 rounded-xl p-3">
+                        <div className="mt-5 flex items-center gap-3 rounded-2xl p-3" style={{ background: '#f4ece9' }}>
                             <img
                                 src={window.urlImagenCloudinary
                                     ? window.urlImagenCloudinary(disenoPendiente.imagen_url, 120)
                                     : disenoPendiente.imagen_url}
                                 alt={disenoPendiente.titulo}
-                                className="w-14 h-14 rounded-lg object-cover shrink-0" />
+                                className="w-14 h-14 rounded-xl object-cover shrink-0" />
                             <div className="min-w-0 text-left">
-                                <p className="text-xs text-pink-200 font-medium">
+                                <p className="text-xs text-gray-500 font-medium">
                                     {t('Para pedir tu cita')}
                                 </p>
-                                <p className="text-sm text-white font-bold truncate">{disenoPendiente.titulo}</p>
-                                <p className="text-xs text-white/70 mt-0.5">
+                                <p className="text-sm text-gray-900 font-bold truncate">{disenoPendiente.titulo}</p>
+                                <p className="text-xs text-gray-600 mt-0.5">
                                     {t('Entra con tu WhatsApp: es un paso y ya quedas registrada.')}
                                 </p>
                             </div>
@@ -411,32 +428,40 @@ function ClientAuthScreen({ onAccessGranted, onGoBack, disenoPendiente }) {
                     {/* Esperando el visto bueno del salón: no se le muestra el
                         formulario, para que no vuelva a intentarlo en círculos. */}
                     {clientePendiente && (
-                        <div className="bg-white/15 border border-white/25 rounded-xl p-5 text-center">
+                        <div className="mt-5 rounded-2xl p-5 text-center" style={{ background: '#fff7e6' }}>
                             <p className="text-4xl mb-2">⏳</p>
-                            <h2 className="text-lg font-bold text-white mb-2">
+                            <h2 className="text-lg font-bold text-gray-900 mb-2">
                                 {t('Tu solicitud ya llegó')}
                             </h2>
-                            <p className="text-sm text-white/85 leading-relaxed">
+                            <p className="text-sm text-gray-700 leading-relaxed">
                                 {t('{negocio} tiene que aceptarte antes de que puedas reservar. Te avisamos por aquí mismo: vuelve a entrar con tu WhatsApp más tarde.', { negocio: nombreNegocio || t('El salón') })}
                             </p>
                         </div>
                     )}
 
                     {!clientePendiente && (
-                    <h2 className="text-lg font-semibold text-white mb-4 text-center bg-pink-500/30 p-3 rounded-lg">
-                        {!necesitaNombre ? t('Entra con tu WhatsApp')
-                            : !window.cumpleanos ? t('Primera vez aquí — bienvenida')
-                            : pasoCumple ? t('Primera vez · 2 de 2') : t('Primera vez · 1 de 2')}
-                    </h2>
+                        <div className="text-center mt-5 mb-4">
+                            {necesitaNombre && !esProfesional && (
+                                <div className="flex items-center justify-center gap-2 mb-2" role="img"
+                                    aria-label={t('Paso {n} de {total}', { n: pasoActual, total: totalPasos })}>
+                                    {Array.from({ length: totalPasos }, (_, i) => (
+                                        <span key={i} className="rounded-full transition-all"
+                                            style={{ height: 6, width: i + 1 === pasoActual ? 26 : 10, background: i + 1 <= pasoActual ? 'var(--brand-primary)' : '#e7dcd8' }} />
+                                    ))}
+                                </div>
+                            )}
+                            <h2 className="text-xl font-bold text-gray-900">{titulo}</h2>
+                            {apoyo && <p className="text-sm text-gray-600 mt-1 leading-snug">{apoyo}</p>}
+                        </div>
                     )}
 
                     {!clientePendiente && (
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <div hidden={pasoCumple}>
-                            <label className="block text-sm font-medium text-white mb-1">
+                            <label className="block text-sm font-semibold text-gray-700 mb-1.5">
                                 {t('Tu número de WhatsApp')}
                             </label>
-                            <div className="flex">
+                            <div className="flex gap-2">
                                 <select
                                     value={codigoPaisCliente}
                                     onChange={(e) => {
@@ -448,7 +473,8 @@ function ClientAuthScreen({ onAccessGranted, onGoBack, disenoPendiente }) {
                                         setWhatsapp(local);
                                         resetCliente();
                                     }}
-                                    className="w-32 px-2 py-3 rounded-l-lg border border-r-0 border-pink-300/30 bg-black/40 text-pink-100 text-sm outline-none"
+                                    className="px-2 py-3.5 rounded-2xl outline-none text-sm font-semibold"
+                                    style={{ width: 112 }}
                                 >
                                     {paisesTelefono.map((pais) => (
                                         <option key={pais.id} value={pais.codigo}>{pais.bandera} +{pais.codigo}</option>
@@ -461,24 +487,16 @@ function ClientAuthScreen({ onAccessGranted, onGoBack, disenoPendiente }) {
                                     autoComplete="tel-national"
                                     value={whatsapp}
                                     onChange={(e) => manejarCambioTelefono(e.target.value)}
-                                    className="w-full px-4 py-3 rounded-r-lg border border-pink-300/30 bg-black/20 text-white placeholder-pink-200/70 focus:ring-2 focus:ring-pink-500 focus:border-transparent outline-none transition"
+                                    className={`${campo} min-w-0 flex-1`}
                                     placeholder={paisTelefono.ejemplo || '51234567'}
                                     required
                                 />
                             </div>
-                            {!necesitaNombre && !esProfesional && (
-                                <p className="text-sm text-white/90 mt-1.5">
-                                    {t('Si ya reservaste antes, entrarás directo sin contraseña.')}
-                                </p>
-                            )}
                         </div>
 
                         {necesitaNombre && !clienteBloqueado && !esAdmin && !esProfesional && !pasoCumple && (
                             <div>
-                                <p className="text-sm text-white/90 mb-3">
-                                    {t('Número nuevo — solo necesitamos tu nombre para registrarte.')}
-                                </p>
-                                <label className="block text-sm font-medium text-white mb-1">
+                                <label className="block text-sm font-semibold text-gray-700 mb-1.5">
                                     {t('Tu nombre completo')}
                                 </label>
                                 <input
@@ -488,54 +506,47 @@ function ClientAuthScreen({ onAccessGranted, onGoBack, disenoPendiente }) {
                                     autoCapitalize="words"
                                     value={nombre}
                                     onChange={(e) => setNombre(e.target.value)}
-                                    className="w-full px-4 py-3 rounded-lg border border-pink-300/30 bg-black/20 text-white placeholder-pink-200/70 focus:ring-2 focus:ring-pink-500 focus:border-transparent outline-none transition"
+                                    className={campo}
                                     placeholder={t('Ej: María Pérez')}
                                     autoFocus
                                 />
-
                             </div>
                         )}
 
                         {necesitaNombre && pasoCumple && window.cumpleanos && (
                             <div className="space-y-3">
-                                <p className="text-xl font-bold text-white">{t('¿Cuándo es tu cumple?')}</p>
-                                <p className="text-sm font-semibold text-white bg-white/15 rounded-lg px-3 py-2">
-                                    {window.cumpleanos.bonificacionConfig(config).activa
-                                        ? t('Tu salón puede tener un detalle para ti ese día.')
-                                        : t('Así tu salón podrá felicitarte ese día.')}
-                                </p>
-                                <SelectorCumple dia={cumpleDia} mes={cumpleMes}
+                                <SelectorCumple dia={cumpleDia} mes={cumpleMes} claro
                                     onCambio={(d, m) => { setCumpleDia(d); setCumpleMes(m); }} />
-                                <button type="button" onClick={() => setPasoCumple(false)} className="text-sm font-semibold text-white/80">
+                                <button type="button" onClick={() => setPasoCumple(false)} className="text-sm font-semibold text-gray-600">
                                     ← {t('Atrás')}
                                 </button>
                             </div>
                         )}
 
                         {verificando && (
-                            <div className="text-pink-300 text-sm bg-pink-500/20 p-2 rounded-lg flex items-center gap-2 border border-pink-300/30">
-                                <div className="animate-spin h-4 w-4 border-2 border-pink-300 border-t-transparent rounded-full"></div>
+                            <div className="text-gray-700 text-sm p-2.5 rounded-2xl flex items-center gap-2" style={{ background: '#f4ece9' }}>
+                                <div className="animate-spin h-4 w-4 border-2 border-t-transparent rounded-full" style={{ borderColor: 'var(--brand-primary)', borderTopColor: 'transparent' }}></div>
                                 {t('Verificando...')}
                             </div>
                         )}
 
                         {esProfesional && profesionalInfo && !verificando && (
-                            <div className="bg-pink-500/30 border border-pink-300/50 rounded-lg p-4">
-                                <p className="text-white font-bold text-xl">{t('¡Hola, {nombre}!', { nombre: profesionalInfo.nombre })}</p>
-                                <p className="text-pink-200 text-sm">{t('Ingresa tu contraseña para acceder al panel.')}</p>
+                            <div className="rounded-2xl p-4" style={{ background: '#f4ece9' }}>
+                                <p className="text-gray-900 font-bold text-xl">{t('¡Hola, {nombre}!', { nombre: profesionalInfo.nombre })}</p>
+                                <p className="text-gray-600 text-sm">{t('Ingresa tu contraseña para acceder al panel.')}</p>
                             </div>
                         )}
 
                         {esProfesional && profesionalInfo && !verificando && (
                             <div>
-                                <label className="block text-sm font-medium text-white mb-1">
+                                <label className="block text-sm font-semibold text-gray-700 mb-1.5">
                                     {t('Contraseña profesional')}
                                 </label>
                                 <input
                                     type="password"
                                     value={profesionalPassword}
                                     onChange={(e) => setProfesionalPassword(e.target.value)}
-                                    className="w-full px-4 py-3 rounded-lg border border-pink-300/30 bg-black/20 text-white placeholder-pink-200/70 focus:ring-2 focus:ring-pink-500 focus:border-transparent outline-none transition"
+                                    className={campo}
                                     placeholder={t('Tu contraseña')}
                                     autoComplete="current-password"
                                     autoFocus
@@ -544,18 +555,18 @@ function ClientAuthScreen({ onAccessGranted, onGoBack, disenoPendiente }) {
                         )}
 
                         {error && !esAdmin && (
-                            <div className="text-sm p-3 rounded-lg flex items-start gap-2 bg-red-500/20 text-red-300 border border-red-500/30">
+                            <div className="text-sm p-3 rounded-2xl flex items-start gap-2 bg-red-50 text-red-700 border border-red-200">
                                 <i className="icon-triangle-alert mt-0.5"></i>
                                 <span>{error}</span>
                             </div>
                         )}
 
-                        <div className="space-y-3 pt-2">
+                        <div className="space-y-2 pt-1">
                             {esProfesional && profesionalInfo && !verificando && (
                                 <button
                                     type="button"
                                     onClick={ingresarComoProfesional}
-                                    className="w-full bg-white text-pink-600 py-4 rounded-xl font-bold hover:bg-pink-50 transition-all duration-300 transform hover:scale-[1.02] hover:shadow-xl active:scale-[0.99] flex items-center justify-center gap-2 shadow-lg text-lg border border-pink-200/70"
+                                    className="w-full bg-gray-900 text-white py-4 rounded-full font-bold transition-all active:scale-[0.98] flex items-center justify-center gap-2 text-lg"
                                 >
                                     <span className="text-xl">✂️</span>
                                     {t('Ingresar como Profesional')}
@@ -566,7 +577,8 @@ function ClientAuthScreen({ onAccessGranted, onGoBack, disenoPendiente }) {
                                 <button
                                     type="submit"
                                     disabled={verificando}
-                                    className="w-full bg-pink-500 text-white py-4 rounded-full font-bold hover:bg-pink-600 transition-all duration-300 transform hover:scale-[1.02] hover:shadow-xl active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg text-lg border border-pink-200/70"
+                                    className="w-full text-white py-4 rounded-full font-bold transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-lg"
+                                    style={{ background: degradadoMarca, boxShadow: '0 12px 26px rgba(var(--brand-primary-rgb), 0.38)' }}
                                 >
                                     {verificando ? t('Verificando...')
                                         : necesitaNombre && (pasoCumple || !window.cumpleanos) ? t('Registrarme y reservar')
@@ -576,7 +588,7 @@ function ClientAuthScreen({ onAccessGranted, onGoBack, disenoPendiente }) {
 
                             {necesitaNombre && pasoCumple && !verificando && (
                                 <button type="button" onClick={(e) => handleSubmit(e, true)}
-                                    className="w-full py-2 text-sm font-semibold text-white/85">
+                                    className="w-full py-2 text-sm font-semibold text-gray-500">
                                     {t('Prefiero no decirlo')}
                                 </button>
                             )}

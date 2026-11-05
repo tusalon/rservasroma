@@ -873,6 +873,9 @@
         'Atrás': 'Back',
         'Continuar': 'Continue',
         'Paso {n} de 4': 'Step {n} of 4',
+        'Paso {n} de {total}': 'Step {n} of {total}',
+        'Qué alegría verte otra vez': 'So happy to see you again',
+        '¡Qué bueno conocerte!': 'So nice to meet you!',
 
         // admin-app.js (alerts/confirms)
         'Imagen generada. Si no se abrió el menú de compartir, revisa Descargas.': "Image generated. If the share menu didn't open, check Downloads.",

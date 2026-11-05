@@ -1,4 +1,4 @@
-// components/WelcomeScreen.js - Versión con REDES SOCIALES (CORREGIDA - SIN DESBORDAMIENTO)
+// components/WelcomeScreen.js - Bienvenida cálida: saludo sobre la foto del salón y tarjeta clara con logo, mensaje y botones.
 
 function WelcomeScreen({ onStart, onGoBack, cliente, userRol, onMisReservas, onCatalogo, onLogout }) {
     window.useIdioma();
@@ -100,10 +100,6 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol, onMisReservas, onC
             : (config?.imagen_fondo_url || 'https://images.unsplash.com/photo-1604654894610-df63bc536371?q=60&w=800&auto=format&fit=crop'),
         label: 'Fondo de salon'
     };
-    // Uno para todos. Antes salia segun negocios.especialidad, pero ese campo
-    // se rellena solo con "Uñas" al crear la cuenta: 405 de 440 lo tienen,
-    // incluidas lashistas, barberias y spas, que veian un 💅 (26-09-2026).
-    const sticker = '✨';
 
     // ============================================
     // FUNCIONES PARA ABRIR REDES SOCIALES
@@ -177,107 +173,118 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol, onMisReservas, onC
     
     const tieneRedes = tieneWhatsApp || tieneInstagram || tieneFacebook;
 
+    // El color del salón se usa en detalles y en el botón; el texto va siempre en
+    // gris oscuro sobre fondo claro para que se lea con cualquier color de salón.
+    const nombreSalon = config?.nombre || t('Mi Salón');
+    const primerNombre = cliente ? String(cliente.nombre || '').split(' ')[0] : '';
+    const inicial = String(nombreSalon).trim().charAt(0).toUpperCase() || '✨';
+    const sombraTexto = '0 2px 14px rgba(20, 8, 14, 0.55)';
+    const botonSuave = {
+        background: hexToRgba(colorSecundario, 0.18),
+        border: `1px solid ${hexToRgba(colorSecundario, 0.55)}`
+    };
+
     return (
-        <div 
-            className="client-welcome-screen relative min-h-screen w-full overflow-y-auto"
-        >
-            {/* Imagen de fondo fija */}
-            <div className="client-welcome-background fixed inset-0 z-0 bg-gradient-to-br from-pink-200 via-pink-300 to-pink-400">
+        <div className="client-welcome-screen relative min-h-screen w-full overflow-y-auto">
+            {/* Foto del salón fija; mientras llega se ve un degradado con los colores del salón, nunca un fondo negro */}
+            <div className="client-welcome-background fixed inset-0 z-0"
+                style={{ background: `linear-gradient(160deg, ${colorPrimario}, ${colorSecundario})` }}>
                 <img
                     src={fondoPortada.image}
                     alt={t('Fondo de salón')}
                     onLoad={() => setImagenCargada(true)}
                     className={`client-welcome-background-image w-full h-full object-cover transition-opacity duration-700 ${imagenCargada ? 'opacity-100' : 'opacity-0'}`}
                 />
-                <div className="client-welcome-overlay absolute inset-0 bg-black/40"></div>
+                <div className="client-welcome-overlay absolute inset-0"></div>
             </div>
 
-            {/* Botón volver - fijo en la parte superior */}
             {onGoBack && (
                 <button
                     onClick={onGoBack}
-                    className="client-welcome-back fixed top-4 left-4 z-20 w-10 h-10 backdrop-blur-sm rounded-full flex items-center justify-center transition-colors border"
-                    style={{
-                        backgroundColor: hexToRgba(colorPrimario, 0.86),
-                        borderColor: hexToRgba(colorSecundario, 0.75)
-                    }}
+                    className="client-welcome-back fixed top-4 left-4 z-20 w-10 h-10 rounded-full flex items-center justify-center transition-colors"
+                    style={{ backgroundColor: 'rgba(255,255,255,0.88)', boxShadow: '0 4px 14px rgba(20,8,14,0.25)' }}
                     title={t('Volver')}
                 >
-                    <i className="icon-arrow-left text-white text-xl"></i>
+                    <i className="icon-arrow-left text-xl" style={{ color: '#1f2937' }}></i>
                 </button>
             )}
 
-            {/* Contenido — altura fija, todo visible sin scroll */}
-            <div className="client-welcome-content relative z-10 flex flex-col items-center justify-center px-4"
-                style={{ minHeight: '100svh', paddingTop: 'max(56px, env(safe-area-inset-top))', paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}>
-                <div
-                    className="client-welcome-card w-full max-w-sm bg-black/15 backdrop-blur-[1px] p-4 rounded-2xl shadow-2xl border"
-                    style={{
-                        borderColor: hexToRgba(colorSecundario, 0.42),
-                        boxShadow: `0 16px 48px ${hexToRgba(colorPrimario, 0.22)}`
-                    }}
-                >
-                    <div className="text-center space-y-3">
+            <div className="client-welcome-content relative z-10">
+                {/* Saludo sobre la foto */}
+                <header className="text-center px-3 pt-4 pb-20">
+                    {cliente ? (
+                        <>
+                            <p className="text-sm font-medium text-white/90" style={{ textShadow: sombraTexto }}>{t('Qué alegría verte otra vez')}</p>
+                            <h1 className="text-3xl font-extrabold text-white leading-tight mt-1" style={{ textShadow: sombraTexto }}>
+                                {t('Hola, {nombre}', { nombre: primerNombre })} <span aria-hidden="true">👋</span>
+                            </h1>
+                        </>
+                    ) : (
+                        <>
+                            <p className="text-sm font-medium text-white/90" style={{ textShadow: sombraTexto }}>{t('Bienvenida a')}</p>
+                            <h1 className="text-3xl font-extrabold text-white leading-tight mt-1 break-words" style={{ textShadow: sombraTexto }}>{nombreSalon}</h1>
+                        </>
+                    )}
+                </header>
 
-                        {/* Logo o sticker */}
-                        {config?.logo_url ? (
-                            <img src={config.logo_url} alt={config.nombre}
-                                className="w-14 h-14 object-contain mx-auto rounded-xl shadow-lg ring-2"
-                                style={{ '--tw-ring-color': hexToRgba(colorSecundario, 0.45) }} />
-                        ) : (
-                            <div className="w-14 h-14 rounded-xl mx-auto flex items-center justify-center shadow-lg ring-2"
-                                style={{ background: `linear-gradient(135deg, ${colorPrimario}, ${colorSecundario})`, '--tw-ring-color': hexToRgba(colorSecundario, 0.45) }}>
-                                <span className="text-3xl">{sticker}</span>
-                            </div>
-                        )}
-
-                        {/* Título: saluda a la clienta por su nombre */}
-                        <div>
-                            {cliente ? (
-                                <p className="text-2xl font-extrabold text-white leading-tight">
-                                    {t('Hola, {nombre}', { nombre: String(cliente.nombre || '').split(' ')[0] })}
-                                </p>
+                <div className="client-welcome-card mt-auto mx-auto">
+                    <div className="text-center space-y-4">
+                        {/* Logo del salón, asomando por el borde de la tarjeta */}
+                        <div className="mx-auto flex items-center justify-center rounded-full overflow-hidden"
+                            style={{ width: 80, height: 80, marginTop: -66, background: '#fff', border: '4px solid #fff', boxShadow: `0 10px 26px ${hexToRgba(colorPrimario, 0.32)}` }}>
+                            {config?.logo_url ? (
+                                <img src={config.logo_url} alt={nombreSalon} className="w-full h-full object-contain" />
                             ) : (
-                                <p className="text-sm font-medium text-white/80">{t('Bienvenida a')}</p>
+                                <span className="w-full h-full flex items-center justify-center text-3xl font-extrabold text-white"
+                                    style={{ background: `linear-gradient(135deg, ${colorPrimario}, ${colorSecundario})` }}>{inicial}</span>
                             )}
-                            <div className={`${cliente ? 'text-base' : 'text-xl'} font-bold break-words leading-tight`}
-                                style={{ color: colorSecundario, textShadow: `0 2px 12px ${hexToRgba(colorPrimario, 0.45)}` }}>
-                                {config?.nombre || t('Mi Salón')}
-                            </div>
                         </div>
 
-                                        {/* Mensaje bienvenida */}
-                        <div>
-                            <p className={`text-white/85 text-xs max-w-xs mx-auto leading-snug whitespace-pre-line ${mensajeCompleto ? '' : 'line-clamp-4'}`}>
+                        {cliente && (
+                            <p className="text-lg font-bold text-gray-900 break-words leading-tight" style={{ marginTop: 10 }}>{nombreSalon}</p>
+                        )}
+
+                        {/* Mensaje de bienvenida de la dueña */}
+                        <div className="text-left rounded-2xl px-4 py-3" style={{ background: hexToRgba(colorSecundario, 0.16) }}>
+                            <p className={`text-[14px] text-gray-700 leading-relaxed whitespace-pre-line ${mensajeCompleto ? '' : 'line-clamp-4'}`}>
                                 {config?.mensaje_bienvenida || t('¡Bienvenida a nuestro salón!')}
                             </p>
                             {String(config?.mensaje_bienvenida || '').length > 160 && (
-                                <button onClick={() => setMensajeCompleto(!mensajeCompleto)} className="text-xs font-bold text-white underline underline-offset-2 mt-1">
+                                <button onClick={() => setMensajeCompleto(!mensajeCompleto)} className="text-xs font-bold underline underline-offset-2 mt-1 text-gray-700">
                                     {mensajeCompleto ? t('Ver menos') : t('Ver más')}
                                 </button>
                             )}
                         </div>
 
-                        {/* Redes sociales */}
-                        {tieneRedes && (
-                            <div className="flex justify-center gap-3">
-                                {tieneWhatsApp && (
-                                    <button onClick={abrirWhatsApp} title={t('WhatsApp')}
-                                        className="w-10 h-10 bg-[#25D366] rounded-full flex items-center justify-center border border-white/30 hover:scale-105 transition-transform">
-                                        <i className="icon-message-circle text-white text-lg"></i>
-                                    </button>
+                        {/* Horario y redes, en una sola fila */}
+                        {(config?.horario_atencion || tieneRedes) && (
+                            <div className="flex items-center justify-center gap-3 flex-wrap">
+                                {config?.horario_atencion && (
+                                    <p className="text-xs text-gray-600 flex items-center gap-1.5">
+                                        <span aria-hidden="true">🕐</span>{config.horario_atencion}
+                                    </p>
                                 )}
-                                {tieneInstagram && (
-                                    <button onClick={abrirInstagram} title={t('Instagram')}
-                                        className="w-10 h-10 bg-gradient-to-br from-purple-600 via-pink-500 to-orange-400 rounded-full flex items-center justify-center border border-white/30 hover:scale-105 transition-transform">
-                                        <i className="icon-instagram text-white text-lg"></i>
-                                    </button>
-                                )}
-                                {tieneFacebook && (
-                                    <button onClick={abrirFacebook} title={t('Facebook')}
-                                        className="w-10 h-10 bg-[#1877F2] rounded-full flex items-center justify-center border border-white/30 hover:scale-105 transition-transform">
-                                        <i className="icon-facebook text-white text-lg"></i>
-                                    </button>
+                                {tieneRedes && (
+                                    <div className="flex gap-2">
+                                        {tieneWhatsApp && (
+                                            <button onClick={abrirWhatsApp} title={t('WhatsApp')} aria-label={t('WhatsApp')}
+                                                style={{ width: 40, height: 40, minWidth: 0, minHeight: 0 }} className="bg-[#25D366] rounded-full flex items-center justify-center active:scale-95 transition-transform">
+                                                <i className="icon-message-circle text-white text-lg"></i>
+                                            </button>
+                                        )}
+                                        {tieneInstagram && (
+                                            <button onClick={abrirInstagram} title={t('Instagram')} aria-label={t('Instagram')}
+                                                style={{ width: 40, height: 40, minWidth: 0, minHeight: 0 }} className="bg-gradient-to-br from-purple-600 via-pink-500 to-orange-400 rounded-full flex items-center justify-center active:scale-95 transition-transform">
+                                                <i className="icon-instagram text-white text-lg"></i>
+                                            </button>
+                                        )}
+                                        {tieneFacebook && (
+                                            <button onClick={abrirFacebook} title={t('Facebook')} aria-label={t('Facebook')}
+                                                style={{ width: 40, height: 40, minWidth: 0, minHeight: 0 }} className="bg-[#1877F2] rounded-full flex items-center justify-center active:scale-95 transition-transform">
+                                                <i className="icon-facebook text-white text-lg"></i>
+                                            </button>
+                                        )}
+                                    </div>
                                 )}
                             </div>
                         )}
@@ -285,13 +292,14 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol, onMisReservas, onC
                         {/* Su próxima cita, si tiene: lo primero que suele buscar. */}
                         {proxima && onMisReservas && (
                             <button onClick={onMisReservas}
-                                className="w-full text-left bg-white/95 rounded-2xl px-4 py-3 shadow-lg flex items-center gap-3">
+                                className="w-full text-left rounded-2xl px-4 py-3 flex items-center gap-3"
+                                style={{ background: '#fff', border: `1px solid ${hexToRgba(colorPrimario, 0.22)}`, borderLeft: `5px solid ${colorPrimario}`, boxShadow: `0 6px 18px ${hexToRgba(colorPrimario, 0.12)}` }}>
                                 <span className="min-w-0 flex-1">
-                                    <span className="block text-xs font-bold uppercase tracking-wide text-gray-500">{t('Tu próxima cita')}</span>
-                                    <span className="block font-bold text-gray-900 truncate">
+                                    <span className="block text-[11px] font-bold uppercase tracking-wide text-gray-500">{t('Tu próxima cita')}</span>
+                                    <span className="block font-bold text-gray-900 leading-snug">
                                         {(window.formatFechaCompleta ? window.formatFechaCompleta(proxima.fecha) : proxima.fecha)} · {window.formatTo12Hour ? window.formatTo12Hour(proxima.hora_inicio) : proxima.hora_inicio}
                                     </span>
-                                    <span className={`block text-sm truncate ${proxima.estado === 'Pendiente' ? 'text-amber-700 font-semibold' : 'text-gray-600'}`}>
+                                    <span className={`block text-sm ${proxima.estado === 'Pendiente' ? 'text-amber-700 font-semibold' : 'text-gray-600'}`}>
                                         {proxima.estado === 'Pendiente' ? t('Falta el anticipo · toca para enviarlo') : proxima.servicio}
                                     </span>
                                 </span>
@@ -302,50 +310,39 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol, onMisReservas, onC
                         {/* Tarjeta de fidelidad: cuánto le falta para su descuento (solo si el salón la tiene activa). */}
                         {cliente && window.TarjetaFidelidad && <window.TarjetaFidelidad cliente={cliente} config={config} onReservar={onStart} />}
 
-                        {/* Botón principal */}
-                        <button onClick={onStart}
-                            className="w-full text-white font-bold py-3 rounded-full shadow-lg transition-all active:scale-[0.98] flex items-center justify-center gap-2 border"
-                            style={{
-                                background: `linear-gradient(135deg, ${colorPrimario}, ${colorSecundario})`,
-                                borderColor: hexToRgba(colorSecundario, 0.7),
-                                boxShadow: `0 10px 28px ${hexToRgba(colorPrimario, 0.35)}`
-                            }}>
-                            <span>💖</span>
-                            <span>{t('Reservar cita')}</span>
-                            <span>✨</span>
-                        </button>
-
-                        {/* Catálogo de diseños del salón */}
-                        {hayCatalogo && onCatalogo && (
-                            <button onClick={onCatalogo}
-                                className="w-full text-white/90 font-medium py-2.5 rounded-full border border-white/30 hover:bg-white/10 transition flex items-center justify-center gap-2">
-                                <span>✨</span>
-                                <span>{t('Explorar catálogo')}</span>
+                        {/* Botones */}
+                        <div className="space-y-2.5 pt-1">
+                            <button onClick={onStart}
+                                className="w-full text-white font-bold py-3.5 rounded-full transition-all active:scale-[0.98] flex items-center justify-center gap-2 text-[17px]"
+                                style={{
+                                    background: `linear-gradient(135deg, ${colorPrimario}, ${colorSecundario})`,
+                                    boxShadow: `0 12px 26px ${hexToRgba(colorPrimario, 0.38)}`
+                                }}>
+                                <span aria-hidden="true">💖</span>
+                                <span>{t('Reservar cita')}</span>
                             </button>
-                        )}
 
-                        {/* Acceso directo a Mis Reservas: una clienta que vuelve
-                            solo para ver/cancelar/reprogramar ya no tiene que entrar
-                            al flujo de reserva para llegar aquí. */}
-                        {cliente && onMisReservas && (
-                            <button onClick={onMisReservas}
-                                className="w-full text-white/90 font-medium py-2.5 rounded-full border border-white/30 hover:bg-white/10 transition flex items-center justify-center gap-2">
-                                <i className="icon-calendar"></i>
-                                <span>{t('Mis Citas')}</span>
-                            </button>
-                        )}
+                            {cliente && onMisReservas && (
+                                <button onClick={onMisReservas} style={botonSuave}
+                                    className="w-full font-semibold py-3 rounded-full transition flex items-center justify-center gap-2 text-gray-800 active:scale-[0.98]">
+                                    <i className="icon-calendar"></i>
+                                    <span>{t('Mis Citas')}</span>
+                                </button>
+                            )}
 
-                        {/* Horario */}
-                        {config?.horario_atencion && (
-                            <p className="text-xs text-white/70">
-                                🕐 {config.horario_atencion}
-                            </p>
-                        )}
+                            {hayCatalogo && onCatalogo && (
+                                <button onClick={onCatalogo} style={botonSuave}
+                                    className="w-full font-semibold py-3 rounded-full transition flex items-center justify-center gap-2 text-gray-800 active:scale-[0.98]">
+                                    <span aria-hidden="true">✨</span>
+                                    <span>{t('Explorar catálogo')}</span>
+                                </button>
+                            )}
+                        </div>
 
                         {/* En el móvil la cabecera ya no lleva "salir": va aquí. */}
                         {cliente && onLogout && (
                             <button onClick={onLogout}
-                                className="text-white/60 text-xs hover:text-white/90 transition mx-auto block underline underline-offset-2">
+                                className="text-gray-500 text-xs hover:text-gray-700 transition mx-auto block underline underline-offset-2 py-1">
                                 {t('Cerrar sesión')}
                             </button>
                         )}
@@ -354,7 +351,7 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol, onMisReservas, onC
                         {esApkConRecientes && (
                             <button
                                 onClick={() => { window.location.href = 'app-clientes.html'; }}
-                                className="text-white/50 text-xs hover:text-white/80 transition mx-auto block underline underline-offset-2">
+                                className="text-gray-500 text-xs hover:text-gray-700 transition mx-auto block underline underline-offset-2 py-1">
                                 🔄 {t('Cambiar de salón')}
                             </button>
                         )}
