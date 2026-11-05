@@ -225,7 +225,7 @@
     <script src="vendor/tailwind-browser.js"></script>
     <link href="vendor/lucide/lucide.css" rel="stylesheet">
     <link href="utils/roma-typography.css?v=20260731-tipografia" rel="stylesheet">
-    <link href="utils/legacy-ios-fallback.css?v=20261105-calido1" rel="stylesheet">
+    <link href="utils/legacy-ios-fallback.css?v=20261105-calido2" rel="stylesheet">
     
     <style type="text/tailwindcss">
         @layer utilities {
@@ -315,7 +315,7 @@
             position: absolute;
             inset: 0;
             /* Tinte de los colores del salón arriba y más oscuro abajo: la foto se ve y el saludo en blanco se lee. */
-            background: linear-gradient(180deg, rgba(var(--brand-primary-rgb), 0.2) 0%, rgba(24, 10, 16, 0.3) 40%, rgba(24, 10, 16, 0.62) 100%);
+            background: linear-gradient(180deg, rgb(var(--brand-primary-rgb) / 0.22) 0%, rgba(24, 10, 16, 0.28) 45%, rgba(24, 10, 16, 0.55) 100%);
         }
 
         .client-auth-back,
@@ -345,9 +345,12 @@
         .client-welcome-card {
             box-sizing: border-box;
             width: 100%;
-            background: #fffaf8;
-            border: 1px solid rgba(255, 255, 255, 0.85);
+            /* Cristal claro: la foto del salón se intuye detrás, el texto sigue leyéndose. */
+            background: rgba(255, 250, 248, 0.84);
+            border: 1px solid rgba(255, 255, 255, 0.7);
             box-shadow: 0 24px 60px rgba(24, 10, 16, 0.34);
+            -webkit-backdrop-filter: blur(18px) saturate(1.25);
+            backdrop-filter: blur(18px) saturate(1.25);
         }
 
         .client-auth-card {
@@ -378,7 +381,7 @@
         .client-auth-card input:focus,
         .client-auth-card select:focus {
             border-color: var(--brand-primary);
-            box-shadow: 0 0 0 4px rgba(var(--brand-primary-rgb), 0.16);
+            box-shadow: 0 0 0 4px rgb(var(--brand-primary-rgb) / 0.16);
         }
 
         /* Saludo arriba sobre la foto y la tarjeta clara pegada abajo, con el logo asomando por su borde. */
@@ -738,7 +741,7 @@
     <script src="compiled/components/WelcomeScreen.js?v=20261105-calido1"></script>
     <script src="compiled/components/Catalogo.js?v=20261103-sello1"></script>
     <script src="compiled/components/WhatsAppButton.js?v=20261103-cita2"></script>
-    <script src="compiled/components/ClientAuthScreen.js?v=20261105-calido1"></script>
+    <script src="compiled/components/ClientAuthScreen.js?v=20261105-calido2"></script>
     <script src="compiled/components/AnadirServicioTurno.js?v=20261103-cita2"></script>
     <script src="compiled/components/CambiarServiciosTurno.js?v=20261103-cambiar1"></script>
     <script src="compiled/components/MyBookings.js?v=20261104-fid1"></script>

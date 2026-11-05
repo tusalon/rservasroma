@@ -388,7 +388,7 @@ function ClientAuthScreen({ onAccessGranted, onGoBack, disenoPendiente }) {
                 <div className="client-auth-card">
                     {/* Logo del salón, asomando por el borde de la tarjeta */}
                     <div className="mx-auto flex items-center justify-center rounded-full overflow-hidden"
-                        style={{ width: 88, height: 88, marginTop: -44, background: '#fff', border: '4px solid #fff', boxShadow: '0 10px 26px rgba(var(--brand-primary-rgb), 0.32)' }}>
+                        style={{ width: 88, height: 88, marginTop: -44, background: '#fff', border: '4px solid #fff', boxShadow: '0 10px 26px rgb(var(--brand-primary-rgb) / 0.32)' }}>
                         {logoUrl ? (
                             <img src={logoUrl} alt={nombreNegocio} className="w-full h-full object-contain" />
                         ) : (
@@ -578,7 +578,7 @@ function ClientAuthScreen({ onAccessGranted, onGoBack, disenoPendiente }) {
                                     type="submit"
                                     disabled={verificando}
                                     className="w-full text-white py-4 rounded-full font-bold transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-lg"
-                                    style={{ background: degradadoMarca, boxShadow: '0 12px 26px rgba(var(--brand-primary-rgb), 0.38)' }}
+                                    style={{ background: degradadoMarca, boxShadow: '0 12px 26px rgb(var(--brand-primary-rgb) / 0.38)' }}
                                 >
                                     {verificando ? t('Verificando...')
                                         : necesitaNombre && (pasoCumple || !window.cumpleanos) ? t('Registrarme y reservar')
