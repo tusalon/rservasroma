@@ -180,8 +180,8 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol, onMisReservas, onC
     const inicial = String(nombreSalon).trim().charAt(0).toUpperCase() || '✨';
     const sombraTexto = '0 2px 14px rgba(20, 8, 14, 0.55)';
     const botonSuave = {
-        background: hexToRgba(colorSecundario, 0.18),
-        border: `1px solid ${hexToRgba(colorSecundario, 0.55)}`
+        background: 'rgba(255,255,255,0.18)',
+        border: '1px solid rgba(255,255,255,0.45)'
     };
 
     return (
@@ -241,16 +241,16 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol, onMisReservas, onC
                         </div>
 
                         {cliente && (
-                            <p className="text-lg font-bold text-gray-900 break-words leading-tight" style={{ marginTop: 10 }}>{nombreSalon}</p>
+                            <p className="text-lg font-bold text-white break-words leading-tight" style={{ marginTop: 10 }}>{nombreSalon}</p>
                         )}
 
                         {/* Mensaje de bienvenida de la dueña */}
-                        <div className="text-left rounded-2xl px-4 py-3" style={{ background: hexToRgba(colorSecundario, 0.16) }}>
-                            <p className={`text-[14px] text-gray-700 leading-relaxed whitespace-pre-line ${mensajeCompleto ? '' : 'line-clamp-4'}`}>
+                        <div className="text-left rounded-2xl px-4 py-3" style={{ background: 'rgba(255,255,255,0.16)' }}>
+                            <p className={`text-[14px] text-white leading-relaxed whitespace-pre-line ${mensajeCompleto ? '' : 'line-clamp-4'}`}>
                                 {config?.mensaje_bienvenida || t('¡Bienvenida a nuestro salón!')}
                             </p>
                             {String(config?.mensaje_bienvenida || '').length > 160 && (
-                                <button onClick={() => setMensajeCompleto(!mensajeCompleto)} className="text-xs font-bold underline underline-offset-2 mt-1 text-gray-700">
+                                <button onClick={() => setMensajeCompleto(!mensajeCompleto)} className="text-xs font-bold underline underline-offset-2 mt-1 text-white">
                                     {mensajeCompleto ? t('Ver menos') : t('Ver más')}
                                 </button>
                             )}
@@ -260,7 +260,7 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol, onMisReservas, onC
                         {(config?.horario_atencion || tieneRedes) && (
                             <div className="flex items-center justify-center gap-3 flex-wrap">
                                 {config?.horario_atencion && (
-                                    <p className="text-xs text-gray-600 flex items-center gap-1.5">
+                                    <p className="text-xs text-white/90 flex items-center gap-1.5">
                                         <span aria-hidden="true">🕐</span>{config.horario_atencion}
                                     </p>
                                 )}
@@ -324,7 +324,7 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol, onMisReservas, onC
 
                             {cliente && onMisReservas && (
                                 <button onClick={onMisReservas} style={botonSuave}
-                                    className="w-full font-semibold py-3 rounded-full transition flex items-center justify-center gap-2 text-gray-800 active:scale-[0.98]">
+                                    className="w-full font-semibold py-3 rounded-full transition flex items-center justify-center gap-2 text-white active:scale-[0.98]">
                                     <i className="icon-calendar"></i>
                                     <span>{t('Mis Citas')}</span>
                                 </button>
@@ -332,7 +332,7 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol, onMisReservas, onC
 
                             {hayCatalogo && onCatalogo && (
                                 <button onClick={onCatalogo} style={botonSuave}
-                                    className="w-full font-semibold py-3 rounded-full transition flex items-center justify-center gap-2 text-gray-800 active:scale-[0.98]">
+                                    className="w-full font-semibold py-3 rounded-full transition flex items-center justify-center gap-2 text-white active:scale-[0.98]">
                                     <span aria-hidden="true">✨</span>
                                     <span>{t('Explorar catálogo')}</span>
                                 </button>
@@ -342,7 +342,7 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol, onMisReservas, onC
                         {/* En el móvil la cabecera ya no lleva "salir": va aquí. */}
                         {cliente && onLogout && (
                             <button onClick={onLogout}
-                                className="text-gray-500 text-xs hover:text-gray-700 transition mx-auto block underline underline-offset-2 py-1">
+                                className="text-white/80 text-xs hover:text-white transition mx-auto block underline underline-offset-2 py-1">
                                 {t('Cerrar sesión')}
                             </button>
                         )}
@@ -351,7 +351,7 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol, onMisReservas, onC
                         {esApkConRecientes && (
                             <button
                                 onClick={() => { window.location.href = 'app-clientes.html'; }}
-                                className="text-gray-500 text-xs hover:text-gray-700 transition mx-auto block underline underline-offset-2 py-1">
+                                className="text-white/80 text-xs hover:text-white transition mx-auto block underline underline-offset-2 py-1">
                                 🔄 {t('Cambiar de salón')}
                             </button>
                         )}

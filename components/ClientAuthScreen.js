@@ -398,8 +398,8 @@ function ClientAuthScreen({ onAccessGranted, onGoBack, disenoPendiente }) {
                     </div>
 
                     <div className="text-center mt-3">
-                        <p className="text-sm text-gray-500">{t('Bienvenida a')}</p>
-                        <h1 className="text-2xl font-extrabold text-gray-900 leading-tight break-words">{nombreNegocio}</h1>
+                        <p className="text-sm text-white/80">{t('Bienvenida a')}</p>
+                        <h1 className="text-2xl font-extrabold text-white leading-tight break-words">{nombreNegocio}</h1>
                     </div>
 
                     {/* Llegó desde el catálogo compartido en redes: se le
@@ -446,19 +446,19 @@ function ClientAuthScreen({ onAccessGranted, onGoBack, disenoPendiente }) {
                                     aria-label={t('Paso {n} de {total}', { n: pasoActual, total: totalPasos })}>
                                     {Array.from({ length: totalPasos }, (_, i) => (
                                         <span key={i} className="rounded-full transition-all"
-                                            style={{ height: 6, width: i + 1 === pasoActual ? 26 : 10, background: i + 1 <= pasoActual ? 'var(--brand-primary)' : '#e7dcd8' }} />
+                                            style={{ height: 6, width: i + 1 === pasoActual ? 26 : 10, background: i + 1 <= pasoActual ? '#fff' : 'rgba(255,255,255,0.4)' }} />
                                     ))}
                                 </div>
                             )}
-                            <h2 className="text-xl font-bold text-gray-900">{titulo}</h2>
-                            {apoyo && <p className="text-sm text-gray-600 mt-1 leading-snug">{apoyo}</p>}
+                            <h2 className="text-xl font-bold text-white">{titulo}</h2>
+                            {apoyo && <p className="text-sm text-white/90 mt-1 leading-snug">{apoyo}</p>}
                         </div>
                     )}
 
                     {!clientePendiente && (
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <div hidden={pasoCumple}>
-                            <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                            <label className="block text-sm font-semibold text-white mb-1.5">
                                 {t('Tu número de WhatsApp')}
                             </label>
                             <div className="flex gap-2">
@@ -496,7 +496,7 @@ function ClientAuthScreen({ onAccessGranted, onGoBack, disenoPendiente }) {
 
                         {necesitaNombre && !clienteBloqueado && !esAdmin && !esProfesional && !pasoCumple && (
                             <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                                <label className="block text-sm font-semibold text-white mb-1.5">
                                     {t('Tu nombre completo')}
                                 </label>
                                 <input
@@ -515,17 +515,17 @@ function ClientAuthScreen({ onAccessGranted, onGoBack, disenoPendiente }) {
 
                         {necesitaNombre && pasoCumple && window.cumpleanos && (
                             <div className="space-y-3">
-                                <SelectorCumple dia={cumpleDia} mes={cumpleMes} claro
+                                <SelectorCumple dia={cumpleDia} mes={cumpleMes}
                                     onCambio={(d, m) => { setCumpleDia(d); setCumpleMes(m); }} />
-                                <button type="button" onClick={() => setPasoCumple(false)} className="text-sm font-semibold text-gray-600">
+                                <button type="button" onClick={() => setPasoCumple(false)} className="text-sm font-semibold text-white/90">
                                     ← {t('Atrás')}
                                 </button>
                             </div>
                         )}
 
                         {verificando && (
-                            <div className="text-gray-700 text-sm p-2.5 rounded-2xl flex items-center gap-2" style={{ background: '#f4ece9' }}>
-                                <div className="animate-spin h-4 w-4 border-2 border-t-transparent rounded-full" style={{ borderColor: 'var(--brand-primary)', borderTopColor: 'transparent' }}></div>
+                            <div className="text-white text-sm p-2.5 rounded-2xl flex items-center gap-2" style={{ background: 'rgba(255,255,255,0.18)' }}>
+                                <div className="animate-spin h-4 w-4 border-2 border-t-transparent rounded-full" style={{ borderColor: '#fff', borderTopColor: 'transparent' }}></div>
                                 {t('Verificando...')}
                             </div>
                         )}
@@ -539,7 +539,7 @@ function ClientAuthScreen({ onAccessGranted, onGoBack, disenoPendiente }) {
 
                         {esProfesional && profesionalInfo && !verificando && (
                             <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                                <label className="block text-sm font-semibold text-white mb-1.5">
                                     {t('Contraseña profesional')}
                                 </label>
                                 <input
@@ -588,7 +588,7 @@ function ClientAuthScreen({ onAccessGranted, onGoBack, disenoPendiente }) {
 
                             {necesitaNombre && pasoCumple && !verificando && (
                                 <button type="button" onClick={(e) => handleSubmit(e, true)}
-                                    className="w-full py-2 text-sm font-semibold text-gray-500">
+                                    className="w-full py-2 text-sm font-semibold text-white/85">
                                     {t('Prefiero no decirlo')}
                                 </button>
                             )}

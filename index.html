@@ -225,7 +225,7 @@
     <script src="vendor/tailwind-browser.js"></script>
     <link href="vendor/lucide/lucide.css" rel="stylesheet">
     <link href="utils/roma-typography.css?v=20260731-tipografia" rel="stylesheet">
-    <link href="utils/legacy-ios-fallback.css?v=20261105-calido2" rel="stylesheet">
+    <link href="utils/legacy-ios-fallback.css?v=20261105-calido3" rel="stylesheet">
     
     <style type="text/tailwindcss">
         @layer utilities {
@@ -315,7 +315,7 @@
             position: absolute;
             inset: 0;
             /* Tinte de los colores del salón arriba y más oscuro abajo: la foto se ve y el saludo en blanco se lee. */
-            background: linear-gradient(180deg, rgb(var(--brand-primary-rgb) / 0.22) 0%, rgba(24, 10, 16, 0.28) 45%, rgba(24, 10, 16, 0.55) 100%);
+            background: linear-gradient(180deg, rgb(var(--brand-primary-rgb) / 0.22) 0%, rgba(24, 10, 16, 0.38) 45%, rgba(24, 10, 16, 0.62) 100%);
         }
 
         .client-auth-back,
@@ -345,12 +345,12 @@
         .client-welcome-card {
             box-sizing: border-box;
             width: 100%;
-            /* Cristal claro: la foto del salón se intuye detrás, el texto sigue leyéndose. */
-            background: rgba(255, 250, 248, 0.84);
-            border: 1px solid rgba(255, 255, 255, 0.7);
-            box-shadow: 0 24px 60px rgba(24, 10, 16, 0.34);
-            -webkit-backdrop-filter: blur(18px) saturate(1.25);
-            backdrop-filter: blur(18px) saturate(1.25);
+            /* Cristal transparente: la foto del salón se ve a través; el texto va en blanco. */
+            background: rgba(255, 255, 255, 0.13);
+            border: 1px solid rgba(255, 255, 255, 0.38);
+            box-shadow: 0 24px 60px rgba(24, 10, 16, 0.3);
+            -webkit-backdrop-filter: blur(5px);
+            backdrop-filter: blur(5px);
         }
 
         .client-auth-card {
@@ -373,11 +373,12 @@
         .client-auth-card input,
         .client-auth-card select {
             box-sizing: border-box;
-            color: #1f2937;
-            background: #f4ece9;
-            border: 2px solid transparent;
+            color: #fff;
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.32);
         }
-        .client-auth-card input::placeholder { color: #9a8f8c; }
+        .client-auth-card select option { color: #1f2937; background: #fff; }
+        .client-auth-card input::placeholder { color: rgba(255, 255, 255, 0.7); }
         .client-auth-card input:focus,
         .client-auth-card select:focus {
             border-color: var(--brand-primary);
@@ -738,10 +739,10 @@
     <script src="compiled/components/BookingForm.js?v=20261104-auto1"></script>
     <script src="compiled/components/Confirmation.js?v=20261103-cita3"></script>
     <script src="compiled/components/TarjetaFidelidad.js?v=20261104-auto1"></script>
-    <script src="compiled/components/WelcomeScreen.js?v=20261105-calido1"></script>
+    <script src="compiled/components/WelcomeScreen.js?v=20261105-calido3"></script>
     <script src="compiled/components/Catalogo.js?v=20261103-sello1"></script>
     <script src="compiled/components/WhatsAppButton.js?v=20261103-cita2"></script>
-    <script src="compiled/components/ClientAuthScreen.js?v=20261105-calido2"></script>
+    <script src="compiled/components/ClientAuthScreen.js?v=20261105-calido3"></script>
     <script src="compiled/components/AnadirServicioTurno.js?v=20261103-cita2"></script>
     <script src="compiled/components/CambiarServiciosTurno.js?v=20261103-cambiar1"></script>
     <script src="compiled/components/MyBookings.js?v=20261104-fid1"></script>

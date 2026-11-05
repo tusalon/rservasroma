@@ -111,8 +111,8 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol, onMisReservas, onC
   const inicial = String(nombreSalon).trim().charAt(0).toUpperCase() || "✨";
   const sombraTexto = "0 2px 14px rgba(20, 8, 14, 0.55)";
   const botonSuave = {
-    background: hexToRgba(colorSecundario, 0.18),
-    border: `1px solid ${hexToRgba(colorSecundario, 0.55)}`
+    background: "rgba(255,255,255,0.18)",
+    border: "1px solid rgba(255,255,255,0.45)"
   };
   return /* @__PURE__ */ React.createElement("div", { className: "client-welcome-screen relative min-h-screen w-full overflow-y-auto" }, /* @__PURE__ */ React.createElement(
     "div",
@@ -153,7 +153,7 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol, onMisReservas, onC
       },
       inicial
     )
-  ), cliente && /* @__PURE__ */ React.createElement("p", { className: "text-lg font-bold text-gray-900 break-words leading-tight", style: { marginTop: 10 } }, nombreSalon), /* @__PURE__ */ React.createElement("div", { className: "text-left rounded-2xl px-4 py-3", style: { background: hexToRgba(colorSecundario, 0.16) } }, /* @__PURE__ */ React.createElement("p", { className: `text-[14px] text-gray-700 leading-relaxed whitespace-pre-line ${mensajeCompleto ? "" : "line-clamp-4"}` }, config?.mensaje_bienvenida || t("¡Bienvenida a nuestro salón!")), String(config?.mensaje_bienvenida || "").length > 160 && /* @__PURE__ */ React.createElement("button", { onClick: () => setMensajeCompleto(!mensajeCompleto), className: "text-xs font-bold underline underline-offset-2 mt-1 text-gray-700" }, mensajeCompleto ? t("Ver menos") : t("Ver más"))), (config?.horario_atencion || tieneRedes) && /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-center gap-3 flex-wrap" }, config?.horario_atencion && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-600 flex items-center gap-1.5" }, /* @__PURE__ */ React.createElement("span", { "aria-hidden": "true" }, "🕐"), config.horario_atencion), tieneRedes && /* @__PURE__ */ React.createElement("div", { className: "flex gap-2" }, tieneWhatsApp && /* @__PURE__ */ React.createElement(
+  ), cliente && /* @__PURE__ */ React.createElement("p", { className: "text-lg font-bold text-white break-words leading-tight", style: { marginTop: 10 } }, nombreSalon), /* @__PURE__ */ React.createElement("div", { className: "text-left rounded-2xl px-4 py-3", style: { background: "rgba(255,255,255,0.16)" } }, /* @__PURE__ */ React.createElement("p", { className: `text-[14px] text-white leading-relaxed whitespace-pre-line ${mensajeCompleto ? "" : "line-clamp-4"}` }, config?.mensaje_bienvenida || t("¡Bienvenida a nuestro salón!")), String(config?.mensaje_bienvenida || "").length > 160 && /* @__PURE__ */ React.createElement("button", { onClick: () => setMensajeCompleto(!mensajeCompleto), className: "text-xs font-bold underline underline-offset-2 mt-1 text-white" }, mensajeCompleto ? t("Ver menos") : t("Ver más"))), (config?.horario_atencion || tieneRedes) && /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-center gap-3 flex-wrap" }, config?.horario_atencion && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-white/90 flex items-center gap-1.5" }, /* @__PURE__ */ React.createElement("span", { "aria-hidden": "true" }, "🕐"), config.horario_atencion), tieneRedes && /* @__PURE__ */ React.createElement("div", { className: "flex gap-2" }, tieneWhatsApp && /* @__PURE__ */ React.createElement(
     "button",
     {
       onClick: abrirWhatsApp,
@@ -209,7 +209,7 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol, onMisReservas, onC
     {
       onClick: onMisReservas,
       style: botonSuave,
-      className: "w-full font-semibold py-3 rounded-full transition flex items-center justify-center gap-2 text-gray-800 active:scale-[0.98]"
+      className: "w-full font-semibold py-3 rounded-full transition flex items-center justify-center gap-2 text-white active:scale-[0.98]"
     },
     /* @__PURE__ */ React.createElement("i", { className: "icon-calendar" }),
     /* @__PURE__ */ React.createElement("span", null, t("Mis Citas"))
@@ -218,7 +218,7 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol, onMisReservas, onC
     {
       onClick: onCatalogo,
       style: botonSuave,
-      className: "w-full font-semibold py-3 rounded-full transition flex items-center justify-center gap-2 text-gray-800 active:scale-[0.98]"
+      className: "w-full font-semibold py-3 rounded-full transition flex items-center justify-center gap-2 text-white active:scale-[0.98]"
     },
     /* @__PURE__ */ React.createElement("span", { "aria-hidden": "true" }, "✨"),
     /* @__PURE__ */ React.createElement("span", null, t("Explorar catálogo"))
@@ -226,7 +226,7 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol, onMisReservas, onC
     "button",
     {
       onClick: onLogout,
-      className: "text-gray-500 text-xs hover:text-gray-700 transition mx-auto block underline underline-offset-2 py-1"
+      className: "text-white/80 text-xs hover:text-white transition mx-auto block underline underline-offset-2 py-1"
     },
     t("Cerrar sesión")
   ), esApkConRecientes && /* @__PURE__ */ React.createElement(
@@ -235,7 +235,7 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol, onMisReservas, onC
       onClick: () => {
         window.location.href = "app-clientes.html";
       },
-      className: "text-gray-500 text-xs hover:text-gray-700 transition mx-auto block underline underline-offset-2 py-1"
+      className: "text-white/80 text-xs hover:text-white transition mx-auto block underline underline-offset-2 py-1"
     },
     "🔄 ",
     t("Cambiar de salón")

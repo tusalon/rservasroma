@@ -303,7 +303,7 @@ function ClientAuthScreen({ onAccessGranted, onGoBack, disenoPendiente }) {
       },
       inicial
     )
-  ), /* @__PURE__ */ React.createElement("div", { className: "text-center mt-3" }, /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500" }, t("Bienvenida a")), /* @__PURE__ */ React.createElement("h1", { className: "text-2xl font-extrabold text-gray-900 leading-tight break-words" }, nombreNegocio)), disenoPendiente && /* @__PURE__ */ React.createElement("div", { className: "mt-5 flex items-center gap-3 rounded-2xl p-3", style: { background: "#f4ece9" } }, /* @__PURE__ */ React.createElement(
+  ), /* @__PURE__ */ React.createElement("div", { className: "text-center mt-3" }, /* @__PURE__ */ React.createElement("p", { className: "text-sm text-white/80" }, t("Bienvenida a")), /* @__PURE__ */ React.createElement("h1", { className: "text-2xl font-extrabold text-white leading-tight break-words" }, nombreNegocio)), disenoPendiente && /* @__PURE__ */ React.createElement("div", { className: "mt-5 flex items-center gap-3 rounded-2xl p-3", style: { background: "#f4ece9" } }, /* @__PURE__ */ React.createElement(
     "img",
     {
       src: window.urlImagenCloudinary ? window.urlImagenCloudinary(disenoPendiente.imagen_url, 120) : disenoPendiente.imagen_url,
@@ -322,10 +322,10 @@ function ClientAuthScreen({ onAccessGranted, onGoBack, disenoPendiente }) {
       {
         key: i,
         className: "rounded-full transition-all",
-        style: { height: 6, width: i + 1 === pasoActual ? 26 : 10, background: i + 1 <= pasoActual ? "var(--brand-primary)" : "#e7dcd8" }
+        style: { height: 6, width: i + 1 === pasoActual ? 26 : 10, background: i + 1 <= pasoActual ? "#fff" : "rgba(255,255,255,0.4)" }
       }
     ))
-  ), /* @__PURE__ */ React.createElement("h2", { className: "text-xl font-bold text-gray-900" }, titulo), apoyo && /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-600 mt-1 leading-snug" }, apoyo)), !clientePendiente && /* @__PURE__ */ React.createElement("form", { onSubmit: handleSubmit, className: "space-y-4" }, /* @__PURE__ */ React.createElement("div", { hidden: pasoCumple }, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-semibold text-gray-700 mb-1.5" }, t("Tu número de WhatsApp")), /* @__PURE__ */ React.createElement("div", { className: "flex gap-2" }, /* @__PURE__ */ React.createElement(
+  ), /* @__PURE__ */ React.createElement("h2", { className: "text-xl font-bold text-white" }, titulo), apoyo && /* @__PURE__ */ React.createElement("p", { className: "text-sm text-white/90 mt-1 leading-snug" }, apoyo)), !clientePendiente && /* @__PURE__ */ React.createElement("form", { onSubmit: handleSubmit, className: "space-y-4" }, /* @__PURE__ */ React.createElement("div", { hidden: pasoCumple }, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-semibold text-white mb-1.5" }, t("Tu número de WhatsApp")), /* @__PURE__ */ React.createElement("div", { className: "flex gap-2" }, /* @__PURE__ */ React.createElement(
     "select",
     {
       value: codigoPaisCliente,
@@ -353,7 +353,7 @@ function ClientAuthScreen({ onAccessGranted, onGoBack, disenoPendiente }) {
       placeholder: paisTelefono.ejemplo || "51234567",
       required: true
     }
-  ))), necesitaNombre && !clienteBloqueado && !esAdmin && !esProfesional && !pasoCumple && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-semibold text-gray-700 mb-1.5" }, t("Tu nombre completo")), /* @__PURE__ */ React.createElement(
+  ))), necesitaNombre && !clienteBloqueado && !esAdmin && !esProfesional && !pasoCumple && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-semibold text-white mb-1.5" }, t("Tu nombre completo")), /* @__PURE__ */ React.createElement(
     "input",
     {
       type: "text",
@@ -371,13 +371,12 @@ function ClientAuthScreen({ onAccessGranted, onGoBack, disenoPendiente }) {
     {
       dia: cumpleDia,
       mes: cumpleMes,
-      claro: true,
       onCambio: (d, m) => {
         setCumpleDia(d);
         setCumpleMes(m);
       }
     }
-  ), /* @__PURE__ */ React.createElement("button", { type: "button", onClick: () => setPasoCumple(false), className: "text-sm font-semibold text-gray-600" }, "← ", t("Atrás"))), verificando && /* @__PURE__ */ React.createElement("div", { className: "text-gray-700 text-sm p-2.5 rounded-2xl flex items-center gap-2", style: { background: "#f4ece9" } }, /* @__PURE__ */ React.createElement("div", { className: "animate-spin h-4 w-4 border-2 border-t-transparent rounded-full", style: { borderColor: "var(--brand-primary)", borderTopColor: "transparent" } }), t("Verificando...")), esProfesional && profesionalInfo && !verificando && /* @__PURE__ */ React.createElement("div", { className: "rounded-2xl p-4", style: { background: "#f4ece9" } }, /* @__PURE__ */ React.createElement("p", { className: "text-gray-900 font-bold text-xl" }, t("¡Hola, {nombre}!", { nombre: profesionalInfo.nombre })), /* @__PURE__ */ React.createElement("p", { className: "text-gray-600 text-sm" }, t("Ingresa tu contraseña para acceder al panel."))), esProfesional && profesionalInfo && !verificando && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-semibold text-gray-700 mb-1.5" }, t("Contraseña profesional")), /* @__PURE__ */ React.createElement(
+  ), /* @__PURE__ */ React.createElement("button", { type: "button", onClick: () => setPasoCumple(false), className: "text-sm font-semibold text-white/90" }, "← ", t("Atrás"))), verificando && /* @__PURE__ */ React.createElement("div", { className: "text-white text-sm p-2.5 rounded-2xl flex items-center gap-2", style: { background: "rgba(255,255,255,0.18)" } }, /* @__PURE__ */ React.createElement("div", { className: "animate-spin h-4 w-4 border-2 border-t-transparent rounded-full", style: { borderColor: "#fff", borderTopColor: "transparent" } }), t("Verificando...")), esProfesional && profesionalInfo && !verificando && /* @__PURE__ */ React.createElement("div", { className: "rounded-2xl p-4", style: { background: "#f4ece9" } }, /* @__PURE__ */ React.createElement("p", { className: "text-gray-900 font-bold text-xl" }, t("¡Hola, {nombre}!", { nombre: profesionalInfo.nombre })), /* @__PURE__ */ React.createElement("p", { className: "text-gray-600 text-sm" }, t("Ingresa tu contraseña para acceder al panel."))), esProfesional && profesionalInfo && !verificando && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-semibold text-white mb-1.5" }, t("Contraseña profesional")), /* @__PURE__ */ React.createElement(
     "input",
     {
       type: "password",
@@ -411,7 +410,7 @@ function ClientAuthScreen({ onAccessGranted, onGoBack, disenoPendiente }) {
     {
       type: "button",
       onClick: (e) => handleSubmit(e, true),
-      className: "w-full py-2 text-sm font-semibold text-gray-500"
+      className: "w-full py-2 text-sm font-semibold text-white/85"
     },
     t("Prefiero no decirlo")
   ))))));
