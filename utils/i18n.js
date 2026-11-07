@@ -233,6 +233,7 @@
         'Si cierras esta pantalla, el botón del anticipo también está en «Mis Citas».': 'If you close this screen, the deposit button is also in "My Appointments".',
         'Por la mañana': 'Morning',
         'Por la tarde': 'Afternoon',
+        'El número es cuántas horas quedan libres ese día.': 'The number is how many free times are left that day.',
         'Ya no se puede reservar': 'Can no longer be booked',
         'Solo las horas que tus clientas todavía pueden reservar.': 'Only the times your clients can still book.',
         'Ya pasó': 'Already passed',

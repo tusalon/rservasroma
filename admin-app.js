@@ -2307,14 +2307,15 @@ function AdminApp() {
         return y + (lineas.length * lineHeight);
     };
 
-    // Cartel semanal para compartir con las clientas (1080x1920, historia de WhatsApp/IG).
-    // Solo dias que aun no pasaron; las horas ya vienen filtradas por la antelacion
-    // minima en cargarDisponibilidadSemanal. Color y logo del salon; el estilo
-    // (tarjetas redondeadas, pildoras) es el de RservasRoma.
+    // Carteles de disponibilidad para compartir con las clientas (1080x1920, historia).
+    // Cabecera con logo y color del salon, contenido, y pie con Roma y "Hecho con
+    // RservasRoma". Las horas ya vienen filtradas (pasadas y antelacion minima).
+    const CARTEL_FUENTE = 'Inter, "Segoe UI", Roboto, Arial, sans-serif';
+
     const cargarImagenCartel = (src) => new Promise(resolve => {
         if (!src) return resolve(null);
         const img = new Image();
-        img.crossOrigin = 'anonymous'; // sin CORS falla la carga y se dibuja la inicial: el canvas no queda "manchado"
+        img.crossOrigin = 'anonymous'; // sin CORS falla la carga y se dibuja sin ella: el canvas no queda "manchado"
         const espera = setTimeout(() => resolve(null), 4000);
         img.onload = () => { clearTimeout(espera); resolve(img); };
         img.onerror = () => { clearTimeout(espera); resolve(null); };
@@ -2331,6 +2332,121 @@ function AdminApp() {
         return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alfa})`;
     };
 
+    // Fondo, logo del salon, nombre, pildora de titulo y subtitulo. Devuelve donde
+    // empieza el contenido.
+    const dibujarCabeceraCartel = async (ctx, A, titulo, subtitulo) => {
+        const F = CARTEL_FUENTE;
+        try { await document.fonts?.load('800 40px Inter'); } catch (e) { /* sin Inter se usa la siguiente */ }
+
+        ctx.fillStyle = '#FBF8F6';
+        ctx.fillRect(0, 0, 1080, 1920);
+        [[990, 110, 300, 0.12]].forEach(([x, y, r, a]) => {
+            ctx.fillStyle = conAlfa(A, a);
+            ctx.beginPath();
+            ctx.arc(x, y, r, 0, Math.PI * 2);
+            ctx.fill();
+        });
+
+        const logo = await cargarImagenCartel(logoNegocio);
+        ctx.save();
+        ctx.shadowColor = 'rgba(26,26,26,0.14)';
+        ctx.shadowBlur = 28;
+        ctx.shadowOffsetY = 10;
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(540, 190, 96, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(540, 190, 86, 0, Math.PI * 2);
+        ctx.clip();
+        if (logo) {
+            // Entero dentro del circulo (los logos suelen ser apaisados), sobre blanco.
+            const escala = Math.min(150 / logo.width, 150 / logo.height);
+            const w = logo.width * escala;
+            const h = logo.height * escala;
+            ctx.drawImage(logo, 540 - w / 2, 190 - h / 2, w, h);
+        } else {
+            ctx.fillStyle = A;
+            ctx.fillRect(454, 104, 172, 172);
+            ctx.fillStyle = '#ffffff';
+            ctx.font = `800 84px ${F}`;
+            ctx.textAlign = 'center';
+            const inicial = String(nombreNegocio || 'S').replace(/[^\p{L}\p{N}]/gu, '').charAt(0).toUpperCase() || 'S';
+            ctx.fillText(inicial, 540, 220);
+        }
+        ctx.restore();
+
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#1A1A1A';
+        ctx.font = `800 58px ${F}`;
+        const y = dibujarTextoCentrado(ctx, nombreNegocio || 'Mi salón', 540, 370, 900, 66);
+
+        ctx.font = `800 32px ${F}`;
+        const anchoTitulo = ctx.measureText(titulo).width + 80;
+        ctx.fillStyle = A;
+        ctx.beginPath();
+        ctx.roundRect(540 - anchoTitulo / 2, y + 4, anchoTitulo, 70, 35);
+        ctx.fill();
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText(titulo, 540, y + 51);
+        if (subtitulo) {
+            ctx.fillStyle = '#666666';
+            ctx.font = `500 30px ${F}`;
+            ctx.fillText(subtitulo, 540, y + 126);
+        }
+        return y + 170;
+    };
+
+    // Pie: franja blanca con la llamada a reservar y "Hecho con RservasRoma";
+    // Roma con el movil se asoma a la derecha.
+    const PIE_CARTEL_Y = 1650;
+    const dibujarPieCartel = async (ctx, A) => {
+        const F = CARTEL_FUENTE;
+        const [roma, marca] = await Promise.all([
+            cargarImagenCartel('images/roma/poses/celular.webp'),
+            cargarImagenCartel('design/marca/logo-horizontal.png')
+        ]);
+
+        ctx.save();
+        ctx.shadowColor = 'rgba(26,26,26,0.10)';
+        ctx.shadowBlur = 30;
+        ctx.shadowOffsetY = 10;
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.roundRect(60, PIE_CARTEL_Y, 960, 220, 40);
+        ctx.fill();
+        ctx.restore();
+
+        ctx.textAlign = 'left';
+        ctx.fillStyle = A;
+        ctx.font = `800 38px ${F}`;
+        ctx.fillText('Reserva tu cita', 110, PIE_CARTEL_Y + 70);
+        ctx.fillStyle = '#666666';
+        ctx.font = `500 26px ${F}`;
+        ctx.fillText('desde nuestra app, sin esperar respuesta', 110, PIE_CARTEL_Y + 112);
+
+        ctx.fillStyle = '#AAAAAA';
+        ctx.font = `600 22px ${F}`;
+        ctx.fillText('Hecho con', 110, PIE_CARTEL_Y + 172);
+        if (marca) {
+            const h = 56;
+            ctx.drawImage(marca, 222, PIE_CARTEL_Y + 131, marca.width * (h / marca.height), h);
+        } else {
+            ctx.fillStyle = '#FF1493';
+            ctx.font = `800 26px ${F}`;
+            ctx.fillText('RservasRoma', 222, PIE_CARTEL_Y + 172);
+        }
+
+        if (roma) {
+            const h = 380;
+            const w = roma.width * (h / roma.height);
+            ctx.drawImage(roma, 1040 - w, PIE_CARTEL_Y + 200 - h, w, h);
+        }
+        ctx.textAlign = 'center';
+    };
+
     const generarImagenDisponibilidadSemanal = async () => {
         const profesional = profesionalesList.find(p => p.id === parseInt(profesionalSeleccionadoDispo));
         const canvas = document.createElement('canvas');
@@ -2338,8 +2454,7 @@ function AdminApp() {
         canvas.height = 1920;
         const ctx = canvas.getContext('2d');
         asegurarRoundRect(ctx);
-        const F = 'Inter, "Segoe UI", Roboto, Arial, sans-serif';
-        try { await document.fonts?.load('800 40px Inter'); } catch (e) { /* sin Inter se usa la siguiente */ }
+        const F = CARTEL_FUENTE;
         const A = colorDelSalonCartel();
         const hoy = getCurrentLocalDate();
         const diasCortos = ['DOM', 'LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB'];
@@ -2349,72 +2464,14 @@ function AdminApp() {
             ? `${fechaCorta(disponibilidadSemanal[0].fecha)} – ${fechaCorta(disponibilidadSemanal[6].fecha)}`
             : '';
 
-        // Fondo claro con dos manchas del color del salon.
-        ctx.fillStyle = '#FBF8F6';
-        ctx.fillRect(0, 0, 1080, 1920);
-        [[990, 120, 300, 0.12], [60, 1850, 340, 0.08]].forEach(([x, y, r, a]) => {
-            ctx.fillStyle = conAlfa(A, a);
-            ctx.beginPath();
-            ctx.arc(x, y, r, 0, Math.PI * 2);
-            ctx.fill();
-        });
-
-        // Logo en circulo (o la inicial del salon).
-        const logo = await cargarImagenCartel(logoNegocio);
-        ctx.save();
-        ctx.shadowColor = 'rgba(26,26,26,0.14)';
-        ctx.shadowBlur = 28;
-        ctx.shadowOffsetY = 10;
-        ctx.fillStyle = '#ffffff';
-        ctx.beginPath();
-        ctx.arc(540, 200, 96, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
-        ctx.save();
-        ctx.beginPath();
-        ctx.arc(540, 200, 86, 0, Math.PI * 2);
-        ctx.clip();
-        if (logo) {
-            // Entero dentro del circulo (los logos suelen ser apaisados), sobre blanco.
-            const escala = Math.min(150 / logo.width, 150 / logo.height);
-            const w = logo.width * escala;
-            const h = logo.height * escala;
-            ctx.drawImage(logo, 540 - w / 2, 200 - h / 2, w, h);
-        } else {
-            ctx.fillStyle = A;
-            ctx.fillRect(454, 114, 172, 172);
-            ctx.fillStyle = '#ffffff';
-            ctx.font = `800 84px ${F}`;
-            ctx.textAlign = 'center';
-            const inicial = String(nombreNegocio || 'S').replace(/[^\p{L}\p{N}]/gu, '').charAt(0).toUpperCase() || 'S';
-            ctx.fillText(inicial, 540, 230);
-        }
-        ctx.restore();
-
-        ctx.textAlign = 'center';
-        ctx.fillStyle = '#1A1A1A';
-        ctx.font = `800 58px ${F}`;
-        const y = dibujarTextoCentrado(ctx, nombreNegocio || 'Mi salón', 540, 380, 900, 66);
-
-        // Pildora "Horas libres esta semana".
-        ctx.font = `800 32px ${F}`;
-        const titulo = 'Horas libres esta semana';
-        const anchoTitulo = ctx.measureText(titulo).width + 80;
-        ctx.fillStyle = A;
-        ctx.beginPath();
-        ctx.roundRect(540 - anchoTitulo / 2, y + 4, anchoTitulo, 70, 35);
-        ctx.fill();
-        ctx.fillStyle = '#ffffff';
-        ctx.fillText(titulo, 540, y + 51);
-        ctx.fillStyle = '#666666';
-        ctx.font = `500 30px ${F}`;
-        ctx.fillText([rango, profesional?.nombre ? `con ${profesional.nombre}` : ''].filter(Boolean).join(' · '), 540, y + 126);
+        const top = await dibujarCabeceraCartel(ctx, A, 'Horas libres esta semana',
+            [rango, profesional?.nombre ? `con ${profesional.nombre}` : ''].filter(Boolean).join(' · '));
 
         // Tarjetas por dia. Se mide primero y, si no cabe, se encogen las pildoras.
-        const top = y + 180;
-        const fondo = 1660;
-        const cardX = 70;
-        const cardW = 940;
+        // El borde derecho deja sitio a la cabeza de Roma, que asoma sobre el pie.
+        const fondo = PIE_CARTEL_Y - 190;
+        const cardX = 60;
+        const cardW = 960;
         const zonaX = cardX + 170;
         const zonaW = cardW - 170 - 30;
         const medir = (s) => {
@@ -2434,8 +2491,8 @@ function AdminApp() {
             });
         };
         const tamanos = [
-            { fuente: 32, h: 66, pad: 26, gap: 14, margen: 26, minCard: 132, vacio: 92, sep: 22 },
-            { fuente: 26, h: 54, pad: 20, gap: 10, margen: 18, minCard: 108, vacio: 76, sep: 14 }
+            { fuente: 32, h: 66, pad: 26, gap: 14, margen: 26, minCard: 132, vacio: 88, sep: 20 },
+            { fuente: 26, h: 54, pad: 20, gap: 10, margen: 18, minCard: 106, vacio: 74, sep: 12 }
         ];
         let s = tamanos[0];
         let tarjetas = medir(s);
@@ -2455,9 +2512,10 @@ function AdminApp() {
             ctx.font = `500 30px ${F}`;
             ctx.fillText('Escríbenos y te buscamos un hueco', 540, top + 230);
         } else {
-            let cy = top;
+            // Centrado entre la cabecera y el pie para que no quede un hueco abajo.
+            let cy = top + Math.max(0, (fondo - top - total(tarjetas, s) + s.sep) / 2);
             tarjetas.forEach(({ dia, libres, filas, alto }) => {
-                if (cy + alto > fondo + 40) return; // ponytail: si ni encogido cabe, se cortan los ultimos dias
+                if (cy + alto > fondo + 60) return; // ponytail: si ni encogido cabe, se cortan los ultimos dias
                 const vacio = libres.length === 0;
                 ctx.save();
                 if (!vacio) {
@@ -2471,7 +2529,6 @@ function AdminApp() {
                 ctx.fill();
                 ctx.restore();
 
-                // Bloque del dia a la izquierda.
                 const fecha = new Date(`${dia.fecha}T12:00:00`);
                 ctx.fillStyle = vacio ? '#F0F0F0' : conAlfa(A, 0.1);
                 ctx.beginPath();
@@ -2513,17 +2570,7 @@ function AdminApp() {
             });
         }
 
-        ctx.textAlign = 'center';
-        ctx.fillStyle = A;
-        ctx.font = `800 38px ${F}`;
-        ctx.fillText('Reserva tu cita en nuestra app', 540, 1740);
-        ctx.fillStyle = '#666666';
-        ctx.font = `500 25px ${F}`;
-        ctx.fillText('Horarios sujetos a disponibilidad al momento de reservar', 540, 1790);
-        ctx.fillStyle = '#AAAAAA';
-        ctx.font = `700 24px ${F}`;
-        ctx.fillText('Hecho con RservasRoma', 540, 1856);
-
+        await dibujarPieCartel(ctx, A);
         return canvas;
     };
 
@@ -2551,155 +2598,70 @@ function AdminApp() {
         canvas.height = 1920;
         const ctx = canvas.getContext('2d');
         asegurarRoundRect(ctx);
-        const year = disponibilidadFecha.getFullYear();
-        const month = disponibilidadFecha.getMonth();
-        const monthTitle = `${monthNames[month]} ${year}`;
-        const diasDelMes = getDaysInMonth(disponibilidadFecha);
+        const F = CARTEL_FUENTE;
         const A = colorDelSalonCartel();
+        const hoy = getCurrentLocalDate();
+        const mes = monthNames[disponibilidadFecha.getMonth()];
+        const diasDelMes = getDaysInMonth(disponibilidadFecha);
 
-        const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-        gradient.addColorStop(0, '#fff7fb');
-        gradient.addColorStop(0.48, '#ffffff');
-        gradient.addColorStop(1, '#fdf2f8');
-        ctx.fillStyle = gradient;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        const top = await dibujarCabeceraCartel(ctx, A, `Horas libres de ${String(mes).toLowerCase()}`,
+            profesional?.nombre ? `con ${profesional.nombre}` : `${mes} ${disponibilidadFecha.getFullYear()}`);
 
-        ctx.fillStyle = A;
+        // Calendario en una tarjeta blanca. Sin leyenda de colores: cada dia con
+        // horas dice cuantas le quedan; el resto va en gris.
+        const cardX = 60;
+        const cardW = 960;
+        const cardY0 = top;
+        const filas = Math.ceil(diasDelMes.length / 7);
+        const headerH = 70;
+        const rowH = Math.min(160, Math.floor((PIE_CARTEL_Y - 200 - cardY0 - headerH - 30) / filas));
+        const cardH = headerH + filas * rowH + 30;
+        // Centrado entre la cabecera y el pie.
+        const cardY = cardY0 + Math.max(0, (PIE_CARTEL_Y - 170 - cardY0 - cardH) / 2);
+        const colW = (cardW - 30) / 7;
+
+        ctx.save();
+        ctx.shadowColor = 'rgba(26,26,26,0.08)';
+        ctx.shadowBlur = 28;
+        ctx.shadowOffsetY = 10;
+        ctx.fillStyle = '#ffffff';
         ctx.beginPath();
-        ctx.arc(970, 120, 180, 0, Math.PI * 2);
+        ctx.roundRect(cardX, cardY, cardW, cardH, 40);
         ctx.fill();
-        ctx.fillStyle = conAlfa(A, 0.12);
-        ctx.beginPath();
-        ctx.arc(120, 1810, 220, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.restore();
 
         ctx.textAlign = 'center';
-        ctx.fillStyle = '#1A1A1A';
-        ctx.font = '800 58px Arial';
-        dibujarTextoCentrado(ctx, nombreNegocio || 'Exotic Nails by Yuly', 540, 145, 850, 64);
-
-        ctx.fillStyle = '#374151';
-        ctx.font = '700 34px Arial';
-        ctx.fillText('Disponibilidad mensual', 540, 265);
-
-        ctx.fillStyle = '#6b7280';
-        ctx.font = '500 28px Arial';
-        ctx.fillText(monthTitle, 540, 312);
-        if (profesional?.nombre) {
-            ctx.fillText(`Profesional: ${profesional.nombre}`, 540, 355);
-        }
-
-        const cardX = 70;
-        const cardY = 430;
-        const cardW = 940;
-        const cardH = 1150;
-        const colW = cardW / 7;
-        const headerH = 86;
-        const rowH = (cardH - headerH) / 6;
-        const diasCabecera = ['DOM', 'LUN', 'MAR', 'MIE', 'JUE', 'VIE', 'SAB'];
-
-        ctx.fillStyle = '#ffffff';
-        ctx.shadowColor = 'rgba(15, 23, 42, 0.14)';
-        ctx.shadowBlur = 30;
-        ctx.shadowOffsetY = 14;
-        ctx.beginPath();
-        ctx.roundRect(cardX, cardY, cardW, cardH, 34);
-        ctx.fill();
-        ctx.shadowColor = 'transparent';
-
-        diasCabecera.forEach((dia, index) => {
-            const x = cardX + index * colW;
-            ctx.fillStyle = index === 0 || index === 6 ? '#fdf2f8' : '#f9fafb';
-            ctx.fillRect(x, cardY, colW, headerH);
-            ctx.fillStyle = A;
-            ctx.font = '800 23px Arial';
-            ctx.fillText(dia, x + colW / 2, cardY + 54);
+        ['DOM', 'LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB'].forEach((dia, i) => {
+            ctx.fillStyle = '#AAAAAA';
+            ctx.font = `800 22px ${F}`;
+            ctx.fillText(dia, cardX + 15 + i * colW + colW / 2, cardY + 48);
         });
 
         diasDelMes.forEach((date, idx) => {
-            const col = idx % 7;
-            const row = Math.floor(idx / 7);
-            const x = cardX + col * colW;
-            const y = cardY + headerH + row * rowH;
-
-            ctx.strokeStyle = '#e5e7eb';
-            ctx.lineWidth = 2;
-            ctx.strokeRect(x, y, colW, rowH);
-
             if (!date) return;
-
+            const x = cardX + 15 + (idx % 7) * colW;
+            const y = cardY + headerH + Math.floor(idx / 7) * rowH;
             const fechaStr = formatDate(date);
-            const disponible = disponibilidadDias[fechaStr] === true;
             const conteo = disponibilidadConteos[fechaStr] || 0;
-            const esCerrado = diasCerradosFechas.includes(fechaStr);
-            const esPasado = fechaStr < getCurrentLocalDate();
-            let fill = '#f3f4f6';
-            let text = '#9ca3af';
+            const libre = fechaStr >= hoy && !diasCerradosFechas.includes(fechaStr)
+                && disponibilidadDias[fechaStr] === true && conteo > 0;
 
-            if (esCerrado || esPasado || !disponible) {
-                fill = '#f3f4f6';
-                text = '#9ca3af';
-            } else if (conteo >= 4) {
-                fill = '#dcfce7';
-                text = '#15803d';
-            } else if (conteo === 3) {
-                fill = '#fef3c7';
-                text = '#b45309';
-            } else if (conteo > 0) {
-                fill = '#fee2e2';
-                text = '#b91c1c';
-            }
-
-            ctx.fillStyle = fill;
-            ctx.fillRect(x + 8, y + 8, colW - 16, rowH - 16);
-            ctx.fillStyle = text;
-            ctx.font = '800 30px Arial';
-            ctx.fillText(String(date.getDate()), x + colW / 2, y + 52);
-
-            ctx.font = '800 22px Arial';
-            if (esCerrado) {
-                ctx.fillText('Cerrado', x + colW / 2, y + 100);
-            } else if (!esPasado && disponible) {
-                ctx.fillText(`${conteo} horarios`, x + colW / 2, y + 100);
-            } else {
-                ctx.fillText('Sin horarios', x + colW / 2, y + 100);
-            }
-        });
-
-        const legendY = 1645;
-        // "tranquilo/medio/urgente" es jerga interna del salon para priorizar
-        // que dia llenar primero; en la imagen que ve la clienta solo hace
-        // falta el numero, no una etiqueta que suene a presion de venta.
-        const legendas = [
-            ['#dcfce7', '#15803d', '4+ horarios'],
-            ['#fef3c7', '#b45309', '3 horarios'],
-            ['#fee2e2', '#b91c1c', '1-2 horarios'],
-            ['#f3f4f6', '#9ca3af', 'Sin horarios']
-        ];
-
-        legendas.forEach((item, index) => {
-            const x = 150 + index * 220;
-            ctx.fillStyle = item[0];
+            ctx.fillStyle = libre ? conAlfa(A, 0.12) : '#F7F7F7';
             ctx.beginPath();
-            ctx.roundRect(x, legendY, 38, 38, 10);
+            ctx.roundRect(x + 5, y + 5, colW - 10, rowH - 10, 22);
             ctx.fill();
-            ctx.fillStyle = item[1];
-            ctx.font = '700 21px Arial';
-            ctx.textAlign = 'left';
-            ctx.fillText(item[2], x + 50, legendY + 27);
+
+            ctx.fillStyle = libre ? '#1A1A1A' : '#C8C8C8';
+            ctx.font = `800 ${rowH > 130 ? 36 : 30}px ${F}`;
+            ctx.fillText(String(date.getDate()), x + colW / 2, y + rowH / 2 - (libre ? 4 : -10));
+            if (libre) {
+                ctx.fillStyle = A;
+                ctx.font = `800 20px ${F}`;
+                ctx.fillText(conteo === 1 ? '1 hora' : `${conteo} horas`, x + colW / 2, y + rowH / 2 + 32);
+            }
         });
 
-        ctx.textAlign = 'center';
-        ctx.fillStyle = A;
-        ctx.font = '800 34px Arial';
-        ctx.fillText('Reserva tu cita', 540, 1740);
-        ctx.fillStyle = '#6b7280';
-        ctx.font = '500 26px Arial';
-        ctx.fillText('Los números indican horarios disponibles por día', 540, 1790);
-        ctx.fillStyle = A;
-        ctx.font = '800 30px Arial';
-        ctx.fillText('Hecho con RservasRoma', 540, 1850);
-
+        await dibujarPieCartel(ctx, A);
         return canvas;
     };
 
@@ -6225,7 +6187,7 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                                     <div className="flex items-center justify-between gap-2">
                                         <div>
                                             <p className="text-sm font-bold text-gray-900">{t('Disponibilidad mensual')}</p>
-                                            <p className="text-xs text-gray-500">{t('Calendario listo para compartir.')}</p>
+                                            <p className="text-xs text-gray-500">{t('El número es cuántas horas quedan libres ese día.')}</p>
                                         </div>
                                         <button
                                             onClick={compartirDisponibilidadMensual}
@@ -6247,13 +6209,9 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                                             const disponiblesDia = disponibilidadConteos[fechaStr] || 0;
                                             const esCerrado = diasCerradosFechas.includes(fechaStr);
                                             const esPasado = fechaStr < getCurrentLocalDate();
-                                            const tonoConteo = disponiblesDia >= 4
-                                                ? 'bg-green-100 text-green-700 border-green-300'
-                                                : disponiblesDia === 3
-                                                    ? 'bg-yellow-100 text-yellow-700 border-yellow-300'
-                                                    : disponiblesDia > 0
-                                                        ? 'bg-red-100 text-red-700 border-red-300'
-                                                        : 'bg-gray-100 text-gray-400 border-gray-200';
+                                            const tonoConteo = disponiblesDia > 0
+                                                ? 'bg-pink-50 text-pink-600 border-pink-200'
+                                                : 'bg-gray-100 text-gray-400 border-gray-200';
                                             
                                             let className = "h-14 w-full rounded-lg text-sm font-medium flex flex-col items-center justify-center border transition";
                                             if (esCerrado) className += " bg-red-50 text-red-400 border-red-100 line-through";
@@ -6277,14 +6235,6 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                                 </div>
                             )}
                             
-                            {modoDisponibilidad === 'mes' && <div className="mt-4 p-3 bg-gray-50 rounded-lg text-xs">
-                                <div className="flex flex-wrap gap-4">
-                                    <div className="flex items-center gap-2"><div className="w-5 h-5 bg-green-100 border border-green-300 rounded-full flex items-center justify-center text-[10px] font-bold text-green-700">6</div><span>{t('4+ tranquilo')}</span></div>
-                                    <div className="flex items-center gap-2"><div className="w-5 h-5 bg-yellow-100 border border-yellow-300 rounded-full flex items-center justify-center text-[10px] font-bold text-yellow-700">3</div><span>{t('3 medio')}</span></div>
-                                    <div className="flex items-center gap-2"><div className="w-5 h-5 bg-red-100 border border-red-300 rounded-full flex items-center justify-center text-[10px] font-bold text-red-700">2</div><span>{t('1-2 urgente')}</span></div>
-                                    <div className="flex items-center gap-2"><div className="w-5 h-5 bg-gray-100 border border-gray-200 rounded-full flex items-center justify-center text-[10px] font-bold text-gray-400">0</div><span>{t('Sin horarios')}</span></div>
-                                </div>
-                            </div>}
                         </div>
                     </div>
                 )}
