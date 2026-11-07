@@ -68,7 +68,11 @@ async function getBookingsByDateAndProfesional(dateStr, profesionalId, servicio)
         if (!response.ok) throw new Error('Error fetching bookings');
         
         const data = await response.json();
-        const propias = Array.isArray(data) ? data : [];
+        // Horas guardadas a otra clienta de la lista de espera (30 min): ocupadas para las demas.
+        const retenidas = (await window.listaEspera?.retenidas?.(dateStr) || [])
+            .filter(r => String(r.profesional_id) === String(profesionalId))
+            .map(r => ({ hora_inicio: r.hora_inicio, hora_fin: r.hora_fin, estado: 'Retenida', retenida_lista_espera: true }));
+        const propias = (Array.isArray(data) ? data : []).concat(retenidas);
         // Con espacios activos suma los tramos en que todos sus espacios estan tomados (utils/espacios.js).
         return (await window.espacios?.reservasConEspacios(profesionalId, dateStr, dateStr, propias, null, servicio)) ?? propias;
     } catch (error) {
@@ -227,188 +231,13 @@ async function updateBookingStatus(id, newStatus) {
     }
 }
 
-async function getListaEsperaPorFechaProfesional(dateStr, profesionalId) {
-    try {
-        const negocioId = getNegocioId();
-        const response = await fetch(
-            `${window.SUPABASE_URL}/rest/v1/lista_espera?negocio_id=eq.${negocioId}&fecha=eq.${dateStr}&profesional_id=eq.${profesionalId}&estado=neq.cerrada&select=*`,
-            {
-                headers: {
-                    'apikey': window.SUPABASE_ANON_KEY,
-                    'Authorization': `Bearer ${window.SUPABASE_ANON_KEY}`,
-                    'Content-Type': 'application/json',
-                    'Cache-Control': 'no-cache'
-                },
-                cache: 'no-store'
-            }
-        );
-
-        if (!response.ok) {
-            console.warn('Lista de espera no disponible:', await response.text());
-            return [];
-        }
-
-        const data = await response.json();
-        return Array.isArray(data) ? data : [];
-    } catch (error) {
-        console.error('Error cargando lista de espera:', error);
-        return [];
-    }
-}
-
-async function unirseListaEspera(data) {
-    try {
-        const negocioId = getNegocioId();
-        const existente = await getListaEsperaPorFechaProfesional(data.fecha, data.profesional_id);
-        const ocupado = existente.find(item =>
-            normalizeTimeKey(item.hora_inicio) === normalizeTimeKey(data.hora_inicio) &&
-            String(item.estado || '').toLowerCase() !== 'cerrada'
-        );
-
-        if (ocupado) {
-            return { success: false, reason: 'occupied', data: ocupado };
-        }
-
-        const payload = {
-            negocio_id: negocioId,
-            cliente_nombre: data.cliente_nombre,
-            cliente_whatsapp: data.cliente_whatsapp,
-            servicio: data.servicio,
-            duracion: data.duracion,
-            profesional_id: data.profesional_id,
-            profesional_nombre: data.profesional_nombre,
-            fecha: data.fecha,
-            hora_inicio: data.hora_inicio,
-            hora_fin: data.hora_fin,
-            estado: 'esperando'
-        };
-
-        const response = await fetch(
-            `${window.SUPABASE_URL}/rest/v1/lista_espera`,
-            {
-                method: 'POST',
-                headers: {
-                    'apikey': window.SUPABASE_ANON_KEY,
-                    'Authorization': `Bearer ${window.SUPABASE_ANON_KEY}`,
-                    'Content-Type': 'application/json',
-                    'Prefer': 'return=representation',
-                    'Cache-Control': 'no-cache'
-                },
-                cache: 'no-store',
-                body: JSON.stringify(payload)
-            }
-        );
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error('Error creando lista de espera:', errorText);
-            if (errorText.includes('duplicate') || errorText.includes('23505')) {
-                return { success: false, reason: 'occupied' };
-            }
-            throw new Error(errorText);
-        }
-
-        const inserted = await response.json();
-        return { success: true, data: inserted?.[0] || payload };
-    } catch (error) {
-        console.error('Error uniendose a lista de espera:', error);
-        return { success: false, reason: 'error', error };
-    }
-}
-
-async function notificarListaEsperaTurnoLiberado(booking) {
-    try {
-        if (!booking?.fecha || !booking?.hora_inicio || !booking?.profesional_id) return false;
-
-        const negocioId = booking.negocio_id || getNegocioId();
-        const response = await fetch(
-            `${window.SUPABASE_URL}/rest/v1/lista_espera?negocio_id=eq.${negocioId}&fecha=eq.${booking.fecha}&profesional_id=eq.${booking.profesional_id}&hora_inicio=eq.${normalizeTimeKey(booking.hora_inicio)}&estado=eq.esperando&select=*&order=created_at.asc&limit=1`,
-            {
-                headers: {
-                    'apikey': window.SUPABASE_ANON_KEY,
-                    'Authorization': `Bearer ${window.SUPABASE_ANON_KEY}`,
-                    'Content-Type': 'application/json',
-                    'Cache-Control': 'no-cache'
-                },
-                cache: 'no-store'
-            }
-        );
-
-        if (!response.ok) {
-            console.warn('No se pudo consultar lista de espera:', await response.text());
-            return false;
-        }
-
-        const data = await response.json();
-        const espera = data?.[0];
-        if (!espera) return false;
-
-        const fecha = window.formatFechaCompleta ? window.formatFechaCompleta(espera.fecha) : espera.fecha;
-        const hora = window.formatTo12Hour ? window.formatTo12Hour(espera.hora_inicio) : espera.hora_inicio;
-        const mensaje =
-`LISTA DE ESPERA - TURNO LIBERADO
-
-Se libero un turno ocupado:
-Fecha: ${fecha}
-Hora: ${hora}
-Profesional: ${espera.profesional_nombre}
-Servicio: ${espera.servicio}
-
-Clienta en lista de espera:
-Nombre: ${espera.cliente_nombre}
-WhatsApp: ${espera.cliente_whatsapp}`;
-
-        // El toque en el aviso lleva a la admin directo al panel "Lista de espera"
-        // (?ir=lista-espera). Antes ademas se abria WhatsApp hacia el telefono del
-        // propio salon: era un mensaje a si misma y no respetaba el interruptor
-        // "Enviar mensajes por WhatsApp". El WhatsApp a la clienta lo manda la
-        // admin desde ese panel.
-        if (window.enviarNotificacionPush) {
-            await window.enviarNotificacionPush('Lista de espera: horario liberado', mensaje, 'bell', 'high', {
-                ir: 'lista-espera',
-                profesionalId: booking.profesional_id
-            });
-        }
-
-        const config = window.cargarConfiguracionNegocio ? await window.cargarConfiguracionNegocio(true) : {};
-
-        // Push directo a la clienta en espera: antes solo se avisaba al admin y
-        // la entrada quedaba marcada como "notificada" sin que la clienta se
-        // enterara. Ahora recibe el aviso de que su turno se liberó.
-        if (window.enviarPushCliente && espera.cliente_whatsapp) {
-            const nombreNegocioEspera = config?.nombre || espera.negocio_nombre || 'Tu salón';
-            await window.enviarPushCliente({
-                whatsapp: espera.cliente_whatsapp,
-                title: `🔔 Se liberó un horario — ${nombreNegocioEspera}`,
-                body: `Hola ${espera.cliente_nombre || ''}! Se liberó el horario de ${espera.servicio || 'tu servicio'} el ${fecha} a las ${hora}. Reserva desde la app antes de que se ocupe.`,
-            }).catch(() => {});
-        }
-
-        await fetch(
-            `${window.SUPABASE_URL}/rest/v1/lista_espera?negocio_id=eq.${negocioId}&id=eq.${espera.id}`,
-            {
-                method: 'PATCH',
-                headers: {
-                    'apikey': window.SUPABASE_ANON_KEY,
-                    'Authorization': `Bearer ${window.SUPABASE_ANON_KEY}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    estado: 'notificada',
-                    fecha_notificacion: new Date().toISOString()
-                })
-            }
-        );
-
-        // Si la admin tiene el panel abierto (la cancelacion la hizo ella), se entera
-        // al momento: admin-app.js escucha este evento.
-        window.dispatchEvent(new CustomEvent('rservas:lista-espera-cambio'));
-
-        return true;
-    } catch (error) {
-        console.error('Error notificando lista de espera:', error);
-        return false;
-    }
+// La lista de espera ya no se anota ni se avisa desde aqui (07-11-2026): la clienta usa
+// window.listaEspera (utils/lista-espera.js) y la base ofrece las horas liberadas sola
+// (sql-lista-espera-dia.sql + funcion lista-espera). Esto queda para los sitios que aun lo llaman al
+// cancelar o mover una cita: solo refresca los avisos del panel.
+async function notificarListaEsperaTurnoLiberado() {
+    window.dispatchEvent(new CustomEvent('rservas:lista-espera-cambio'));
+    return false;
 }
 
 // Hacer funciones globales
@@ -418,8 +247,6 @@ window.getBookingsByDateAndWorker = getBookingsByDateAndProfesional;
 window.createBooking = createBooking;
 window.getAllBookings = getAllBookings;
 window.updateBookingStatus = updateBookingStatus;
-window.getListaEsperaPorFechaProfesional = getListaEsperaPorFechaProfesional;
-window.unirseListaEspera = unirseListaEspera;
 window.notificarListaEsperaTurnoLiberado = notificarListaEsperaTurnoLiberado;
 
 console.log('✅ api.js funciones disponibles');

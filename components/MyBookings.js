@@ -4,7 +4,66 @@
 // (uno o varios servicios seguidos) se ve junto y se cambia junto. La logica de mover, quitar y anadir
 // servicios vive en utils/turnos.js (con prueba en tests/turnos.test.js).
 
-function MyBookings({ cliente, onVolver, onRepetir }) {
+// Sus esperas activas (utils/lista-espera.js): si tiene una hora guardada, la reserva en un toque;
+// si no, ve de que dia es y puede salirse. Al reservar ese dia se cierra sola.
+function MisEsperas({ cliente, onReservarOferta }) {
+    const t = window.t;
+    const [esperas, setEsperas] = React.useState([]);
+    const [saliendo, setSaliendo] = React.useState(null);
+
+    const cargar = React.useCallback(() => {
+        if (!cliente?.whatsapp || !window.listaEspera?.mias) return;
+        window.listaEspera.mias(cliente).then(lista => setEsperas(lista || [])).catch(() => {});
+    }, [cliente?.whatsapp]);
+    React.useEffect(cargar, [cargar]);
+
+    if (!esperas.length) return null;
+
+    const salir = async (fila) => {
+        setSaliendo(fila.id);
+        if (await window.listaEspera.salir(fila.id, cliente)) setEsperas(l => l.filter(f => f.id !== fila.id));
+        setSaliendo(null);
+    };
+    const fecha = (f) => (window.formatFechaCompleta ? window.formatFechaCompleta(f) : f);
+    const hora = (h) => (window.formatTo12Hour ? window.formatTo12Hour(h) : h);
+
+    return (
+        <div className="mb-5 space-y-2">
+            <p className="text-xs font-bold uppercase tracking-wider text-gray-500">🔔 {t('Estás en lista de espera')}</p>
+            {esperas.map(f => {
+                const guardada = window.listaEspera.ofertaVigente(f);
+                return (
+                    <div key={f.id} className={`rounded-2xl bg-white p-3 flex items-center gap-3 shadow-sm border ${guardada ? 'border-pink-400' : 'border-pink-100'}`}>
+                        <div className="min-w-0 flex-1">
+                            {guardada && <p className="text-[11px] font-bold uppercase tracking-wide text-pink-600">{t('¡Se liberó una hora para ti!')}</p>}
+                            <p className="font-bold text-gray-900 leading-snug">
+                                {fecha(f.fecha)}{guardada ? ` · ${hora(f.oferta_hora)}` : ''}
+                            </p>
+                            <p className="text-sm text-gray-600">
+                                {guardada
+                                    ? `${f.servicio}${f.oferta_profesional_nombre ? ` · ${f.oferta_profesional_nombre}` : ''} · ${t('Te la guardamos hasta las {hora}.', { hora: window.listaEspera.horaLimite(f.oferta_hasta) })}`
+                                    : `${f.servicio} · ${t(window.listaEspera.textoFranja(f.franja))}${f.profesional_nombre ? ` · ${f.profesional_nombre}` : ''}`}
+                            </p>
+                        </div>
+                        {guardada && onReservarOferta ? (
+                            <button type="button" onClick={() => onReservarOferta(f)}
+                                className="shrink-0 px-4 py-2 rounded-full bg-pink-500 text-white text-sm font-bold shadow-md">
+                                {t('Reservarla')}
+                            </button>
+                        ) : (
+                            <button type="button" onClick={() => salir(f)} disabled={saliendo === f.id}
+                                className="shrink-0 px-4 min-h-11 rounded-full border border-gray-300 text-sm font-semibold text-gray-700 disabled:opacity-50">
+                                {t('Salir')}
+                            </button>
+                        )}
+                    </div>
+                );
+            })}
+        </div>
+    );
+}
+
+function MyBookings({ cliente, onVolver, onRepetir, onReservarOferta }) {
     window.useIdioma();
     const t = window.t;
     const [bookings, setBookings] = React.useState([]);
@@ -411,6 +470,8 @@ function MyBookings({ cliente, onVolver, onRepetir }) {
                 {cliente && window.TarjetaFidelidad && (
                     <div className="mb-5"><window.TarjetaFidelidad cliente={cliente} /></div>
                 )}
+
+                <MisEsperas cliente={cliente} onReservarOferta={onReservarOferta} />
 
                 <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
                     {[

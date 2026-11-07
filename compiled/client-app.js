@@ -370,6 +370,27 @@ function ClientApp() {
       console.error("No se pudo repetir la cita:", e);
     }
   };
+  const handleReservarOferta = async (oferta) => {
+    setDisenoElegido(null);
+    navigateTo("service");
+    try {
+      const servicios = await window.salonServicios?.getAll?.(true);
+      const servicio = (servicios || []).find((s) => s.nombre === oferta.servicio);
+      const profesionales = await window.salonProfesionales?.getAll?.();
+      const profesional = (profesionales || []).find((p) => String(p.id) === String(oferta.oferta_profesional_id));
+      if (!servicio || !profesional) {
+        setPaso(0);
+        return;
+      }
+      setSelectedService(servicio);
+      setSelectedProfesional(profesional);
+      setSelectedDate(oferta.fecha);
+      setSelectedTime(String(oferta.oferta_hora).slice(0, 5));
+      irAPaso(3);
+    } catch (e) {
+      console.error("No se pudo abrir la hora guardada:", e);
+    }
+  };
   const goToMyBookings = () => {
     navigateTo("mybookings");
   };
@@ -397,7 +418,8 @@ function ClientApp() {
             userRol,
             onMisReservas: goToMyBookings,
             onCatalogo: handleVerCatalogo,
-            onLogout: handleLogout
+            onLogout: handleLogout,
+            onReservarOferta: handleReservarOferta
           }
         );
       case "catalogo":
@@ -415,7 +437,8 @@ function ClientApp() {
           {
             cliente,
             onVolver: handleVolverDeMyBookings,
-            onRepetir: handleRepetir
+            onRepetir: handleRepetir,
+            onReservarOferta: handleReservarOferta
           }
         );
       case "service":

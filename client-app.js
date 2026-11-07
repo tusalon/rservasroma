@@ -464,6 +464,27 @@ function ClientApp() {
         }
     };
 
+    // La lista de espera le guarda una hora (WelcomeScreen / Mis citas): directo al formulario con
+    // servicio, profesional, dia y hora ya puestos. Al reservar, la base cierra su espera sola.
+    const handleReservarOferta = async (oferta) => {
+        setDisenoElegido(null);
+        navigateTo('service');
+        try {
+            const servicios = await window.salonServicios?.getAll?.(true);
+            const servicio = (servicios || []).find(s => s.nombre === oferta.servicio);
+            const profesionales = await window.salonProfesionales?.getAll?.();
+            const profesional = (profesionales || []).find(p => String(p.id) === String(oferta.oferta_profesional_id));
+            if (!servicio || !profesional) { setPaso(0); return; }
+            setSelectedService(servicio);
+            setSelectedProfesional(profesional);
+            setSelectedDate(oferta.fecha);
+            setSelectedTime(String(oferta.oferta_hora).slice(0, 5));
+            irAPaso(3);
+        } catch (e) {
+            console.error('No se pudo abrir la hora guardada:', e);
+        }
+    };
+
     const goToMyBookings = () => {
         navigateTo('mybookings');
     };
@@ -496,6 +517,7 @@ function ClientApp() {
                         onMisReservas={goToMyBookings}
                         onCatalogo={handleVerCatalogo}
                         onLogout={handleLogout}
+                        onReservarOferta={handleReservarOferta}
                     />
                 );
 
@@ -514,6 +536,7 @@ function ClientApp() {
                         cliente={cliente} 
                         onVolver={handleVolverDeMyBookings}
                         onRepetir={handleRepetir}
+                        onReservarOferta={handleReservarOferta}
                     />
                 );
             

@@ -28,13 +28,82 @@ function NotaAntelacion({ horas }) {
   if (!(Number(horas) > 0)) return null;
   return /* @__PURE__ */ React.createElement("p", { className: "flex items-center gap-2 text-xs font-medium text-gray-600" }, /* @__PURE__ */ React.createElement("span", { className: "inline-flex w-6 h-6 rounded-full bg-pink-50 items-center justify-center", "aria-hidden": "true" }, "🕒"), t("Se reserva con al menos {n} h de anticipación.", { n: horas }));
 }
+function AvisameListaEspera({ service, date, profesional, cliente, fechaTexto, abiertoAlInicio = false }) {
+  const t = window.t;
+  const [abierto, setAbierto] = React.useState(abiertoAlInicio);
+  const [franja, setFranja] = React.useState("cualquiera");
+  const [cualquiera, setCualquiera] = React.useState(false);
+  const [variasPro, setVariasPro] = React.useState(false);
+  const [estado, setEstado] = React.useState("");
+  React.useEffect(() => {
+    setEstado("");
+    setAbierto(abiertoAlInicio);
+  }, [date, profesional?.id, service?.id]);
+  React.useEffect(() => {
+    let vivo = true;
+    (async () => {
+      try {
+        const asignadas = service?.id && window.getProfesionalesPorServicio ? await window.getProfesionalesPorServicio(service.id) : [];
+        if (vivo) setVariasPro((asignadas || []).length > 1);
+      } catch (e) {
+      }
+    })();
+    return () => {
+      vivo = false;
+    };
+  }, [service?.id]);
+  if (!window.listaEspera?.unirse) return null;
+  if (estado === "ok" || estado === "ya") {
+    return /* @__PURE__ */ React.createElement("div", { className: "flex gap-3 items-start rounded-3xl bg-white/90 border border-pink-100 p-4 shadow-sm", role: "status" }, /* @__PURE__ */ React.createElement("span", { className: "inline-flex w-10 h-10 shrink-0 rounded-full bg-pink-50 items-center justify-center text-xl", "aria-hidden": "true" }, "🔔"), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("p", { className: "font-bold text-gray-900" }, estado === "ok" ? t("Listo, estás en la lista de espera") : t("Ya estás en la lista de espera de ese día.")), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-600 mt-0.5" }, t("Si se libera una hora el {fecha}, te avisamos y te la guardamos 30 minutos.", { fecha: fechaTexto }))));
+  }
+  if (!abierto) {
+    return /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        type: "button",
+        onClick: () => setAbierto(true),
+        className: "w-full rounded-2xl border border-dashed border-pink-300 bg-white/70 py-3 text-sm font-semibold text-pink-700"
+      },
+      "🔔 ",
+      t("¿Ninguna te sirve? Avísame si se libera otra")
+    );
+  }
+  const anotarme = async () => {
+    if (!cliente?.nombre || !cliente?.whatsapp) {
+      setEstado("sin-sesion");
+      return;
+    }
+    setEstado("guardando");
+    const r = await window.listaEspera.unirse({ cliente, servicio: service, profesional, fecha: date, franja, cualquierProfesional: cualquiera });
+    setEstado(r?.ok ? "ok" : r?.motivo === "ya_anotada" ? "ya" : "error");
+  };
+  const opciones = [["manana", t("Por la mañana")], ["tarde", t("Por la tarde")], ["cualquiera", t("Me da igual")]];
+  return /* @__PURE__ */ React.createElement("div", { className: "rounded-3xl bg-white/90 border border-pink-100 p-4 shadow-sm space-y-3" }, /* @__PURE__ */ React.createElement("div", { className: "flex gap-3 items-start" }, /* @__PURE__ */ React.createElement("span", { className: "inline-flex w-10 h-10 shrink-0 rounded-full bg-pink-50 items-center justify-center text-xl", "aria-hidden": "true" }, "🔔"), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("p", { className: "font-bold text-gray-900" }, t("Avísame si se libera una hora")), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-600 mt-0.5" }, t("Te avisamos y te la guardamos 30 minutos para que la reserves.")))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold uppercase tracking-wider text-gray-500 mb-2" }, t("¿Cuándo te viene bien?")), /* @__PURE__ */ React.createElement("div", { className: "grid gap-2", style: { gridTemplateColumns: "repeat(3, minmax(0, 1fr))" } }, opciones.map(([valor, texto]) => /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      key: valor,
+      type: "button",
+      onClick: () => setFranja(valor),
+      "aria-pressed": franja === valor,
+      className: `py-2.5 px-1 rounded-2xl text-sm font-bold transition-all ${franja === valor ? "bg-pink-500 text-white shadow-md" : "bg-white text-gray-800 border border-pink-200"}`
+    },
+    texto
+  )))), variasPro && /* @__PURE__ */ React.createElement("label", { className: "flex items-center gap-3 text-sm text-gray-800 min-h-11 cursor-pointer" }, /* @__PURE__ */ React.createElement("input", { type: "checkbox", checked: cualquiera, onChange: (e) => setCualquiera(e.target.checked), className: "w-5 h-5 accent-pink-600" }), t("Me vale cualquier profesional")), estado === "error" && /* @__PURE__ */ React.createElement("p", { role: "alert", className: "text-sm text-red-700" }, t("No se pudo anotarte en lista de espera. Intenta de nuevo.")), estado === "sin-sesion" && /* @__PURE__ */ React.createElement("p", { role: "alert", className: "text-sm text-red-700" }, t("Necesitas ingresar con tu WhatsApp para anotarte en lista de espera.")), /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      type: "button",
+      onClick: anotarme,
+      disabled: estado === "guardando",
+      className: "w-full py-3 rounded-full bg-pink-500 text-white font-bold shadow-md disabled:opacity-60"
+    },
+    estado === "guardando" ? t("Guardando...") : `🔔 ${t("Avísame")}`
+  ));
+}
 function TimeSlots({ service, date, profesional, cliente, onTimeSelect, selectedTime }) {
   const idioma = window.useIdioma();
   const t = window.t;
   const [slots, setSlots] = React.useState([]);
-  const [occupiedSlots, setOccupiedSlots] = React.useState([]);
-  const [waitlistSlots, setWaitlistSlots] = React.useState({});
-  const [joiningWaitlist, setJoiningWaitlist] = React.useState("");
+  const [hayHorasPosibles, setHayHorasPosibles] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState(null);
   const [horariosPorDia, setHorariosPorDia] = React.useState({});
@@ -45,17 +114,6 @@ function TimeSlots({ service, date, profesional, cliente, onTimeSelect, selected
   const [minAntelacionHoras, setMinAntelacionHoras] = React.useState(2);
   const [configCargada, setConfigCargada] = React.useState(false);
   const [recortadasPorAntelacion, setRecortadasPorAntelacion] = React.useState(false);
-  const [toast, setToast] = React.useState(null);
-  const [verEspera, setVerEspera] = React.useState(false);
-  const toastTimerRef = React.useRef(null);
-  const mostrarToast = (tipo, texto) => {
-    setToast({ tipo, texto });
-    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
-    toastTimerRef.current = setTimeout(() => setToast(null), 3500);
-  };
-  React.useEffect(() => () => {
-    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
-  }, []);
   React.useEffect(() => {
     const cargarConfiguracion = async () => {
       try {
@@ -149,7 +207,7 @@ function TimeSlots({ service, date, profesional, cliente, onTimeSelect, selected
           console.log(`🚫 Fecha ${date} supera antelación máxima de ${maxAntelacionDias} días`);
           setError(t("Solo se puede reservar con hasta {dias} días de antelación", { dias: maxAntelacionDias }));
           setSlots([]);
-          setOccupiedSlots([]);
+          setHayHorasPosibles(false);
           setLoading(false);
           return;
         }
@@ -172,6 +230,7 @@ function TimeSlots({ service, date, profesional, cliente, onTimeSelect, selected
         const totalBase = baseSlots.length;
         baseSlots = baseSlots.filter(cumpleAntelacion);
         setRecortadasPorAntelacion(baseSlots.length < totalBase);
+        setHayHorasPosibles(baseSlots.length > 0);
         let bookings = await getBookingsByDateAndProfesional(date, profesional.id, service);
         if (bookings.length === 0 && window.getBookingsByDate) {
           const reservasDia = await window.getBookingsByDate(date);
@@ -182,30 +241,6 @@ function TimeSlots({ service, date, profesional, cliente, onTimeSelect, selected
             return mismoId || mismoNombre;
           });
         }
-        const waitlist = window.getListaEsperaPorFechaProfesional ? await window.getListaEsperaPorFechaProfesional(date, profesional.id) : [];
-        const waitlistMap = {};
-        (waitlist || []).forEach((item) => {
-          waitlistMap[normalizeTimeKey(item.hora_inicio)] = item;
-        });
-        setWaitlistSlots(waitlistMap);
-        const occupiedMap = {};
-        const esReservaOcupada = (booking) => {
-          const estado = String(booking.estado || "").toLowerCase();
-          return !booking.bloqueo_espacios && estado !== "cancelado" && estado !== "cancelada" && estado !== "completado" && estado !== "completada" && estado !== "ausente";
-        };
-        const agregarTurnoOcupado = (booking) => {
-          if (!booking?.hora_inicio || !esReservaOcupada(booking)) return;
-          const hora = normalizeTimeKey(booking.hora_inicio);
-          if (!cumpleAntelacion(hora)) return;
-          if (!occupiedMap[hora]) {
-            occupiedMap[hora] = {
-              hora,
-              hora_fin: booking.hora_fin,
-              booking
-            };
-          }
-        };
-        bookings.forEach(agregarTurnoOcupado);
         let availableSlots = baseSlots.filter((slotStartStr) => {
           const slotStart = timeToMinutes(slotStartStr);
           const slotEnd = slotStart + service.duracion;
@@ -226,12 +261,8 @@ function TimeSlots({ service, date, profesional, cliente, onTimeSelect, selected
           }
         });
         availableSlots.sort();
-        const occupied = Object.values(occupiedMap);
-        occupied.sort((a, b) => timeToMinutes(a.hora) - timeToMinutes(b.hora));
         console.log(`✅ Slots disponibles para ${profesional.nombre} el ${date}:`, availableSlots);
-        console.log(`Lista de espera - turnos ocupados para ${profesional.nombre} el ${date}:`, occupied);
         setSlots(availableSlots);
-        setOccupiedSlots(occupied);
       } catch (err) {
         console.error(err);
         setError(t("Error al cargar horarios"));
@@ -241,46 +272,11 @@ function TimeSlots({ service, date, profesional, cliente, onTimeSelect, selected
     };
     loadSlots();
   }, [service, date, profesional, horariosPorDia, descansosPorDia, diaTrabaja, verificacionCompleta, maxAntelacionDias, minAntelacionHoras, configCargada]);
-  const handleUnirseListaEspera = async (slot) => {
-    if (!cliente?.nombre || !cliente?.whatsapp) {
-      mostrarToast("error", t("Necesitas ingresar con tu WhatsApp para anotarte en lista de espera."));
-      return;
-    }
-    if (!window.unirseListaEspera) {
-      mostrarToast("error", t("La lista de espera todavia no esta disponible."));
-      return;
-    }
-    setJoiningWaitlist(slot.hora);
-    try {
-      const result = await window.unirseListaEspera({
-        cliente_nombre: cliente.nombre,
-        cliente_whatsapp: cliente.whatsapp,
-        servicio: service.nombre,
-        duracion: service.duracion,
-        profesional_id: profesional.id,
-        profesional_nombre: profesional.nombre,
-        fecha: date,
-        hora_inicio: slot.hora,
-        hora_fin: slot.hora_fin || slot.booking?.hora_fin
-      });
-      if (result.success) {
-        setWaitlistSlots((prev) => ({ ...prev, [slot.hora]: result.data }));
-        mostrarToast("ok", t("Listo. Quedaste en lista de espera para ese horario."));
-      } else if (result.reason === "occupied") {
-        mostrarToast("error", t("Ese horario ya tiene una clienta en lista de espera."));
-        setWaitlistSlots((prev) => ({ ...prev, [slot.hora]: result.data || true }));
-      } else {
-        mostrarToast("error", t("No se pudo anotarte en lista de espera. Intenta de nuevo."));
-      }
-    } finally {
-      setJoiningWaitlist("");
-    }
-  };
   if (!service || !date || !profesional) return null;
   if (!verificacionCompleta) {
     return /* @__PURE__ */ React.createElement("div", { className: "space-y-4 animate-fade-in" }, /* @__PURE__ */ React.createElement("h2", { className: "text-lg font-semibold text-pink-700 flex items-center gap-2" }, /* @__PURE__ */ React.createElement("span", { className: "text-2xl" }, "⏰"), t("4. Elige un horario con {nombre}", { nombre: profesional.nombre })), /* @__PURE__ */ React.createElement("div", { className: "flex justify-center py-8" }, /* @__PURE__ */ React.createElement("div", { className: "animate-spin rounded-full h-8 w-8 border-b-2 border-pink-500" })));
   }
-  if (!diaTrabaja && occupiedSlots.length === 0) {
+  if (!diaTrabaja) {
     const [year, month, day] = date.split("-").map(Number);
     const fechaLocal = new Date(year, month - 1, day);
     const diasSemanaPlural = idioma === "en" ? ["Sundays", "Mondays", "Tuesdays", "Wednesdays", "Thursdays", "Fridays", "Saturdays"] : ["domingos", "lunes", "martes", "miercoles", "jueves", "viernes", "sabados"];
@@ -295,16 +291,27 @@ function TimeSlots({ service, date, profesional, cliente, onTimeSelect, selected
       }
     ));
   }
-  return /* @__PURE__ */ React.createElement("div", { className: "space-y-4 animate-fade-in" }, toast && /* @__PURE__ */ React.createElement(
-    "div",
-    {
-      className: `fixed top-4 left-1/2 -translate-x-1/2 z-[9999] px-4 py-3 rounded-xl shadow-lg text-sm font-medium flex items-center gap-2
-                    ${toast.tipo === "ok" ? "bg-green-600 text-white" : "bg-red-600 text-white"}`,
-      style: { maxWidth: "90vw" }
-    },
-    /* @__PURE__ */ React.createElement("span", null, toast.tipo === "ok" ? "✅" : "❌"),
-    /* @__PURE__ */ React.createElement("span", null, toast.texto)
-  ), /* @__PURE__ */ React.createElement("h2", { className: "text-lg font-semibold text-pink-700 flex items-center gap-2" }, /* @__PURE__ */ React.createElement("span", { className: "text-2xl" }, "⏰"), t("4. Elige un horario con {nombre}", { nombre: profesional.nombre }), selectedTime && /* @__PURE__ */ React.createElement("span", { className: "text-xs bg-pink-100 text-pink-700 px-2 py-1 rounded-full ml-2" }, "✓ ", t("Horario seleccionado"))), loading ? /* @__PURE__ */ React.createElement("div", { className: "flex justify-center py-8" }, /* @__PURE__ */ React.createElement("div", { className: "animate-spin rounded-full h-8 w-8 border-b-2 border-pink-500" })) : error ? /* @__PURE__ */ React.createElement(AvisoSinHoras, { icono: "⏳", titulo: error }) : slots.length === 0 && occupiedSlots.length === 0 ? recortadasPorAntelacion ? /* @__PURE__ */ React.createElement(
+  return /* @__PURE__ */ React.createElement("div", { className: "space-y-4 animate-fade-in" }, /* @__PURE__ */ React.createElement("h2", { className: "text-lg font-semibold text-pink-700 flex items-center gap-2" }, /* @__PURE__ */ React.createElement("span", { className: "text-2xl" }, "⏰"), t("4. Elige un horario con {nombre}", { nombre: profesional.nombre }), selectedTime && /* @__PURE__ */ React.createElement("span", { className: "text-xs bg-pink-100 text-pink-700 px-2 py-1 rounded-full ml-2" }, "✓ ", t("Horario seleccionado"))), loading ? /* @__PURE__ */ React.createElement("div", { className: "flex justify-center py-8" }, /* @__PURE__ */ React.createElement("div", { className: "animate-spin rounded-full h-8 w-8 border-b-2 border-pink-500" })) : error ? /* @__PURE__ */ React.createElement(AvisoSinHoras, { icono: "⏳", titulo: error }) : slots.length === 0 && hayHorasPosibles ? (
+    // Dia lleno: la lista de espera es lo unico que hay, abierta.
+    /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(
+      AvisoSinHoras,
+      {
+        icono: "💗",
+        titulo: t("Este día está lleno"),
+        texto: t("Pero las citas a veces se cancelan.")
+      }
+    ), /* @__PURE__ */ React.createElement(
+      AvisameListaEspera,
+      {
+        service,
+        date,
+        profesional,
+        cliente,
+        fechaTexto: window.formatFechaCompleta ? window.formatFechaCompleta(date) : formatDateLocal(date),
+        abiertoAlInicio: true
+      }
+    ))
+  ) : slots.length === 0 ? recortadasPorAntelacion ? /* @__PURE__ */ React.createElement(
     AvisoSinHoras,
     {
       icono: "🕒",
@@ -318,29 +325,14 @@ function TimeSlots({ service, date, profesional, cliente, onTimeSelect, selected
       titulo: t("No hay horarios disponibles para {nombre} el {fecha}", { nombre: profesional.nombre, fecha: formatDateLocal(date) }),
       texto: t("Prueba con otra fecha")
     }
-  ) : /* @__PURE__ */ React.createElement(React.Fragment, null, recortadasPorAntelacion && /* @__PURE__ */ React.createElement(NotaAntelacion, { horas: minAntelacionHoras }), /* @__PURE__ */ React.createElement(GruposDeHoras, { slots, selectedTime, onTimeSelect }), occupiedSlots.length > 0 && slots.length > 0 && !verEspera && /* @__PURE__ */ React.createElement(
-    "button",
+  ) : /* @__PURE__ */ React.createElement(React.Fragment, null, recortadasPorAntelacion && /* @__PURE__ */ React.createElement(NotaAntelacion, { horas: minAntelacionHoras }), /* @__PURE__ */ React.createElement(GruposDeHoras, { slots, selectedTime, onTimeSelect }), /* @__PURE__ */ React.createElement(
+    AvisameListaEspera,
     {
-      type: "button",
-      onClick: () => setVerEspera(true),
-      className: "w-full rounded-2xl border border-dashed border-pink-300 bg-white/70 py-3 text-sm font-semibold text-pink-700"
-    },
-    t("¿No ves tu hora? Ponte en lista de espera")
-  ), occupiedSlots.length > 0 && (verEspera || slots.length === 0) && /* @__PURE__ */ React.createElement("div", { className: "rounded-3xl border border-amber-200 bg-amber-50 p-4" }, /* @__PURE__ */ React.createElement("div", { className: "mb-3" }, /* @__PURE__ */ React.createElement("p", { className: "font-semibold text-amber-800" }, t("Horarios ocupados con lista de espera")), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-amber-700" }, t("Puedes anotarte en un horario ocupado. Solo se permite una clienta en espera por horario."))), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 sm:grid-cols-3 gap-3" }, occupiedSlots.map((slot) => {
-    const yaTieneEspera = Boolean(waitlistSlots[slot.hora]);
-    const cargando = joiningWaitlist === slot.hora;
-    return /* @__PURE__ */ React.createElement(
-      "button",
-      {
-        key: slot.hora,
-        type: "button",
-        onClick: () => handleUnirseListaEspera(slot),
-        disabled: yaTieneEspera || cargando,
-        className: `py-3 px-2 rounded-2xl text-sm font-semibold transition flex flex-col items-center border
-                                                ${yaTieneEspera ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed" : "bg-white text-amber-800 border-amber-300 hover:bg-amber-100"}`
-      },
-      /* @__PURE__ */ React.createElement("span", null, window.formatTo12Hour ? window.formatTo12Hour(slot.hora) : slot.hora),
-      /* @__PURE__ */ React.createElement("span", { className: "text-xs font-medium mt-1" }, cargando ? t("Guardando...") : yaTieneEspera ? t("Lista ocupada") : t("Lista de espera"))
-    );
-  })))));
+      service,
+      date,
+      profesional,
+      cliente,
+      fechaTexto: window.formatFechaCompleta ? window.formatFechaCompleta(date) : formatDateLocal(date)
+    }
+  )));
 }

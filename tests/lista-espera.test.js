@@ -8,43 +8,45 @@ const path = require('node:path');
 const vm = require('node:vm');
 const l = require('../utils/lista-espera.js');
 
-// --- ¿Esta libre el turno?
-const espera = { hora_inicio: '15:00:00', hora_fin: '16:00:00' };
-assert.equal(l.turnoOcupado([], espera), false, 'sin reservas esta libre');
-assert.equal(l.turnoOcupado(undefined, espera), false);
-assert.equal(l.turnoOcupado([{ hora_inicio: '15:00', hora_fin: '16:00', estado: 'Confirmado' }], espera), true, 'mismo turno');
-assert.equal(l.turnoOcupado([{ hora_inicio: '14:30', hora_fin: '15:30', estado: 'Pendiente' }], espera), true, 'pisa el inicio');
-assert.equal(l.turnoOcupado([{ hora_inicio: '15:30', hora_fin: '17:00', estado: 'Confirmado' }], espera), true, 'pisa el final');
-assert.equal(l.turnoOcupado([{ hora_inicio: '14:00', hora_fin: '15:00', estado: 'Confirmado' }], espera), false, 'termina justo cuando empieza');
-assert.equal(l.turnoOcupado([{ hora_inicio: '16:00', hora_fin: '17:00', estado: 'Confirmado' }], espera), false, 'empieza justo cuando termina');
-assert.equal(l.turnoOcupado([{ hora_inicio: '15:00', hora_fin: '16:00', estado: 'Cancelado' }], espera), false, 'una cancelada no ocupa');
-assert.equal(l.turnoOcupado([{ hora_inicio: '15:00', estado: 'Confirmado' }], { hora_inicio: '15:00', duracion: 30 }), true, 'sin hora_fin se usa la duracion');
+// --- ¿Sigue guardada la hora?
+const ahoraMs = new Date('2026-11-09T14:00:00Z').getTime();
+assert.equal(l.ofertaVigente({ estado: 'ofrecida', oferta_hora: '10:30', oferta_hasta: '2026-11-09T14:20:00Z' }, ahoraMs), true);
+assert.equal(l.ofertaVigente({ estado: 'ofrecida', oferta_hora: '10:30', oferta_hasta: '2026-11-09T13:59:00Z' }, ahoraMs), false, 'vencida');
+assert.equal(l.ofertaVigente({ estado: 'esperando', oferta_hasta: '2026-11-09T14:20:00Z' }, ahoraMs), false, 'sin oferta');
+assert.equal(l.ofertaVigente(null, ahoraMs), false);
 
-// --- Mensaje a la clienta
+assert.equal(l.horaLimite(new Date(2026, 10, 9, 13, 5).toISOString()), '1:05 PM');
+assert.equal(l.horaLimite(new Date(2026, 10, 9, 0, 30).toISOString()), '12:30 AM');
+assert.equal(l.horaLimite('no-es-fecha'), '');
+assert.equal(l.textoFranja('manana'), 'por la mañana');
+assert.equal(l.textoFranja('tarde'), 'por la tarde');
+assert.equal(l.textoFranja('cualquiera'), 'a cualquier hora');
+
+// --- Mensajes: la oferta NO dice que ya tenga cita; la reservada si
+const oferta = l.mensajeOferta({ nombre: 'Ana', fecha: 'lunes 9 de noviembre', hora: '10:30 AM', profesional: 'Naomi', salon: 'Masajes N', hasta: '11:05 AM', enlace: 'https://x/?s=n' });
+assert.equal(oferta, 'Hola Ana, estabas en lista de espera en Masajes N. Se liberó una hora el lunes 9 de noviembre a las 10:30 AM con Naomi. Te la guardamos hasta las 11:05 AM. Resérvala aquí: https://x/?s=n');
+assert.ok(!/ya tienes la cita|te esperamos/i.test(oferta), 'una oferta no es una cita');
+const sinDatos = l.mensajeOferta({ nombre: '', fecha: 'hoy', hora: '9:00 AM' });
+assert.ok(sinDatos.startsWith('Hola, estabas') && !/undefined| en \.|con \./.test(sinDatos), 'sin nombre, salon ni profesional');
+assert.ok(sinDatos.endsWith('Resérvala desde la app.'));
 assert.equal(
-    l.mensajeAvisoListaEspera({ nombre: 'Ana', fecha: 'viernes 9 de octubre', hora: '3:00 PM', salon: 'Nails X' }),
-    'Hola Ana, estabas en lista de espera para el viernes 9 de octubre a las 3:00 PM en Nails X. Ya tienes la cita para ese momento. ¡Te esperamos!'
+    l.mensajeReservada({ nombre: 'Ana', fecha: 'lunes 9', hora: '10:30 AM', profesional: 'Naomi', salon: 'Masajes N' }),
+    'Hola Ana, se liberó una hora y te la reservamos: lunes 9 a las 10:30 AM con Naomi en Masajes N. ¡Te esperamos!'
 );
-const sinSalon = l.mensajeAvisoListaEspera({ nombre: '', fecha: 'hoy', hora: '9:00 AM' });
-assert.ok(sinSalon.startsWith('Hola, estabas'), 'sin nombre no queda "Hola undefined"');
-assert.ok(!/undefined| en \./.test(sinSalon), 'sin salon no se escribe " en "');
-assert.ok(!/usted|ayudarle/i.test(sinSalon), 'en tuteo');
+assert.ok(!/usted|ayudarle/i.test(oferta + sinDatos), 'en tuteo');
 
-// --- Orden: libres primero; solo de hoy en adelante; sin las cerradas ni lo ya pasado
-const ahora = new Date(2026, 9, 8, 12, 0); // 8-oct-2026, 12:00
+// --- Orden del panel: horas guardadas arriba; luego por dia y llegada; fuera cerradas, reservadas y pasadas
+const ahora = new Date(2026, 10, 9, 10, 0);
 const filas = [
-    { id: 1, estado: 'esperando', fecha: '2026-10-10', hora_inicio: '09:00' },
-    { id: 2, estado: 'notificada', fecha: '2026-10-12', hora_inicio: '10:00' },
-    { id: 3, estado: 'cerrada', fecha: '2026-10-09', hora_inicio: '10:00' },
-    { id: 4, estado: 'esperando', fecha: '2026-10-07', hora_inicio: '10:00' },
-    { id: 5, estado: 'esperando', fecha: '2026-10-08', hora_inicio: '11:00' },
-    { id: 6, estado: 'avisada', fecha: '2026-10-08', hora_inicio: '15:00' },
-    { id: 7, estado: 'esperando', fecha: '2026-10-08', hora_inicio: '13:00' },
+    { id: 1, estado: 'esperando', fecha: '2026-11-10', created_at: '2026-11-01' },
+    { id: 2, estado: 'esperando', fecha: '2026-11-09', created_at: '2026-11-05' },
+    { id: 3, estado: 'esperando', fecha: '2026-11-09', created_at: '2026-11-02' },
+    { id: 4, estado: 'ofrecida', fecha: '2026-11-11', oferta_hora: '15:00', oferta_hasta: new Date(ahora.getTime() + 600000).toISOString() },
+    { id: 5, estado: 'cerrada', fecha: '2026-11-09' },
+    { id: 6, estado: 'reservada', fecha: '2026-11-09' },
+    { id: 7, estado: 'esperando', fecha: '2026-11-08' },
 ];
-const ids = l.ordenarListaEspera(filas, { 2: true, 7: true }, ahora).map(f => f.id);
-const idsConAvisada = l.ordenarListaEspera(filas, { 2: true, 6: true, 7: true }, ahora).map(f => f.id);
-assert.deepEqual(idsConAvisada, [7, 2, 6, 1], 'una ya avisada no pasa por delante de las que faltan por avisar');
-assert.deepEqual(ids, [7, 2, 6, 1], 'libres (por fecha) y luego el resto; fuera cerrada, ayer y las 11:00 de hoy');
+assert.deepEqual(l.ordenarListaEspera(filas, ahora).map(f => f.id), [4, 3, 2, 1]);
 
 // --- Interruptor de WhatsApp: se prueba el codigo real de whatsapp-helper.js
 const fuente = fs.readFileSync(path.join(__dirname, '..', 'utils', 'whatsapp-helper.js'), 'utf8');

@@ -437,7 +437,7 @@ function AdminApp() {
     return "reservas";
   });
   const puedeVerListaEspera = userRole === "admin" || userRole === "profesional" && userNivel >= 2;
-  const [esperaLibres, setEsperaLibres] = React.useState([]);
+  const [esperaGuardadas, setEsperaGuardadas] = React.useState(0);
   const [avisoEsperaCerrado, setAvisoEsperaCerrado] = React.useState(0);
   const [clientasNuevasInfo, setClientasNuevasInfo] = React.useState({ disponible: false, total: 0 });
   const cargarClientasNuevasInfo = React.useCallback(async () => {
@@ -465,16 +465,7 @@ function AdminApp() {
   const cargarEsperaLibres = React.useCallback(async () => {
     if (!puedeVerListaEspera) return;
     try {
-      const negocioId = getNegocioId();
-      if (!negocioId) return;
-      let url = `${window.SUPABASE_URL}/rest/v1/lista_espera?negocio_id=eq.${negocioId}&estado=eq.notificada&fecha=gte.${getCurrentLocalDate()}&select=id,cliente_nombre`;
-      if (userRole === "profesional" && profesional?.id) url += `&profesional_id=eq.${profesional.id}`;
-      const res = await fetch(url, {
-        headers: { apikey: window.SUPABASE_ANON_KEY, Authorization: `Bearer ${window.SUPABASE_ANON_KEY}` },
-        cache: "no-store"
-      });
-      if (!res.ok) return;
-      setEsperaLibres(await res.json());
+      setEsperaGuardadas(await (window.listaEspera?.ofertasVigentes?.() ?? 0));
     } catch (e) {
     }
   }, [puedeVerListaEspera, userRole, profesional?.id]);
@@ -4052,7 +4043,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
         tabs.push({ id: "configuracion", icono: "⚙️", label: t2("Ajustes de reservas") });
       }
       tabs.push({ id: "clientes", icono: "👥", label: t2("Clientes") });
-      tabs.push({ id: "lista-espera", icono: "⏳", label: t2("Lista de espera") + (esperaLibres.length ? ` (${esperaLibres.length})` : "") });
+      tabs.push({ id: "lista-espera", icono: "⏳", label: t2("Lista de espera") + (esperaGuardadas ? ` (${esperaGuardadas})` : "") });
       if (clientasNuevasInfo.disponible) {
         tabs.push({ id: "clientas-nuevas", icono: "💗", label: t2("Clientas nuevas") + (clientasNuevasInfo.total ? ` (${clientasNuevasInfo.total})` : "") });
       }
@@ -4656,7 +4647,7 @@ Cualquier cambio, puedes cancelarlo desde la app.`;
     else if (disponible) className += " bg-white text-gray-800 border-gray-200 hover:bg-gray-50";
     else className += " bg-gray-100 text-gray-400 border-gray-200";
     return /* @__PURE__ */ React.createElement("div", { key: idx, className, title: esCerrado ? t2("Día cerrado") : esPasado ? t2("Fecha pasada") : disponible ? t2("{n} horario(s) disponible(s)", { n: disponiblesDia }) : t2("Sin horarios disponibles") }, /* @__PURE__ */ React.createElement("span", { className: "text-base leading-tight" }, date.getDate()), !esCerrado && !esPasado && /* @__PURE__ */ React.createElement("span", { className: `mt-0.5 min-w-5 px-1.5 py-0.5 rounded-full border text-[11px] font-bold leading-none ${tonoConteo}` }, disponiblesDia), esCerrado && /* @__PURE__ */ React.createElement("span", { className: "text-xs" }, "x"));
-  }))))), esperaLibres.length > 0 && tabActivo !== "lista-espera" && avisoEsperaCerrado !== esperaLibres.length && /* @__PURE__ */ React.createElement("div", { role: "status", className: "bg-green-50 border border-green-300 rounded-xl p-3 flex flex-wrap items-center gap-3" }, /* @__PURE__ */ React.createElement("span", { className: "flex-1 min-w-[200px] text-sm text-green-900" }, esperaLibres.length === 1 ? t2("Se liberó un horario y {nombre} está en lista de espera.", { nombre: esperaLibres[0].cliente_nombre || "" }) : t2("Se liberaron {n} horarios con clientas en lista de espera.", { n: esperaLibres.length })), /* @__PURE__ */ React.createElement("button", { type: "button", onClick: () => setTabActivo("lista-espera"), className: "px-4 min-h-11 rounded-lg bg-green-600 text-white text-sm font-semibold hover:bg-green-700" }, t2("Ver lista de espera")), /* @__PURE__ */ React.createElement("button", { type: "button", "aria-label": t2("Cerrar aviso"), onClick: () => setAvisoEsperaCerrado(esperaLibres.length), className: "min-h-11 min-w-11 rounded-lg text-green-900 hover:bg-green-100" }, "✕")), seccionActiva && seccionActiva.hijos.length > 1 && !seccionActiva.hub && /* @__PURE__ */ React.createElement("div", { className: "flex gap-2 overflow-x-auto pb-1 -mx-1 px-1", role: "tablist" }, seccionActiva.hijos.map((tab) => /* @__PURE__ */ React.createElement(
+  }))))), esperaGuardadas > 0 && tabActivo !== "lista-espera" && avisoEsperaCerrado !== esperaGuardadas && /* @__PURE__ */ React.createElement("div", { role: "status", className: "bg-pink-50 border border-pink-200 rounded-2xl p-3 flex flex-wrap items-center gap-3" }, /* @__PURE__ */ React.createElement("span", { className: "flex-1 min-w-[200px] text-sm text-gray-900" }, "⏳ ", t2("Hay {n} hora(s) guardadas a clientas en lista de espera.", { n: esperaGuardadas })), /* @__PURE__ */ React.createElement("button", { type: "button", onClick: () => setTabActivo("lista-espera"), className: "px-4 min-h-11 rounded-full text-white text-sm font-bold", style: { background: "#FF1493" } }, t2("Ver lista de espera")), /* @__PURE__ */ React.createElement("button", { type: "button", "aria-label": t2("Cerrar aviso"), onClick: () => setAvisoEsperaCerrado(esperaGuardadas), className: "min-h-11 min-w-11 rounded-lg text-gray-700 hover:bg-pink-100" }, "✕")), seccionActiva && seccionActiva.hijos.length > 1 && !seccionActiva.hub && /* @__PURE__ */ React.createElement("div", { className: "flex gap-2 overflow-x-auto pb-1 -mx-1 px-1", role: "tablist" }, seccionActiva.hijos.map((tab) => /* @__PURE__ */ React.createElement(
     "button",
     {
       key: tab.id,

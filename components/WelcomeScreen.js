@@ -1,6 +1,6 @@
 // components/WelcomeScreen.js - Bienvenida cálida: saludo sobre la foto del salón y tarjeta clara con logo, mensaje y botones.
 
-function WelcomeScreen({ onStart, onGoBack, cliente, userRol, onMisReservas, onCatalogo, onLogout }) {
+function WelcomeScreen({ onStart, onGoBack, cliente, userRol, onMisReservas, onCatalogo, onLogout, onReservarOferta }) {
     window.useIdioma();
     const t = window.t;
     const [config, setConfig] = React.useState(null);
@@ -8,6 +8,8 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol, onMisReservas, onC
     const [imagenCargada, setImagenCargada] = React.useState(false);
     // Próxima cita de la clienta, para enseñarla nada más entrar.
     const [proxima, setProxima] = React.useState(null);
+    // Hora que la lista de espera le esta guardando (utils/lista-espera.js), si tiene.
+    const [oferta, setOferta] = React.useState(null);
     // Hay mensajes de bienvenida de muchas líneas que empujaban "Reservar"
     // fuera de la pantalla: se ven 4 líneas y el resto con "Ver más".
     const [mensajeCompleto, setMensajeCompleto] = React.useState(false);
@@ -55,6 +57,13 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol, onMisReservas, onC
             { headers: { 'apikey': window.SUPABASE_ANON_KEY, 'Authorization': `Bearer ${window.SUPABASE_ANON_KEY}` } })
             .then(r => r.ok ? r.json() : [])
             .then(lista => setProxima(Array.isArray(lista) && lista[0] ? lista[0] : null))
+            .catch(() => {});
+    }, []);
+
+    React.useEffect(() => {
+        if (!cliente?.whatsapp || !window.listaEspera?.mias) return;
+        window.listaEspera.mias(cliente)
+            .then(lista => setOferta((lista || []).find(f => window.listaEspera.ofertaVigente(f)) || null))
             .catch(() => {});
     }, []);
 
@@ -287,6 +296,25 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol, onMisReservas, onC
                                     </div>
                                 )}
                             </div>
+                        )}
+
+                        {/* La lista de espera le guarda una hora: va lo primero, caduca en minutos. */}
+                        {oferta && onReservarOferta && (
+                            <button onClick={() => onReservarOferta(oferta)}
+                                className="w-full text-left rounded-2xl px-4 py-3 flex items-center gap-3"
+                                style={{ background: '#fff', border: `2px solid ${colorPrimario}`, boxShadow: `0 10px 24px ${hexToRgba(colorPrimario, 0.22)}` }}>
+                                <span className="text-3xl" aria-hidden="true">🎉</span>
+                                <span className="min-w-0 flex-1">
+                                    <span className="block text-[11px] font-bold uppercase tracking-wide" style={{ color: colorPrimario }}>{t('¡Se liberó una hora para ti!')}</span>
+                                    <span className="block font-bold text-gray-900 leading-snug">
+                                        {(window.formatFechaCompleta ? window.formatFechaCompleta(oferta.fecha) : oferta.fecha)} · {window.formatTo12Hour ? window.formatTo12Hour(oferta.oferta_hora) : oferta.oferta_hora}
+                                    </span>
+                                    <span className="block text-sm text-gray-600">
+                                        {oferta.servicio}{oferta.oferta_profesional_nombre ? ` · ${oferta.oferta_profesional_nombre}` : ''} · {t('Te la guardamos hasta las {hora}.', { hora: window.listaEspera.horaLimite(oferta.oferta_hasta) })}
+                                    </span>
+                                </span>
+                                <span className="shrink-0 rounded-full px-3 py-1.5 text-sm font-bold text-white" style={{ background: colorPrimario }}>{t('Reservarla')}</span>
+                            </button>
                         )}
 
                         {/* Su próxima cita, si tiene: lo primero que suele buscar. */}

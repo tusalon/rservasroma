@@ -1,6 +1,6 @@
 ﻿// sw.js - Service Worker para Rservasroma
 
-const CACHE_NAME = 'rservasroma-v190';
+const CACHE_NAME = 'rservasroma-v191';
 const BASE = '/rservasroma';
 
 const urlsToCache = [
@@ -16,11 +16,11 @@ const urlsToCache = [
   `${BASE}/manifest.json`,
 
   // App principal (JSX pre-compilado en compiled/ â€” ver scripts/build-jsx.sh)
-  `${BASE}/compiled/client-app.js?v=20261103-flotantes1`,
-  `${BASE}/compiled/admin-app.js?v=20261107-cartel1`,
+  `${BASE}/compiled/client-app.js?v=20261107-espera1`,
+  `${BASE}/compiled/admin-app.js?v=20261107-espera1`,
 
   // Utils
-  `${BASE}/utils/api.js?v=20261103-cita2`,
+  `${BASE}/utils/api.js?v=20261107-espera1`,
   `${BASE}/utils/auth-clients.js?v=20261018-cumple2`,
   `${BASE}/utils/auth-profesionales.js?v=20260920-telpaislogin1`,
   `${BASE}/utils/config.js`,
@@ -58,7 +58,7 @@ const urlsToCache = [
   `${BASE}/utils/panel-sesion.js?v=20261019-ficha1`,
   `${BASE}/utils/ficha-clienta.js?v=20261019-ficha1`,
   `${BASE}/utils/cobro-moneda.js?v=20261010-cobro1`,
-  `${BASE}/utils/lista-espera.js?v=20261103-cita2`,
+  `${BASE}/utils/lista-espera.js?v=20261107-espera1`,
   `${BASE}/utils/clientes-conocidos.js?v=20260913-conocidos1`,
   `${BASE}/utils/frases-motivacionales.js?v=20261103-textos1`,
 
@@ -99,12 +99,12 @@ const urlsToCache = [
   `${BASE}/images/roma/poses/senala.webp`,
   `${BASE}/images/roma/poses/susto.webp`,
   `${BASE}/images/roma/poses/tablet.webp`,
-  `${BASE}/compiled/components/MyBookings.js?v=20261104-fid1`,
+  `${BASE}/compiled/components/MyBookings.js?v=20261107-espera1`,
   `${BASE}/compiled/components/ProfesionalSelector.js?v=20261103-cita2`,
   `${BASE}/compiled/components/ServiceSelectionCategorias.js?v=20261103-cita2`,
-  `${BASE}/compiled/components/TimeSlots.js?v=20261107-horas3`,
+  `${BASE}/compiled/components/TimeSlots.js?v=20261107-espera1`,
   `${BASE}/compiled/components/TarjetaFidelidad.js?v=20261104-auto1`,
-  `${BASE}/compiled/components/WelcomeScreen.js?v=20261105-calido3`,
+  `${BASE}/compiled/components/WelcomeScreen.js?v=20261107-espera1`,
   `${BASE}/compiled/components/WhatsAppButton.js?v=20261103-cita2`,
 
   // Componentes admin (compilados)
@@ -115,7 +115,7 @@ const urlsToCache = [
   `${BASE}/compiled/components/admin/EditarNegocio.js?v=20261103-cita1`,
   `${BASE}/compiled/components/admin/HorariosPorDiaPanel.js?v=20261103-textos1`,
   `${BASE}/compiled/components/admin/HorariosExcepcionPanel.js?v=20261103-textos1`,
-  `${BASE}/compiled/components/admin/ListaEsperaPanel.js?v=20261103-cita1`,
+  `${BASE}/compiled/components/admin/ListaEsperaPanel.js?v=20261107-espera1`,
   `${BASE}/compiled/components/admin/ClientasNuevasPanel.js?v=20261012-bienvenida2`,
   `${BASE}/compiled/components/admin/ProfesionalesPanel.js?v=20261104-roma2`,
   `${BASE}/compiled/components/admin/ImportarServicios.js?v=20260723-jsx1`,
@@ -290,7 +290,7 @@ self.addEventListener('fetch', event => {
   // version aqui no bastaba para que una admin con el SW ya instalado
   // recibiera el archivo nuevo hasta que la cache vieja se vaciara sola).
   const esAssetCriticoAdmin = [
-    `${BASE}/compiled/admin-app.js?v=20261107-cartel1`,
+    `${BASE}/compiled/admin-app.js?v=20261107-espera1`,
     `${BASE}/compiled/components/admin/EditarNegocio.js`,
     `${BASE}/utils/config-negocio-master.js`,
     `${BASE}/utils/native-push-notifications.js`,

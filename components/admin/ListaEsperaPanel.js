@@ -1,59 +1,38 @@
 // components/admin/ListaEsperaPanel.js
 //
-// Clientas anotadas en turnos ocupados. Cuando el turno se libera, la admin lo ve
-// aqui marcado "Turno libre" y con un boton para avisar a la clienta por WhatsApp.
-// Cuentas puras y mensaje: utils/lista-espera.js. Estados: ver ese archivo.
+// Lista de espera POR DIA (sql-lista-espera-dia.sql). Las clientas se anotan a un dia lleno; cuando se
+// cancela algo, la base se lo ofrece sola a la primera de la fila y se lo guarda 30 minutos. Aqui la duena
+// ve quien espera y a quien se le esta guardando una hora, y puede:
+//   * "Reservársela": crea la cita y le manda el WhatsApp de cita hecha (ahi si es verdad que la tiene).
+//   * "Avisar por WhatsApp": le recuerda que tiene una hora guardada, con el enlace para reservarla.
+//   * "Quitar de la lista".
+// La lista tiene telefonos: se lee con la sesion del panel (utils/panel-sesion.js), no con la clave publica.
+// Cuentas y mensajes: utils/lista-espera.js.
 
 function ListaEsperaPanel({ profesionalId = null, nombreSalon = '', onCambio }) {
     window.useIdioma();
     const t = window.t;
+    const le = window.listaEspera;
     const [filas, setFilas] = React.useState([]);
-    const [libres, setLibres] = React.useState({});
     const [cargando, setCargando] = React.useState(true);
+    const [sinSesion, setSinSesion] = React.useState(false);
     const [error, setError] = React.useState('');
     const [aviso, setAviso] = React.useState('');
     const [trabajando, setTrabajando] = React.useState(null);
 
-    const cabeceras = () => ({
-        apikey: window.SUPABASE_ANON_KEY,
-        Authorization: `Bearer ${window.SUPABASE_ANON_KEY}`,
-        'Content-Type': 'application/json'
-    });
-
-    // Reservas activas de esos dias, agrupadas por "fecha|profesional". Lanza si la
-    // consulta falla: un fallo no puede pasar por "turno libre".
-    const reservasDe = async (fechas) => {
-        const negocioId = window.getNegocioId();
-        const lista = Array.from(new Set(fechas));
-        const res = await fetch(
-            `${window.SUPABASE_URL}/rest/v1/reservas?negocio_id=eq.${negocioId}&fecha=in.(${lista.join(',')})&estado=neq.Cancelado&select=fecha,profesional_id,hora_inicio,hora_fin,estado`,
-            { headers: cabeceras(), cache: 'no-store' }
-        );
-        if (!res.ok) throw new Error(await res.text());
-        const mapa = {};
-        (await res.json()).forEach(r => {
-            const clave = `${r.fecha}|${r.profesional_id}`;
-            (mapa[clave] = mapa[clave] || []).push(r);
-        });
-        return mapa;
-    };
-
     const cargar = React.useCallback(async () => {
+        const token = window.panelSesion?.token?.();
+        if (!token) { setSinSesion(true); setCargando(false); return; }
         try {
             const negocioId = window.getNegocioId();
             const hoy = window.getCurrentLocalDate();
-            let url = `${window.SUPABASE_URL}/rest/v1/lista_espera?negocio_id=eq.${negocioId}&fecha=gte.${hoy}&estado=in.(esperando,notificada,avisada)&select=*&order=fecha.asc,hora_inicio.asc`;
-            if (profesionalId) url += `&profesional_id=eq.${profesionalId}`;
-            const res = await fetch(url, { headers: cabeceras(), cache: 'no-store' });
+            let url = `${window.SUPABASE_URL}/rest/v1/lista_espera?negocio_id=eq.${negocioId}&tipo=eq.dia&fecha=gte.${hoy}&estado=in.(esperando,ofrecida)&select=*&order=fecha.asc,created_at.asc`;
+            if (profesionalId) url += `&or=(profesional_id.eq.${profesionalId},profesional_id.is.null,oferta_profesional_id.eq.${profesionalId})`;
+            const res = await fetch(url, { headers: window.panelSesion.cabeceras(token), cache: 'no-store' });
+            if (res.status === 401 || res.status === 403) { window.panelSesion.limpiar(); setSinSesion(true); return; }
             if (!res.ok) throw new Error(await res.text());
-            const datos = await res.json();
-            const mapa = datos.length ? await reservasDe(datos.map(f => f.fecha)) : {};
-            const nuevosLibres = {};
-            datos.forEach(f => {
-                nuevosLibres[f.id] = !window.listaEspera.turnoOcupado(mapa[`${f.fecha}|${f.profesional_id}`], f);
-            });
-            setLibres(nuevosLibres);
-            setFilas(datos);
+            setFilas(await res.json());
+            setSinSesion(false);
             setError('');
         } catch (e) {
             console.error('Error cargando lista de espera:', e);
@@ -76,122 +55,137 @@ function ListaEsperaPanel({ profesionalId = null, nombreSalon = '', onCambio }) 
         };
     }, [cargar]);
 
-    const cambiarEstado = async (fila, estado) => {
-        const negocioId = window.getNegocioId();
-        const res = await fetch(
-            `${window.SUPABASE_URL}/rest/v1/lista_espera?negocio_id=eq.${negocioId}&id=eq.${fila.id}`,
-            { method: 'PATCH', headers: cabeceras(), body: JSON.stringify({ estado }) }
-        );
-        if (!res.ok) throw new Error(await res.text());
-        setFilas(actuales => actuales.map(f => (f.id === fila.id ? { ...f, estado } : f)).filter(f => f.estado !== 'cerrada'));
-        onCambio?.();
+    const entrar = async () => {
+        if (await window.panelSesion?.asegurar?.()) { setCargando(true); cargar(); }
     };
 
-    const avisar = async (fila) => {
-        setTrabajando(fila.id);
+    const fechaTxt = (f) => (window.formatFechaCompleta ? window.formatFechaCompleta(f) : f);
+    const horaTxt = (h) => (window.formatTo12Hour ? window.formatTo12Hour(h) : h);
+    const hastaTxt = (iso) => le.horaLimite(iso);
+    const enlaceSalon = () => {
+        const slug = localStorage.getItem('adminSlug') || localStorage.getItem('negocioSlug') || '';
+        return slug ? `https://tusalon.github.io/rservasroma/?s=${encodeURIComponent(slug)}` : '';
+    };
+
+    const reservarsela = async (f) => {
+        setTrabajando(f.id);
         setAviso('');
         try {
-            // El turno pudo ocuparse desde que se cargo la lista: se mira otra vez.
-            const mapa = await reservasDe([fila.fecha]);
-            if (window.listaEspera.turnoOcupado(mapa[`${fila.fecha}|${fila.profesional_id}`], fila)) {
-                setLibres(l => ({ ...l, [fila.id]: false }));
-                setAviso(t('Ese horario ya se ocupó de nuevo.'));
-                return;
-            }
-            const fecha = window.formatFechaCompleta ? window.formatFechaCompleta(fila.fecha) : fila.fecha;
-            const hora = window.formatTo12Hour ? window.formatTo12Hour(fila.hora_inicio) : fila.hora_inicio;
-            const texto = window.listaEspera.mensajeAvisoListaEspera({ nombre: fila.cliente_nombre, fecha, hora, salon: nombreSalon });
-            // Accion manual de la admin: va aunque el envio automatico este apagado.
-            window.enviarWhatsApp(fila.cliente_whatsapp, texto, { forzar: true });
-            await cambiarEstado(fila, 'avisada');
+            await window.createBooking({
+                cliente_nombre: f.cliente_nombre,
+                cliente_whatsapp: f.cliente_whatsapp,
+                servicio: f.servicio,
+                duracion: f.duracion,
+                profesional_id: f.oferta_profesional_id,
+                profesional_nombre: f.oferta_profesional_nombre,
+                fecha: f.fecha,
+                hora_inicio: String(f.oferta_hora).slice(0, 5),
+                hora_fin: String(f.oferta_hora_fin || '').slice(0, 5) || null,
+                estado: 'Reservado'
+            });
+            // La base cierra su espera al crear la cita (trigger reservas_lista_espera_reservo).
+            window.enviarWhatsApp(f.cliente_whatsapp, le.mensajeReservada({
+                nombre: f.cliente_nombre, fecha: fechaTxt(f.fecha), hora: horaTxt(f.oferta_hora),
+                profesional: f.oferta_profesional_nombre, salon: nombreSalon
+            }), { forzar: true });
+            setAviso(t('Cita creada para {nombre}.', { nombre: f.cliente_nombre }));
+            setFilas(l => l.filter(x => x.id !== f.id));
+            onCambio?.();
+            window.dispatchEvent(new CustomEvent('rservas:reservas-cambio'));
         } catch (e) {
-            console.error('Error avisando a la clienta en espera:', e);
-            setAviso(t('No se pudo actualizar. Inténtalo de nuevo.'));
+            console.error('No se pudo reservar desde la lista de espera:', e);
+            setAviso(e?.code === 'HORARIO_OCUPADO' ? t('Esa hora ya se ocupó.') : t('No se pudo actualizar. Inténtalo de nuevo.'));
         } finally {
             setTrabajando(null);
         }
     };
 
-    const quitar = async (fila) => {
-        if (!(await window.confirmar(t('¿Quitar a {nombre} de la lista de espera?', { nombre: fila.cliente_nombre || '' })))) return;
-        setTrabajando(fila.id);
-        setAviso('');
-        try {
-            await cambiarEstado(fila, 'cerrada');
-        } catch (e) {
-            console.error('Error quitando de la lista de espera:', e);
-            setAviso(t('No se pudo actualizar. Inténtalo de nuevo.'));
-        } finally {
-            setTrabajando(null);
-        }
+    const avisar = (f) => {
+        // Accion manual de la duena: va aunque el envio automatico este apagado.
+        window.enviarWhatsApp(f.cliente_whatsapp, le.mensajeOferta({
+            nombre: f.cliente_nombre, fecha: fechaTxt(f.fecha), hora: horaTxt(f.oferta_hora),
+            profesional: f.oferta_profesional_nombre, salon: nombreSalon,
+            hasta: hastaTxt(f.oferta_hasta), enlace: enlaceSalon()
+        }), { forzar: true });
     };
 
-    const ordenadas = window.listaEspera.ordenarListaEspera(filas, libres);
+    const quitar = async (f) => {
+        if (!(await window.confirmar(t('¿Quitar a {nombre} de la lista de espera?', { nombre: f.cliente_nombre || '' })))) return;
+        setTrabajando(f.id);
+        setAviso('');
+        // Misma funcion que usa la clienta: si tenia una hora guardada, vuelve a ofrecerse a la siguiente.
+        const ok = await le.salir(f.id, { whatsapp: f.cliente_whatsapp });
+        if (ok) { setFilas(l => l.filter(x => x.id !== f.id)); onCambio?.(); }
+        else setAviso(t('No se pudo actualizar. Inténtalo de nuevo.'));
+        setTrabajando(null);
+    };
+
+    const ordenadas = le.ordenarListaEspera(filas);
 
     return (
         <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6">
-            <div className="flex items-center justify-between gap-3 mb-4">
-                <h2 className="text-xl font-bold">{t('Lista de espera')}</h2>
-                <button
-                    type="button"
-                    onClick={cargar}
-                    className="px-4 min-h-11 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50"
-                >
-                    {t('Actualizar')}
-                </button>
+            <div className="flex items-center justify-between gap-3 mb-2">
+                <h2 className="text-xl font-bold">⏳ {t('Lista de espera')}</h2>
+                {!sinSesion && (
+                    <button type="button" onClick={cargar}
+                        className="px-4 min-h-11 rounded-full border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                        {t('Actualizar')}
+                    </button>
+                )}
             </div>
+            <p className="text-sm text-gray-500 mb-4">{t('Cuando una clienta se anote en un día lleno, aparecerá aquí. Si se libera una hora, la app se la ofrece sola a la primera de la fila y se la guarda 30 minutos.')}</p>
 
-            {aviso && (
-                <p role="alert" className="mb-4 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-sm text-amber-900">{aviso}</p>
-            )}
-            {error && (
-                <p role="alert" className="mb-4 rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-800">{error}</p>
-            )}
+            {aviso && <p role="status" className="mb-4 rounded-xl bg-pink-50 border border-pink-200 px-3 py-2 text-sm text-pink-900">{aviso}</p>}
+            {error && <p role="alert" className="mb-4 rounded-xl bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-800">{error}</p>}
 
-            {cargando ? (
+            {sinSesion ? (
+                <div className="rounded-2xl bg-pink-50 border border-pink-100 p-5 text-center">
+                    <p className="text-3xl mb-2" aria-hidden="true">🔒</p>
+                    <p className="text-sm text-gray-700 mb-4">{t('La lista de espera tiene teléfonos de tus clientas: confirma tu contraseña para verla.')}</p>
+                    <button type="button" onClick={entrar}
+                        className="px-6 min-h-11 rounded-full text-white font-bold shadow-md" style={{ background: '#FF1493' }}>
+                        {t('Ver la lista')}
+                    </button>
+                </div>
+            ) : cargando ? (
                 <p className="text-sm text-gray-500">{t('Cargando...')}</p>
-            ) : ordenadas.length === 0 ? (
-                <p className="text-sm text-gray-600 py-6 text-center">{t('Cuando una clienta se anote en un horario lleno, aparecerá aquí.')}</p>
-            ) : (
+            ) : ordenadas.length === 0 ? null : (
                 <ul className="space-y-3">
                     {ordenadas.map(f => {
-                        const libre = libres[f.id] === true;
-                        const fecha = window.formatFechaCompleta ? window.formatFechaCompleta(f.fecha) : f.fecha;
-                        const hora = window.formatTo12Hour ? window.formatTo12Hour(f.hora_inicio) : f.hora_inicio;
+                        const guardada = le.ofertaVigente(f);
                         return (
-                            <li key={f.id} className={`rounded-xl border p-4 ${libre && f.estado !== 'avisada' ? 'border-green-300 bg-green-50' : 'border-gray-200 bg-white'}`}>
+                            <li key={f.id} className={`rounded-2xl border p-4 ${guardada ? 'border-pink-300 bg-pink-50/60' : 'border-gray-200 bg-white'}`}>
                                 <div className="flex flex-wrap items-start justify-between gap-2">
                                     <div className="min-w-0">
                                         <p className="font-semibold text-gray-900 break-words">{f.cliente_nombre}</p>
-                                        <p className="text-sm text-gray-600 break-words">{f.servicio}{f.profesional_nombre ? ` · ${f.profesional_nombre}` : ''}</p>
-                                        <p className="text-sm text-gray-800 mt-1">{fecha} · {hora}</p>
+                                        <p className="text-sm text-gray-600 break-words">
+                                            {f.servicio} · {f.profesional_nombre || t('Cualquier profesional')}
+                                        </p>
+                                        <p className="text-sm text-gray-800 mt-1">
+                                            {fechaTxt(f.fecha)} · {guardada
+                                                ? `${horaTxt(f.oferta_hora)}${f.oferta_profesional_nombre ? ` · ${f.oferta_profesional_nombre}` : ''}`
+                                                : t(le.textoFranja(f.franja))}
+                                        </p>
                                     </div>
-                                    <div className="flex flex-wrap gap-2">
-                                        {f.estado === 'avisada' && (
-                                            <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-purple-100 text-purple-800 border border-purple-200">{t('Avisada')}</span>
-                                        )}
-                                        <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${libre ? 'bg-green-100 text-green-800 border-green-300' : 'bg-gray-100 text-gray-700 border-gray-200'}`}>
-                                            {libre ? t('Horario libre') : t('Horario ocupado')}
-                                        </span>
-                                    </div>
+                                    <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${guardada ? 'bg-pink-500 text-white' : 'bg-gray-100 text-gray-700'}`}>
+                                        {guardada ? t('Guardada hasta las {hora}', { hora: hastaTxt(f.oferta_hasta) }) : t('Esperando')}
+                                    </span>
                                 </div>
                                 <div className="mt-3 flex flex-wrap gap-2">
-                                    {libre && (
-                                        <button
-                                            type="button"
-                                            disabled={trabajando === f.id}
-                                            onClick={() => avisar(f)}
-                                            className="px-4 min-h-11 rounded-lg bg-green-600 text-white text-sm font-semibold hover:bg-green-700 disabled:opacity-50"
-                                        >
-                                            {t('Avisar por WhatsApp')}
-                                        </button>
+                                    {guardada && (
+                                        <>
+                                            <button type="button" disabled={trabajando === f.id} onClick={() => reservarsela(f)}
+                                                className="px-4 min-h-11 rounded-full text-white text-sm font-bold shadow-sm disabled:opacity-50" style={{ background: '#FF1493' }}>
+                                                {t('Reservársela')}
+                                            </button>
+                                            <button type="button" disabled={trabajando === f.id} onClick={() => avisar(f)}
+                                                className="px-4 min-h-11 rounded-full bg-green-600 text-white text-sm font-semibold disabled:opacity-50">
+                                                {t('Avisar por WhatsApp')}
+                                            </button>
+                                        </>
                                     )}
-                                    <button
-                                        type="button"
-                                        disabled={trabajando === f.id}
-                                        onClick={() => quitar(f)}
-                                        className="px-4 min-h-11 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-                                    >
+                                    <button type="button" disabled={trabajando === f.id} onClick={() => quitar(f)}
+                                        className="px-4 min-h-11 rounded-full border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50">
                                         {t('Quitar de la lista')}
                                     </button>
                                 </div>

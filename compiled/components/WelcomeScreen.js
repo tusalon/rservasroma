@@ -1,10 +1,11 @@
-function WelcomeScreen({ onStart, onGoBack, cliente, userRol, onMisReservas, onCatalogo, onLogout }) {
+function WelcomeScreen({ onStart, onGoBack, cliente, userRol, onMisReservas, onCatalogo, onLogout, onReservarOferta }) {
   window.useIdioma();
   const t = window.t;
   const [config, setConfig] = React.useState(null);
   const [cargando, setCargando] = React.useState(true);
   const [imagenCargada, setImagenCargada] = React.useState(false);
   const [proxima, setProxima] = React.useState(null);
+  const [oferta, setOferta] = React.useState(null);
   const [mensajeCompleto, setMensajeCompleto] = React.useState(false);
   const [hayCatalogo, setHayCatalogo] = React.useState(false);
   const pushUIVisible = window.RSERVAS_PUSH_UI_VISIBLE === true;
@@ -35,6 +36,11 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol, onMisReservas, onC
       `${window.SUPABASE_URL}/rest/v1/reservas?negocio_id=eq.${negocioId}&cliente_whatsapp=eq.${cliente.whatsapp}&fecha=gte.${hoy}&estado=not.in.(Cancelado,Completado,Ausente)&order=fecha.asc,hora_inicio.asc&limit=1&select=servicio,fecha,hora_inicio,estado`,
       { headers: { "apikey": window.SUPABASE_ANON_KEY, "Authorization": `Bearer ${window.SUPABASE_ANON_KEY}` } }
     ).then((r) => r.ok ? r.json() : []).then((lista) => setProxima(Array.isArray(lista) && lista[0] ? lista[0] : null)).catch(() => {
+    });
+  }, []);
+  React.useEffect(() => {
+    if (!cliente?.whatsapp || !window.listaEspera?.mias) return;
+    window.listaEspera.mias(cliente).then((lista) => setOferta((lista || []).find((f) => window.listaEspera.ofertaVigente(f)) || null)).catch(() => {
     });
   }, []);
   React.useEffect(() => {
@@ -183,7 +189,17 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol, onMisReservas, onC
       className: "bg-[#1877F2] rounded-full flex items-center justify-center active:scale-95 transition-transform"
     },
     /* @__PURE__ */ React.createElement("i", { className: "icon-facebook text-white text-lg" })
-  ))), proxima && onMisReservas && /* @__PURE__ */ React.createElement(
+  ))), oferta && onReservarOferta && /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      onClick: () => onReservarOferta(oferta),
+      className: "w-full text-left rounded-2xl px-4 py-3 flex items-center gap-3",
+      style: { background: "#fff", border: `2px solid ${colorPrimario}`, boxShadow: `0 10px 24px ${hexToRgba(colorPrimario, 0.22)}` }
+    },
+    /* @__PURE__ */ React.createElement("span", { className: "text-3xl", "aria-hidden": "true" }, "🎉"),
+    /* @__PURE__ */ React.createElement("span", { className: "min-w-0 flex-1" }, /* @__PURE__ */ React.createElement("span", { className: "block text-[11px] font-bold uppercase tracking-wide", style: { color: colorPrimario } }, t("¡Se liberó una hora para ti!")), /* @__PURE__ */ React.createElement("span", { className: "block font-bold text-gray-900 leading-snug" }, window.formatFechaCompleta ? window.formatFechaCompleta(oferta.fecha) : oferta.fecha, " · ", window.formatTo12Hour ? window.formatTo12Hour(oferta.oferta_hora) : oferta.oferta_hora), /* @__PURE__ */ React.createElement("span", { className: "block text-sm text-gray-600" }, oferta.servicio, oferta.oferta_profesional_nombre ? ` · ${oferta.oferta_profesional_nombre}` : "", " · ", t("Te la guardamos hasta las {hora}.", { hora: window.listaEspera.horaLimite(oferta.oferta_hasta) }))),
+    /* @__PURE__ */ React.createElement("span", { className: "shrink-0 rounded-full px-3 py-1.5 text-sm font-bold text-white", style: { background: colorPrimario } }, t("Reservarla"))
+  ), proxima && onMisReservas && /* @__PURE__ */ React.createElement(
     "button",
     {
       onClick: onMisReservas,

@@ -599,7 +599,8 @@ function AdminApp() {
     // Lista de espera: filas 'notificada' = el turno se libero y aun no se avisa a la
     // clienta. Se cuenta aqui (no en el panel) para la insignia y el aviso de arriba.
     const puedeVerListaEspera = userRole === 'admin' || (userRole === 'profesional' && userNivel >= 2);
-    const [esperaLibres, setEsperaLibres] = React.useState([]);
+    // Horas que la lista de espera esta guardando ahora a una clienta (solo el numero: sin telefonos).
+    const [esperaGuardadas, setEsperaGuardadas] = React.useState(0);
     const [avisoEsperaCerrado, setAvisoEsperaCerrado] = React.useState(0);
 
     // Clientas nuevas: primera reserva reciente sin bienvenida enviada. La pestana solo aparece
@@ -629,16 +630,7 @@ function AdminApp() {
     const cargarEsperaLibres = React.useCallback(async () => {
         if (!puedeVerListaEspera) return;
         try {
-            const negocioId = getNegocioId();
-            if (!negocioId) return;
-            let url = `${window.SUPABASE_URL}/rest/v1/lista_espera?negocio_id=eq.${negocioId}&estado=eq.notificada&fecha=gte.${getCurrentLocalDate()}&select=id,cliente_nombre`;
-            if (userRole === 'profesional' && profesional?.id) url += `&profesional_id=eq.${profesional.id}`;
-            const res = await fetch(url, {
-                headers: { apikey: window.SUPABASE_ANON_KEY, Authorization: `Bearer ${window.SUPABASE_ANON_KEY}` },
-                cache: 'no-store'
-            });
-            if (!res.ok) return; // sin la tabla o sin permiso: sin aviso y sin ruido
-            setEsperaLibres(await res.json());
+            setEsperaGuardadas(await (window.listaEspera?.ofertasVigentes?.() ?? 0));
         } catch (e) {
             // sin red: se reintenta en el siguiente ciclo
         }
@@ -5105,7 +5097,7 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                 tabs.push({ id: 'configuracion', icono: '⚙️', label: t('Ajustes de reservas') });
             }
             tabs.push({ id: 'clientes', icono: '👥', label: t('Clientes') });
-            tabs.push({ id: 'lista-espera', icono: '⏳', label: t('Lista de espera') + (esperaLibres.length ? ` (${esperaLibres.length})` : '') });
+            tabs.push({ id: 'lista-espera', icono: '⏳', label: t('Lista de espera') + (esperaGuardadas ? ` (${esperaGuardadas})` : '') });
             if (clientasNuevasInfo.disponible) {
                 tabs.push({ id: 'clientas-nuevas', icono: '💗', label: t('Clientas nuevas') + (clientasNuevasInfo.total ? ` (${clientasNuevasInfo.total})` : '') });
             }
@@ -6239,17 +6231,15 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                     </div>
                 )}
 
-                {esperaLibres.length > 0 && tabActivo !== 'lista-espera' && avisoEsperaCerrado !== esperaLibres.length && (
-                    <div role="status" className="bg-green-50 border border-green-300 rounded-xl p-3 flex flex-wrap items-center gap-3">
-                        <span className="flex-1 min-w-[200px] text-sm text-green-900">
-                            {esperaLibres.length === 1
-                                ? t('Se liberó un horario y {nombre} está en lista de espera.', { nombre: esperaLibres[0].cliente_nombre || '' })
-                                : t('Se liberaron {n} horarios con clientas en lista de espera.', { n: esperaLibres.length })}
+                {esperaGuardadas > 0 && tabActivo !== 'lista-espera' && avisoEsperaCerrado !== esperaGuardadas && (
+                    <div role="status" className="bg-pink-50 border border-pink-200 rounded-2xl p-3 flex flex-wrap items-center gap-3">
+                        <span className="flex-1 min-w-[200px] text-sm text-gray-900">
+                            ⏳ {t('Hay {n} hora(s) guardadas a clientas en lista de espera.', { n: esperaGuardadas })}
                         </span>
-                        <button type="button" onClick={() => setTabActivo('lista-espera')} className="px-4 min-h-11 rounded-lg bg-green-600 text-white text-sm font-semibold hover:bg-green-700">
+                        <button type="button" onClick={() => setTabActivo('lista-espera')} className="px-4 min-h-11 rounded-full text-white text-sm font-bold" style={{ background: '#FF1493' }}>
                             {t('Ver lista de espera')}
                         </button>
-                        <button type="button" aria-label={t('Cerrar aviso')} onClick={() => setAvisoEsperaCerrado(esperaLibres.length)} className="min-h-11 min-w-11 rounded-lg text-green-900 hover:bg-green-100">
+                        <button type="button" aria-label={t('Cerrar aviso')} onClick={() => setAvisoEsperaCerrado(esperaGuardadas)} className="min-h-11 min-w-11 rounded-lg text-gray-700 hover:bg-pink-100">
                             ✕
                         </button>
                     </div>

@@ -1,4 +1,44 @@
-function MyBookings({ cliente, onVolver, onRepetir }) {
+function MisEsperas({ cliente, onReservarOferta }) {
+  const t = window.t;
+  const [esperas, setEsperas] = React.useState([]);
+  const [saliendo, setSaliendo] = React.useState(null);
+  const cargar = React.useCallback(() => {
+    if (!cliente?.whatsapp || !window.listaEspera?.mias) return;
+    window.listaEspera.mias(cliente).then((lista) => setEsperas(lista || [])).catch(() => {
+    });
+  }, [cliente?.whatsapp]);
+  React.useEffect(cargar, [cargar]);
+  if (!esperas.length) return null;
+  const salir = async (fila) => {
+    setSaliendo(fila.id);
+    if (await window.listaEspera.salir(fila.id, cliente)) setEsperas((l) => l.filter((f) => f.id !== fila.id));
+    setSaliendo(null);
+  };
+  const fecha = (f) => window.formatFechaCompleta ? window.formatFechaCompleta(f) : f;
+  const hora = (h) => window.formatTo12Hour ? window.formatTo12Hour(h) : h;
+  return /* @__PURE__ */ React.createElement("div", { className: "mb-5 space-y-2" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold uppercase tracking-wider text-gray-500" }, "🔔 ", t("Estás en lista de espera")), esperas.map((f) => {
+    const guardada = window.listaEspera.ofertaVigente(f);
+    return /* @__PURE__ */ React.createElement("div", { key: f.id, className: `rounded-2xl bg-white p-3 flex items-center gap-3 shadow-sm border ${guardada ? "border-pink-400" : "border-pink-100"}` }, /* @__PURE__ */ React.createElement("div", { className: "min-w-0 flex-1" }, guardada && /* @__PURE__ */ React.createElement("p", { className: "text-[11px] font-bold uppercase tracking-wide text-pink-600" }, t("¡Se liberó una hora para ti!")), /* @__PURE__ */ React.createElement("p", { className: "font-bold text-gray-900 leading-snug" }, fecha(f.fecha), guardada ? ` · ${hora(f.oferta_hora)}` : ""), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-600" }, guardada ? `${f.servicio}${f.oferta_profesional_nombre ? ` · ${f.oferta_profesional_nombre}` : ""} · ${t("Te la guardamos hasta las {hora}.", { hora: window.listaEspera.horaLimite(f.oferta_hasta) })}` : `${f.servicio} · ${t(window.listaEspera.textoFranja(f.franja))}${f.profesional_nombre ? ` · ${f.profesional_nombre}` : ""}`)), guardada && onReservarOferta ? /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        type: "button",
+        onClick: () => onReservarOferta(f),
+        className: "shrink-0 px-4 py-2 rounded-full bg-pink-500 text-white text-sm font-bold shadow-md"
+      },
+      t("Reservarla")
+    ) : /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        type: "button",
+        onClick: () => salir(f),
+        disabled: saliendo === f.id,
+        className: "shrink-0 px-4 min-h-11 rounded-full border border-gray-300 text-sm font-semibold text-gray-700 disabled:opacity-50"
+      },
+      t("Salir")
+    ));
+  }));
+}
+function MyBookings({ cliente, onVolver, onRepetir, onReservarOferta }) {
   window.useIdioma();
   const t = window.t;
   const [bookings, setBookings] = React.useState([]);
@@ -339,7 +379,7 @@ Ahora: ${fN} a las ${hN}`;
       className: "flex-1 py-2 rounded-lg bg-red-500 text-white font-medium"
     },
     t("Sí, quitar")
-  )))), /* @__PURE__ */ React.createElement("div", { className: "bg-white/90 backdrop-blur-sm shadow-sm sticky top-0 z-10 border-b border-pink-200" }, /* @__PURE__ */ React.createElement("div", { className: "max-w-3xl mx-auto px-4 py-4 flex justify-between items-center" }, /* @__PURE__ */ React.createElement("button", { onClick: onVolver, className: "flex items-center gap-2 text-pink-600 hover:text-pink-800 transition" }, /* @__PURE__ */ React.createElement("i", { className: "icon-arrow-left text-xl" }), /* @__PURE__ */ React.createElement("span", { className: "font-medium" }, t("Volver"))), /* @__PURE__ */ React.createElement("h1", { className: "text-xl font-bold text-pink-800" }, "✨ ", t("Mis Citas")), /* @__PURE__ */ React.createElement("div", { className: "w-20" }))), /* @__PURE__ */ React.createElement("div", { className: "max-w-3xl mx-auto px-4 py-6" }, mensajeError && /* @__PURE__ */ React.createElement("div", { className: "bg-pink-100 border border-pink-300 text-pink-700 p-3 rounded-lg mb-4 text-sm" }, mensajeError), cliente && window.TarjetaFidelidad && /* @__PURE__ */ React.createElement("div", { className: "mb-5" }, /* @__PURE__ */ React.createElement(window.TarjetaFidelidad, { cliente })), /* @__PURE__ */ React.createElement("div", { className: "flex gap-2 mb-6 overflow-x-auto pb-2" }, [
+  )))), /* @__PURE__ */ React.createElement("div", { className: "bg-white/90 backdrop-blur-sm shadow-sm sticky top-0 z-10 border-b border-pink-200" }, /* @__PURE__ */ React.createElement("div", { className: "max-w-3xl mx-auto px-4 py-4 flex justify-between items-center" }, /* @__PURE__ */ React.createElement("button", { onClick: onVolver, className: "flex items-center gap-2 text-pink-600 hover:text-pink-800 transition" }, /* @__PURE__ */ React.createElement("i", { className: "icon-arrow-left text-xl" }), /* @__PURE__ */ React.createElement("span", { className: "font-medium" }, t("Volver"))), /* @__PURE__ */ React.createElement("h1", { className: "text-xl font-bold text-pink-800" }, "✨ ", t("Mis Citas")), /* @__PURE__ */ React.createElement("div", { className: "w-20" }))), /* @__PURE__ */ React.createElement("div", { className: "max-w-3xl mx-auto px-4 py-6" }, mensajeError && /* @__PURE__ */ React.createElement("div", { className: "bg-pink-100 border border-pink-300 text-pink-700 p-3 rounded-lg mb-4 text-sm" }, mensajeError), cliente && window.TarjetaFidelidad && /* @__PURE__ */ React.createElement("div", { className: "mb-5" }, /* @__PURE__ */ React.createElement(window.TarjetaFidelidad, { cliente })), /* @__PURE__ */ React.createElement(MisEsperas, { cliente, onReservarOferta }), /* @__PURE__ */ React.createElement("div", { className: "flex gap-2 mb-6 overflow-x-auto pb-2" }, [
     ["proximas", t("Próximas ({n})", { n: proximasCount })],
     ["historial", t("Historial ({n})", { n: historialCount })],
     ["canceladas", t("Canceladas ({n})", { n: canceladasCount })]
