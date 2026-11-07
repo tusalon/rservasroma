@@ -1844,6 +1844,9 @@ function AdminApp() {
 
             const fechasDelMes = Array.from({ length: diasEnMes }, (_, i) => `${year}-${(month + 1).toString().padStart(2, '0')}-${(i + 1).toString().padStart(2, '0')}`);
             const horariosPorFecha = await window.salonConfig.getHorariosProfesionalParaFechas(profesionalId, fechasDelMes);
+            // Lo que se comparte con las clientas: solo horas que todavía pueden reservar.
+            const configSalon = window.salonConfig?.get ? await window.salonConfig.get() : {};
+            const minHoras = Number(configSalon?.min_antelacion_horas ?? 2);
 
             for (let d = 1; d <= diasEnMes; d++) {
                 const fechaStr = `${year}-${(month + 1).toString().padStart(2, '0')}-${d.toString().padStart(2, '0')}`;
@@ -1891,6 +1894,11 @@ function AdminApp() {
                     const [horas, minutos] = slotStr.split(':').map(Number);
                     const slotStart = horas * 60 + minutos;
                     const slotEnd = slotStart + 60;
+
+                    // Horas pasadas o sin la antelación mínima: no cuentan como libres.
+                    if (!horaCumpleAntelacion(fechaStr, slotStr, minHoras)) {
+                        continue;
+                    }
 
                     if (slotTieneDescanso(slotStart, slotEnd, descansosDelDia)) {
                         continue;
@@ -1968,6 +1976,9 @@ function AdminApp() {
 
             const fechasSemana = diasSemanaVista.map(formatDate);
             const horariosPorFecha = await window.salonConfig.getHorariosProfesionalParaFechas(profesionalId, fechasSemana);
+            // Esto se comparte con las clientas: solo las horas que todavía pueden reservar.
+            const configSalon = window.salonConfig?.get ? await window.salonConfig.get() : {};
+            const minHoras = Number(configSalon?.min_antelacion_horas ?? 2);
 
             const semana = diasSemanaVista.map(dia => {
                 const fechaStr = formatDate(dia);
@@ -1992,6 +2003,7 @@ function AdminApp() {
 
                     if (esCerrado) return { hora, estado: 'Cerrado', detalle: t('Local cerrado') };
                     if (esPasado) return { hora, estado: 'Pasado', detalle: t('Fecha pasada') };
+                    if (!horaCumpleAntelacion(fechaStr, hora, minHoras)) return { hora, estado: 'Pasado', detalle: t('Ya no se puede reservar') };
                     if (esLibre) return { hora, estado: 'Libre', detalle: t('{nombre} no trabaja', { nombre: profesionalObj?.nombre || t('Profesional') }) };
                     if (!trabaja) return { hora, estado: 'No trabaja', detalle: t('Día no laboral') };
                     if (slotTieneDescanso(slotStart, slotEnd, descansosDelDia)) return { hora, estado: 'Descanso', detalle: t('Descanso configurado') };
@@ -2295,6 +2307,30 @@ function AdminApp() {
         return y + (lineas.length * lineHeight);
     };
 
+    // Cartel semanal para compartir con las clientas (1080x1920, historia de WhatsApp/IG).
+    // Solo dias que aun no pasaron; las horas ya vienen filtradas por la antelacion
+    // minima en cargarDisponibilidadSemanal. Color y logo del salon; el estilo
+    // (tarjetas redondeadas, pildoras) es el de RservasRoma.
+    const cargarImagenCartel = (src) => new Promise(resolve => {
+        if (!src) return resolve(null);
+        const img = new Image();
+        img.crossOrigin = 'anonymous'; // sin CORS falla la carga y se dibuja la inicial: el canvas no queda "manchado"
+        const espera = setTimeout(() => resolve(null), 4000);
+        img.onload = () => { clearTimeout(espera); resolve(img); };
+        img.onerror = () => { clearTimeout(espera); resolve(null); };
+        img.src = src;
+    });
+
+    const colorDelSalonCartel = () => {
+        const valor = getComputedStyle(document.documentElement).getPropertyValue('--brand-primary').trim();
+        return /^#[0-9a-f]{6}$/i.test(valor) ? valor : '#FF1493';
+    };
+
+    const conAlfa = (hex, alfa) => {
+        const n = parseInt(hex.slice(1), 16);
+        return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alfa})`;
+    };
+
     const generarImagenDisponibilidadSemanal = async () => {
         const profesional = profesionalesList.find(p => p.id === parseInt(profesionalSeleccionadoDispo));
         const canvas = document.createElement('canvas');
@@ -2302,152 +2338,191 @@ function AdminApp() {
         canvas.height = 1920;
         const ctx = canvas.getContext('2d');
         asegurarRoundRect(ctx);
-        const semanaInicio = disponibilidadSemanal[0]?.fecha || formatDate(getDiasSemanaDisponibilidad(disponibilidadFecha)[0]);
-        const semanaFin = disponibilidadSemanal[6]?.fecha || formatDate(getDiasSemanaDisponibilidad(disponibilidadFecha)[6]);
+        const F = 'Inter, "Segoe UI", Roboto, Arial, sans-serif';
+        try { await document.fonts?.load('800 40px Inter'); } catch (e) { /* sin Inter se usa la siguiente */ }
+        const A = colorDelSalonCartel();
+        const hoy = getCurrentLocalDate();
+        const diasCortos = ['DOM', 'LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB'];
+        const fechaCorta = (f) => new Date(`${f}T12:00:00`).toLocaleDateString('es', { day: 'numeric', month: 'short' }).replace('.', '');
+        const dias = disponibilidadSemanal.filter(dia => dia.fecha >= hoy);
+        const rango = disponibilidadSemanal.length
+            ? `${fechaCorta(disponibilidadSemanal[0].fecha)} – ${fechaCorta(disponibilidadSemanal[6].fecha)}`
+            : '';
 
-        const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-        gradient.addColorStop(0, '#fff7fb');
-        gradient.addColorStop(0.45, '#ffffff');
-        gradient.addColorStop(1, '#fdf2f8');
-        ctx.fillStyle = gradient;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        ctx.fillStyle = '#be185d';
-        ctx.beginPath();
-        ctx.arc(980, 120, 180, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = 'rgba(244,114,182,0.22)';
-        ctx.beginPath();
-        ctx.arc(120, 1820, 220, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.textAlign = 'center';
-        ctx.fillStyle = '#831843';
-        ctx.font = '800 58px Arial';
-        dibujarTextoCentrado(ctx, nombreNegocio || 'Exotic Nails by Yuly', 540, 145, 850, 64);
-
-        ctx.fillStyle = '#374151';
-        ctx.font = '700 34px Arial';
-        ctx.fillText('Disponibilidad semanal', 540, 265);
-
-        ctx.fillStyle = '#6b7280';
-        ctx.font = '500 28px Arial';
-        ctx.fillText(`${semanaInicio} - ${semanaFin}`, 540, 312);
-        if (profesional?.nombre) {
-            ctx.fillText(`Profesional: ${profesional.nombre}`, 540, 355);
-        }
-
-        const cardX = 70;
-        const cardY = 430;
-        const cardW = 940;
-        const cardH = 1230;
-        const columnW = cardW / 7;
-        const radius = 34;
-
-        ctx.fillStyle = '#ffffff';
-        ctx.shadowColor = 'rgba(15, 23, 42, 0.14)';
-        ctx.shadowBlur = 30;
-        ctx.shadowOffsetY = 14;
-        ctx.beginPath();
-        ctx.roundRect(cardX, cardY, cardW, cardH, radius);
-        ctx.fill();
-        ctx.shadowColor = 'transparent';
-
-        disponibilidadSemanal.forEach((dia, index) => {
-            const x = cardX + (index * columnW);
-            const disponibles = dia.turnos.filter(turno => turno.estado === 'Disponible');
-            const headerH = 150;
-
-            ctx.fillStyle = disponibles.length > 0 ? '#ecfdf5' : '#f3f4f6';
+        // Fondo claro con dos manchas del color del salon.
+        ctx.fillStyle = '#FBF8F6';
+        ctx.fillRect(0, 0, 1080, 1920);
+        [[990, 120, 300, 0.12], [60, 1850, 340, 0.08]].forEach(([x, y, r, a]) => {
+            ctx.fillStyle = conAlfa(A, a);
             ctx.beginPath();
-            ctx.rect(x, cardY, columnW, headerH);
+            ctx.arc(x, y, r, 0, Math.PI * 2);
             ctx.fill();
-
-            if (index > 0) {
-                ctx.strokeStyle = '#e5e7eb';
-                ctx.lineWidth = 2;
-                ctx.beginPath();
-                ctx.moveTo(x, cardY);
-                ctx.lineTo(x, cardY + cardH);
-                ctx.stroke();
-            }
-
-            ctx.textAlign = 'center';
-            ctx.fillStyle = '#111827';
-            ctx.font = '800 27px Arial';
-            ctx.fillText(dia.diaNombre.slice(0, 3).toUpperCase(), x + columnW / 2, cardY + 58);
-            ctx.fillStyle = '#6b7280';
-            ctx.font = '600 21px Arial';
-            ctx.fillText(dia.fecha.slice(5), x + columnW / 2, cardY + 94);
-
-            const slotX = x + 12;
-            let y = cardY + headerH + 42;
-            const slotW = columnW - 24;
-            const slotH = 82;
-            const gap = 24;
-
-            if (disponibles.length === 0) {
-                ctx.strokeStyle = '#d1d5db';
-                ctx.setLineDash([8, 8]);
-                ctx.strokeRect(slotX, y, slotW, 190);
-                ctx.setLineDash([]);
-                ctx.fillStyle = '#9ca3af';
-                ctx.font = '700 20px Arial';
-                dibujarTextoCentrado(ctx, 'Sin horarios', x + columnW / 2, y + 90, slotW - 16, 24);
-            } else {
-                // Antes se recortaba a 8 turnos fijos y se escondian los demas
-                // en silencio: un dia con 12 huecos libres mostraba 8. Ahora se
-                // encoge el alto de cada turno lo justo para que quepan todos,
-                // hasta un maximo realista de 14 (un dia entero de turnos de
-                // 1 hora). Solo si hay mas que eso -algo excepcional- se avisa
-                // con "+N mas" en vez de inventar espacio que no existe.
-                const MAX_TURNOS_VISIBLES = 14;
-                const visibles = disponibles.slice(0, MAX_TURNOS_VISIBLES);
-                const ocultos = disponibles.length - visibles.length;
-                const espacioDisponible = (cardY + cardH) - y - 20;
-
-                let slotHVisible = slotH;
-                let gapVisible = gap;
-                let fuenteHora = 24;
-                if (visibles.length * (slotH + gap) > espacioDisponible) {
-                    gapVisible = 10;
-                    slotHVisible = Math.max(44, Math.floor(espacioDisponible / visibles.length) - gapVisible);
-                    fuenteHora = slotHVisible < 60 ? 17 : 20;
-                }
-
-                visibles.forEach(turno => {
-                    const g = ctx.createLinearGradient(slotX, y, slotX, y + slotHVisible);
-                    g.addColorStop(0, '#34d399');
-                    g.addColorStop(1, '#16a34a');
-                    ctx.fillStyle = g;
-                    ctx.beginPath();
-                    ctx.roundRect(slotX, y, slotW, slotHVisible, Math.min(22, slotHVisible / 2));
-                    ctx.fill();
-
-                    ctx.fillStyle = '#ffffff';
-                    ctx.font = `900 ${fuenteHora}px Arial`;
-                    ctx.fillText(formatTo12Hour(turno.hora).replace(' ', ''), x + columnW / 2, y + slotHVisible / 2 + fuenteHora * 0.32);
-                    y += slotHVisible + gapVisible;
-                });
-
-                if (ocultos > 0) {
-                    ctx.fillStyle = '#15803d';
-                    ctx.font = '800 21px Arial';
-                    ctx.fillText(`+${ocultos} mas`, x + columnW / 2, y + 26);
-                }
-            }
         });
 
-        ctx.fillStyle = '#831843';
-        ctx.font = '800 34px Arial';
-        ctx.fillText('Reserva tu cita', 540, 1740);
-        ctx.fillStyle = '#6b7280';
-        ctx.font = '500 26px Arial';
-        ctx.fillText('Horarios sujetos a disponibilidad al momento de reservar', 540, 1790);
+        // Logo en circulo (o la inicial del salon).
+        const logo = await cargarImagenCartel(logoNegocio);
+        ctx.save();
+        ctx.shadowColor = 'rgba(26,26,26,0.14)';
+        ctx.shadowBlur = 28;
+        ctx.shadowOffsetY = 10;
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(540, 200, 96, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(540, 200, 86, 0, Math.PI * 2);
+        ctx.clip();
+        if (logo) {
+            // Entero dentro del circulo (los logos suelen ser apaisados), sobre blanco.
+            const escala = Math.min(150 / logo.width, 150 / logo.height);
+            const w = logo.width * escala;
+            const h = logo.height * escala;
+            ctx.drawImage(logo, 540 - w / 2, 200 - h / 2, w, h);
+        } else {
+            ctx.fillStyle = A;
+            ctx.fillRect(454, 114, 172, 172);
+            ctx.fillStyle = '#ffffff';
+            ctx.font = `800 84px ${F}`;
+            ctx.textAlign = 'center';
+            const inicial = String(nombreNegocio || 'S').replace(/[^\p{L}\p{N}]/gu, '').charAt(0).toUpperCase() || 'S';
+            ctx.fillText(inicial, 540, 230);
+        }
+        ctx.restore();
 
-        ctx.fillStyle = '#be185d';
-        ctx.font = '800 30px Arial';
-        ctx.fillText('ByReservasRoma', 540, 1850);
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#1A1A1A';
+        ctx.font = `800 58px ${F}`;
+        const y = dibujarTextoCentrado(ctx, nombreNegocio || 'Mi salón', 540, 380, 900, 66);
+
+        // Pildora "Horas libres esta semana".
+        ctx.font = `800 32px ${F}`;
+        const titulo = 'Horas libres esta semana';
+        const anchoTitulo = ctx.measureText(titulo).width + 80;
+        ctx.fillStyle = A;
+        ctx.beginPath();
+        ctx.roundRect(540 - anchoTitulo / 2, y + 4, anchoTitulo, 70, 35);
+        ctx.fill();
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText(titulo, 540, y + 51);
+        ctx.fillStyle = '#666666';
+        ctx.font = `500 30px ${F}`;
+        ctx.fillText([rango, profesional?.nombre ? `con ${profesional.nombre}` : ''].filter(Boolean).join(' · '), 540, y + 126);
+
+        // Tarjetas por dia. Se mide primero y, si no cabe, se encogen las pildoras.
+        const top = y + 180;
+        const fondo = 1660;
+        const cardX = 70;
+        const cardW = 940;
+        const zonaX = cardX + 170;
+        const zonaW = cardW - 170 - 30;
+        const medir = (s) => {
+            ctx.font = `800 ${s.fuente}px ${F}`;
+            return dias.map(dia => {
+                const libres = dia.turnos.filter(tu => tu.estado === 'Disponible').map(tu => formatTo12Hour(tu.hora));
+                if (!libres.length) return { dia, libres, filas: [], alto: s.vacio };
+                const filas = [[]];
+                let ancho = 0;
+                libres.forEach(texto => {
+                    const w = ctx.measureText(texto).width + s.pad * 2;
+                    if (ancho + w > zonaW && filas[filas.length - 1].length) { filas.push([]); ancho = 0; }
+                    filas[filas.length - 1].push({ texto, w });
+                    ancho += w + s.gap;
+                });
+                return { dia, libres, filas, alto: Math.max(s.minCard, filas.length * (s.h + s.gap) - s.gap + 2 * s.margen) };
+            });
+        };
+        const tamanos = [
+            { fuente: 32, h: 66, pad: 26, gap: 14, margen: 26, minCard: 132, vacio: 92, sep: 22 },
+            { fuente: 26, h: 54, pad: 20, gap: 10, margen: 18, minCard: 108, vacio: 76, sep: 14 }
+        ];
+        let s = tamanos[0];
+        let tarjetas = medir(s);
+        const total = (lista, tm) => lista.reduce((suma, c) => suma + c.alto + tm.sep, 0);
+        if (top + total(tarjetas, s) > fondo) { s = tamanos[1]; tarjetas = medir(s); }
+
+        if (!tarjetas.some(c => c.libres.length)) {
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.roundRect(cardX, top + 40, cardW, 300, 40);
+            ctx.fill();
+            ctx.textAlign = 'center';
+            ctx.fillStyle = '#1A1A1A';
+            ctx.font = `800 40px ${F}`;
+            ctx.fillText('Esta semana ya no quedan horas libres', 540, top + 175);
+            ctx.fillStyle = '#666666';
+            ctx.font = `500 30px ${F}`;
+            ctx.fillText('Escríbenos y te buscamos un hueco', 540, top + 230);
+        } else {
+            let cy = top;
+            tarjetas.forEach(({ dia, libres, filas, alto }) => {
+                if (cy + alto > fondo + 40) return; // ponytail: si ni encogido cabe, se cortan los ultimos dias
+                const vacio = libres.length === 0;
+                ctx.save();
+                if (!vacio) {
+                    ctx.shadowColor = 'rgba(26,26,26,0.08)';
+                    ctx.shadowBlur = 24;
+                    ctx.shadowOffsetY = 8;
+                }
+                ctx.fillStyle = vacio ? 'rgba(255,255,255,0.6)' : '#ffffff';
+                ctx.beginPath();
+                ctx.roundRect(cardX, cy, cardW, alto, 34);
+                ctx.fill();
+                ctx.restore();
+
+                // Bloque del dia a la izquierda.
+                const fecha = new Date(`${dia.fecha}T12:00:00`);
+                ctx.fillStyle = vacio ? '#F0F0F0' : conAlfa(A, 0.1);
+                ctx.beginPath();
+                ctx.roundRect(cardX + 14, cy + 14, 136, alto - 28, 24);
+                ctx.fill();
+                ctx.textAlign = 'center';
+                ctx.fillStyle = vacio ? '#AAAAAA' : A;
+                ctx.font = `800 24px ${F}`;
+                ctx.fillText(dia.fecha === hoy ? 'HOY' : diasCortos[fecha.getDay()], cardX + 82, cy + alto / 2 - 6);
+                ctx.fillStyle = vacio ? '#AAAAAA' : '#1A1A1A';
+                ctx.font = `800 40px ${F}`;
+                ctx.fillText(String(fecha.getDate()), cardX + 82, cy + alto / 2 + 36);
+
+                if (vacio) {
+                    ctx.textAlign = 'left';
+                    ctx.fillStyle = '#AAAAAA';
+                    ctx.font = `600 ${s.fuente - 2}px ${F}`;
+                    ctx.fillText('Sin horas libres', zonaX, cy + alto / 2 + 10);
+                } else {
+                    ctx.font = `800 ${s.fuente}px ${F}`;
+                    ctx.textAlign = 'center';
+                    const altoFilas = filas.length * (s.h + s.gap) - s.gap;
+                    let py = cy + (alto - altoFilas) / 2;
+                    filas.forEach(fila => {
+                        let px = zonaX;
+                        fila.forEach(({ texto, w }) => {
+                            ctx.fillStyle = A;
+                            ctx.beginPath();
+                            ctx.roundRect(px, py, w, s.h, s.h / 2);
+                            ctx.fill();
+                            ctx.fillStyle = '#ffffff';
+                            ctx.fillText(texto, px + w / 2, py + s.h / 2 + s.fuente * 0.36);
+                            px += w + s.gap;
+                        });
+                        py += s.h + s.gap;
+                    });
+                }
+                cy += alto + s.sep;
+            });
+        }
+
+        ctx.textAlign = 'center';
+        ctx.fillStyle = A;
+        ctx.font = `800 38px ${F}`;
+        ctx.fillText('Reserva tu cita en nuestra app', 540, 1740);
+        ctx.fillStyle = '#666666';
+        ctx.font = `500 25px ${F}`;
+        ctx.fillText('Horarios sujetos a disponibilidad al momento de reservar', 540, 1790);
+        ctx.fillStyle = '#AAAAAA';
+        ctx.font = `700 24px ${F}`;
+        ctx.fillText('Hecho con RservasRoma', 540, 1856);
 
         return canvas;
     };
@@ -2480,6 +2555,7 @@ function AdminApp() {
         const month = disponibilidadFecha.getMonth();
         const monthTitle = `${monthNames[month]} ${year}`;
         const diasDelMes = getDaysInMonth(disponibilidadFecha);
+        const A = colorDelSalonCartel();
 
         const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
         gradient.addColorStop(0, '#fff7fb');
@@ -2488,17 +2564,17 @@ function AdminApp() {
         ctx.fillStyle = gradient;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        ctx.fillStyle = '#be185d';
+        ctx.fillStyle = A;
         ctx.beginPath();
         ctx.arc(970, 120, 180, 0, Math.PI * 2);
         ctx.fill();
-        ctx.fillStyle = 'rgba(244,114,182,0.22)';
+        ctx.fillStyle = conAlfa(A, 0.12);
         ctx.beginPath();
         ctx.arc(120, 1810, 220, 0, Math.PI * 2);
         ctx.fill();
 
         ctx.textAlign = 'center';
-        ctx.fillStyle = '#831843';
+        ctx.fillStyle = '#1A1A1A';
         ctx.font = '800 58px Arial';
         dibujarTextoCentrado(ctx, nombreNegocio || 'Exotic Nails by Yuly', 540, 145, 850, 64);
 
@@ -2535,7 +2611,7 @@ function AdminApp() {
             const x = cardX + index * colW;
             ctx.fillStyle = index === 0 || index === 6 ? '#fdf2f8' : '#f9fafb';
             ctx.fillRect(x, cardY, colW, headerH);
-            ctx.fillStyle = '#831843';
+            ctx.fillStyle = A;
             ctx.font = '800 23px Arial';
             ctx.fillText(dia, x + colW / 2, cardY + 54);
         });
@@ -2614,15 +2690,15 @@ function AdminApp() {
         });
 
         ctx.textAlign = 'center';
-        ctx.fillStyle = '#831843';
+        ctx.fillStyle = A;
         ctx.font = '800 34px Arial';
         ctx.fillText('Reserva tu cita', 540, 1740);
         ctx.fillStyle = '#6b7280';
         ctx.font = '500 26px Arial';
         ctx.fillText('Los números indican horarios disponibles por día', 540, 1790);
-        ctx.fillStyle = '#be185d';
+        ctx.fillStyle = A;
         ctx.font = '800 30px Arial';
-        ctx.fillText('ByReservasRoma', 540, 1850);
+        ctx.fillText('Hecho con RservasRoma', 540, 1850);
 
         return canvas;
     };
@@ -6075,8 +6151,8 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                             )}
 
                             <div className="flex gap-2 mb-3">
-                                <button onClick={() => { setModoDisponibilidad('mes'); cargarDisponibilidadDelMes(disponibilidadFecha, profesionalSeleccionadoDispo); }} className={`flex-1 px-3 py-2 rounded-lg text-sm font-semibold ${modoDisponibilidad === 'mes' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>{t('Mensual')}</button>
-                                <button onClick={() => { setModoDisponibilidad('semana'); cargarDisponibilidadSemanal(disponibilidadFecha, profesionalSeleccionadoDispo); }} className={`flex-1 px-3 py-2 rounded-lg text-sm font-semibold ${modoDisponibilidad === 'semana' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>{t('Semanal')}</button>
+                                <button onClick={() => { setModoDisponibilidad('mes'); cargarDisponibilidadDelMes(disponibilidadFecha, profesionalSeleccionadoDispo); }} className={`flex-1 px-3 py-2 rounded-lg text-sm font-semibold ${modoDisponibilidad === 'mes' ? 'bg-pink-500 text-white shadow-sm' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>{t('Mensual')}</button>
+                                <button onClick={() => { setModoDisponibilidad('semana'); cargarDisponibilidadSemanal(disponibilidadFecha, profesionalSeleccionadoDispo); }} className={`flex-1 px-3 py-2 rounded-lg text-sm font-semibold ${modoDisponibilidad === 'semana' ? 'bg-pink-500 text-white shadow-sm' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>{t('Semanal')}</button>
                             </div>
 
                             <div className="flex justify-between items-center mb-3">
@@ -6091,55 +6167,57 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                                 <div className="text-center py-12"><div className="animate-spin h-8 w-8 border-b-2 border-pink-500 mx-auto"></div><p className="mt-2">{t('Cargando disponibilidad...')}</p></div>
                             ) : modoDisponibilidad === 'semana' ? (
                                 <div className="space-y-4">
-                                    <div className="flex items-center justify-between gap-2">
+                                    <div className="flex items-center justify-between gap-3">
                                         <div>
                                             <p className="text-sm font-bold text-gray-900">{t('Disponibilidad semanal')}</p>
-                                            <p className="text-xs text-gray-500">{t('Horarios libres en verde para compartir.')}</p>
+                                            <p className="text-xs text-gray-500">{t('Solo las horas que tus clientas todavía pueden reservar.')}</p>
                                         </div>
                                         <button
                                             onClick={compartirDisponibilidadSemanal}
                                             disabled={disponibilidadSemanal.length === 0}
-                                            className="px-4 py-2 bg-green-600 text-white rounded-xl text-xs sm:text-sm font-bold hover:bg-green-700 disabled:opacity-50 shadow-sm"
+                                            className="shrink-0 px-4 py-2.5 rounded-full text-white text-sm font-bold shadow-md disabled:opacity-50"
+                                            style={{ background: '#FF1493' }}
                                         >
-                                            {t('Compartir')}
+                                            📲 {t('Compartir')}
                                         </button>
                                     </div>
 
-                                    <div className="rounded-2xl border border-pink-100 bg-white overflow-hidden shadow-sm">
-                                        <div className="grid grid-cols-7 divide-x divide-gray-200">
-                                            {disponibilidadSemanal.map(dia => {
-                                                const disponibles = dia.turnos.filter(turno => turno.estado === 'Disponible');
-                                                const diaCorto = dia.diaNombre.slice(0, 3);
-                                                const fechaCorta = dia.fecha.slice(5);
+                                    <div className="space-y-2">
+                                        {disponibilidadSemanal.map(dia => {
+                                            const disponibles = dia.turnos.filter(turno => turno.estado === 'Disponible');
+                                            const hoyStr = getCurrentLocalDate();
+                                            const pasado = dia.fecha < hoyStr;
+                                            const esHoy = dia.fecha === hoyStr;
+                                            const fecha = new Date(`${dia.fecha}T12:00:00`);
+                                            const diaCorto = (idioma === 'en'
+                                                ? ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']
+                                                : ['DOM', 'LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB'])[fecha.getDay()];
+                                            const conHoras = disponibles.length > 0;
 
-                                                return (
-                                                <div key={dia.fecha} className="bg-gradient-to-b from-white to-pink-50/50 min-w-0 min-h-[190px] sm:min-h-[260px]">
-                                                    <div className={`px-1 py-3 sm:p-4 border-b text-center ${dia.libres > 0 ? 'bg-green-50 border-green-100' : 'bg-gray-100 border-gray-200'}`}>
-                                                        <p className="font-extrabold text-gray-900 leading-tight text-[11px] sm:text-base uppercase truncate">{diaCorto}</p>
-                                                        <p className="text-[9px] sm:text-xs text-gray-500 leading-tight mt-1">{fechaCorta}</p>
+                                            return (
+                                                <div key={dia.fecha} className={`flex items-center gap-3 rounded-2xl p-2.5 border ${conHoras ? 'bg-white border-pink-100 shadow-sm' : 'bg-gray-50 border-transparent'}`}>
+                                                    <div className={`w-14 shrink-0 rounded-xl py-2 text-center ${conHoras ? 'bg-pink-50' : 'bg-white'}`}>
+                                                        <p className={`text-[11px] font-extrabold leading-none ${conHoras ? 'text-pink-600' : 'text-gray-400'}`}>{esHoy ? t('Hoy').toUpperCase() : diaCorto}</p>
+                                                        <p className={`text-xl font-black leading-none mt-1 ${conHoras ? 'text-gray-900' : 'text-gray-400'}`}>{fecha.getDate()}</p>
                                                     </div>
-
-                                                    <div className="px-1.5 py-3 sm:p-4 space-y-2 sm:space-y-3">
-                                                        {disponibles.length === 0 ? (
-                                                            <div className="h-24 sm:h-32 rounded-xl border border-dashed border-gray-200 bg-white/70 text-gray-400 text-[9px] sm:text-xs flex items-center justify-center text-center px-1 leading-tight">
-                                                                {t('Sin horarios')}
+                                                    <div className="flex-1 min-w-0">
+                                                        {conHoras ? (
+                                                            <div className="flex flex-wrap gap-1.5">
+                                                                {disponibles.map(turno => (
+                                                                    <span key={`${dia.fecha}-${turno.hora}`} title={turno.detalle}
+                                                                        className="px-3 py-1.5 rounded-full text-white text-sm font-bold tabular-nums whitespace-nowrap"
+                                                                        style={{ background: '#FF1493' }}>
+                                                                        {formatTo12Hour(turno.hora)}
+                                                                    </span>
+                                                                ))}
                                                             </div>
                                                         ) : (
-                                                            disponibles.map(turno => (
-                                                                <div key={`${dia.fecha}-${turno.hora}`} className="rounded-xl border border-green-600 bg-gradient-to-b from-emerald-400 to-green-600 text-white px-1 py-3 sm:py-4 text-center shadow-md" title={turno.detalle}>
-                                                                    <div className="text-[12px] sm:text-lg font-extrabold leading-none whitespace-nowrap">{formatTo12Hour(turno.hora).replace(' ', '')}</div>
-                                                                </div>
-                                                            ))
+                                                            <p className="text-sm text-gray-400">{pasado ? t('Ya pasó') : t('Sin horas libres')}</p>
                                                         )}
                                                     </div>
                                                 </div>
-                                            );})}
-                                        </div>
-                                    </div>
-
-                                    <div className="flex flex-wrap gap-3 text-[11px] sm:text-xs text-gray-600">
-                                        <span className="inline-flex items-center gap-1"><span className="w-3 h-3 rounded bg-green-500"></span>{t('Disponible')}</span>
-                                        <span className="inline-flex items-center gap-1"><span className="w-3 h-3 rounded bg-gray-100 border border-gray-200"></span>{t('Sin horarios')}</span>
+                                            );
+                                        })}
                                     </div>
                                 </div>
                             ) : (
@@ -6152,9 +6230,10 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                                         <button
                                             onClick={compartirDisponibilidadMensual}
                                             disabled={diasMesConDatos === 0}
-                                            className="px-4 py-2 bg-green-600 text-white rounded-xl text-xs sm:text-sm font-bold hover:bg-green-700 disabled:opacity-50 shadow-sm"
+                                            className="shrink-0 px-4 py-2.5 rounded-full text-white text-sm font-bold shadow-md disabled:opacity-50"
+                                            style={{ background: '#FF1493' }}
                                         >
-                                            {t('Compartir')}
+                                            📲 {t('Compartir')}
                                         </button>
                                     </div>
                                     <div className="grid grid-cols-7 mb-2 text-center">
