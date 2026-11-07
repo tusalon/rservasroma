@@ -1,5 +1,72 @@
 // components/TimeSlots.js - Versión femenina con filtro de horarios permitidos por servicio
 
+// Píldoras de hora en grupos de mañana y tarde. La usan TimeSlots y MultiTimeSlots
+// para que las dos pantallas se vean iguales. Los colores pink-* los cambia
+// index.html por los del salón. Las columnas van en línea porque
+// legacy-ios-fallback.css pasa grid-cols-3 a dos columnas en el móvil.
+function GruposDeHoras({ slots, selectedTime, onTimeSelect }) {
+    const t = window.t;
+    const grupos = [
+        ['☀️', t('Por la mañana'), slots.filter(h => h < '12:00')],
+        ['🌙', t('Por la tarde'), slots.filter(h => h >= '12:00')]
+    ].filter(([, , lista]) => lista.length > 0);
+
+    return grupos.map(([icono, titulo, lista]) => (
+        <div key={titulo} className="rounded-3xl bg-white/90 p-4 shadow-sm border border-pink-100">
+            <div className="flex items-center justify-between mb-3">
+                <p className="text-sm font-bold text-gray-800">
+                    <span className="mr-1.5" aria-hidden="true">{icono}</span>{titulo}
+                </p>
+                <span className="text-xs font-semibold text-pink-700 bg-pink-50 px-2.5 py-1 rounded-full">
+                    {lista.length === 1 ? t('1 hora libre') : t('{n} horas libres', { n: lista.length })}
+                </span>
+            </div>
+            <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
+                {lista.map(hora => {
+                    const elegida = selectedTime === hora;
+                    return (
+                        <button
+                            key={hora}
+                            type="button"
+                            onClick={() => onTimeSelect(hora)}
+                            aria-pressed={elegida}
+                            className={`py-3 px-1 rounded-2xl text-[15px] font-bold tabular-nums whitespace-nowrap transition-all active:scale-95
+                                ${elegida
+                                    ? 'bg-pink-500 text-white shadow-lg'
+                                    : 'bg-white text-gray-800 border border-pink-200 hover:border-pink-400'}`}
+                        >
+                            {window.formatTo12Hour ? window.formatTo12Hour(hora) : hora}
+                        </button>
+                    );
+                })}
+            </div>
+        </div>
+    ));
+}
+
+// Aviso cuando no hay nada que elegir (día libre, sin horas, antelación…).
+function AvisoSinHoras({ icono, titulo, texto }) {
+    return (
+        <div className="text-center px-6 py-8 rounded-3xl bg-pink-50 border border-pink-200">
+            <div className="mx-auto mb-3 w-14 h-14 rounded-full bg-white shadow-sm flex items-center justify-center text-3xl" aria-hidden="true">{icono}</div>
+            <p className="font-bold text-gray-900">{titulo}</p>
+            {texto && <p className="text-sm text-gray-600 mt-1">{texto}</p>}
+        </div>
+    );
+}
+
+// Nota pequeña de antelación mínima, en las dos pantallas de horas.
+function NotaAntelacion({ horas }) {
+    const t = window.t;
+    if (!(Number(horas) > 0)) return null;
+    return (
+        <p className="flex items-center gap-2 text-xs font-medium text-gray-600">
+            <span className="inline-flex w-6 h-6 rounded-full bg-pink-50 items-center justify-center" aria-hidden="true">🕒</span>
+            {t('Se reserva con al menos {n} h de anticipación.', { n: horas })}
+        </p>
+    );
+}
+
 function TimeSlots({ service, date, profesional, cliente, onTimeSelect, selectedTime }) {
     const idioma = window.useIdioma();
     const t = window.t;
@@ -15,6 +82,10 @@ function TimeSlots({ service, date, profesional, cliente, onTimeSelect, selected
     const [verificacionCompleta, setVerificacionCompleta] = React.useState(false);
     const [maxAntelacionDias, setMaxAntelacionDias] = React.useState(30);
     const [minAntelacionHoras, setMinAntelacionHoras] = React.useState(2);
+    // Hasta leer la antelación del salón no se calculan horas: con el 2 por
+    // defecto salían un momento horas que luego desaparecían.
+    const [configCargada, setConfigCargada] = React.useState(false);
+    const [recortadasPorAntelacion, setRecortadasPorAntelacion] = React.useState(false);
 
     // Toast propio en vez de alert() nativo: el alert bloquea la app y muestra
     // el dominio ("...github.io dice:"), lo que rompe la marca del salón.
@@ -53,9 +124,11 @@ function TimeSlots({ service, date, profesional, cliente, onTimeSelect, selected
                 }
             } catch (error) {
                 console.error('Error cargando configuración:', error);
+            } finally {
+                setConfigCargada(true);
             }
         };
-        
+
         cargarConfiguracion();
     }, []);
 
@@ -137,7 +210,7 @@ function TimeSlots({ service, date, profesional, cliente, onTimeSelect, selected
     }, [profesional, horariosPorDia, date]);
 
     React.useEffect(() => {
-        if (!service || !date || !profesional || !verificacionCompleta) return;
+        if (!service || !date || !profesional || !verificacionCompleta || !configCargada) return;
 
         const loadSlots = async () => {
             setLoading(true);
@@ -180,21 +253,14 @@ function TimeSlots({ service, date, profesional, cliente, onTimeSelect, selected
                 }
                 
                 console.log(`📋 Slots base para ${diaSemana} (después de filtro de servicio):`, baseSlots);
-                
-                const todayStr = getCurrentLocalDate();
-                const esHoy = date === todayStr;
-                
-                const ahora = new Date();
-                const horaActual = ahora.getHours();
-                const minutosActuales = ahora.getMinutes();
-                const totalMinutosActual = horaActual * 60 + minutosActuales;
-                const minAllowedMinutes = totalMinutosActual + (minAntelacionHoras * 60);
-                
-                console.log('🕐 Hora actual:', `${horaActual}:${minutosActuales}`);
-                console.log('⏱️ Hora mínima permitida (actual + 2h):', 
-                    `${Math.floor(minAllowedMinutes / 60)}:${minAllowedMinutes % 60}`);
-                console.log('📅 Fecha seleccionada:', date, 'es hoy?', esHoy);
-                
+
+                // Fuera las horas que ya pasaron o no llegan a la antelación mínima,
+                // sea el día que sea (utils/timeLogic.js).
+                const cumpleAntelacion = (hora) => horaCumpleAntelacion(date, hora, minAntelacionHoras);
+                const totalBase = baseSlots.length;
+                baseSlots = baseSlots.filter(cumpleAntelacion);
+                setRecortadasPorAntelacion(baseSlots.length < totalBase);
+
                 let bookings = await getBookingsByDateAndProfesional(date, profesional.id, service);
                 if (bookings.length === 0 && window.getBookingsByDate) {
                     const reservasDia = await window.getBookingsByDate(date);
@@ -222,8 +288,7 @@ function TimeSlots({ service, date, profesional, cliente, onTimeSelect, selected
                 const agregarTurnoOcupado = (booking) => {
                     if (!booking?.hora_inicio || !esReservaOcupada(booking)) return;
                     const hora = normalizeTimeKey(booking.hora_inicio);
-                    const inicioOcupado = timeToMinutes(hora);
-                    if (esHoy && inicioOcupado < minAllowedMinutes) return;
+                    if (!cumpleAntelacion(hora)) return;
                     if (!occupiedMap[hora]) {
                         occupiedMap[hora] = {
                             hora,
@@ -236,11 +301,6 @@ function TimeSlots({ service, date, profesional, cliente, onTimeSelect, selected
                 let availableSlots = baseSlots.filter(slotStartStr => {
                     const slotStart = timeToMinutes(slotStartStr);
                     const slotEnd = slotStart + service.duracion;
-
-                    if (esHoy && slotStart < minAllowedMinutes) {
-                        console.log(`⏰ Slot ${slotStartStr} es menor a hora mínima - EXCLUIDO`);
-                        return false;
-                    }
 
                     if (slotTieneDescanso(slotStart, slotEnd, descansosDelDia)) {
                         return false;
@@ -277,7 +337,7 @@ function TimeSlots({ service, date, profesional, cliente, onTimeSelect, selected
         };
 
         loadSlots();
-    }, [service, date, profesional, horariosPorDia, descansosPorDia, diaTrabaja, verificacionCompleta, maxAntelacionDias, minAntelacionHoras]);
+    }, [service, date, profesional, horariosPorDia, descansosPorDia, diaTrabaja, verificacionCompleta, maxAntelacionDias, minAntelacionHoras, configCargada]);
 
     const handleUnirseListaEspera = async (slot) => {
         if (!cliente?.nombre || !cliente?.whatsapp) {
@@ -348,13 +408,11 @@ function TimeSlots({ service, date, profesional, cliente, onTimeSelect, selected
                     <span className="text-2xl">⏰</span>
                     {t('4. Elige un horario con {nombre}', { nombre: profesional.nombre })}
                 </h2>
-                <div className="text-center p-8 bg-pink-50 rounded-xl border border-pink-200">
-                    <div className="text-5xl text-pink-400 mb-3">📅❌</div>
-                    <p className="text-pink-700 font-medium">
-                        {t('{nombre} no trabaja los {dia}', { nombre: profesional.nombre, dia: diaCapitalizado })}
-                    </p>
-                    <p className="text-sm text-pink-500 mt-1">{t('Elige otro día de la semana')}</p>
-                </div>
+                <AvisoSinHoras
+                    icono="🌿"
+                    titulo={t('{nombre} no trabaja los {dia}', { nombre: profesional.nombre, dia: diaCapitalizado })}
+                    texto={t('Elige otro día de la semana')}
+                />
             </div>
         );
     }
@@ -385,64 +443,38 @@ function TimeSlots({ service, date, profesional, cliente, onTimeSelect, selected
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-500"></div>
                 </div>
             ) : error ? (
-                <div className="p-4 bg-pink-50 text-pink-600 rounded-lg text-sm border border-pink-200">{error}</div>
+                <AvisoSinHoras icono="⏳" titulo={error} />
             ) : slots.length === 0 && occupiedSlots.length === 0 ? (
-                <div className="text-center p-8 bg-pink-50 rounded-xl border border-pink-200">
-                    <div className="text-5xl text-pink-400 mb-3">⏰❌</div>
-                    <p className="text-pink-700 font-medium">
-                        {t('No hay horarios disponibles para {nombre} el {fecha}', { nombre: profesional.nombre, fecha: formatDateLocal(date) })}
-                    </p>
-                    <p className="text-sm text-pink-500 mt-1">{t('Prueba con otra fecha')}</p>
-                </div>
+                recortadasPorAntelacion ? (
+                    <AvisoSinHoras
+                        icono="🕒"
+                        titulo={t('Ya no quedan horas para este día')}
+                        texto={t('Se reserva con al menos {n} h de anticipación. Prueba con otro día.', { n: minAntelacionHoras })}
+                    />
+                ) : (
+                    <AvisoSinHoras
+                        icono="🗓️"
+                        titulo={t('No hay horarios disponibles para {nombre} el {fecha}', { nombre: profesional.nombre, fecha: formatDateLocal(date) })}
+                        texto={t('Prueba con otra fecha')}
+                    />
+                )
             ) : (
                 <>
-                    {date === getCurrentLocalDate() && (
-                        <p className="text-sm text-gray-600">
-                            {t('Hoy solo se muestran horarios con al menos {n} hora{s} de anticipación.', {
-                                n: minAntelacionHoras,
-                                s: minAntelacionHoras === 1 ? '' : 's'
-                            })}
-                        </p>
-                    )}
+                    {recortadasPorAntelacion && <NotaAntelacion horas={minAntelacionHoras} />}
 
-                    {/* Píldoras de tres en fila, separadas en mañana y tarde: se
-                        leen de un vistazo y caben más horarios por pantalla. Las columnas
-                        van en línea porque legacy-ios-fallback.css pasa grid-cols-3 a
-                        dos columnas en el móvil. */}
-                    {[
-                        [t('Por la mañana'), slots.filter(h => h < '12:00')],
-                        [t('Por la tarde'), slots.filter(h => h >= '12:00')]
-                    ].filter(([, lista]) => lista.length > 0).map(([titulo, lista]) => (
-                        <div key={titulo}>
-                            <p className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">{titulo}</p>
-                            <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
-                                {lista.map(time24h => (
-                                    <button
-                                        key={time24h}
-                                        onClick={() => onTimeSelect(time24h)}
-                                        className={`py-3 rounded-full text-base font-semibold tabular-nums transition-colors
-                                            ${selectedTime === time24h
-                                                ? 'bg-pink-500 text-white shadow-md'
-                                                : 'bg-white text-gray-800 shadow-sm hover:shadow'}`}
-                                    >
-                                        {formatTo12Hour(time24h)}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    ))}
+                    <GruposDeHoras slots={slots} selectedTime={selectedTime} onTimeSelect={onTimeSelect} />
 
                     {/* Sin ningún horario libre, la lista de espera es lo único
                         que hay: se ve abierta, no escondida tras el enlace. */}
                     {occupiedSlots.length > 0 && slots.length > 0 && !verEspera && (
                         <button type="button" onClick={() => setVerEspera(true)}
-                            className="w-full rounded-xl border border-dashed border-gray-300 py-3 text-sm font-semibold text-gray-600">
+                            className="w-full rounded-2xl border border-dashed border-pink-300 bg-white/70 py-3 text-sm font-semibold text-pink-700">
                             {t('¿No ves tu hora? Ponte en lista de espera')}
                         </button>
                     )}
 
                     {occupiedSlots.length > 0 && (verEspera || slots.length === 0) && (
-                        <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4">
+                        <div className="rounded-3xl border border-amber-200 bg-amber-50 p-4">
                             <div className="mb-3">
                                 <p className="font-semibold text-amber-800">{t('Horarios ocupados con lista de espera')}</p>
                                 <p className="text-sm text-amber-700">{t('Puedes anotarte en un horario ocupado. Solo se permite una clienta en espera por horario.')}</p>
@@ -457,7 +489,7 @@ function TimeSlots({ service, date, profesional, cliente, onTimeSelect, selected
                                             type="button"
                                             onClick={() => handleUnirseListaEspera(slot)}
                                             disabled={yaTieneEspera || cargando}
-                                            className={`py-3 px-2 rounded-lg text-sm font-semibold transition flex flex-col items-center border
+                                            className={`py-3 px-2 rounded-2xl text-sm font-semibold transition flex flex-col items-center border
                                                 ${yaTieneEspera
                                                     ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
                                                     : 'bg-white text-amber-800 border-amber-300 hover:bg-amber-100'}`}

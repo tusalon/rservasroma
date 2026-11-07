@@ -261,3 +261,14 @@ function getFechaLocal() {
 
 // Exportar
 window.getFechaLocal = getFechaLocal;
+// ¿Se puede reservar esta hora con la antelación mínima del salón? Cuenta desde
+// ahora para CUALQUIER día, no solo hoy: con 20 h de antelación, si son las 18:00,
+// mañana a las 10:30 tampoco vale. Antes solo se filtraba "hoy" y la clienta
+// elegía una hora que el formulario rechazaba al final.
+function horaCumpleAntelacion(fecha, hora, minHoras) {
+    const [y, mo, d] = String(fecha).split('-').map(Number);
+    const [h, m] = String(hora).split(':').map(Number);
+    const limite = Date.now() + (Number(minHoras) || 0) * 3600000;
+    return new Date(y, mo - 1, d, h || 0, m || 0).getTime() >= limite;
+}
+window.horaCumpleAntelacion = horaCumpleAntelacion;

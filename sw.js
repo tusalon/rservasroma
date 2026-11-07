@@ -1,6 +1,6 @@
 ﻿// sw.js - Service Worker para Rservasroma
 
-const CACHE_NAME = 'rservasroma-v187';
+const CACHE_NAME = 'rservasroma-v188';
 const BASE = '/rservasroma';
 
 const urlsToCache = [
@@ -30,7 +30,7 @@ const urlsToCache = [
   `${BASE}/utils/native-push-notifications.js?v=20260722-platform-v4`,
   `${BASE}/utils/offline-panel.js`,
   `${BASE}/utils/config-negocio-master.js?v=20261103-cita2`,
-  `${BASE}/utils/i18n.js?v=20261105-calido1`,
+  `${BASE}/utils/i18n.js?v=20261107-horas1`,
   `${BASE}/utils/cuba-geo.js?v=20260727-wizard-ubicacion1`,
   `${BASE}/utils/phone-utils.js?v=20261012-eeuu1`,
   `${BASE}/utils/profesionales.js?v=20261018-elimprof2`,
@@ -41,7 +41,7 @@ const urlsToCache = [
   `${BASE}/utils/catalogo.js?v=20261103-fase1`,
   `${BASE}/utils/suscripcion.js?v=20260904-recordar1`,
   `${BASE}/utils/supabase-config.js?v=20260723-fotos`,
-  `${BASE}/utils/timeLogic.js?v=20261023-combo1`,
+  `${BASE}/utils/timeLogic.js?v=20261107-horas1`,
   `${BASE}/utils/espacios.js?v=20261102-duracion1`,
   `${BASE}/utils/turnos.js?v=20261103-cambiar1`,
   `${BASE}/utils/whatsapp-helper.js?v=20261103-cita2`,
@@ -71,7 +71,7 @@ const urlsToCache = [
   `${BASE}/compiled/components/Header.js?v=20261103-cita3`,
   `${BASE}/compiled/components/InstallButton.js?v=20260723-jsx1`,
   `${BASE}/compiled/components/MultiProfesionalSelector.js?v=20261103-cita2`,
-  `${BASE}/compiled/components/MultiTimeSlots.js?v=20261023-combo1`,
+  `${BASE}/compiled/components/MultiTimeSlots.js?v=20261107-horas3`,
   `${BASE}/compiled/components/AnadirServicioTurno.js?v=20261103-cita2`,
   `${BASE}/compiled/components/CambiarServiciosTurno.js?v=20261103-cambiar1`,
   `${BASE}/compiled/components/admin/AsistenteRoma.js?v=20261104-roma2`,
@@ -102,7 +102,7 @@ const urlsToCache = [
   `${BASE}/compiled/components/MyBookings.js?v=20261104-fid1`,
   `${BASE}/compiled/components/ProfesionalSelector.js?v=20261103-cita2`,
   `${BASE}/compiled/components/ServiceSelectionCategorias.js?v=20261103-cita2`,
-  `${BASE}/compiled/components/TimeSlots.js?v=20261103-cita2`,
+  `${BASE}/compiled/components/TimeSlots.js?v=20261107-horas3`,
   `${BASE}/compiled/components/TarjetaFidelidad.js?v=20261104-auto1`,
   `${BASE}/compiled/components/WelcomeScreen.js?v=20261105-calido3`,
   `${BASE}/compiled/components/WhatsAppButton.js?v=20261103-cita2`,
