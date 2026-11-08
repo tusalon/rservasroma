@@ -59,6 +59,7 @@ function ServiciosPanel() {
   const [editando, setEditando] = React.useState(null);
   const [cargando, setCargando] = React.useState(true);
   const datosCargadosRef = React.useRef(false);
+  const ocupadoRef = React.useRef(false);
   const [busqueda, setBusqueda] = React.useState("");
   const [categoriaActiva, setCategoriaActiva] = React.useState("todos");
   const [servicioParaAsignar, setServicioParaAsignar] = React.useState(null);
@@ -168,28 +169,42 @@ function ServiciosPanel() {
     await cargarDatos();
   };
   const duplicarServicio = async (servicio) => {
-    await window.salonServicios.crear({
-      nombre: `${servicio.nombre} (${t("copia")})`,
-      categoria: inferirCategoriaServicio(servicio, categorias),
-      duracion: servicio.duracion,
-      precio: servicio.precio,
-      precio_desde: servicio.precio_desde ?? servicio.precio,
-      precio_hasta: servicio.precio_hasta || null,
-      precio_moneda: servicio.precio_moneda || "CUP",
-      requiere_anticipo: servicio.requiere_anticipo === true,
-      tipo_anticipo: servicio.tipo_anticipo || "fijo",
-      valor_anticipo: servicio.valor_anticipo || null,
-      descripcion: servicio.descripcion || "",
-      imagen: servicio.imagen || null,
-      horarios_permitidos: servicio.horarios_permitidos || [],
-      horarios_permitidos_por_dia: servicio.horarios_permitidos_por_dia || {}
-    });
-    await cargarDatos();
+    if (ocupadoRef.current) return;
+    ocupadoRef.current = true;
+    try {
+      const copia = await window.salonServicios.crear({
+        nombre: `${servicio.nombre} (${t("copia")})`,
+        categoria: inferirCategoriaServicio(servicio, categorias),
+        duracion: servicio.duracion,
+        precio: servicio.precio,
+        precio_desde: servicio.precio_desde ?? servicio.precio,
+        precio_hasta: servicio.precio_hasta || null,
+        precio_moneda: servicio.precio_moneda || "CUP",
+        requiere_anticipo: servicio.requiere_anticipo === true,
+        tipo_anticipo: servicio.tipo_anticipo || "fijo",
+        valor_anticipo: servicio.valor_anticipo || null,
+        descripcion: servicio.descripcion || "",
+        imagen: servicio.imagen || null,
+        horarios_permitidos: servicio.horarios_permitidos || [],
+        horarios_permitidos_por_dia: servicio.horarios_permitidos_por_dia || {}
+      });
+      if (!copia) alert(t("No se pudo duplicar el servicio. Revisa tu conexión e inténtalo de nuevo."));
+      await cargarDatos();
+    } finally {
+      ocupadoRef.current = false;
+    }
   };
   const eliminarServicio = async (id) => {
+    if (ocupadoRef.current) return;
     if (!await window.confirmar(t("¿Eliminar este servicio? También se eliminarán las asignaciones de profesionales."))) return;
-    await window.salonServicios.eliminar(id);
-    await cargarDatos();
+    ocupadoRef.current = true;
+    try {
+      const eliminado = await window.salonServicios.eliminar(id);
+      if (!eliminado) alert(t("No se pudo eliminar el servicio. Revisa tu conexión e inténtalo de nuevo."));
+      await cargarDatos();
+    } finally {
+      ocupadoRef.current = false;
+    }
   };
   const toggleActivo = async (servicio) => {
     await window.salonServicios.actualizar(servicio.id, { activo: !servicio.activo });

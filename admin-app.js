@@ -4666,22 +4666,36 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
             : valorAnticipo;
         const anticipo = requiereAnticipo ? anticipoCalculado : 0;
         const totalMostrar = cobroReal > 0 ? cobroReal : costoServicios;
+        // El anticipo fijo puede ir en otra moneda que los precios (servicios en USD, anticipo en CUP): ahi no se
+        // puede restar uno del otro, y el anticipo se muestra con su moneda.
+        const monedaAnticipo = (config?.anticipos_por_servicio || config?.tipo_anticipo === 'porcentaje')
+            ? ''
+            : (window.getMonedaAnticipoNegocio ? window.getMonedaAnticipoNegocio(config) : monedaNegocio);
+        const monedaTotal = monedaDelCobro(reservas[0] || booking);
+        const monedasDistintas = Boolean(monedaAnticipo) && anticipo > 0 && monedaAnticipo !== monedaTotal;
         return {
             costoServicios,
             cobroReal,
             anticipo,
+            monedaAnticipo,
+            monedasDistintas,
             requiereAnticipo,
             tipoAnticipo: config?.tipo_anticipo || 'fijo',
             valorAnticipo,
             totalMostrar,
-            pendiente: Math.max(0, totalMostrar - anticipo)
+            pendiente: monedasDistintas ? null : Math.max(0, totalMostrar - anticipo)
         };
     };
+
+    // El anticipo con su moneda cuando difiere de la de los precios (si no, como siempre: $500).
+    const textoAnticipoResumen = (resumen) => (resumen.monedasDistintas
+        ? `${Number(resumen.anticipo).toLocaleString(idioma === 'en' ? 'en-US' : 'es-CU')} ${resumen.monedaAnticipo}`
+        : formatMoneyEstadistica(resumen.anticipo));
 
     const getAgendaEstadoPago = (booking) => {
         const resumen = getAgendaResumenCobro(booking);
         if (booking?.estado === 'Pendiente') return 'Anticipo pendiente';
-        if (resumen.requiereAnticipo) return `Anticipo requerido ${formatMoneyEstadistica(resumen.anticipo)}`;
+        if (resumen.requiereAnticipo) return `Anticipo requerido ${textoAnticipoResumen(resumen)}`;
         return 'Sin anticipo';
     };
 
@@ -6010,12 +6024,12 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                                     <div className="flex items-center justify-between p-4"><span className="font-semibold text-gray-800">WhatsApp</span><button onClick={() => window.enviarWhatsApp?.(agendaDetalleBooking.cliente_whatsapp, `Hola ${agendaDetalleBooking.cliente_nombre || ''}`)} className="text-right text-pink-600 font-semibold">+{agendaDetalleBooking.cliente_whatsapp || t('Sin número')} &gt;</button></div>
                                     <div className="flex items-center justify-between p-4"><span className="font-semibold text-gray-800">{t('Precio del servicio')}</span><span className="font-bold text-gray-900">{formatMoneyEstadistica(resumen.costoServicios)}</span></div>
                                     <div className="flex items-center justify-between p-4"><span className="font-semibold text-gray-800">{t('Anticipo requerido')}</span><span className={`font-bold ${resumen.requiereAnticipo ? 'text-amber-700' : 'text-gray-500'}`}>{resumen.requiereAnticipo ? t('Si') : t('No')}</span></div>
-                                    {resumen.requiereAnticipo && <div className="flex items-center justify-between p-4"><div><p className="font-semibold text-gray-800">{t('Monto del anticipo')}</p><p className="text-sm text-gray-500">{resumen.tipoAnticipo === 'porcentaje' ? t('{n}% del servicio', { n: resumen.valorAnticipo }) : t('Monto fijo')}</p></div><span className="font-bold text-amber-700">{formatMoneyEstadistica(resumen.anticipo)}</span></div>}
+                                    {resumen.requiereAnticipo && <div className="flex items-center justify-between p-4"><div><p className="font-semibold text-gray-800">{t('Monto del anticipo')}</p><p className="text-sm text-gray-500">{resumen.tipoAnticipo === 'porcentaje' ? t('{n}% del servicio', { n: resumen.valorAnticipo }) : t('Monto fijo')}</p></div><span className="font-bold text-amber-700">{textoAnticipoResumen(resumen)}</span></div>}
                                     <div className="flex items-center justify-between p-4"><span className="font-semibold text-gray-800">{t('Coste de servicios')}</span><span className="text-gray-600">{formatMoneyEstadistica(resumen.costoServicios)}</span></div>
                                     <div className="flex items-center justify-between p-4"><span className="font-semibold text-gray-800">{t('Descuento')}</span>{(() => { const pctFid = getDescuentoFidelidadProximo(agendaDetalleBooking); return pctFid > 0 ? <span className="text-right font-bold text-amber-700">{t('🎁 {pct}% de fidelidad (se sugiere al cobrar)', { pct: pctFid })}</span> : <span className="text-gray-600">{t('No')}</span>; })()}</div>
                                     <div className="flex items-center justify-between p-4"><span className="font-semibold text-gray-800">{t('Coste total')}</span><span className="text-gray-600">{formatMoneyEstadistica(resumen.totalMostrar)}</span></div>
-                                    <div className="flex items-center justify-between p-4"><div><p className="font-semibold text-gray-800">{t('Deposito')}</p><p className="text-sm text-gray-500">{resumen.requiereAnticipo ? (agendaDetalleBooking.estado === 'Pendiente' ? t('Pendiente de recibir') : t('Aplica para esta cita')) : t('No aplica')}</p></div><span className="text-gray-600">{formatMoneyEstadistica(resumen.anticipo)}</span></div>
-                                    <div className="flex items-center justify-between p-4"><span className="font-semibold text-gray-800">{t('Total pendiente')}</span><span className="font-bold text-gray-900">{formatMoneyEstadistica(resumen.pendiente)}</span></div>
+                                    <div className="flex items-center justify-between p-4"><div><p className="font-semibold text-gray-800">{t('Deposito')}</p><p className="text-sm text-gray-500">{resumen.requiereAnticipo ? (agendaDetalleBooking.estado === 'Pendiente' ? t('Pendiente de recibir') : t('Aplica para esta cita')) : t('No aplica')}</p></div><span className="text-gray-600">{textoAnticipoResumen(resumen)}</span></div>
+                                    <div className="flex items-center justify-between p-4"><span className="font-semibold text-gray-800">{t('Total pendiente')}</span><span className="font-bold text-gray-900">{resumen.pendiente == null ? '—' : formatMoneyEstadistica(resumen.pendiente)}</span></div>
                                     <div className="flex items-center justify-between p-4"><span className="font-semibold text-gray-800">{t('Cobro real')}</span><span className="font-bold text-emerald-700">{resumen.cobroReal > 0 ? formatMoneyEstadistica(resumen.cobroReal) : t('Sin registrar')}</span></div>
                                 </div>
 

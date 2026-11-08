@@ -51,6 +51,7 @@ function EditarNegocio() {
         anticipos_por_servicio: false,
         tipo_anticipo: 'fijo',
         valor_anticipo: '',
+        moneda_anticipo: '',
         mensaje_pago: 'Para confirmar tu cita, envía el anticipo de {monto_anticipo} por Transfermóvil:\n\nTarjeta: {cbu}\nMóvil a confirmar: {alias}\nTitular: {titular}\n\nTienes {tiempo_vencimiento} horas para pagar. Si no llega en ese tiempo, la cita se libera.',
         cbu: '',
         alias: '',
@@ -150,6 +151,7 @@ function EditarNegocio() {
                     anticipos_por_servicio: configData.anticipos_por_servicio === true,
                     tipo_anticipo: configData.tipo_anticipo || 'fijo',
                     valor_anticipo: configData.valor_anticipo || '',
+                    moneda_anticipo: ['CUP', 'USD', 'EUR', 'MXN'].includes(String(configData.moneda_anticipo || '').toUpperCase()) ? String(configData.moneda_anticipo).toUpperCase() : '',
                     mensaje_pago: configData.mensaje_pago || 'Para confirmar tu cita, envía el anticipo de {monto_anticipo} por Transfermóvil:\n\nTarjeta: {cbu}\nMóvil a confirmar: {alias}\nTitular: {titular}\n\nTienes {tiempo_vencimiento} horas para pagar. Si no llega en ese tiempo, la cita se libera.',
                     cbu: configData.cbu || '',
                     alias: configData.alias || '',
@@ -314,6 +316,8 @@ function EditarNegocio() {
                 anticipos_por_servicio: config.anticipos_por_servicio === true,
                 tipo_anticipo: config.tipo_anticipo,
                 valor_anticipo: config.valor_anticipo ? parseFloat(config.valor_anticipo) : null,
+                // vacio = la moneda de los mensajes (como siempre); si no, la que se cobra por transferencia
+                moneda_anticipo: ['CUP', 'USD', 'EUR', 'MXN'].includes(String(config.moneda_anticipo || '').toUpperCase()) ? String(config.moneda_anticipo).toUpperCase() : null,
                 mensaje_pago: config.mensaje_pago || null,
                 cbu: config.cbu || null,
                 alias: config.alias || null,
@@ -362,10 +366,11 @@ function EditarNegocio() {
             if (!response.ok) {
                 const errorText = await response.text();
                 console.error('❌ Error response:', errorText);
-                if (errorText.includes('codigo_pais') || errorText.includes('whatsapp_moneda') || errorText.includes('whatsapp_mostrar_costos') || errorText.includes('whatsapp_envio_automatico') || errorText.includes('anticipos_por_servicio') || errorText.includes('municipio') || errorText.includes('provincia') || errorText.includes('imagen_fondo_url') || errorText.includes('fidelizacion') || errorText.includes('cumple_') || errorText.includes('aprobar_clientes_nuevos') || errorText.includes('mensaje_confirmacion_activo') || errorText.includes('mensaje_primera_vez')) {
+                if (errorText.includes('codigo_pais') || errorText.includes('whatsapp_moneda') || errorText.includes('whatsapp_mostrar_costos') || errorText.includes('whatsapp_envio_automatico') || errorText.includes('anticipos_por_servicio') || errorText.includes('moneda_anticipo') || errorText.includes('municipio') || errorText.includes('provincia') || errorText.includes('imagen_fondo_url') || errorText.includes('fidelizacion') || errorText.includes('cumple_') || errorText.includes('aprobar_clientes_nuevos') || errorText.includes('mensaje_confirmacion_activo') || errorText.includes('mensaje_primera_vez')) {
                     const datosCompatibles = { ...datosActualizar };
                     if (errorText.includes('codigo_pais')) delete datosCompatibles.codigo_pais;
                     if (errorText.includes('anticipos_por_servicio')) delete datosCompatibles.anticipos_por_servicio;
+                    if (errorText.includes('moneda_anticipo')) delete datosCompatibles.moneda_anticipo;
                     if (errorText.includes('municipio')) delete datosCompatibles.municipio;
                     if (errorText.includes('provincia')) delete datosCompatibles.provincia;
                     if (errorText.includes('imagen_fondo_url')) delete datosCompatibles.imagen_fondo_url;
@@ -946,6 +951,25 @@ function EditarNegocio() {
                                                 step={config.tipo_anticipo === 'fijo' ? "1" : "0.1"}
                                             />
                                         </div>
+
+                                        {/* Moneda del anticipo fijo: puede ser distinta de la de los precios (servicios en USD, anticipo por transferencia en CUP) */}
+                                        {(config.tipo_anticipo === 'fijo' || config.anticipos_por_servicio) && (
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">{t('Moneda del anticipo')}</label>
+                                                <select
+                                                    value={config.moneda_anticipo || ''}
+                                                    onChange={(e) => setConfig({...config, moneda_anticipo: e.target.value})}
+                                                    className="w-full border rounded-lg px-3 py-2 bg-white"
+                                                >
+                                                    <option value="">{t('La misma de los mensajes ({moneda})', { moneda: config.whatsapp_moneda || 'CUP' })}</option>
+                                                    <option value="CUP">CUP - Pesos cubanos</option>
+                                                    <option value="USD">USD - Dolares</option>
+                                                    <option value="EUR">EUR - Euros</option>
+                                                    <option value="MXN">MXN - Pesos mexicanos</option>
+                                                </select>
+                                                <p className="text-xs text-gray-500 mt-1">{t('Si tus servicios están en dólares pero el anticipo lo cobras por transferencia en pesos, elige CUP.')}</p>
+                                            </div>
+                                        )}
 
                                         {/* Tiempo de vencimiento */}
                                         <div>

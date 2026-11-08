@@ -160,3 +160,27 @@ console.log('anticipo-servicio.test.js OK');
     assert.deepEqual({ ...decidirAnticipoManual(bellalys, [conAnticipo], { esAdmin: true, quiereAdmin: true }) }, { requiere: true, sinMonto: false }, 'un servicio con anticipo propio no es "sin monto"');
     assert.deepEqual({ ...decidirAnticipoManual(bellalys, [conAnticipo, otro], { esAdmin: true, quiereAdmin: true }) }, { requiere: true, sinMonto: false }, 'varios servicios');
 }
+
+// Caso Masajes Natali (07-11-2026): servicios en USD y anticipo fijo de 500 por transferencia en CUP.
+// Antes el anticipo fijo iba siempre en la moneda de WhatsApp (USD): poner 500 habria pedido 500 USD.
+{
+    const { getMonedaAnticipo, getMonedaAnticipoNegocio } = cargarServicios();
+    const servicio = { nombre: 'Mad Abdomen', precio: 3, precio_moneda: 'USD' };
+    const otroServicio = { nombre: 'Cavitacion', precio: 5, precio_moneda: 'USD' };
+    const base = { requiere_anticipo: true, tipo_anticipo: 'fijo', valor_anticipo: 500, whatsapp_moneda: 'USD' };
+
+    assert.equal(getMonedaAnticipo(base, servicio), 'USD', 'sin moneda_anticipo todo sigue como siempre: la de WhatsApp');
+    assert.equal(getMonedaAnticipo({ ...base, moneda_anticipo: 'CUP' }, servicio), 'CUP', 'con moneda_anticipo manda esa');
+    assert.equal(getMonedaAnticipo({ ...base, moneda_anticipo: 'cup' }, servicio), 'CUP', 'sin importar mayusculas');
+    assert.equal(getMonedaAnticipo({ ...base, moneda_anticipo: 'XYZ' }, servicio), 'USD', 'una moneda rara se ignora');
+    assert.equal(getMonedaAnticipo({ ...base, moneda_anticipo: '' }, servicio), 'USD', 'vacio = la de WhatsApp');
+    assert.equal(getMonedaAnticipo({ ...base, moneda_anticipo: 'CUP' }, { esMultiple: true, servicios: [servicio, otroServicio] }), 'CUP', 'un combo tambien');
+    assert.equal(getMonedaAnticipoNegocio({ whatsapp_moneda: 'EUR' }), 'EUR');
+    assert.equal(getMonedaAnticipoNegocio({}), 'CUP');
+
+    // El monto fijo sale tal cual (500) y en enteros porque va en CUP
+    assert.equal(calcularMontoAnticipoReservaSync({ ...base, moneda_anticipo: 'CUP' }, servicio), 500);
+    // Un anticipo en PORCENTAJE sigue en la moneda del servicio aunque haya moneda_anticipo
+    const porcentaje = { requiere_anticipo: true, tipo_anticipo: 'porcentaje', valor_anticipo: 50, whatsapp_moneda: 'USD', moneda_anticipo: 'CUP' };
+    assert.equal(getMonedaAnticipo(porcentaje, servicio), 'USD', 'el porcentaje es del precio del servicio');
+}

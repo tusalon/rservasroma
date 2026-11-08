@@ -96,12 +96,20 @@ function getMonedaNegocio(configNegocio = {}) {
     return ['CUP', 'USD', 'EUR', 'MXN'].includes(moneda) ? moneda : 'CUP';
 }
 
+// Moneda en que el salon cobra el anticipo FIJO. Por defecto la de WhatsApp (como siempre); si el salon
+// pone moneda_anticipo (sql-moneda-anticipo.sql) manda esa: servicios en USD y anticipo por transferencia
+// en CUP. Un anticipo en porcentaje sigue yendo en la moneda del servicio.
+function getMonedaAnticipoNegocio(configNegocio = {}) {
+    const propia = String(configNegocio?.moneda_anticipo || '').toUpperCase();
+    return ['CUP', 'USD', 'EUR', 'MXN'].includes(propia) ? propia : getMonedaNegocio(configNegocio);
+}
+
 function getMonedaAnticipoServicio(servicio = {}, configNegocio = {}) {
     const propio = configNegocio?.anticipos_por_servicio
         && servicio.requiere_anticipo === true
         && parsePrecioServicio(servicio.valor_anticipo, 0) > 0;
     const tipo = propio ? servicio.tipo_anticipo : configNegocio?.tipo_anticipo;
-    return tipo === 'porcentaje' ? getMonedaServicio(servicio) : getMonedaNegocio(configNegocio);
+    return tipo === 'porcentaje' ? getMonedaServicio(servicio) : getMonedaAnticipoNegocio(configNegocio);
 }
 
 // seleccion: el servicio elegido, uno multiple ({ esMultiple, servicios }) o
@@ -109,7 +117,7 @@ function getMonedaAnticipoServicio(servicio = {}, configNegocio = {}) {
 function getMonedaAnticipo(configNegocio = {}, seleccion = null) {
     const servicios = Array.isArray(seleccion) ? seleccion : (seleccion ? serviciosDeSeleccion(seleccion) : []);
     const monedas = [...new Set(servicios.map(servicio => getMonedaAnticipoServicio(servicio, configNegocio)))];
-    return monedas.length === 1 ? monedas[0] : getMonedaNegocio(configNegocio);
+    return monedas.length === 1 ? monedas[0] : getMonedaAnticipoNegocio(configNegocio);
 }
 
 // CUP se cobra en enteros; USD, EUR y MXN llevan centavos.
@@ -147,6 +155,7 @@ window.getAnticipoServicio = getAnticipoServicio;
 window.calcularMontoAnticipoReservaSync = calcularMontoAnticipoReservaSync;
 window.decidirAnticipoManual = decidirAnticipoManual;
 window.getMonedaAnticipo = getMonedaAnticipo;
+window.getMonedaAnticipoNegocio = getMonedaAnticipoNegocio;
 window.redondearSegunMoneda = redondearSegunMoneda;
 
 function extraerColumnaFaltante(errorTexto) {
