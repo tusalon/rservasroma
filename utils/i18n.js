@@ -234,6 +234,8 @@
         'Por la mañana': 'Morning',
         'Por la tarde': 'Afternoon',
         'Moneda del anticipo': 'Advance payment currency',
+        'Cobrar el anticipo una sola vez por cita': 'Charge the advance only once per appointment',
+        'Si la clienta reserva varios servicios juntos, paga un solo anticipo y no uno por cada servicio.': 'If the client books several services together, she pays one advance, not one per service.',
         'La misma de los mensajes ({moneda})': 'Same as the messages ({moneda})',
         'Si tus servicios están en dólares pero el anticipo lo cobras por transferencia en pesos, elige CUP.': 'If your services are priced in dollars but you collect the advance by transfer in pesos, choose CUP.',
         'No se pudo eliminar el servicio. Revisa tu conexión e inténtalo de nuevo.': 'Could not delete the service. Check your connection and try again.',

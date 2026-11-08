@@ -125,10 +125,22 @@ function redondearSegunMoneda(valor, moneda) {
     return moneda === 'CUP' ? Math.round(valor) : Math.round(valor * 100) / 100;
 }
 
+// "Cobrar el anticipo una sola vez por cita" (negocios.anticipo_por_cita, sql-anticipo-por-cita.sql). Solo tiene
+// sentido con el monto FIJO global: un porcentaje ya es del total, y con anticipo por servicio cada uno pone el suyo.
+// Apagado (lo normal), una reserva de varios servicios suma el anticipo de cada uno, como siempre. El mensaje de
+// WhatsApp y el panel ya cobraban el fijo global una vez; esto deja la pantalla de reserva igual cuando el salon lo pide.
+function anticipoUnicoPorCita(configNegocio = {}) {
+    return configNegocio?.anticipo_por_cita === true
+        && configNegocio?.tipo_anticipo === 'fijo'
+        && !configNegocio?.anticipos_por_servicio;
+}
+
 function calcularMontoAnticipoReservaSync(configNegocio = {}, servicioSeleccionado = {}) {
     if (!configNegocio?.requiere_anticipo) return 0;
     const servicios = serviciosDeSeleccion(servicioSeleccionado);
-    const total = servicios.reduce((suma, servicio) => suma + getAnticipoServicio(servicio, configNegocio), 0);
+    const total = anticipoUnicoPorCita(configNegocio)
+        ? (servicios.length ? getAnticipoServicio(servicios[0], configNegocio) : 0)
+        : servicios.reduce((suma, servicio) => suma + getAnticipoServicio(servicio, configNegocio), 0);
     return redondearSegunMoneda(total, getMonedaAnticipo(configNegocio, servicioSeleccionado));
 }
 
@@ -156,6 +168,7 @@ window.calcularMontoAnticipoReservaSync = calcularMontoAnticipoReservaSync;
 window.decidirAnticipoManual = decidirAnticipoManual;
 window.getMonedaAnticipo = getMonedaAnticipo;
 window.getMonedaAnticipoNegocio = getMonedaAnticipoNegocio;
+window.anticipoUnicoPorCita = anticipoUnicoPorCita;
 window.redondearSegunMoneda = redondearSegunMoneda;
 
 function extraerColumnaFaltante(errorTexto) {

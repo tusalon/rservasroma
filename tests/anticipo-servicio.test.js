@@ -132,6 +132,37 @@ const { getAnticipoServicio, calcularMontoAnticipoReservaSync, decidirAnticipoMa
     assert.equal(getAnticipoServicio(servicio, config), 300, 'en modo global se ignora el anticipo propio del servicio');
 }
 
+// Masajes Natali (07-11-2026): sus 500 son POR CITA. Con anticipo_por_cita el fijo global no se multiplica por servicio.
+{
+    const { anticipoUnicoPorCita } = cargarServicios();
+    const a = { nombre: 'Mad Abdomen', precio: 2, precio_moneda: 'USD' };
+    const b = { nombre: 'Mad Cintura', precio: 2, precio_moneda: 'USD' };
+    const c = { nombre: 'Cavitacion', precio: 5, precio_moneda: 'USD' };
+    const base = { requiere_anticipo: true, tipo_anticipo: 'fijo', valor_anticipo: 500, whatsapp_moneda: 'USD', moneda_anticipo: 'CUP' };
+    const combo = (...servicios) => ({ esMultiple: true, servicios });
+
+    // Apagado (lo normal): como siempre, cada servicio suma el suyo
+    assert.equal(calcularMontoAnticipoReservaSync(base, a), 500);
+    assert.equal(calcularMontoAnticipoReservaSync(base, combo(a, b)), 1000, 'sin la opcion no cambia nada para nadie');
+    assert.equal(calcularMontoAnticipoReservaSync({ ...base, anticipo_por_cita: false }, combo(a, b, c)), 1500);
+
+    // Encendido: un solo anticipo, sean uno, dos o tres servicios
+    const porCita = { ...base, anticipo_por_cita: true };
+    assert.equal(calcularMontoAnticipoReservaSync(porCita, a), 500);
+    assert.equal(calcularMontoAnticipoReservaSync(porCita, combo(a, b)), 500);
+    assert.equal(calcularMontoAnticipoReservaSync(porCita, combo(a, b, c)), 500);
+    assert.equal(calcularMontoAnticipoReservaSync(porCita, combo()), 0, 'sin servicios no hay anticipo');
+    assert.equal(calcularMontoAnticipoReservaSync({ ...porCita, requiere_anticipo: false }, combo(a, b)), 0, 'sin anticipo en el salon, nada');
+
+    // No actua donde no tiene sentido
+    assert.equal(anticipoUnicoPorCita({ ...porCita, tipo_anticipo: 'porcentaje' }), false, 'un porcentaje ya es del total');
+    assert.equal(anticipoUnicoPorCita({ ...porCita, anticipos_por_servicio: true }), false, 'con anticipo por servicio cada uno pone el suyo');
+    assert.equal(anticipoUnicoPorCita({ ...porCita, anticipo_por_cita: 'true' }), false, 'solo el booleano true');
+    assert.equal(anticipoUnicoPorCita(undefined), false);
+    const porcentaje = { requiere_anticipo: true, tipo_anticipo: 'porcentaje', valor_anticipo: 50, whatsapp_moneda: 'USD', anticipo_por_cita: true };
+    assert.equal(calcularMontoAnticipoReservaSync(porcentaje, combo(a, b)), 2, 'el porcentaje sigue sumando (50 % de 4 USD)');
+}
+
 console.log('anticipo-servicio.test.js OK');
 
 // Alta manual desde el panel: se pide anticipo igual que a la clienta, no solo si la duena marca la casilla.
