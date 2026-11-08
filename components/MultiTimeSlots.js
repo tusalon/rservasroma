@@ -1,6 +1,6 @@
 // components/MultiTimeSlots.js - horarios secuenciales para varios servicios/profesionales
 
-function MultiTimeSlots({ service, date, profesional, onTimeSelect, selectedTime, onNoAvailability }) {
+function MultiTimeSlots({ service, date, profesional, cliente, onTimeSelect, selectedTime, onNoAvailability }) {
     window.useIdioma();
     const t = window.t;
     const [slots, setSlots] = React.useState([]);
@@ -8,6 +8,8 @@ function MultiTimeSlots({ service, date, profesional, onTimeSelect, selectedTime
     const [error, setError] = React.useState(null);
     const [minAntelacionHoras, setMinAntelacionHoras] = React.useState(2);
     const [recortadas, setRecortadas] = React.useState(false);
+    // ¿Quedan horas de inicio que aun se pueden reservar (aunque no haya hueco seguido para todo el combo)?
+    const [hayHorasPosibles, setHayHorasPosibles] = React.useState(false);
 
     const asignaciones = profesional?.asignaciones || [];
 
@@ -70,6 +72,7 @@ function MultiTimeSlots({ service, date, profesional, onTimeSelect, selectedTime
                 const totalBase = baseSlots.length;
                 baseSlots = baseSlots.filter(slot => horaCumpleAntelacion(date, slot, minHoras));
                 setRecortadas(baseSlots.length < totalBase);
+                setHayHorasPosibles(baseSlots.length > 0);
 
                 const disponibles = baseSlots.filter(slot => {
                     let cursor = timeToMinutes(slot);
@@ -136,6 +139,18 @@ function MultiTimeSlots({ service, date, profesional, onTimeSelect, selectedTime
                 </div>
             ) : error ? (
                 <AvisoSinHoras icono="⏳" titulo={error} />
+            ) : slots.length === 0 && hayHorasPosibles ? (
+                // Sin hueco seguido para todo el combo: la lista de espera es lo unico que hay, abierta.
+                <>
+                    <AvisoSinHoras
+                        icono="💗"
+                        titulo={t('Este día está lleno')}
+                        texto={t('Pero las citas a veces se cancelan.')}
+                    />
+                    <AvisameListaEspera service={service} date={date} profesional={profesional} cliente={cliente}
+                        asignaciones={asignaciones} abiertoAlInicio
+                        fechaTexto={window.formatFechaCompleta ? window.formatFechaCompleta(date) : date} />
+                </>
             ) : slots.length === 0 ? (
                 recortadas ? (
                     <AvisoSinHoras
@@ -154,6 +169,9 @@ function MultiTimeSlots({ service, date, profesional, onTimeSelect, selectedTime
                 <>
                     {recortadas && <NotaAntelacion horas={minAntelacionHoras} />}
                     <GruposDeHoras slots={slots} selectedTime={selectedTime} onTimeSelect={onTimeSelect} />
+                    <AvisameListaEspera service={service} date={date} profesional={profesional} cliente={cliente}
+                        asignaciones={asignaciones}
+                        fechaTexto={window.formatFechaCompleta ? window.formatFechaCompleta(date) : date} />
                 </>
             )}
         </div>

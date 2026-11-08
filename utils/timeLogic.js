@@ -272,3 +272,37 @@ function horaCumpleAntelacion(fecha, hora, minHoras) {
     return new Date(y, mo - 1, d, h || 0, m || 0).getTime() >= limite;
 }
 window.horaCumpleAntelacion = horaCumpleAntelacion;
+
+// Horas que aceptan TODOS los servicios de un combo (los que no restringen no cuentan).
+function combinarHorariosPermitidos(seleccionados) {
+    const listas = (seleccionados || [])
+        .map(servicio => Array.isArray(servicio.horarios_permitidos) ? servicio.horarios_permitidos : [])
+        .filter(lista => lista.length > 0);
+    if (listas.length === 0) return [];
+    return listas.reduce((base, lista) => base.filter(hora => lista.includes(hora)));
+}
+
+// El "servicio" que representa varios servicios a la vez (ServiceSelectionCategorias lo crea al continuar
+// y client-app.js lo recrea al reservar una hora guardada por la lista de espera).
+function armarServicioCombo(servicios) {
+    const lista = servicios || [];
+    const monedaDe = s => (window.getMonedaServicio ? window.getMonedaServicio(s) : 'CUP');
+    const total = lista.reduce((t, servicio) => ({
+        duracion: t.duracion + (parseInt(servicio.duracion, 10) || 0),
+        precio: t.precio + (window.getPrecioServicioBase ? window.getPrecioServicioBase(servicio) : (parseFloat(servicio.precio) || 0)),
+        monedas: t.monedas.includes(monedaDe(servicio)) ? t.monedas : [...t.monedas, monedaDe(servicio)]
+    }), { duracion: 0, precio: 0, monedas: [] });
+    return {
+        id: `multi-${lista.map(s => s.id).join('-')}`,
+        esMultiple: true,
+        servicios: lista,
+        nombre: lista.map(s => s.nombre).join(' + '),
+        duracion: total.duracion,
+        precio: total.precio,
+        precio_desde: total.precio,
+        precio_moneda: total.monedas.length === 1 ? total.monedas[0] : 'CUP',
+        categoria: 'combos',
+        horarios_permitidos: combinarHorariosPermitidos(lista)
+    };
+}
+window.armarServicioCombo = armarServicioCombo;

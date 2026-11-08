@@ -28,13 +28,15 @@ function NotaAntelacion({ horas }) {
   if (!(Number(horas) > 0)) return null;
   return /* @__PURE__ */ React.createElement("p", { className: "flex items-center gap-2 text-xs font-medium text-gray-600" }, /* @__PURE__ */ React.createElement("span", { className: "inline-flex w-6 h-6 rounded-full bg-pink-50 items-center justify-center", "aria-hidden": "true" }, "🕒"), t("Se reserva con al menos {n} h de anticipación.", { n: horas }));
 }
-function AvisameListaEspera({ service, date, profesional, cliente, fechaTexto, abiertoAlInicio = false }) {
+function AvisameListaEspera({ service, date, profesional, cliente, fechaTexto, abiertoAlInicio = false, asignaciones = null }) {
   const t = window.t;
   const [abierto, setAbierto] = React.useState(abiertoAlInicio);
   const [franja, setFranja] = React.useState("cualquiera");
   const [cualquiera, setCualquiera] = React.useState(false);
   const [variasPro, setVariasPro] = React.useState(false);
   const [estado, setEstado] = React.useState("");
+  const esCombo = Array.isArray(asignaciones) && asignaciones.length > 1;
+  const comboVarias = esCombo && window.listaEspera?.comboConVariasProfesionales(window.listaEspera.comboDeAsignaciones(asignaciones));
   React.useEffect(() => {
     setEstado("");
     setAbierto(abiertoAlInicio);
@@ -43,7 +45,7 @@ function AvisameListaEspera({ service, date, profesional, cliente, fechaTexto, a
     let vivo = true;
     (async () => {
       try {
-        const asignadas = service?.id && window.getProfesionalesPorServicio ? await window.getProfesionalesPorServicio(service.id) : [];
+        const asignadas = !esCombo && service?.id && window.getProfesionalesPorServicio ? await window.getProfesionalesPorServicio(service.id) : [];
         if (vivo) setVariasPro((asignadas || []).length > 1);
       } catch (e) {
       }
@@ -74,7 +76,7 @@ function AvisameListaEspera({ service, date, profesional, cliente, fechaTexto, a
       return;
     }
     setEstado("guardando");
-    const r = await window.listaEspera.unirse({ cliente, servicio: service, profesional, fecha: date, franja, cualquierProfesional: cualquiera });
+    const r = await window.listaEspera.unirse({ cliente, servicio: service, profesional, fecha: date, franja, cualquierProfesional: cualquiera, asignaciones: esCombo ? asignaciones : null });
     setEstado(r?.ok ? "ok" : r?.motivo === "ya_anotada" ? "ya" : "error");
   };
   const opciones = [["manana", t("Por la mañana")], ["tarde", t("Por la tarde")], ["cualquiera", t("Me da igual")]];
@@ -88,7 +90,7 @@ function AvisameListaEspera({ service, date, profesional, cliente, fechaTexto, a
       className: `py-2.5 px-1 rounded-2xl text-sm font-bold transition-all ${franja === valor ? "bg-pink-500 text-white shadow-md" : "bg-white text-gray-800 border border-pink-200"}`
     },
     texto
-  )))), variasPro && /* @__PURE__ */ React.createElement("label", { className: "flex items-center gap-3 text-sm text-gray-800 min-h-11 cursor-pointer" }, /* @__PURE__ */ React.createElement("input", { type: "checkbox", checked: cualquiera, onChange: (e) => setCualquiera(e.target.checked), className: "w-5 h-5 accent-pink-600" }), t("Me vale cualquier profesional")), estado === "error" && /* @__PURE__ */ React.createElement("p", { role: "alert", className: "text-sm text-red-700" }, t("No se pudo anotarte en lista de espera. Intenta de nuevo.")), estado === "sin-sesion" && /* @__PURE__ */ React.createElement("p", { role: "alert", className: "text-sm text-red-700" }, t("Necesitas ingresar con tu WhatsApp para anotarte en lista de espera.")), /* @__PURE__ */ React.createElement(
+  )))), comboVarias && /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-600" }, t("Un servicio con cada profesional: te avisamos si se libera, pero el hueco lo organiza el salón.")), variasPro && !esCombo && /* @__PURE__ */ React.createElement("label", { className: "flex items-center gap-3 text-sm text-gray-800 min-h-11 cursor-pointer" }, /* @__PURE__ */ React.createElement("input", { type: "checkbox", checked: cualquiera, onChange: (e) => setCualquiera(e.target.checked), className: "w-5 h-5 accent-pink-600" }), t("Me vale cualquier profesional")), estado === "error" && /* @__PURE__ */ React.createElement("p", { role: "alert", className: "text-sm text-red-700" }, t("No se pudo anotarte en lista de espera. Intenta de nuevo.")), estado === "sin-sesion" && /* @__PURE__ */ React.createElement("p", { role: "alert", className: "text-sm text-red-700" }, t("Necesitas ingresar con tu WhatsApp para anotarte en lista de espera.")), /* @__PURE__ */ React.createElement(
     "button",
     {
       type: "button",

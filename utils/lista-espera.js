@@ -72,7 +72,32 @@
         return `${h % 12 || 12}:${String(d.getMinutes()).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`;
     }
 
-    const api = { VISIBLES, aMinutos, ofertaVigente, horaLimite, textoFranja, mensajeOferta, mensajeReservada, ordenarListaEspera };
+    // Una espera de combo guarda los servicios en orden con su profesional (columna combo).
+    // `asignaciones` es lo que arma MultiProfesionalSelector: [{ servicio, profesional }].
+    function comboDeAsignaciones(asignaciones) {
+        if (!Array.isArray(asignaciones) || asignaciones.length < 2) return null;
+        return asignaciones.map(a => ({
+            servicio: a.servicio?.nombre || '',
+            duracion: parseInt(a.servicio?.duracion, 10) || 30,
+            profesional_id: a.profesional?.id ?? null,
+            profesional_nombre: a.profesional?.nombre || null
+        }));
+    }
+
+    // Un combo con una sola profesional se ofrece solo; con varias, lo gestiona la duena.
+    function comboConVariasProfesionales(combo) {
+        return new Set((combo || []).map(x => x.profesional_id).filter(x => x != null)).size > 1;
+    }
+
+    // WhatsApp de la duena a una clienta de combo con varias profesionales (no se le puede guardar una
+    // hora sola): pregunta, no afirma nada.
+    function mensajeBuscarHueco({ nombre, fecha, servicio, salon }) {
+        const saludo = nombre ? `Hola ${nombre}` : 'Hola';
+        const lugar = salon ? ` en ${salon}` : '';
+        return `${saludo}, estás en nuestra lista de espera${lugar} para ${servicio} el ${fecha}. ¿Sigues interesada? Si quieres, te busco un hueco.`;
+    }
+
+    const api = { VISIBLES, aMinutos, ofertaVigente, horaLimite, comboDeAsignaciones, comboConVariasProfesionales, mensajeBuscarHueco, textoFranja, mensajeOferta, mensajeReservada, ordenarListaEspera };
 
     if (typeof module !== 'undefined' && module.exports) module.exports = api;
     if (typeof window === 'undefined') return;
@@ -99,18 +124,23 @@
     };
 
     // Devuelve { ok, id } o { ok:false, motivo: 'ya_anotada' | 'fecha' | 'datos' | 'error' }.
-    async function unirse({ cliente, servicio, profesional, fecha, franja, cualquierProfesional }) {
+    // Con `asignaciones` (varios servicios) se guarda el combo entero y la duracion total.
+    async function unirse({ cliente, servicio, profesional, fecha, franja, cualquierProfesional, asignaciones }) {
         try {
+            const combo = comboDeAsignaciones(asignaciones);
+            const unaSola = combo && !comboConVariasProfesionales(combo);
+            const sinProfesional = combo ? !unaSola : cualquierProfesional;
             return await rpc('lista_espera_unirse', {
                 p_negocio: negocio(),
                 p_nombre: cliente?.nombre || '',
                 p_whatsapp: cliente?.whatsapp || '',
-                p_servicio: servicio?.nombre || '',
-                p_duracion: parseInt(servicio?.duracion, 10) || null,
-                p_profesional_id: cualquierProfesional ? null : (profesional?.id ?? null),
-                p_profesional_nombre: cualquierProfesional ? null : (profesional?.nombre || null),
+                p_servicio: combo ? combo.map(x => x.servicio).join(' + ') : (servicio?.nombre || ''),
+                p_duracion: combo ? combo.reduce((t, x) => t + x.duracion, 0) : (parseInt(servicio?.duracion, 10) || null),
+                p_profesional_id: sinProfesional ? null : (combo ? combo[0].profesional_id : (profesional?.id ?? null)),
+                p_profesional_nombre: sinProfesional ? null : (combo ? combo[0].profesional_nombre : (profesional?.nombre || null)),
                 p_fecha: fecha,
-                p_franja: franja || 'cualquiera'
+                p_franja: franja || 'cualquiera',
+                p_combo: combo
             });
         } catch (e) {
             console.error('No se pudo anotar en la lista de espera:', e);
@@ -190,6 +220,9 @@
         'Avisar por WhatsApp': 'Notify on WhatsApp',
         'Quitar de la lista': 'Remove from list',
         'Cualquier profesional': 'Any professional',
+        'Varias profesionales': 'Several professionals',
+        'Escribirle por WhatsApp': 'Message on WhatsApp',
+        'Un servicio con cada profesional: te avisamos si se libera, pero el hueco lo organiza el salón.': 'One service with each professional: we will let you know if something opens, but the salon arranges the slot.',
         'Cuando una clienta se anote en un día lleno, aparecerá aquí. Si se libera una hora, la app se la ofrece sola a la primera de la fila y se la guarda 30 minutos.': 'When a client joins a full day she will show up here. If a time opens up, the app offers it to the first in line and holds it for 30 minutes.',
         'No se pudo cargar la lista de espera.': 'Could not load the waitlist.',
         'No se pudo actualizar. Inténtalo de nuevo.': 'Could not update. Please try again.',

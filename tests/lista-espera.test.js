@@ -35,6 +35,41 @@ assert.equal(
 );
 assert.ok(!/usted|ayudarle/i.test(oferta + sinDatos), 'en tuteo');
 
+// --- Combos (varios servicios a la vez)
+const asig = [
+    { servicio: { nombre: 'Mad Abdomen', duracion: 20 }, profesional: { id: 581, nombre: 'Naomi' } },
+    { servicio: { nombre: 'Cintura', duracion: '20' }, profesional: { id: 581, nombre: 'Naomi' } },
+];
+const combo = l.comboDeAsignaciones(asig);
+assert.deepEqual(combo, [
+    { servicio: 'Mad Abdomen', duracion: 20, profesional_id: 581, profesional_nombre: 'Naomi' },
+    { servicio: 'Cintura', duracion: 20, profesional_id: 581, profesional_nombre: 'Naomi' },
+], 'conserva el orden, la duracion y la profesional de cada servicio');
+assert.equal(l.comboDeAsignaciones([asig[0]]), null, 'un solo servicio no es combo');
+assert.equal(l.comboDeAsignaciones(null), null);
+assert.equal(l.comboConVariasProfesionales(combo), false, 'todos con la misma: se ofrece sola');
+assert.equal(l.comboConVariasProfesionales([...combo, { servicio: 'X', profesional_id: 517 }]), true, 'varias: la gestiona la duena');
+assert.equal(l.comboConVariasProfesionales(null), false);
+const buscar = l.mensajeBuscarHueco({ nombre: 'Ana', fecha: 'lunes 9', servicio: 'A + B', salon: 'Masajes N' });
+assert.equal(buscar, 'Hola Ana, estás en nuestra lista de espera en Masajes N para A + B el lunes 9. ¿Sigues interesada? Si quieres, te busco un hueco.');
+assert.ok(!/ya tienes|reservamos|se liberó/i.test(buscar), 'no afirma una cita ni una hora libre');
+
+// armarServicioCombo (utils/timeLogic.js): el mismo combo que arma la pantalla de servicios
+global.window = {};
+require('../utils/timeLogic.js');
+const combo2 = global.window.armarServicioCombo([
+    { id: 1, nombre: 'A', duracion: 20, precio: 3, horarios_permitidos: ['9:30', '10:30'] },
+    { id: 2, nombre: 'B', duracion: 30, precio: 2, horarios_permitidos: ['10:30', '11:30'] },
+    { id: 3, nombre: 'C', duracion: 10, precio: 1, horarios_permitidos: [] },
+]);
+assert.equal(combo2.id, 'multi-1-2-3');
+assert.equal(combo2.nombre, 'A + B + C');
+assert.equal(combo2.duracion, 60);
+assert.equal(combo2.precio, 6);
+assert.equal(combo2.esMultiple, true);
+assert.deepEqual(combo2.horarios_permitidos, ['10:30'], 'solo la hora que aceptan todos los que restringen');
+delete global.window;
+
 // --- Orden del panel: horas guardadas arriba; luego por dia y llegada; fuera cerradas, reservadas y pasadas
 const ahora = new Date(2026, 10, 9, 10, 0);
 const filas = [

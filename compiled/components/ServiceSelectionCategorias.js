@@ -126,29 +126,13 @@ function ServiceSelection({ onSelect, selectedService }) {
     setServiciosSeleccionados([servicioUltimoTurno]);
     onSelect(servicioUltimoTurno);
   };
-  const combinarHorariosPermitidos = (seleccionados) => {
-    const listas = seleccionados.map((servicio) => Array.isArray(servicio.horarios_permitidos) ? servicio.horarios_permitidos : []).filter((lista) => lista.length > 0);
-    if (listas.length === 0) return [];
-    return listas.reduce((base, lista) => base.filter((hora) => lista.includes(hora)));
-  };
   const continuar = () => {
     if (serviciosSeleccionados.length === 0) return;
     if (serviciosSeleccionados.length === 1) {
       onSelect(serviciosSeleccionados[0]);
       return;
     }
-    onSelect({
-      id: `multi-${serviciosSeleccionados.map((s) => s.id).join("-")}`,
-      esMultiple: true,
-      servicios: serviciosSeleccionados,
-      nombre: serviciosSeleccionados.map((s) => s.nombre).join(" + "),
-      duracion: totalSeleccion.duracion,
-      precio: totalSeleccion.precio,
-      precio_desde: totalSeleccion.precio,
-      precio_moneda: totalSeleccion.monedas.length === 1 ? totalSeleccion.monedas[0] : "CUP",
-      categoria: "combos",
-      horarios_permitidos: combinarHorariosPermitidos(serviciosSeleccionados)
-    });
+    onSelect(window.armarServicioCombo(serviciosSeleccionados));
   };
   if (cargando) {
     return /* @__PURE__ */ React.createElement("div", { className: "space-y-4 animate-fade-in" }, /* @__PURE__ */ React.createElement("h2", { className: "text-lg font-semibold text-pink-700 flex items-center gap-2" }, /* @__PURE__ */ React.createElement("span", { className: "text-2xl" }, "✨"), t("1. Elige tu servicio")), /* @__PURE__ */ React.createElement("div", { className: "text-center py-8" }, /* @__PURE__ */ React.createElement("div", { className: "animate-spin h-8 w-8 border-b-2 border-pink-500 rounded-full mx-auto" }), /* @__PURE__ */ React.createElement("p", { className: "text-pink-400 mt-4" }, t("Cargando servicios..."))));

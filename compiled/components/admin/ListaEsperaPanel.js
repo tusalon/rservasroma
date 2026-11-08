@@ -68,18 +68,47 @@ function ListaEsperaPanel({ profesionalId = null, nombreSalon = "", onCambio }) 
     setTrabajando(f.id);
     setAviso("");
     try {
-      await window.createBooking({
-        cliente_nombre: f.cliente_nombre,
-        cliente_whatsapp: f.cliente_whatsapp,
-        servicio: f.servicio,
-        duracion: f.duracion,
-        profesional_id: f.oferta_profesional_id,
-        profesional_nombre: f.oferta_profesional_nombre,
-        fecha: f.fecha,
-        hora_inicio: String(f.oferta_hora).slice(0, 5),
-        hora_fin: String(f.oferta_hora_fin || "").slice(0, 5) || null,
-        estado: "Reservado"
-      });
+      const tramos = [];
+      const aMin = (h) => le.aMinutos(h);
+      const aHora = (m) => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+      if (Array.isArray(f.combo) && f.combo.length > 1) {
+        let cursor = aMin(f.oferta_hora);
+        for (const item of f.combo) {
+          const dur = Number(item.duracion) || 30;
+          tramos.push({ servicio: item.servicio, duracion: dur, hora_inicio: aHora(cursor), hora_fin: aHora(cursor + dur) });
+          cursor += dur;
+        }
+      } else {
+        tramos.push({ servicio: f.servicio, duracion: f.duracion, hora_inicio: String(f.oferta_hora).slice(0, 5), hora_fin: String(f.oferta_hora_fin || "").slice(0, 5) || null });
+      }
+      const creadas = [];
+      try {
+        for (const tramo of tramos) {
+          const r = await window.createBooking({
+            cliente_nombre: f.cliente_nombre,
+            cliente_whatsapp: f.cliente_whatsapp,
+            servicio: tramo.servicio,
+            duracion: tramo.duracion,
+            profesional_id: f.oferta_profesional_id,
+            profesional_nombre: f.oferta_profesional_nombre,
+            fecha: f.fecha,
+            hora_inicio: tramo.hora_inicio,
+            hora_fin: tramo.hora_fin,
+            estado: "Reservado"
+          });
+          if (!r?.success || !r.data) throw new Error("No se pudo crear un tramo");
+          creadas.push(r.data);
+        }
+      } catch (errTramo) {
+        for (const c of creadas) {
+          try {
+            await window.updateBookingStatus(c.id, "Cancelado");
+          } catch (e) {
+            console.error("No se pudo revertir", c.id, e);
+          }
+        }
+        throw errTramo;
+      }
       window.enviarWhatsApp(f.cliente_whatsapp, le.mensajeReservada({
         nombre: f.cliente_nombre,
         fecha: fechaTxt(f.fecha),
@@ -107,6 +136,14 @@ function ListaEsperaPanel({ profesionalId = null, nombreSalon = "", onCambio }) 
       salon: nombreSalon,
       hasta: hastaTxt(f.oferta_hasta),
       enlace: enlaceSalon()
+    }), { forzar: true });
+  };
+  const escribir = (f) => {
+    window.enviarWhatsApp(f.cliente_whatsapp, le.mensajeBuscarHueco({
+      nombre: f.cliente_nombre,
+      fecha: fechaTxt(f.fecha),
+      servicio: f.servicio,
+      salon: nombreSalon
     }), { forzar: true });
   };
   const quitar = async (f) => {
@@ -140,7 +177,7 @@ function ListaEsperaPanel({ profesionalId = null, nombreSalon = "", onCambio }) 
     t("Ver la lista")
   )) : cargando ? /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500" }, t("Cargando...")) : ordenadas.length === 0 ? null : /* @__PURE__ */ React.createElement("ul", { className: "space-y-3" }, ordenadas.map((f) => {
     const guardada = le.ofertaVigente(f);
-    return /* @__PURE__ */ React.createElement("li", { key: f.id, className: `rounded-2xl border p-4 ${guardada ? "border-pink-300 bg-pink-50/60" : "border-gray-200 bg-white"}` }, /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap items-start justify-between gap-2" }, /* @__PURE__ */ React.createElement("div", { className: "min-w-0" }, /* @__PURE__ */ React.createElement("p", { className: "font-semibold text-gray-900 break-words" }, f.cliente_nombre), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-600 break-words" }, f.servicio, " · ", f.profesional_nombre || t("Cualquier profesional")), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-800 mt-1" }, fechaTxt(f.fecha), " · ", guardada ? `${horaTxt(f.oferta_hora)}${f.oferta_profesional_nombre ? ` · ${f.oferta_profesional_nombre}` : ""}` : t(le.textoFranja(f.franja)))), /* @__PURE__ */ React.createElement("span", { className: `px-2.5 py-1 rounded-full text-xs font-bold ${guardada ? "bg-pink-500 text-white" : "bg-gray-100 text-gray-700"}` }, guardada ? t("Guardada hasta las {hora}", { hora: hastaTxt(f.oferta_hasta) }) : t("Esperando"))), /* @__PURE__ */ React.createElement("div", { className: "mt-3 flex flex-wrap gap-2" }, guardada && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(
+    return /* @__PURE__ */ React.createElement("li", { key: f.id, className: `rounded-2xl border p-4 ${guardada ? "border-pink-300 bg-pink-50/60" : "border-gray-200 bg-white"}` }, /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap items-start justify-between gap-2" }, /* @__PURE__ */ React.createElement("div", { className: "min-w-0" }, /* @__PURE__ */ React.createElement("p", { className: "font-semibold text-gray-900 break-words" }, f.cliente_nombre), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-600 break-words" }, f.servicio, " · ", Array.isArray(f.combo) && le.comboConVariasProfesionales(f.combo) ? t("Varias profesionales") : f.profesional_nombre || t("Cualquier profesional")), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-800 mt-1" }, fechaTxt(f.fecha), " · ", guardada ? `${horaTxt(f.oferta_hora)}${f.oferta_profesional_nombre ? ` · ${f.oferta_profesional_nombre}` : ""}` : t(le.textoFranja(f.franja)))), /* @__PURE__ */ React.createElement("span", { className: `px-2.5 py-1 rounded-full text-xs font-bold ${guardada ? "bg-pink-500 text-white" : "bg-gray-100 text-gray-700"}` }, guardada ? t("Guardada hasta las {hora}", { hora: hastaTxt(f.oferta_hasta) }) : t("Esperando"))), /* @__PURE__ */ React.createElement("div", { className: "mt-3 flex flex-wrap gap-2" }, guardada && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(
       "button",
       {
         type: "button",
@@ -159,7 +196,16 @@ function ListaEsperaPanel({ profesionalId = null, nombreSalon = "", onCambio }) 
         className: "px-4 min-h-11 rounded-full bg-green-600 text-white text-sm font-semibold disabled:opacity-50"
       },
       t("Avisar por WhatsApp")
-    )), /* @__PURE__ */ React.createElement(
+    )), !guardada && Array.isArray(f.combo) && le.comboConVariasProfesionales(f.combo) && /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        type: "button",
+        disabled: trabajando === f.id,
+        onClick: () => escribir(f),
+        className: "px-4 min-h-11 rounded-full bg-green-600 text-white text-sm font-semibold disabled:opacity-50"
+      },
+      t("Escribirle por WhatsApp")
+    ), /* @__PURE__ */ React.createElement(
       "button",
       {
         type: "button",

@@ -1,4 +1,4 @@
-function MultiTimeSlots({ service, date, profesional, onTimeSelect, selectedTime, onNoAvailability }) {
+function MultiTimeSlots({ service, date, profesional, cliente, onTimeSelect, selectedTime, onNoAvailability }) {
   window.useIdioma();
   const t = window.t;
   const [slots, setSlots] = React.useState([]);
@@ -6,6 +6,7 @@ function MultiTimeSlots({ service, date, profesional, onTimeSelect, selectedTime
   const [error, setError] = React.useState(null);
   const [minAntelacionHoras, setMinAntelacionHoras] = React.useState(2);
   const [recortadas, setRecortadas] = React.useState(false);
+  const [hayHorasPosibles, setHayHorasPosibles] = React.useState(false);
   const asignaciones = profesional?.asignaciones || [];
   const timeToMinutes = (timeStr) => {
     const [hours, minutes] = String(timeStr || "00:00").split(":").map(Number);
@@ -47,6 +48,7 @@ function MultiTimeSlots({ service, date, profesional, onTimeSelect, selectedTime
         const totalBase = baseSlots.length;
         baseSlots = baseSlots.filter((slot) => horaCumpleAntelacion(date, slot, minHoras));
         setRecortadas(baseSlots.length < totalBase);
+        setHayHorasPosibles(baseSlots.length > 0);
         const disponibles = baseSlots.filter((slot) => {
           let cursor = timeToMinutes(slot);
           if (primerServicioSinHorario(datos.map((item) => item.servicio), cursor, diaSemana)) return false;
@@ -81,7 +83,28 @@ function MultiTimeSlots({ service, date, profesional, onTimeSelect, selectedTime
     cargar();
   }, [service, date, profesional, onNoAvailability]);
   if (!service?.esMultiple || !date || !profesional?.esMultiple) return null;
-  return /* @__PURE__ */ React.createElement("div", { className: "space-y-4 animate-fade-in" }, /* @__PURE__ */ React.createElement("h2", { className: "text-lg font-semibold text-pink-700 flex items-center gap-2" }, /* @__PURE__ */ React.createElement("span", { className: "text-2xl" }, "⏰"), t("4. Elige horario de inicio"), selectedTime && /* @__PURE__ */ React.createElement("span", { className: "text-xs bg-pink-100 text-pink-700 px-2 py-1 rounded-full ml-2" }, t("Seleccionado"))), /* @__PURE__ */ React.createElement("p", { className: "flex items-center gap-2 text-sm text-gray-700 bg-white/90 px-4 py-3 rounded-2xl border border-pink-100 shadow-sm" }, /* @__PURE__ */ React.createElement("span", { className: "inline-flex w-7 h-7 shrink-0 rounded-full bg-pink-50 items-center justify-center", "aria-hidden": "true" }, "🔗"), t("Los servicios se reservarán en secuencia desde la hora seleccionada.")), loading ? /* @__PURE__ */ React.createElement("div", { className: "flex justify-center py-8" }, /* @__PURE__ */ React.createElement("div", { className: "animate-spin rounded-full h-8 w-8 border-b-2 border-pink-500" })) : error ? /* @__PURE__ */ React.createElement(AvisoSinHoras, { icono: "⏳", titulo: error }) : slots.length === 0 ? recortadas ? /* @__PURE__ */ React.createElement(
+  return /* @__PURE__ */ React.createElement("div", { className: "space-y-4 animate-fade-in" }, /* @__PURE__ */ React.createElement("h2", { className: "text-lg font-semibold text-pink-700 flex items-center gap-2" }, /* @__PURE__ */ React.createElement("span", { className: "text-2xl" }, "⏰"), t("4. Elige horario de inicio"), selectedTime && /* @__PURE__ */ React.createElement("span", { className: "text-xs bg-pink-100 text-pink-700 px-2 py-1 rounded-full ml-2" }, t("Seleccionado"))), /* @__PURE__ */ React.createElement("p", { className: "flex items-center gap-2 text-sm text-gray-700 bg-white/90 px-4 py-3 rounded-2xl border border-pink-100 shadow-sm" }, /* @__PURE__ */ React.createElement("span", { className: "inline-flex w-7 h-7 shrink-0 rounded-full bg-pink-50 items-center justify-center", "aria-hidden": "true" }, "🔗"), t("Los servicios se reservarán en secuencia desde la hora seleccionada.")), loading ? /* @__PURE__ */ React.createElement("div", { className: "flex justify-center py-8" }, /* @__PURE__ */ React.createElement("div", { className: "animate-spin rounded-full h-8 w-8 border-b-2 border-pink-500" })) : error ? /* @__PURE__ */ React.createElement(AvisoSinHoras, { icono: "⏳", titulo: error }) : slots.length === 0 && hayHorasPosibles ? (
+    // Sin hueco seguido para todo el combo: la lista de espera es lo unico que hay, abierta.
+    /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(
+      AvisoSinHoras,
+      {
+        icono: "💗",
+        titulo: t("Este día está lleno"),
+        texto: t("Pero las citas a veces se cancelan.")
+      }
+    ), /* @__PURE__ */ React.createElement(
+      AvisameListaEspera,
+      {
+        service,
+        date,
+        profesional,
+        cliente,
+        asignaciones,
+        abiertoAlInicio: true,
+        fechaTexto: window.formatFechaCompleta ? window.formatFechaCompleta(date) : date
+      }
+    ))
+  ) : slots.length === 0 ? recortadas ? /* @__PURE__ */ React.createElement(
     AvisoSinHoras,
     {
       icono: "🕒",
@@ -95,5 +118,15 @@ function MultiTimeSlots({ service, date, profesional, onTimeSelect, selectedTime
       titulo: t("No hay horarios seguidos para estos servicios ese día."),
       texto: t("Prueba con otra fecha en el calendario de arriba.")
     }
-  ) : /* @__PURE__ */ React.createElement(React.Fragment, null, recortadas && /* @__PURE__ */ React.createElement(NotaAntelacion, { horas: minAntelacionHoras }), /* @__PURE__ */ React.createElement(GruposDeHoras, { slots, selectedTime, onTimeSelect })));
+  ) : /* @__PURE__ */ React.createElement(React.Fragment, null, recortadas && /* @__PURE__ */ React.createElement(NotaAntelacion, { horas: minAntelacionHoras }), /* @__PURE__ */ React.createElement(GruposDeHoras, { slots, selectedTime, onTimeSelect }), /* @__PURE__ */ React.createElement(
+    AvisameListaEspera,
+    {
+      service,
+      date,
+      profesional,
+      cliente,
+      asignaciones,
+      fechaTexto: window.formatFechaCompleta ? window.formatFechaCompleta(date) : date
+    }
+  )));
 }

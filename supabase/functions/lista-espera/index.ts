@@ -9,7 +9,7 @@
 //      30 minutos y se avisa por push a ella y a la duena. Sin candidata, el hueco se cierra.
 // Prueba sin cambiar nada: POST {"dry_run": true}.
 
-import { aHora, aMin, elegirCandidata, finLibre, juntarHuecos } from "./cuenta.mjs";
+import { aHora, aMin, diaDe, elegirCandidata, encajaServicios, finLibre, itemsDeEspera, juntarHuecos } from "./cuenta.mjs";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -96,15 +96,8 @@ Deno.serve(async (req) => {
         const minHoras = Number(config?.min_antelacion_horas ?? 2);
         const profesionales: any[] = await leer(`profesionales?negocio_id=eq.${negocioId}&select=id,nombre`);
         const nombrePro = (id: number) => profesionales.find((p) => p.id === id)?.nombre || "";
-        const servicios: any[] = await leer(`servicios?negocio_id=eq.${negocioId}&select=id,nombre`);
+        const servicios: any[] = await leer(`servicios?negocio_id=eq.${negocioId}&select=id,nombre,horarios_permitidos,horarios_permitidos_por_dia`);
         const asignaciones: any[] = await leer(`servicios_profesionales?negocio_id=eq.${negocioId}&select=servicio_id,profesional_id`);
-        const haceServicio = (proId: number, servicio: string) => {
-          const s = servicios.find((x) => x.nombre === servicio);
-          if (!s) return true;
-          const de = asignaciones.filter((a) => a.servicio_id === s.id);
-          return !de.length || de.some((a) => a.profesional_id === proId);
-        };
-
         // Huecos seguidos de la misma profesional se juntan (un combo cancelado deja varias filas).
         const juntos = juntarHuecos(lista);
 
@@ -120,10 +113,11 @@ Deno.serve(async (req) => {
           if (fin === null) { await cerrar(); continue; }
 
           const esperan: any[] = await leer(`lista_espera?negocio_id=eq.${negocioId}&fecha=eq.${hueco.fecha}&tipo=eq.dia&estado=eq.esperando&order=created_at.asc&select=*`);
-          const elegida = elegirCandidata(hueco, fin, esperan, haceServicio);
+          const dia = diaDe(hueco.fecha);
+          const elegida = elegirCandidata(hueco, fin, esperan, (e: any, ini: number) => encajaServicios(e, hueco.profesional_id, ini, dia, servicios, asignaciones));
           if (!elegida) { await cerrar(); continue; }
 
-          const duracion = Number(elegida.duracion) || 30;
+          const duracion = itemsDeEspera(elegida).reduce((t: number, x: any) => t + (Number(x.duracion) || 30), 0) || Number(elegida.duracion) || 30;
           const guardaMs = Math.min(GUARDA_MIN * 60000, inicio.getTime() - ahora.getTime());
           const hasta = new Date(Date.now() + guardaMs).toISOString();
           const pro = nombrePro(hueco.profesional_id);

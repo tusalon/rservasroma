@@ -70,13 +70,15 @@ function NotaAntelacion({ horas }) {
 // Lista de espera por dia (utils/lista-espera.js): la clienta elige manana, tarde o cualquiera y, si el
 // servicio lo hacen varias, si le vale cualquier profesional. Si se libera una hora, la base se la ofrece
 // y se la guarda 30 minutos. Con horas libres va plegada tras un enlace; con el dia lleno, abierta.
-function AvisameListaEspera({ service, date, profesional, cliente, fechaTexto, abiertoAlInicio = false }) {
+function AvisameListaEspera({ service, date, profesional, cliente, fechaTexto, abiertoAlInicio = false, asignaciones = null }) {
     const t = window.t;
     const [abierto, setAbierto] = React.useState(abiertoAlInicio);
     const [franja, setFranja] = React.useState('cualquiera');
     const [cualquiera, setCualquiera] = React.useState(false);
     const [variasPro, setVariasPro] = React.useState(false);
     const [estado, setEstado] = React.useState('');
+    const esCombo = Array.isArray(asignaciones) && asignaciones.length > 1;
+    const comboVarias = esCombo && window.listaEspera?.comboConVariasProfesionales(window.listaEspera.comboDeAsignaciones(asignaciones));
 
     React.useEffect(() => {
         setEstado('');
@@ -87,7 +89,7 @@ function AvisameListaEspera({ service, date, profesional, cliente, fechaTexto, a
         let vivo = true;
         (async () => {
             try {
-                const asignadas = service?.id && window.getProfesionalesPorServicio ? await window.getProfesionalesPorServicio(service.id) : [];
+                const asignadas = !esCombo && service?.id && window.getProfesionalesPorServicio ? await window.getProfesionalesPorServicio(service.id) : [];
                 if (vivo) setVariasPro((asignadas || []).length > 1);
             } catch (e) { /* sin el dato no se ofrece "cualquier profesional" */ }
         })();
@@ -120,7 +122,7 @@ function AvisameListaEspera({ service, date, profesional, cliente, fechaTexto, a
     const anotarme = async () => {
         if (!cliente?.nombre || !cliente?.whatsapp) { setEstado('sin-sesion'); return; }
         setEstado('guardando');
-        const r = await window.listaEspera.unirse({ cliente, servicio: service, profesional, fecha: date, franja, cualquierProfesional: cualquiera });
+        const r = await window.listaEspera.unirse({ cliente, servicio: service, profesional, fecha: date, franja, cualquierProfesional: cualquiera, asignaciones: esCombo ? asignaciones : null });
         setEstado(r?.ok ? 'ok' : r?.motivo === 'ya_anotada' ? 'ya' : 'error');
     };
 
@@ -145,7 +147,8 @@ function AvisameListaEspera({ service, date, profesional, cliente, fechaTexto, a
                     ))}
                 </div>
             </div>
-            {variasPro && (
+            {comboVarias && <p className="text-sm text-gray-600">{t('Un servicio con cada profesional: te avisamos si se libera, pero el hueco lo organiza el salón.')}</p>}
+            {variasPro && !esCombo && (
                 <label className="flex items-center gap-3 text-sm text-gray-800 min-h-11 cursor-pointer">
                     <input type="checkbox" checked={cualquiera} onChange={e => setCualquiera(e.target.checked)} className="w-5 h-5 accent-pink-600" />
                     {t('Me vale cualquier profesional')}

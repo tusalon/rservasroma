@@ -471,9 +471,25 @@ function ClientApp() {
         navigateTo('service');
         try {
             const servicios = await window.salonServicios?.getAll?.(true);
-            const servicio = (servicios || []).find(s => s.nombre === oferta.servicio);
             const profesionales = await window.salonProfesionales?.getAll?.();
             const profesional = (profesionales || []).find(p => String(p.id) === String(oferta.oferta_profesional_id));
+
+            // Varios servicios con la misma profesional: se rearma el combo igual que al elegirlo.
+            if (Array.isArray(oferta.combo) && oferta.combo.length > 1) {
+                const asignaciones = oferta.combo.map(item => ({
+                    servicio: (servicios || []).find(s => s.nombre === item.servicio),
+                    profesional
+                }));
+                if (!profesional || asignaciones.some(a => !a.servicio)) { setPaso(0); return; }
+                setSelectedService(window.armarServicioCombo(asignaciones.map(a => a.servicio)));
+                setSelectedProfesional({ esMultiple: true, nombre: window.t('Varios profesionales'), asignaciones });
+                setSelectedDate(oferta.fecha);
+                setSelectedTime(String(oferta.oferta_hora).slice(0, 5));
+                irAPaso(3);
+                return;
+            }
+
+            const servicio = (servicios || []).find(s => s.nombre === oferta.servicio);
             if (!servicio || !profesional) { setPaso(0); return; }
             setSelectedService(servicio);
             setSelectedProfesional(profesional);
@@ -649,6 +665,7 @@ function ClientApp() {
                                                     service={selectedService}
                                                     date={selectedDate}
                                                     profesional={selectedProfesional}
+                                                    cliente={cliente}
                                                     onTimeSelect={setSelectedTime}
                                                     selectedTime={selectedTime}
                                                     onNoAvailability={handleNoAvailability}

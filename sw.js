@@ -1,6 +1,6 @@
 ﻿// sw.js - Service Worker para Rservasroma
 
-const CACHE_NAME = 'rservasroma-v191';
+const CACHE_NAME = 'rservasroma-v192';
 const BASE = '/rservasroma';
 
 const urlsToCache = [
@@ -16,7 +16,7 @@ const urlsToCache = [
   `${BASE}/manifest.json`,
 
   // App principal (JSX pre-compilado en compiled/ â€” ver scripts/build-jsx.sh)
-  `${BASE}/compiled/client-app.js?v=20261107-espera1`,
+  `${BASE}/compiled/client-app.js?v=20261107-espera2`,
   `${BASE}/compiled/admin-app.js?v=20261107-espera1`,
 
   // Utils
@@ -41,7 +41,7 @@ const urlsToCache = [
   `${BASE}/utils/catalogo.js?v=20261103-fase1`,
   `${BASE}/utils/suscripcion.js?v=20260904-recordar1`,
   `${BASE}/utils/supabase-config.js?v=20260723-fotos`,
-  `${BASE}/utils/timeLogic.js?v=20261107-horas1`,
+  `${BASE}/utils/timeLogic.js?v=20261107-espera2`,
   `${BASE}/utils/espacios.js?v=20261102-duracion1`,
   `${BASE}/utils/turnos.js?v=20261103-cambiar1`,
   `${BASE}/utils/whatsapp-helper.js?v=20261103-cita2`,
@@ -58,7 +58,7 @@ const urlsToCache = [
   `${BASE}/utils/panel-sesion.js?v=20261019-ficha1`,
   `${BASE}/utils/ficha-clienta.js?v=20261019-ficha1`,
   `${BASE}/utils/cobro-moneda.js?v=20261010-cobro1`,
-  `${BASE}/utils/lista-espera.js?v=20261107-espera1`,
+  `${BASE}/utils/lista-espera.js?v=20261107-espera2`,
   `${BASE}/utils/clientes-conocidos.js?v=20260913-conocidos1`,
   `${BASE}/utils/frases-motivacionales.js?v=20261103-textos1`,
 
@@ -71,7 +71,7 @@ const urlsToCache = [
   `${BASE}/compiled/components/Header.js?v=20261103-cita3`,
   `${BASE}/compiled/components/InstallButton.js?v=20260723-jsx1`,
   `${BASE}/compiled/components/MultiProfesionalSelector.js?v=20261103-cita2`,
-  `${BASE}/compiled/components/MultiTimeSlots.js?v=20261107-horas3`,
+  `${BASE}/compiled/components/MultiTimeSlots.js?v=20261107-espera2`,
   `${BASE}/compiled/components/AnadirServicioTurno.js?v=20261103-cita2`,
   `${BASE}/compiled/components/CambiarServiciosTurno.js?v=20261103-cambiar1`,
   `${BASE}/compiled/components/admin/AsistenteRoma.js?v=20261104-roma2`,
@@ -101,8 +101,8 @@ const urlsToCache = [
   `${BASE}/images/roma/poses/tablet.webp`,
   `${BASE}/compiled/components/MyBookings.js?v=20261107-espera1`,
   `${BASE}/compiled/components/ProfesionalSelector.js?v=20261103-cita2`,
-  `${BASE}/compiled/components/ServiceSelectionCategorias.js?v=20261103-cita2`,
-  `${BASE}/compiled/components/TimeSlots.js?v=20261107-espera1`,
+  `${BASE}/compiled/components/ServiceSelectionCategorias.js?v=20261107-espera2`,
+  `${BASE}/compiled/components/TimeSlots.js?v=20261107-espera2`,
   `${BASE}/compiled/components/TarjetaFidelidad.js?v=20261104-auto1`,
   `${BASE}/compiled/components/WelcomeScreen.js?v=20261107-espera1`,
   `${BASE}/compiled/components/WhatsAppButton.js?v=20261103-cita2`,
@@ -115,7 +115,7 @@ const urlsToCache = [
   `${BASE}/compiled/components/admin/EditarNegocio.js?v=20261103-cita1`,
   `${BASE}/compiled/components/admin/HorariosPorDiaPanel.js?v=20261103-textos1`,
   `${BASE}/compiled/components/admin/HorariosExcepcionPanel.js?v=20261103-textos1`,
-  `${BASE}/compiled/components/admin/ListaEsperaPanel.js?v=20261107-espera1`,
+  `${BASE}/compiled/components/admin/ListaEsperaPanel.js?v=20261107-espera2`,
   `${BASE}/compiled/components/admin/ClientasNuevasPanel.js?v=20261012-bienvenida2`,
   `${BASE}/compiled/components/admin/ProfesionalesPanel.js?v=20261104-roma2`,
   `${BASE}/compiled/components/admin/ImportarServicios.js?v=20260723-jsx1`,

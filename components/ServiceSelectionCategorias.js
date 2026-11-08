@@ -157,14 +157,6 @@ function ServiceSelection({ onSelect, selectedService }) {
         onSelect(servicioUltimoTurno);
     };
 
-    const combinarHorariosPermitidos = (seleccionados) => {
-        const listas = seleccionados
-            .map(servicio => Array.isArray(servicio.horarios_permitidos) ? servicio.horarios_permitidos : [])
-            .filter(lista => lista.length > 0);
-        if (listas.length === 0) return [];
-        return listas.reduce((base, lista) => base.filter(hora => lista.includes(hora)));
-    };
-
     const continuar = () => {
         if (serviciosSeleccionados.length === 0) return;
 
@@ -173,18 +165,7 @@ function ServiceSelection({ onSelect, selectedService }) {
             return;
         }
 
-        onSelect({
-            id: `multi-${serviciosSeleccionados.map(s => s.id).join('-')}`,
-            esMultiple: true,
-            servicios: serviciosSeleccionados,
-            nombre: serviciosSeleccionados.map(s => s.nombre).join(' + '),
-            duracion: totalSeleccion.duracion,
-            precio: totalSeleccion.precio,
-            precio_desde: totalSeleccion.precio,
-            precio_moneda: totalSeleccion.monedas.length === 1 ? totalSeleccion.monedas[0] : 'CUP',
-            categoria: 'combos',
-            horarios_permitidos: combinarHorariosPermitidos(serviciosSeleccionados)
-        });
+        onSelect(window.armarServicioCombo(serviciosSeleccionados));
     };
 
     if (cargando) {

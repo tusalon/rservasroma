@@ -71,18 +71,43 @@ function ListaEsperaPanel({ profesionalId = null, nombreSalon = '', onCambio }) 
         setTrabajando(f.id);
         setAviso('');
         try {
-            await window.createBooking({
-                cliente_nombre: f.cliente_nombre,
-                cliente_whatsapp: f.cliente_whatsapp,
-                servicio: f.servicio,
-                duracion: f.duracion,
-                profesional_id: f.oferta_profesional_id,
-                profesional_nombre: f.oferta_profesional_nombre,
-                fecha: f.fecha,
-                hora_inicio: String(f.oferta_hora).slice(0, 5),
-                hora_fin: String(f.oferta_hora_fin || '').slice(0, 5) || null,
-                estado: 'Reservado'
-            });
+            // Un servicio, o los de un combo uno detrás de otro (como BookingForm); si un tramo falla se
+            // cancelan los ya creados para no dejar una cita a medias en la agenda.
+            const tramos = [];
+            const aMin = (h) => le.aMinutos(h);
+            const aHora = (m) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+            if (Array.isArray(f.combo) && f.combo.length > 1) {
+                let cursor = aMin(f.oferta_hora);
+                for (const item of f.combo) {
+                    const dur = Number(item.duracion) || 30;
+                    tramos.push({ servicio: item.servicio, duracion: dur, hora_inicio: aHora(cursor), hora_fin: aHora(cursor + dur) });
+                    cursor += dur;
+                }
+            } else {
+                tramos.push({ servicio: f.servicio, duracion: f.duracion, hora_inicio: String(f.oferta_hora).slice(0, 5), hora_fin: String(f.oferta_hora_fin || '').slice(0, 5) || null });
+            }
+            const creadas = [];
+            try {
+                for (const tramo of tramos) {
+                    const r = await window.createBooking({
+                        cliente_nombre: f.cliente_nombre,
+                        cliente_whatsapp: f.cliente_whatsapp,
+                        servicio: tramo.servicio,
+                        duracion: tramo.duracion,
+                        profesional_id: f.oferta_profesional_id,
+                        profesional_nombre: f.oferta_profesional_nombre,
+                        fecha: f.fecha,
+                        hora_inicio: tramo.hora_inicio,
+                        hora_fin: tramo.hora_fin,
+                        estado: 'Reservado'
+                    });
+                    if (!r?.success || !r.data) throw new Error('No se pudo crear un tramo');
+                    creadas.push(r.data);
+                }
+            } catch (errTramo) {
+                for (const c of creadas) { try { await window.updateBookingStatus(c.id, 'Cancelado'); } catch (e) { console.error('No se pudo revertir', c.id, e); } }
+                throw errTramo;
+            }
             // La base cierra su espera al crear la cita (trigger reservas_lista_espera_reservo).
             window.enviarWhatsApp(f.cliente_whatsapp, le.mensajeReservada({
                 nombre: f.cliente_nombre, fecha: fechaTxt(f.fecha), hora: horaTxt(f.oferta_hora),
@@ -106,6 +131,13 @@ function ListaEsperaPanel({ profesionalId = null, nombreSalon = '', onCambio }) 
             nombre: f.cliente_nombre, fecha: fechaTxt(f.fecha), hora: horaTxt(f.oferta_hora),
             profesional: f.oferta_profesional_nombre, salon: nombreSalon,
             hasta: hastaTxt(f.oferta_hasta), enlace: enlaceSalon()
+        }), { forzar: true });
+    };
+
+    // Combo con varias profesionales: no se le guarda una hora sola; la duena pregunta y lo organiza.
+    const escribir = (f) => {
+        window.enviarWhatsApp(f.cliente_whatsapp, le.mensajeBuscarHueco({
+            nombre: f.cliente_nombre, fecha: fechaTxt(f.fecha), servicio: f.servicio, salon: nombreSalon
         }), { forzar: true });
     };
 
@@ -159,7 +191,9 @@ function ListaEsperaPanel({ profesionalId = null, nombreSalon = '', onCambio }) 
                                     <div className="min-w-0">
                                         <p className="font-semibold text-gray-900 break-words">{f.cliente_nombre}</p>
                                         <p className="text-sm text-gray-600 break-words">
-                                            {f.servicio} · {f.profesional_nombre || t('Cualquier profesional')}
+                                            {f.servicio} · {Array.isArray(f.combo) && le.comboConVariasProfesionales(f.combo)
+                                                ? t('Varias profesionales')
+                                                : (f.profesional_nombre || t('Cualquier profesional'))}
                                         </p>
                                         <p className="text-sm text-gray-800 mt-1">
                                             {fechaTxt(f.fecha)} · {guardada
@@ -183,6 +217,12 @@ function ListaEsperaPanel({ profesionalId = null, nombreSalon = '', onCambio }) 
                                                 {t('Avisar por WhatsApp')}
                                             </button>
                                         </>
+                                    )}
+                                    {!guardada && Array.isArray(f.combo) && le.comboConVariasProfesionales(f.combo) && (
+                                        <button type="button" disabled={trabajando === f.id} onClick={() => escribir(f)}
+                                            className="px-4 min-h-11 rounded-full bg-green-600 text-white text-sm font-semibold disabled:opacity-50">
+                                            {t('Escribirle por WhatsApp')}
+                                        </button>
                                     )}
                                     <button type="button" disabled={trabajando === f.id} onClick={() => quitar(f)}
                                         className="px-4 min-h-11 rounded-full border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50">
