@@ -306,3 +306,44 @@ function armarServicioCombo(servicios) {
     };
 }
 window.armarServicioCombo = armarServicioCombo;
+
+// ---- Disponibilidad por fechas (modo "Fechas" de la ventana de Disponibilidad) ----
+// Fechas como 'AAAA-MM-DD'. Se calcula a las 12:00 para que un cambio de hora no mueva el dia.
+function sumarDiasFecha(fechaStr, n) {
+    const d = new Date(`${fechaStr}T12:00:00`);
+    d.setDate(d.getDate() + n);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+// Un tramo valido: sin empezar antes de hoy, con "hasta" no anterior a "desde" y sin pasar de `max` dias.
+function normalizarRango(desde, hasta, hoy, max) {
+    const d = desde && desde >= hoy ? desde : hoy;
+    let h = hasta && hasta >= d ? hasta : d;
+    const tope = sumarDiasFecha(d, max - 1);
+    if (h > tope) h = tope;
+    return { desde: d, hasta: h };
+}
+
+// Los dias del tramo, los dos extremos incluidos, hasta `max`. Fechas mal puestas: lista vacia.
+function diasEnRango(desde, hasta, max) {
+    if (!desde || !hasta || hasta < desde) return [];
+    const dias = [];
+    for (let f = desde; f <= hasta && dias.length < max; f = sumarDiasFecha(f, 1)) dias.push(f);
+    return dias;
+}
+
+// Atajos que se ofrecen: proximos 3 dias, hasta el domingo y el fin de semana (si hoy ya es fin de semana, lo que queda).
+function atajosDeRango(hoy) {
+    const diaHoy = new Date(`${hoy}T12:00:00`).getDay(); // 0 = domingo
+    const sabado = diaHoy === 0 ? hoy : sumarDiasFecha(hoy, (6 - diaHoy + 7) % 7);
+    const domingo = diaHoy === 0 ? hoy : sumarDiasFecha(sabado, 1);
+    return [
+        { texto: 'Próximos 3 días', desde: hoy, hasta: sumarDiasFecha(hoy, 2) },
+        { texto: 'Hasta el domingo', desde: hoy, hasta: sumarDiasFecha(hoy, (7 - diaHoy) % 7) },
+        { texto: 'Fin de semana', desde: sabado, hasta: domingo }
+    ];
+}
+window.sumarDiasFecha = sumarDiasFecha;
+window.normalizarRango = normalizarRango;
+window.diasEnRango = diasEnRango;
+window.atajosDeRango = atajosDeRango;

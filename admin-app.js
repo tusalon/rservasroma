@@ -730,6 +730,9 @@ function AdminApp() {
     const [disponibilidadDias, setDisponibilidadDias] = React.useState({});
     const [disponibilidadConteos, setDisponibilidadConteos] = React.useState({});
     const [modoDisponibilidad, setModoDisponibilidad] = React.useState('mes');
+    // Modo "Fechas": un tramo elegido (de lunes a miercoles, del 12 al 19...), en vez de la semana o el mes enteros.
+    const [rangoDesde, setRangoDesde] = React.useState('');
+    const [rangoHasta, setRangoHasta] = React.useState('');
     const [disponibilidadSemanal, setDisponibilidadSemanal] = React.useState([]);
     const [diasCerradosFechas, setDiasCerradosFechas] = React.useState([]);
     const [profesionalSeleccionadoDispo, setProfesionalSeleccionadoDispo] = React.useState(null);
@@ -1930,7 +1933,14 @@ function AdminApp() {
         }
     };
 
-    const cargarDisponibilidadSemanal = async (fecha, profesionalId = null) => {
+    const cargarDisponibilidadSemanal = (fecha, profesionalId = null) => cargarDisponibilidadDias(getDiasSemanaDisponibilidad(fecha), profesionalId);
+
+    // Los dias que se le pasen: la semana entera o un tramo elegido (modo Fechas). Mismo calculo en las dos vistas.
+    const cargarDisponibilidadDias = async (diasSemanaVista, profesionalId = null) => {
+        if (!diasSemanaVista.length) {
+            setDisponibilidadSemanal([]);
+            return;
+        }
         if (!profesionalId && profesionalesList.length > 0) profesionalId = profesionalesList[0]?.id;
         if (!profesionalId) {
             setDisponibilidadSemanal([]);
@@ -1941,9 +1951,8 @@ function AdminApp() {
         try {
             const profesionalObj = profesionalesList.find(p => p.id === parseInt(profesionalId));
             const fechasLibresPersonales = profesionalObj?.fechas_libres || [];
-            const diasSemanaVista = getDiasSemanaDisponibilidad(fecha);
             const fechaInicio = formatDate(diasSemanaVista[0]);
-            const fechaFin = formatDate(diasSemanaVista[6]);
+            const fechaFin = formatDate(diasSemanaVista[diasSemanaVista.length - 1]);
             const nombresDias = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
             const negocioId = typeof getNegocioId === "function" ? getNegocioId() : (window.getNegocioIdFromConfig ? window.getNegocioIdFromConfig() : localStorage.getItem("negocioId"));
             const response = await fetch(
@@ -2138,6 +2147,18 @@ function AdminApp() {
         });
     };
 
+    // Hasta cuantos dias caben en el cartel que se comparte (mas pequeños no se leerian en el movil).
+    // Las cuentas de fechas viven en utils/timeLogic.js (con prueba en tests/rango-disponibilidad.test.js).
+    const MAX_DIAS_RANGO = 10;
+    const sumarDiasFecha = (fechaStr, n) => window.sumarDiasFecha(fechaStr, n);
+    const elegirRango = (desde, hasta, profesionalId = profesionalSeleccionadoDispo) => {
+        const r = window.normalizarRango(desde, hasta, getCurrentLocalDate(), MAX_DIAS_RANGO);
+        setRangoDesde(r.desde);
+        setRangoHasta(r.hasta);
+        cargarDisponibilidadDias(window.diasEnRango(r.desde, r.hasta, MAX_DIAS_RANGO).map(f => new Date(`${f}T12:00:00`)), profesionalId);
+    };
+    const atajosRango = () => window.atajosDeRango(getCurrentLocalDate()).map(a => [t(a.texto), a.desde, a.hasta]);
+
     const cambiarSemanaDisponibilidad = (direccion) => {
         const nuevaFecha = new Date(disponibilidadFecha);
         nuevaFecha.setDate(disponibilidadFecha.getDate() + (direccion * 7));
@@ -2148,7 +2169,7 @@ function AdminApp() {
     const compartirDisponibilidadSemanalTexto = () => {
         const profesional = profesionalesList.find(p => p.id === parseInt(profesionalSeleccionadoDispo));
         const lineas = [
-            `Disponibilidad semanal - ${nombreNegocio}`,
+            `${modoDisponibilidad === 'rango' ? 'Disponibilidad' : 'Disponibilidad semanal'} - ${nombreNegocio}`,
             profesional ? `Profesional: ${profesional.nombre}` : '',
             ''
         ].filter(Boolean);
@@ -2453,10 +2474,10 @@ function AdminApp() {
         const fechaCorta = (f) => new Date(`${f}T12:00:00`).toLocaleDateString('es', { day: 'numeric', month: 'short' }).replace('.', '');
         const dias = disponibilidadSemanal.filter(dia => dia.fecha >= hoy);
         const rango = disponibilidadSemanal.length
-            ? `${fechaCorta(disponibilidadSemanal[0].fecha)} – ${fechaCorta(disponibilidadSemanal[6].fecha)}`
+            ? `${fechaCorta(disponibilidadSemanal[0].fecha)} – ${fechaCorta(disponibilidadSemanal[disponibilidadSemanal.length - 1].fecha)}`
             : '';
 
-        const top = await dibujarCabeceraCartel(ctx, A, 'Horas libres esta semana',
+        const top = await dibujarCabeceraCartel(ctx, A, modoDisponibilidad === 'rango' ? 'Horas libres' : 'Horas libres esta semana',
             [rango, profesional?.nombre ? `con ${profesional.nombre}` : ''].filter(Boolean).join(' · '));
 
         // Tarjetas por dia. Se mide primero y, si no cabe, se encogen las pildoras.
@@ -2482,14 +2503,20 @@ function AdminApp() {
                 return { dia, libres, filas, alto: Math.max(s.minCard, filas.length * (s.h + s.gap) - s.gap + 2 * s.margen) };
             });
         };
+        // dia/num: letra del bloque del dia. El tercer tamaño es para tramos de 8 a 10 dias.
         const tamanos = [
-            { fuente: 32, h: 66, pad: 26, gap: 14, margen: 26, minCard: 132, vacio: 88, sep: 20 },
-            { fuente: 26, h: 54, pad: 20, gap: 10, margen: 18, minCard: 106, vacio: 74, sep: 12 }
+            { fuente: 32, h: 66, pad: 26, gap: 14, margen: 26, minCard: 132, vacio: 88, sep: 20, dia: 24, num: 40 },
+            { fuente: 26, h: 54, pad: 20, gap: 10, margen: 18, minCard: 106, vacio: 74, sep: 12, dia: 24, num: 40 },
+            { fuente: 22, h: 40, pad: 14, gap: 8, margen: 12, minCard: 70, vacio: 58, sep: 8, dia: 16, num: 28 }
         ];
         let s = tamanos[0];
         let tarjetas = medir(s);
         const total = (lista, tm) => lista.reduce((suma, c) => suma + c.alto + tm.sep, 0);
-        if (top + total(tarjetas, s) > fondo) { s = tamanos[1]; tarjetas = medir(s); }
+        for (const siguiente of tamanos.slice(1)) {
+            if (top + total(tarjetas, s) <= fondo) break;
+            s = siguiente;
+            tarjetas = medir(s);
+        }
 
         if (!tarjetas.some(c => c.libres.length)) {
             ctx.fillStyle = '#ffffff';
@@ -2528,11 +2555,11 @@ function AdminApp() {
                 ctx.fill();
                 ctx.textAlign = 'center';
                 ctx.fillStyle = vacio ? '#AAAAAA' : A;
-                ctx.font = `800 24px ${F}`;
-                ctx.fillText(dia.fecha === hoy ? 'HOY' : diasCortos[fecha.getDay()], cardX + 82, cy + alto / 2 - 6);
+                ctx.font = `800 ${s.dia}px ${F}`;
+                ctx.fillText(dia.fecha === hoy ? 'HOY' : diasCortos[fecha.getDay()], cardX + 82, cy + alto / 2 - s.dia * 0.25);
                 ctx.fillStyle = vacio ? '#AAAAAA' : '#1A1A1A';
-                ctx.font = `800 40px ${F}`;
-                ctx.fillText(String(fecha.getDate()), cardX + 82, cy + alto / 2 + 36);
+                ctx.font = `800 ${s.num}px ${F}`;
+                ctx.fillText(String(fecha.getDate()), cardX + 82, cy + alto / 2 + s.num * 0.9);
 
                 if (vacio) {
                     ctx.textAlign = 'left';
@@ -2573,8 +2600,8 @@ function AdminApp() {
             const compartido = await compartirImagenDesdeCanvas(
                 canvas,
                 `disponibilidad-${nombreNegocio || 'salon'}.png`,
-                `Disponibilidad semanal - ${nombreNegocio}`,
-                `Disponibilidad semanal de ${nombreNegocio}`
+                `${modoDisponibilidad === 'rango' ? 'Disponibilidad' : 'Disponibilidad semanal'} - ${nombreNegocio}`,
+                `${modoDisponibilidad === 'rango' ? 'Disponibilidad' : 'Disponibilidad semanal'} de ${nombreNegocio}`
             );
             if (!compartido) alert(t('Imagen generada. Si no se abrió el menú de compartir, revisa Descargas.'));
         } catch (error) {
@@ -6106,6 +6133,7 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                                             const id = e.target.value ? parseInt(e.target.value) : null;
                                             setProfesionalSeleccionadoDispo(id);
                                             if (modoDisponibilidad === 'semana') cargarDisponibilidadSemanal(disponibilidadFecha, id);
+                                            else if (modoDisponibilidad === 'rango') elegirRango(rangoDesde, rangoHasta, id);
                                             else cargarDisponibilidadDelMes(disponibilidadFecha, id);
                                         }}
                                         className="w-full border rounded-lg px-3 py-2 text-sm"
@@ -6121,9 +6149,38 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                             <div className="flex gap-2 mb-3">
                                 <button onClick={() => { setModoDisponibilidad('mes'); cargarDisponibilidadDelMes(disponibilidadFecha, profesionalSeleccionadoDispo); }} className={`flex-1 px-3 py-2 rounded-lg text-sm font-semibold ${modoDisponibilidad === 'mes' ? 'bg-pink-500 text-white shadow-sm' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>{t('Mensual')}</button>
                                 <button onClick={() => { setModoDisponibilidad('semana'); cargarDisponibilidadSemanal(disponibilidadFecha, profesionalSeleccionadoDispo); }} className={`flex-1 px-3 py-2 rounded-lg text-sm font-semibold ${modoDisponibilidad === 'semana' ? 'bg-pink-500 text-white shadow-sm' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>{t('Semanal')}</button>
+                                <button onClick={() => { setModoDisponibilidad('rango'); const hoy = getCurrentLocalDate(); elegirRango(rangoDesde || hoy, rangoHasta || sumarDiasFecha(hoy, 2)); }} className={`flex-1 px-3 py-2 rounded-lg text-sm font-semibold ${modoDisponibilidad === 'rango' ? 'bg-pink-500 text-white shadow-sm' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>{t('Fechas')}</button>
                             </div>
 
-                            <div className="flex justify-between items-center mb-3">
+                            {modoDisponibilidad === 'rango' && (
+                                <div className="mb-3 space-y-3">
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <label className="block">
+                                            <span className="block text-xs font-semibold text-gray-600 mb-1">{t('Desde')}</span>
+                                            <input type="date" value={rangoDesde} min={getCurrentLocalDate()}
+                                                onChange={(e) => elegirRango(e.target.value, rangoHasta)}
+                                                className="w-full border rounded-lg px-3 py-2 text-sm bg-white" />
+                                        </label>
+                                        <label className="block">
+                                            <span className="block text-xs font-semibold text-gray-600 mb-1">{t('Hasta')}</span>
+                                            <input type="date" value={rangoHasta} min={rangoDesde || getCurrentLocalDate()} max={rangoDesde ? sumarDiasFecha(rangoDesde, MAX_DIAS_RANGO - 1) : undefined}
+                                                onChange={(e) => elegirRango(rangoDesde, e.target.value)}
+                                                className="w-full border rounded-lg px-3 py-2 text-sm bg-white" />
+                                        </label>
+                                    </div>
+                                    <div className="flex flex-wrap gap-2">
+                                        {atajosRango().map(([texto, d, h]) => (
+                                            <button key={texto} type="button" onClick={() => elegirRango(d, h)}
+                                                className="px-3 min-h-9 rounded-full text-xs font-semibold bg-pink-50 text-pink-700 border border-pink-100 hover:bg-pink-100">
+                                                {texto}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <p className="text-xs text-gray-500">{t('Máximo {n} días seguidos.', { n: MAX_DIAS_RANGO })}</p>
+                                </div>
+                            )}
+
+                            <div className={modoDisponibilidad === 'rango' ? 'hidden' : 'flex justify-between items-center mb-3'}>
                                 <button onClick={() => modoDisponibilidad === 'semana' ? cambiarSemanaDisponibilidad(-1) : cambiarMesDisponibilidad(-1)} className="px-3 py-2 bg-gray-100 rounded-lg hover:bg-gray-200">‹</button>
                                 <span className="text-sm sm:text-lg font-bold text-center px-2">
                                     {modoDisponibilidad === 'semana' ? `${formatDate(getDiasSemanaDisponibilidad(disponibilidadFecha)[0])} - ${formatDate(getDiasSemanaDisponibilidad(disponibilidadFecha)[6])}` : `${monthNames[disponibilidadFecha.getMonth()]} ${disponibilidadFecha.getFullYear()}`}
@@ -6133,11 +6190,11 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
                             
                             {disponibilidadCargando ? (
                                 <div className="text-center py-12"><div className="animate-spin h-8 w-8 border-b-2 border-pink-500 mx-auto"></div><p className="mt-2">{t('Cargando disponibilidad...')}</p></div>
-                            ) : modoDisponibilidad === 'semana' ? (
+                            ) : (modoDisponibilidad === 'semana' || modoDisponibilidad === 'rango') ? (
                                 <div className="space-y-4">
                                     <div className="flex items-center justify-between gap-3">
                                         <div>
-                                            <p className="text-sm font-bold text-gray-900">{t('Disponibilidad semanal')}</p>
+                                            <p className="text-sm font-bold text-gray-900">{modoDisponibilidad === 'rango' ? t('Disponibilidad por fechas') : t('Disponibilidad semanal')}</p>
                                             <p className="text-xs text-gray-500">{t('Solo las horas que tus clientas todavía pueden reservar.')}</p>
                                         </div>
                                         <button

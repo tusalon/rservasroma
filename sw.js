@@ -1,6 +1,6 @@
 ﻿// sw.js - Service Worker para Rservasroma
 
-const CACHE_NAME = 'rservasroma-v194';
+const CACHE_NAME = 'rservasroma-v195';
 const BASE = '/rservasroma';
 
 const urlsToCache = [
@@ -17,7 +17,7 @@ const urlsToCache = [
 
   // App principal (JSX pre-compilado en compiled/ â€” ver scripts/build-jsx.sh)
   `${BASE}/compiled/client-app.js?v=20261107-espera2`,
-  `${BASE}/compiled/admin-app.js?v=20261107-natali1`,
+  `${BASE}/compiled/admin-app.js?v=20261107-fechas1`,
 
   // Utils
   `${BASE}/utils/api.js?v=20261107-espera1`,
@@ -30,7 +30,7 @@ const urlsToCache = [
   `${BASE}/utils/native-push-notifications.js?v=20260722-platform-v4`,
   `${BASE}/utils/offline-panel.js`,
   `${BASE}/utils/config-negocio-master.js?v=20261103-cita2`,
-  `${BASE}/utils/i18n.js?v=20261107-cita3`,
+  `${BASE}/utils/i18n.js?v=20261107-fechas1`,
   `${BASE}/utils/cuba-geo.js?v=20260727-wizard-ubicacion1`,
   `${BASE}/utils/phone-utils.js?v=20261012-eeuu1`,
   `${BASE}/utils/profesionales.js?v=20261018-elimprof2`,
@@ -41,7 +41,7 @@ const urlsToCache = [
   `${BASE}/utils/catalogo.js?v=20261103-fase1`,
   `${BASE}/utils/suscripcion.js?v=20260904-recordar1`,
   `${BASE}/utils/supabase-config.js?v=20260723-fotos`,
-  `${BASE}/utils/timeLogic.js?v=20261107-espera2`,
+  `${BASE}/utils/timeLogic.js?v=20261107-fechas1`,
   `${BASE}/utils/espacios.js?v=20261102-duracion1`,
   `${BASE}/utils/turnos.js?v=20261103-cambiar1`,
   `${BASE}/utils/whatsapp-helper.js?v=20261103-cita2`,
@@ -290,7 +290,7 @@ self.addEventListener('fetch', event => {
   // version aqui no bastaba para que una admin con el SW ya instalado
   // recibiera el archivo nuevo hasta que la cache vieja se vaciara sola).
   const esAssetCriticoAdmin = [
-    `${BASE}/compiled/admin-app.js?v=20261107-natali1`,
+    `${BASE}/compiled/admin-app.js?v=20261107-fechas1`,
     `${BASE}/compiled/components/admin/EditarNegocio.js`,
     `${BASE}/utils/config-negocio-master.js`,
     `${BASE}/utils/native-push-notifications.js`,
