@@ -3484,8 +3484,9 @@ ${lineaCalendario}
 
 Te esperamos.
 Cualquier cambio, puedes cancelarlo desde la app.`;
-// Si la admin encendio su propio mensaje de confirmacion, ese reemplaza al de siempre.
-const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
+// Si la admin encendio su propio mensaje de confirmacion, va primero; debajo se añaden solos los
+// datos de la cita (textoConfirmacion), el aviso de pago y el enlace al calendario.
+const propioPago = window.bienvenida?.textoConfirmacion(configNegocio, {
     cliente: bookingData.cliente_nombre,
     nombre_negocio: nombreNegocio,
     servicio: bookingData.servicio,
@@ -3493,7 +3494,10 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
     hora: horaFormateada,
     profesional: bookingData.profesional_nombre || bookingData.trabajador_nombre || '',
     direccion: configNegocio?.direccion || ''
-}) || mensajeEstandar;
+});
+const mensajeCliente = propioPago
+    ? `${propioPago}\n\n✅ *Pago recibido correctamente*${lineaCalendario ? `\n${lineaCalendario}` : ''}`
+    : mensajeEstandar;
 
                 window.enviarWhatsApp(bookingData.cliente_whatsapp, mensajeCliente);
 
@@ -3556,8 +3560,9 @@ ${lineaCalendario}
 
 Te esperamos.
 Cualquier cambio, puedes cancelarlo desde la app.`;
-// Si la admin encendio su propio mensaje de confirmacion, ese reemplaza al de siempre.
-const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
+// Si la admin encendio su propio mensaje de confirmacion, va primero; debajo se añaden solos los
+// datos de la cita (textoConfirmacion), el aviso de pago y el enlace al calendario.
+const propioPago = window.bienvenida?.textoConfirmacion(configNegocio, {
     cliente: bookingData.cliente_nombre,
     nombre_negocio: nombreNegocio,
     servicio: bookingData.servicio,
@@ -3565,7 +3570,10 @@ const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
     hora: horaFormateada,
     profesional: bookingData.profesional_nombre || bookingData.trabajador_nombre || '',
     direccion: configNegocio?.direccion || ''
-}) || mensajeEstandar;
+});
+const mensajeCliente = propioPago
+    ? `${propioPago}\n\n✅ *Pago recibido correctamente*${lineaCalendario ? `\n${lineaCalendario}` : ''}`
+    : mensajeEstandar;
 
             window.enviarWhatsApp(bookingData.cliente_whatsapp, mensajeCliente);
 

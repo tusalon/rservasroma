@@ -662,7 +662,12 @@ ${lineaTotalReserva}
 ${lineaDireccion}
 ${lineaCalendario}
 ¡Te esperamos! ❤️`;
-        const mensajeConfirmacion = mensajePropio || mensajeEstandar;
+        // Su mensaje va primero; textoConfirmacion ya añadió fecha, hora, servicio, profesional y dirección.
+        // Aquí se suma lo que no son marcas: el total y el enlace al calendario.
+        const extrasPropio = [lineaTotalReserva, lineaCalendario].map((l) => String(l || '').trim()).filter(Boolean).join('\n');
+        const mensajeConfirmacion = mensajePropio
+            ? (extrasPropio ? `${mensajePropio}\n${extrasPropio}` : mensajePropio)
+            : mensajeEstandar;
 
         window.enviarWhatsApp(booking.cliente_whatsapp, mensajeConfirmacion);
 

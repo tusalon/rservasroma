@@ -20,7 +20,25 @@ assert.equal(b.rellenar('Ubicación: {dirección}', {}), 'Ubicación: {direcció
 
 // --- Confirmación: solo si la admin la enciende
 const conTexto = { mensaje_confirmacion: 'Gracias {cliente}, ya tienes tu turno', mensaje_confirmacion_activo: true };
-assert.equal(b.textoConfirmacion(conTexto, datos), 'Gracias Yadira, ya tienes tu turno');
+// Su mensaje va primero y los datos de la cita se añaden solos debajo (no se pierden al personalizar)
+assert.equal(
+    b.textoConfirmacion(conTexto, datos),
+    'Gracias Yadira, ya tienes tu turno\n\n📅 *Fecha:* lunes 12 de octubre\n⏰ *Hora:* 10:00\n✨ *Servicio:* Limpieza facial\n👩‍🎨 *Profesional:* Ana'
+);
+assert.equal(b.textoConfirmacion(conTexto, datos, { detalle: false }), 'Gracias Yadira, ya tienes tu turno', 'la pantalla ya muestra el ticket: solo su texto');
+// Si ella ya puso una marca, ese dato no se repite
+assert.equal(
+    b.textoConfirmacion({ mensaje_confirmacion_activo: true, mensaje_confirmacion: 'Te esperamos el {fecha} a las {hora}' }, datos),
+    'Te esperamos el lunes 12 de octubre a las 10:00\n\n✨ *Servicio:* Limpieza facial\n👩‍🎨 *Profesional:* Ana'
+);
+assert.equal(
+    b.textoConfirmacion({ mensaje_confirmacion_activo: true, mensaje_confirmacion: 'Ven a {dirección}' }, { ...datos, direccion: 'Calle 5' }),
+    'Ven a Calle 5\n\n📅 *Fecha:* lunes 12 de octubre\n⏰ *Hora:* 10:00\n✨ *Servicio:* Limpieza facial\n👩‍🎨 *Profesional:* Ana',
+    '{dirección} con tilde también cuenta como puesta'
+);
+// Un dato que no existe no deja una línea vacía
+assert.doesNotMatch(b.textoConfirmacion(conTexto, { ...datos, profesional: '' }), /Profesional/);
+assert.doesNotMatch(b.textoConfirmacion(conTexto, datos), /Dirección/, 'sin dirección guardada no sale la línea');
 assert.equal(b.textoConfirmacion({ ...conTexto, mensaje_confirmacion_activo: false }, datos), '', 'apagado: se usa el de siempre');
 assert.equal(b.textoConfirmacion({ mensaje_confirmacion_activo: true, mensaje_confirmacion: '   ' }, datos), '', 'encendido pero vacío: el de siempre');
 assert.equal(b.textoConfirmacion(null, datos), '');

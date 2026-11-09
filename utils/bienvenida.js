@@ -3,7 +3,8 @@
 //   * Bienvenida de primera vez (se envia por WhatsApp desde el panel "Clientas nuevas").
 //     Interruptor: mensaje_primera_vez_activo.
 // Apagado = el texto de siempre. Marcas: {cliente} {nombre_negocio} {servicio} {fecha} {hora} {profesional} {direccion}.
-// El mensaje propio de confirmacion REEMPLAZA entero al de siempre (las dueñas escriben el suyo con todos los detalles).
+// El mensaje propio de confirmacion va PRIMERO y los datos de la cita (fecha, hora, servicio, profesional,
+// direccion) se añaden solos debajo, salvo los que ella ya puso con su marca.
 //
 // "Clienta nueva" = su PRIMERA reserva (sin contar las canceladas), hecha hace poco.
 // Cuentas puras: se prueban en tests/bienvenida.test.js.
@@ -28,11 +29,44 @@
         });
     }
 
+    // Datos de la cita que SIEMPRE llegan a la clienta aunque la dueña cambie el mensaje.
+    // Si ella ya los puso con su marca ({servicio}, {fecha}...), no se repiten.
+    const DETALLES = [
+        ['fecha', '📅 *Fecha:*'],
+        ['hora', '⏰ *Hora:*'],
+        ['servicio', '✨ *Servicio:*'],
+        ['profesional', '👩‍🎨 *Profesional:*'],
+        ['direccion', '📍 *Dirección:*']
+    ];
+
+    function marcasUsadas(plantilla) {
+        const usadas = new Set();
+        String(plantilla || '').replace(/\{([^}]+)\}/g, (marca, clave) => {
+            usadas.add(clave.trim().normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase());
+            return marca;
+        });
+        return usadas;
+    }
+
+    // Lineas con los datos de la cita que el texto de la dueña no menciona.
+    function lineasDetalle(plantilla, datos) {
+        const usadas = marcasUsadas(plantilla);
+        const valores = datos || {};
+        return DETALLES
+            .filter(([clave]) => !usadas.has(clave) && String(valores[clave] == null ? '' : valores[clave]).trim() !== '')
+            .map(([clave, etiqueta]) => `${etiqueta} ${valores[clave]}`);
+    }
+
     // Texto personalizado de la confirmacion, o '' si la admin no lo usa (entonces se
-    // muestra el de siempre).
-    function textoConfirmacion(config, datos) {
+    // muestra el de siempre). Su mensaje va primero y debajo se añaden solos los datos de la
+    // cita que ella no puso. opciones.detalle === false: solo su texto (la pantalla de
+    // confirmacion ya enseña el ticket con los datos).
+    function textoConfirmacion(config, datos, opciones) {
         if (!config || config.mensaje_confirmacion_activo !== true) return '';
-        return rellenar(config.mensaje_confirmacion, datos);
+        const texto = rellenar(config.mensaje_confirmacion, datos);
+        if (!texto || (opciones && opciones.detalle === false)) return texto;
+        const lineas = lineasDetalle(config.mensaje_confirmacion, datos);
+        return lineas.length ? `${texto}\n\n${lineas.join('\n')}` : texto;
     }
 
     // El de la admin si lo tiene encendido y escrito; si no, el de RservasRoma.
@@ -77,7 +111,7 @@
         return nuevas.sort((a, b) => b.creada - a.creada);
     }
 
-    const api = { MARCAS, DIAS_VENTANA, MENSAJE_PRIMERA_VEZ_DEFECTO, rellenar, textoConfirmacion, textoPrimeraVez, clientasNuevas, soloDigitos };
+    const api = { MARCAS, DIAS_VENTANA, MENSAJE_PRIMERA_VEZ_DEFECTO, rellenar, lineasDetalle, textoConfirmacion, textoPrimeraVez, clientasNuevas, soloDigitos };
     if (typeof module !== 'undefined' && module.exports) module.exports = api;
     root.bienvenida = api;
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -39,7 +39,7 @@ function Confirmation({ booking, onReset }) {
             hora: String(booking?.hora_inicio || "").slice(0, 5),
             profesional: booking?.profesional_nombre || booking?.trabajador_nombre || "",
             direccion: config?.direccion || ""
-          }));
+          }, { detalle: false }));
         }
       } catch (error) {
       }
