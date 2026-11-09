@@ -2865,19 +2865,17 @@ ${lineaCalendario}
 
 Te esperamos.
 Cualquier cambio, puedes cancelarlo desde la app.`;
-        const propioPago = window.bienvenida?.textoConfirmacion(configNegocio, {
+        const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
           cliente: bookingData.cliente_nombre,
           nombre_negocio: nombreNegocio2,
           servicio: bookingData.servicio,
           fecha: fechaConDia,
           hora: horaFormateada,
           profesional: bookingData.profesional_nombre || bookingData.trabajador_nombre || "",
-          direccion: configNegocio?.direccion || ""
-        });
-        const mensajeCliente = propioPago ? `${propioPago}
-
-✅ *Pago recibido correctamente*${lineaCalendario ? `
-${lineaCalendario}` : ""}` : mensajeEstandar;
+          direccion: configNegocio?.direccion || "",
+          total: "",
+          calendario: typeof generarLinkCalendarioCliente === "function" ? generarLinkCalendarioCliente(bookingData) || "" : ""
+        }) || mensajeEstandar;
         window.enviarWhatsApp(bookingData.cliente_whatsapp, mensajeCliente);
         if (window.enviarNotificacionPush) window.enviarNotificacionPush(`${nombreNegocio2} - Pago confirmado`, `✅ ${bookingData.cliente_nombre}
 ✨ ${bookingData.servicio}
@@ -2930,19 +2928,17 @@ ${lineaCalendario}
 
 Te esperamos.
 Cualquier cambio, puedes cancelarlo desde la app.`;
-      const propioPago = window.bienvenida?.textoConfirmacion(configNegocio, {
+      const mensajeCliente = window.bienvenida?.textoConfirmacion(configNegocio, {
         cliente: bookingData.cliente_nombre,
         nombre_negocio: nombreNegocio2,
         servicio: bookingData.servicio,
         fecha: fechaConDia,
         hora: horaFormateada,
         profesional: bookingData.profesional_nombre || bookingData.trabajador_nombre || "",
-        direccion: configNegocio?.direccion || ""
-      });
-      const mensajeCliente = propioPago ? `${propioPago}
-
-✅ *Pago recibido correctamente*${lineaCalendario ? `
-${lineaCalendario}` : ""}` : mensajeEstandar;
+        direccion: configNegocio?.direccion || "",
+        total: "",
+        calendario: typeof generarLinkCalendarioCliente === "function" ? generarLinkCalendarioCliente(bookingData) || "" : ""
+      }) || mensajeEstandar;
       window.enviarWhatsApp(bookingData.cliente_whatsapp, mensajeCliente);
       if (window.enviarNotificacionPush) window.enviarNotificacionPush(`${nombreNegocio2} - Pago confirmado`, `✅ ${bookingData.cliente_nombre}
 ✨ ${bookingData.servicio}

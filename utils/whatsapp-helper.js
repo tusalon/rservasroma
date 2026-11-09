@@ -638,7 +638,9 @@ window.enviarConfirmacionReserva = async function(booking, configNegocio) {
         const lineaCalendario = generarLineaCalendarioCliente(booking);
         const lineaDireccion = generarLineaDireccion(configNegocio);
 
-        // Si la admin encendio su propio mensaje de confirmacion, ese va en lugar del de siempre.
+        // Si la admin encendio su propio mensaje de confirmacion (editado a partir del de siempre), ese va en
+        // lugar del de siempre. total y calendario: solo el dato; la linea se salta si no hay (costos ocultos...).
+        const prefsTotal = getPreferenciasWhatsApp(configNegocio);
         const mensajePropio = window.bienvenida?.textoConfirmacion(configNegocio, {
             cliente: booking.cliente_nombre,
             nombre_negocio: configNegocio?.nombre || 'Mi Salón',
@@ -646,7 +648,9 @@ window.enviarConfirmacionReserva = async function(booking, configNegocio) {
             fecha: fechaConDia,
             hora: horaFormateada,
             profesional: getProfesional(booking),
-            direccion: configNegocio?.direccion || ''
+            direccion: configNegocio?.direccion || configNegocio?.ubicacion || '',
+            total: prefsTotal.mostrarCostos ? (formatearMontoReserva(totalReserva, prefsTotal.moneda) || '') : '',
+            calendario: generarLinkCalendarioCliente(booking) || ''
         }) || '';
 
         const mensajeEstandar =
@@ -662,12 +666,7 @@ ${lineaTotalReserva}
 ${lineaDireccion}
 ${lineaCalendario}
 ¡Te esperamos! ❤️`;
-        // Su mensaje va primero; textoConfirmacion ya añadió fecha, hora, servicio, profesional y dirección.
-        // Aquí se suma lo que no son marcas: el total y el enlace al calendario.
-        const extrasPropio = [lineaTotalReserva, lineaCalendario].map((l) => String(l || '').trim()).filter(Boolean).join('\n');
-        const mensajeConfirmacion = mensajePropio
-            ? (extrasPropio ? `${mensajePropio}\n${extrasPropio}` : mensajePropio)
-            : mensajeEstandar;
+        const mensajeConfirmacion = mensajePropio || mensajeEstandar;
 
         window.enviarWhatsApp(booking.cliente_whatsapp, mensajeConfirmacion);
 

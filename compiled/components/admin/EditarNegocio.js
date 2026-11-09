@@ -121,7 +121,7 @@ function EditarNegocio() {
           imagen_fondo_tipo: configData.imagen_fondo_tipo || "unas",
           imagen_fondo_url: configData.imagen_fondo_url || "",
           mensaje_bienvenida: configData.mensaje_bienvenida || "¡Bienvenido!",
-          mensaje_confirmacion: configData.mensaje_confirmacion || "Tu cita ha sido reservada",
+          mensaje_confirmacion: configData.mensaje_confirmacion_activo === true && configData.mensaje_confirmacion ? configData.mensaje_confirmacion : window.bienvenida?.MENSAJE_CONFIRMACION_DEFECTO || "Tu cita ha sido reservada",
           mensaje_confirmacion_activo: configData.mensaje_confirmacion_activo === true,
           mensaje_primera_vez: configData.mensaje_primera_vez || "",
           mensaje_primera_vez_activo: configData.mensaje_primera_vez_activo === true,
@@ -858,39 +858,61 @@ function EditarNegocio() {
       className: "w-full border rounded-lg px-3 py-2",
       rows: "3"
     }
-  ), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 mt-1" }, t("Se muestra al abrir la app"))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "flex items-center gap-3 text-sm font-medium text-gray-700 mb-1 cursor-pointer" }, /* @__PURE__ */ React.createElement(
-    "input",
-    {
-      id: "mensaje-confirmacion-activo",
-      type: "checkbox",
-      checked: config.mensaje_confirmacion_activo === true,
-      onChange: (e) => setConfig({ ...config, mensaje_confirmacion_activo: e.target.checked }),
-      className: "h-5 w-5 shrink-0"
-    }
-  ), t("Usar mi propio mensaje de confirmación de la cita")), /* @__PURE__ */ React.createElement(
+  ), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 mt-1" }, t("Se muestra al abrir la app"))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { htmlFor: "mensaje-confirmacion", className: "block text-sm font-medium text-gray-700 mb-1" }, t("Mensaje de confirmación de la cita")), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mb-2" }, config.mensaje_confirmacion_activo === true ? t("Estás usando tu propio mensaje. Lo que dejes aquí es lo que recibe tu clienta por WhatsApp.") : t("Este es el mensaje de siempre. Cámbialo a tu gusto: añade o quita lo que quieras y eso es lo que recibirá tu clienta por WhatsApp.")), /* @__PURE__ */ React.createElement(
     "textarea",
     {
       id: "mensaje-confirmacion",
       value: config.mensaje_confirmacion,
-      onChange: (e) => setConfig({
-        ...config,
-        mensaje_confirmacion: e.target.value,
-        mensaje_confirmacion_activo: e.target.value.trim() !== ""
-      }),
-      placeholder: t("Ej.: ¡Gracias {cliente}! Tu cita en {nombre_negocio} quedó reservada 💗"),
-      className: "w-full border rounded-lg px-3 py-2",
-      rows: "3",
-      maxLength: 500
+      onChange: (e) => {
+        const texto = e.target.value;
+        const original = (window.bienvenida?.MENSAJE_CONFIRMACION_DEFECTO || "").trim();
+        setConfig({
+          ...config,
+          mensaje_confirmacion: texto,
+          mensaje_confirmacion_activo: texto.trim() !== "" && texto.trim() !== original
+        });
+      },
+      className: "w-full border rounded-lg px-3 py-2 text-sm",
+      rows: "10",
+      maxLength: 900
     }
-  ), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-1" }, t("Escribe tu mensaje. Debajo, tu clienta recibe siempre los datos de su cita: fecha, hora, servicio, profesional y dirección.")), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 mt-1" }, t("Si prefieres ponerlos tú dentro del texto, usa estas marcas y ya no se repiten:"), " ", "{cliente}", ", ", "{nombre_negocio}", ", ", "{servicio}", ", ", "{fecha}", ", ", "{hora}", ", ", "{profesional}", ", ", "{direccion}", "."), config.mensaje_confirmacion_activo === true && String(config.mensaje_confirmacion || "").trim() !== "" && window.bienvenida && /* @__PURE__ */ React.createElement("div", { className: "mt-2 rounded-lg bg-green-50 border border-green-200 p-3" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-semibold text-green-800 mb-1" }, t("Así lo verá tu clienta por WhatsApp")), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-800", style: { whiteSpace: "pre-line" } }, window.bienvenida.textoConfirmacion(config, {
+  ), window.bienvenida && window.bienvenida.faltantes(config.mensaje_confirmacion).length > 0 && /* @__PURE__ */ React.createElement("div", { className: "mt-2" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-600 mb-1" }, t("Quitaste estos datos de la cita. Toca para volver a añadirlos:")), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-2" }, window.bienvenida.faltantes(config.mensaje_confirmacion).map((clave) => /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      key: clave,
+      type: "button",
+      onClick: () => setConfig({
+        ...config,
+        mensaje_confirmacion: String(config.mensaje_confirmacion || "").replace(/\s+$/, "") + "\n" + window.bienvenida.LINEAS_DATOS[clave],
+        mensaje_confirmacion_activo: true
+      }),
+      className: "px-3 min-h-[40px] rounded-full border border-pink-300 bg-white text-pink-700 text-sm font-medium"
+    },
+    "+ ",
+    t({ fecha: "Fecha", hora: "Hora", servicio: "Servicio", profesional: "Profesional", direccion: "Dirección" }[clave])
+  )))), /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      type: "button",
+      onClick: () => setConfig({
+        ...config,
+        mensaje_confirmacion: window.bienvenida?.MENSAJE_CONFIRMACION_DEFECTO || "",
+        mensaje_confirmacion_activo: false
+      }),
+      className: "mt-2 px-3 min-h-[40px] rounded-lg border border-gray-300 bg-white text-gray-700 text-sm font-medium"
+    },
+    t("Volver al mensaje original")
+  ), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 mt-2" }, t("Estas marcas se llenan solas con los datos de cada cita:"), " ", "{cliente}", ", ", "{nombre_negocio}", ", ", "{fecha}", ", ", "{hora}", ", ", "{servicio}", ", ", "{profesional}", ", ", "{direccion}", ", ", "{total}", ", ", "{calendario}", ".", " ", t("Si un dato no existe (por ejemplo, no hay dirección), esa línea no sale.")), window.bienvenida && /* @__PURE__ */ React.createElement("div", { className: "mt-2 rounded-lg bg-green-50 border border-green-200 p-3" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-semibold text-green-800 mb-1" }, t("Así lo verá tu clienta por WhatsApp")), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-800", style: { whiteSpace: "pre-line" } }, window.bienvenida.textoConfirmacion({ ...config, mensaje_confirmacion_activo: true }, {
     cliente: "Ana",
     nombre_negocio: config.nombre || t("Tu salón"),
     servicio: t("Manicura"),
     fecha: t("sábado 8 de noviembre"),
     hora: "10:00",
     profesional: t("Tu profesional"),
-    direccion: config.direccion || ""
-  }))), config.mensaje_confirmacion_activo !== true && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 mt-1" }, t("Sin texto: tu clienta ve el mensaje de RservasRoma."))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "flex items-center gap-3 text-sm font-medium text-gray-700 mb-1 cursor-pointer" }, /* @__PURE__ */ React.createElement(
+    direccion: config.direccion || "",
+    total: "$25",
+    calendario: t("(enlace para agregar a su calendario)")
+  })))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "flex items-center gap-3 text-sm font-medium text-gray-700 mb-1 cursor-pointer" }, /* @__PURE__ */ React.createElement(
     "input",
     {
       id: "mensaje-primera-vez-activo",

@@ -3,14 +3,43 @@
 //   * Bienvenida de primera vez (se envia por WhatsApp desde el panel "Clientas nuevas").
 //     Interruptor: mensaje_primera_vez_activo.
 // Apagado = el texto de siempre. Marcas: {cliente} {nombre_negocio} {servicio} {fecha} {hora} {profesional} {direccion}.
-// El mensaje propio de confirmacion va PRIMERO y los datos de la cita (fecha, hora, servicio, profesional,
-// direccion) se añaden solos debajo, salvo los que ella ya puso con su marca.
+// El editor de la confirmacion EMPIEZA con el mensaje de siempre ya escrito (MENSAJE_CONFIRMACION_DEFECTO, con sus
+// marcas) y la dueña le añade o le quita lo que quiera. Lo que ella deja es exactamente lo que sale por WhatsApp;
+// una linea cuyo dato no existe (sin direccion, sin total...) se salta sola.
 //
 // "Clienta nueva" = su PRIMERA reserva (sin contar las canceladas), hecha hace poco.
 // Cuentas puras: se prueban en tests/bienvenida.test.js.
 
 (function (root) {
-    const MARCAS = ['cliente', 'nombre_negocio', 'servicio', 'fecha', 'hora', 'profesional', 'direccion'];
+    const MARCAS = ['cliente', 'nombre_negocio', 'servicio', 'fecha', 'hora', 'profesional', 'direccion', 'total', 'calendario'];
+    // Datos de la cita: si su valor viene vacio, la linea que los lleva se salta.
+    const DATOS_CITA = ['servicio', 'fecha', 'hora', 'profesional', 'direccion', 'total', 'calendario'];
+
+    // El mensaje de confirmacion de siempre (el que sale por WhatsApp si la dueña no escribe el suyo).
+    const MENSAJE_CONFIRMACION_DEFECTO =
+        '✅ *{nombre_negocio} - Cita Confirmada*\n\n' +
+        'Hola *{cliente}*, tu cita ha sido agendada.\n\n' +
+        '📅 *Fecha:* {fecha}\n' +
+        '⏰ *Hora:* {hora}\n' +
+        '✨ *Servicio:* {servicio}\n' +
+        '👩‍🎨 *Profesional:* {profesional}\n' +
+        '💵 *Total a pagar:* {total}\n' +
+        '📍 *Dirección:* {direccion}\n' +
+        '📅 *Agregar a tu calendario:* {calendario}\n\n' +
+        '¡Te esperamos! ❤️';
+
+    // Las lineas que el editor ofrece añadir (botones) cuando la dueña las quitó.
+    const LINEAS_DATOS = {
+        fecha: '📅 *Fecha:* {fecha}',
+        hora: '⏰ *Hora:* {hora}',
+        servicio: '✨ *Servicio:* {servicio}',
+        profesional: '👩‍🎨 *Profesional:* {profesional}',
+        direccion: '📍 *Dirección:* {direccion}',
+        total: '💵 *Total a pagar:* {total}',
+        calendario: '📅 *Agregar a tu calendario:* {calendario}'
+    };
+
+    const limpiaClave = (clave) => clave.trim().normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
     const DIAS_VENTANA = 14;
 
     const MENSAJE_PRIMERA_VEZ_DEFECTO =
@@ -29,44 +58,51 @@
         });
     }
 
-    // Datos de la cita que SIEMPRE llegan a la clienta aunque la dueña cambie el mensaje.
-    // Si ella ya los puso con su marca ({servicio}, {fecha}...), no se repiten.
-    const DETALLES = [
-        ['fecha', '📅 *Fecha:*'],
-        ['hora', '⏰ *Hora:*'],
-        ['servicio', '✨ *Servicio:*'],
-        ['profesional', '👩‍🎨 *Profesional:*'],
-        ['direccion', '📍 *Dirección:*']
-    ];
-
-    function marcasUsadas(plantilla) {
-        const usadas = new Set();
-        String(plantilla || '').replace(/\{([^}]+)\}/g, (marca, clave) => {
-            usadas.add(clave.trim().normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase());
+    // Marcas de datos de la cita que hay en una linea.
+    function datosDeLinea(linea) {
+        const usadas = [];
+        String(linea).replace(/\{([^}]+)\}/g, (marca, clave) => {
+            const k = limpiaClave(clave);
+            if (DATOS_CITA.includes(k)) usadas.push(k);
             return marca;
         });
         return usadas;
     }
 
-    // Lineas con los datos de la cita que el texto de la dueña no menciona.
-    function lineasDetalle(plantilla, datos) {
-        const usadas = marcasUsadas(plantilla);
-        const valores = datos || {};
-        return DETALLES
-            .filter(([clave]) => !usadas.has(clave) && String(valores[clave] == null ? '' : valores[clave]).trim() !== '')
-            .map(([clave, etiqueta]) => `${etiqueta} ${valores[clave]}`);
+    const vacio = (valor) => valor == null || String(valor).trim() === '';
+    const juntaHuecos = (texto) => texto.replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+
+    // Marcas de datos de la cita (fecha, hora, servicio, profesional, direccion) que el texto NO tiene:
+    // el editor ofrece botones para volver a ponerlas.
+    function faltantes(plantilla) {
+        const puestas = new Set();
+        String(plantilla || '').split('\n').forEach((l) => datosDeLinea(l).forEach((k) => puestas.add(k)));
+        return ['fecha', 'hora', 'servicio', 'profesional', 'direccion'].filter((k) => !puestas.has(k));
     }
 
-    // Texto personalizado de la confirmacion, o '' si la admin no lo usa (entonces se
-    // muestra el de siempre). Su mensaje va primero y debajo se añaden solos los datos de la
-    // cita que ella no puso. opciones.detalle === false: solo su texto (la pantalla de
-    // confirmacion ya enseña el ticket con los datos).
+    // Texto de la confirmacion con los datos puestos. Una linea cuyo dato no existe se salta (sin
+    // direccion guardada, con costos ocultos...), para no dejar "Dirección:" colgando.
+    function rellenarConfirmacion(plantilla, datos) {
+        const valores = datos || {};
+        const lineas = String(plantilla || '').split('\n').filter((linea) =>
+            !datosDeLinea(linea).some((k) => vacio(valores[k])));
+        return juntaHuecos(rellenar(lineas.join('\n'), valores));
+    }
+
+    // Version corta para la pantalla «Cita reservada», que ya enseña el ticket con los datos:
+    // solo las lineas sin datos de la cita y sin los asteriscos de WhatsApp.
+    function introConfirmacion(plantilla, datos) {
+        const lineas = String(plantilla || '').split('\n').filter((linea) => datosDeLinea(linea).length === 0);
+        return juntaHuecos(rellenar(lineas.join('\n').replace(/\*/g, ''), datos));
+    }
+
+    // Texto personalizado de la confirmacion, o '' si la admin no lo usa (entonces se muestra el de
+    // siempre). Es EXACTAMENTE su texto con los datos puestos. opciones.pantalla: solo la parte
+    // sin datos, para la pantalla de reserva.
     function textoConfirmacion(config, datos, opciones) {
         if (!config || config.mensaje_confirmacion_activo !== true) return '';
-        const texto = rellenar(config.mensaje_confirmacion, datos);
-        if (!texto || (opciones && opciones.detalle === false)) return texto;
-        const lineas = lineasDetalle(config.mensaje_confirmacion, datos);
-        return lineas.length ? `${texto}\n\n${lineas.join('\n')}` : texto;
+        if (opciones && opciones.pantalla) return introConfirmacion(config.mensaje_confirmacion, datos);
+        return rellenarConfirmacion(config.mensaje_confirmacion, datos);
     }
 
     // El de la admin si lo tiene encendido y escrito; si no, el de RservasRoma.
@@ -111,7 +147,7 @@
         return nuevas.sort((a, b) => b.creada - a.creada);
     }
 
-    const api = { MARCAS, DIAS_VENTANA, MENSAJE_PRIMERA_VEZ_DEFECTO, rellenar, lineasDetalle, textoConfirmacion, textoPrimeraVez, clientasNuevas, soloDigitos };
+    const api = { MARCAS, DIAS_VENTANA, MENSAJE_PRIMERA_VEZ_DEFECTO, MENSAJE_CONFIRMACION_DEFECTO, LINEAS_DATOS, rellenar, rellenarConfirmacion, faltantes, textoConfirmacion, textoPrimeraVez, clientasNuevas, soloDigitos };
     if (typeof module !== 'undefined' && module.exports) module.exports = api;
     root.bienvenida = api;
 })(typeof window !== 'undefined' ? window : globalThis);

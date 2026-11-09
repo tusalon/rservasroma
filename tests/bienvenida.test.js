@@ -20,25 +20,38 @@ assert.equal(b.rellenar('Ubicación: {dirección}', {}), 'Ubicación: {direcció
 
 // --- Confirmación: solo si la admin la enciende
 const conTexto = { mensaje_confirmacion: 'Gracias {cliente}, ya tienes tu turno', mensaje_confirmacion_activo: true };
-// Su mensaje va primero y los datos de la cita se añaden solos debajo (no se pierden al personalizar)
-assert.equal(
-    b.textoConfirmacion(conTexto, datos),
-    'Gracias Yadira, ya tienes tu turno\n\n📅 *Fecha:* lunes 12 de octubre\n⏰ *Hora:* 10:00\n✨ *Servicio:* Limpieza facial\n👩‍🎨 *Profesional:* Ana'
-);
-assert.equal(b.textoConfirmacion(conTexto, datos, { detalle: false }), 'Gracias Yadira, ya tienes tu turno', 'la pantalla ya muestra el ticket: solo su texto');
-// Si ella ya puso una marca, ese dato no se repite
-assert.equal(
-    b.textoConfirmacion({ mensaje_confirmacion_activo: true, mensaje_confirmacion: 'Te esperamos el {fecha} a las {hora}' }, datos),
-    'Te esperamos el lunes 12 de octubre a las 10:00\n\n✨ *Servicio:* Limpieza facial\n👩‍🎨 *Profesional:* Ana'
-);
-assert.equal(
-    b.textoConfirmacion({ mensaje_confirmacion_activo: true, mensaje_confirmacion: 'Ven a {dirección}' }, { ...datos, direccion: 'Calle 5' }),
-    'Ven a Calle 5\n\n📅 *Fecha:* lunes 12 de octubre\n⏰ *Hora:* 10:00\n✨ *Servicio:* Limpieza facial\n👩‍🎨 *Profesional:* Ana',
-    '{dirección} con tilde también cuenta como puesta'
-);
-// Un dato que no existe no deja una línea vacía
-assert.doesNotMatch(b.textoConfirmacion(conTexto, { ...datos, profesional: '' }), /Profesional/);
-assert.doesNotMatch(b.textoConfirmacion(conTexto, datos), /Dirección/, 'sin dirección guardada no sale la línea');
+// Su texto es EXACTAMENTE lo que sale, con los datos puestos
+assert.equal(b.textoConfirmacion(conTexto, datos), 'Gracias Yadira, ya tienes tu turno');
+
+// El mensaje de siempre es el punto de partida del editor: todo lo que sale hoy está en él
+const total = { ...datos, direccion: 'Calle 5 #12', total: '$25', calendario: 'https://cal.example/x' };
+const base = { mensaje_confirmacion: b.MENSAJE_CONFIRMACION_DEFECTO, mensaje_confirmacion_activo: true };
+const completo = b.textoConfirmacion(base, total);
+for (const parte of ['Cita Confirmada', 'Hola *Yadira*', '📅 *Fecha:* lunes 12 de octubre', '⏰ *Hora:* 10:00', '✨ *Servicio:* Limpieza facial',
+    '👩‍🎨 *Profesional:* Ana', '💵 *Total a pagar:* $25', '📍 *Dirección:* Calle 5 #12', 'https://cal.example/x', '¡Te esperamos!']) {
+    assert.ok(completo.includes(parte), 'falta: ' + parte);
+}
+assert.doesNotMatch(completo, /\{|\}/, 'no queda ninguna marca sin rellenar');
+// Una línea cuyo dato no existe se salta sola (sin dirección guardada, costos ocultos, sin calendario)
+const sinExtras = b.textoConfirmacion(base, datos);
+assert.doesNotMatch(sinExtras, /Dirección|Total a pagar|calendario/, 'no deja líneas colgando');
+assert.match(sinExtras, /Servicio:\* Limpieza facial/);
+assert.doesNotMatch(sinExtras, /\n{3,}/, 'sin huecos grandes');
+
+// La dueña quita y añade a su gusto
+const sinHora = { mensaje_confirmacion_activo: true, mensaje_confirmacion: b.MENSAJE_CONFIRMACION_DEFECTO.replace('⏰ *Hora:* {hora}\n', '') };
+assert.doesNotMatch(b.textoConfirmacion(sinHora, total), /Hora/);
+assert.deepEqual(b.faltantes(sinHora.mensaje_confirmacion), ['hora'], 'el editor ofrece volver a añadir la hora');
+assert.deepEqual(b.faltantes(b.MENSAJE_CONFIRMACION_DEFECTO), []);
+assert.deepEqual(b.faltantes('Gracias {cliente}'), ['fecha', 'hora', 'servicio', 'profesional', 'direccion']);
+assert.equal(b.faltantes('Ven a {dirección}').includes('direccion'), false, '{dirección} con tilde cuenta');
+for (const k of Object.keys(b.LINEAS_DATOS)) assert.match(b.LINEAS_DATOS[k], new RegExp('\\{' + k + '\\}'), 'la línea de ' + k + ' lleva su marca');
+
+// Pantalla «Cita reservada»: ya enseña el ticket, así que solo la parte sin datos y sin asteriscos
+const pantalla = b.textoConfirmacion(base, total, { pantalla: true });
+assert.doesNotMatch(pantalla, /Fecha|Hora|Servicio|Profesional|Dirección|\*/);
+assert.match(pantalla, /Hola Yadira, tu cita ha sido agendada/);
+assert.match(pantalla, /¡Te esperamos!/);
 assert.equal(b.textoConfirmacion({ ...conTexto, mensaje_confirmacion_activo: false }, datos), '', 'apagado: se usa el de siempre');
 assert.equal(b.textoConfirmacion({ mensaje_confirmacion_activo: true, mensaje_confirmacion: '   ' }, datos), '', 'encendido pero vacío: el de siempre');
 assert.equal(b.textoConfirmacion(null, datos), '');
