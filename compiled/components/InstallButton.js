@@ -1,3 +1,1 @@
-function InstallButton() {
-  return null;
-}
+function InstallButton(){return null}
