@@ -176,7 +176,9 @@
             background: linear-gradient(180deg, transparent, #fff1f7 40%);
         }
 
+        .offline-acciones { flex-wrap: wrap; }
         .offline-acciones button {
+            min-width: 220px;
             flex: 1;
             padding: 14px;
             border: none;
@@ -197,12 +199,22 @@
     <div id="offline-root"></div>
     <div class="offline-shell">
         <div class="offline-acciones">
+            <button id="btn-finanzas" type="button" hidden>💰 Abrir Roma Finanzas (sin internet)</button>
             <button id="btn-reintentar" type="button">🔄 Reintentar conexión</button>
         </div>
     </div>
     <script src="utils/offline-panel.js?v=20261103-cita2"></script>
     <script>
         window.RservasOffline.renderOfflinePanel();
+
+        // Roma Finanzas funciona sin internet (viaja dentro de la APK): si la dueña lo tiene, se le ofrece aquí.
+        (function() {
+            var f = document.getElementById('btn-finanzas'), tiene = false;
+            try { tiene = localStorage.getItem('rservas_finanzas_offline') === '1'; } catch (e) {}
+            if (!f || !tiene) return;
+            f.hidden = false;
+            f.addEventListener('click', function() { window.location.href = 'finanzas/index.html?desde=panel'; });
+        })();
 
         // Salida del modo offline: reintento manual + vuelta automática
         // en cuanto el sistema detecta que regresó la conexión.
