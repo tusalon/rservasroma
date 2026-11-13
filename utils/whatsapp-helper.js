@@ -120,4 +120,30 @@ Hola *${booking.cliente_nombre}*, lamentamos informarte que tu cita ha sido canc
 ✨ ${booking.servicio}
 📅 ${fechaConDia} ${horaFormateada}`,"x","default",{profesionalId:booking.profesional_id||booking.trabajador_id||booking.barbero_id});else{const telefonoCliente=booking.cliente_whatsapp.replace(/\D/g,"");window.enviarWhatsApp(telefonoCliente,mensajeCliente),console.log("📱 Cliente notificado de cancelación por admin"),await window.enviarNotificacionPush(`❌ ${config.nombre} - Cancelación`,`❌ Cancelado: ${booking.cliente_nombre}
 ✨ ${booking.servicio}
-📅 ${fechaConDia} ${horaFormateada}`,"x","default",{profesionalId:booking.profesional_id||booking.trabajador_id||booking.barbero_id}),window.enviarPushCliente&&window.enviarPushCliente({whatsapp:booking.cliente_whatsapp,title:`❌ Cita cancelada — ${config.nombre}`,body:`Tu cita de ${booking.servicio} el ${fechaConDia} fue cancelada.`}).catch(()=>{})}return console.log("✅ Notificaciones de cancelación enviadas"),!0}catch(error){return console.error("Error en notificarCancelacion:",error),!1}},console.log("✅ whatsapp-helper.js cargado correctamente");
+📅 ${fechaConDia} ${horaFormateada}`,"x","default",{profesionalId:booking.profesional_id||booking.trabajador_id||booking.barbero_id}),window.enviarPushCliente&&window.enviarPushCliente({whatsapp:booking.cliente_whatsapp,title:`❌ Cita cancelada — ${config.nombre}`,body:`Tu cita de ${booking.servicio} el ${fechaConDia} fue cancelada.`}).catch(()=>{})}return console.log("✅ Notificaciones de cancelación enviadas"),!0}catch(error){return console.error("Error en notificarCancelacion:",error),!1}},window.notificarReprogramacion=async function({anterior,nuevo,por="admin"}={}){try{if(!anterior||!nuevo)return!1;const config=await getConfigNegocio(),nombreSalon=config?.nombre||"Mi Salón",antes=getFechaHora(anterior),ahora=getFechaHora(nuevo),profesional=getProfesional(nuevo),servicio=nuevo.servicio||anterior.servicio||"";let lineaTotal="";try{const total=await calcularTotalReserva(nuevo);lineaTotal=generarLineaTotalReserva(total,config)}catch{}const lineaCalendario=generarLineaCalendarioCliente(nuevo),lineaDireccion=generarLineaDireccion(config),mensajeCliente=`🔄 *${nombreSalon} - Cita Reprogramada*
+
+Hola *${nuevo.cliente_nombre}*, tu cita cambió de día y hora.
+
+❌ *Antes:* ${antes.fechaConDia} a las ${antes.horaFormateada}
+✅ *Ahora:* ${ahora.fechaConDia} a las ${ahora.horaFormateada}
+
+✨ *Servicio:* ${servicio}
+👩‍🎨 *Profesional:* ${profesional}
+${lineaTotal}
+${lineaDireccion}
+${lineaCalendario}
+📱 ¿Necesitas otro cambio? Puedes hacerlo desde la app.
+¡Te esperamos! ❤️`,mensajeSalon=`🔄 *CITA REPROGRAMADA - ${nombreSalon}*
+
+👤 *Cliente:* ${nuevo.cliente_nombre}
+📱 *WhatsApp:* ${nuevo.cliente_whatsapp}
+✨ *Servicio:* ${servicio}
+👩‍🎨 *Profesional:* ${profesional}
+
+❌ *Antes:* ${antes.fechaConDia} a las ${antes.horaFormateada}
+✅ *Ahora:* ${ahora.fechaConDia} a las ${ahora.horaFormateada}
+
+${por==="cliente"?"La clienta reprogramó su cita desde la app.":"Reprogramada desde el panel."}`;return por==="cliente"?config?.telefono&&window.enviarWhatsApp(config.telefono,mensajeSalon):nuevo.cliente_whatsapp&&window.enviarWhatsApp(String(nuevo.cliente_whatsapp).replace(/\D/g,""),mensajeCliente),window.enviarNotificacionPush&&await window.enviarNotificacionPush(`🔄 ${nombreSalon} - Cita reprogramada`,`🔄 ${nuevo.cliente_nombre}
+✨ ${servicio}
+❌ ${antes.fechaConDia} ${antes.horaFormateada}
+✅ ${ahora.fechaConDia} ${ahora.horaFormateada}`,"calendar","default",{profesionalId:nuevo.profesional_id||nuevo.trabajador_id||nuevo.barbero_id}),window.enviarPushCliente&&nuevo.cliente_whatsapp&&window.enviarPushCliente({whatsapp:nuevo.cliente_whatsapp,title:`🔄 Cita reprogramada — ${nombreSalon}`,body:`${servicio}: ahora el ${ahora.fechaConDia} a las ${ahora.horaFormateada}`}).catch(()=>{}),!0}catch(error){return console.error("Error en notificarReprogramacion:",error),!1}},console.log("✅ whatsapp-helper.js cargado correctamente");
