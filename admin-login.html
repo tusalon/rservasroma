@@ -295,6 +295,7 @@
       .roma img, .card { animation: none; }
     }
   </style>
+    <script defer src="utils/navidad.js?v=20261124-navidad5"></script>
 </head>
 
 <body>
@@ -565,12 +566,11 @@
       btn.disabled = true;
 
       try {
-        // bcrypt solo hace falta para la dueña: el profesional lo valida
-        // Supabase con la función login_profesional.
-        if (!modoProfesional && typeof bcrypt === 'undefined') throw new Error(window.t('Error interno. Recarga la página.'));
-
+        // La contraseña ya no se compara en el navegador: la dueña la valida la función
+        // panel-login (bcrypt en el servidor) y la profesional, login_profesional.
+        // Por eso aquí NO se pide password_hash (esa columna se podrá cerrar a la clave pública).
         var response = await fetch(
-          window.SUPABASE_URL + '/rest/v1/negocios?slug=eq.' + encodeURIComponent(username) + '&select=*',
+          window.SUPABASE_URL + '/rest/v1/negocios?slug=eq.' + encodeURIComponent(username) + '&select=id,slug,nombre,codigo_pais,configurado',
           { headers: { 'apikey': window.SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + window.SUPABASE_ANON_KEY } }
         );
 
@@ -634,15 +634,30 @@
         }
 
         // ── Dueña del salón ────────────────────────────────────────────────
-        var passwordValida = bcrypt.compareSync(password, negocio.password_hash);
+        var respuestaPanel;
+        try {
+          respuestaPanel = await fetch(window.SUPABASE_URL + '/functions/v1/panel-login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'apikey': window.SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + window.SUPABASE_ANON_KEY },
+            body: JSON.stringify({ slug: negocio.slug, password: password })
+          });
+        } catch (e) {
+          throw new Error(window.t('Error de conexión. Inténtalo de nuevo.'));
+        }
+        var datosPanel = await respuestaPanel.json().catch(function() { return {}; });
 
-        if (!passwordValida) {
+        if (respuestaPanel.status === 401) {
           errorMsg.textContent = window.t('Contraseña incorrecta');
           errorMsg.classList.remove('hidden');
           mensaje.classList.add('hidden');
           btn.disabled = false;
           return;
         }
+        // 429 (demasiados intentos) trae su propio mensaje; el resto es un fallo del servidor.
+        if (!respuestaPanel.ok || !datosPanel.token) {
+          throw new Error(datosPanel.error || window.t('Error de conexión. Inténtalo de nuevo.'));
+        }
+        // El token no se guarda aquí a propósito: las fichas piden la contraseña al abrirse (utils/panel-sesion.js).
 
         localStorage.setItem('negocioId',      negocio.id);
         localStorage.setItem('negocioSlug',    negocio.slug);
