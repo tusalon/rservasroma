@@ -1,4 +1,4 @@
-(function(root){const SALTAN=["servicio","fecha","hora","profesional","direccion","total","calendario","periodo","enlace","limite","antes","ahora"],CITA=`📅 *Fecha:* {fecha}
+(function(root){const SALTAN=["servicio","fecha","hora","profesional","direccion","total","calendario","periodo","enlace","limite","antes","ahora","nota","anticipo"],CITA=`📅 *Fecha:* {fecha}
 ⏰ *Hora:* {hora}
 ✨ *Servicio:* {servicio}
 👩‍🎨 *Profesional:* {profesional}`,QUIEN=`👤 *Cliente:* {cliente}
@@ -26,7 +26,14 @@ ${QUIEN}
 ${EXTRAS}
 ${CALENDARIO}
 
-✅ Reserva confirmada automáticamente.`},{clave:"coordinar_anticipo",para:"salon",titulo:"Quiero enviar el anticipo",texto:"Hola! Reservé {servicio} para el {fecha} a las {hora} y quiero enviar el anticipo."},{clave:"cancelacion_salon",para:"salon",titulo:"La clienta cancela",texto:`❌ *CANCELACIÓN - {nombre_negocio}*
+✅ Reserva confirmada automáticamente.`},{clave:"solicitud_valoracion",para:"salon",titulo:"Pedido por valorar",texto:`💅 *PEDIDO POR VALORAR - {nombre_negocio}*
+
+${CITA}
+${QUIEN}
+💵 *Total estimado:* {total}
+🎨 *Decoración:* {nota}
+
+Quedo pendiente del total y el anticipo. 💖`},{clave:"coordinar_anticipo",para:"salon",titulo:"Quiero enviar el anticipo",texto:"Hola! Reservé {servicio} para el {fecha} a las {hora} y quiero enviar el anticipo."},{clave:"cancelacion_salon",para:"salon",titulo:"La clienta cancela",texto:`❌ *CANCELACIÓN - {nombre_negocio}*
 
 ${QUIEN}
 ✨ *Servicio:* {servicio}
@@ -54,6 +61,16 @@ ${EXTRAS}
 ${CALENDARIO}
 
 Cuando confirmemos tu pago, tu cita quedará reservada.
+
+¡Gracias por elegirnos! 💖`},{clave:"valoracion_clienta",para:"clienta",titulo:"Valoración: total y anticipo",texto:`💅 *{nombre_negocio} - Tu pedido ya está valorado*
+
+Hola *{cliente}*:
+
+${CITA}
+💵 *Total:* {total}
+💰 *Anticipo:* {anticipo}
+
+{datos_pago}
 
 ¡Gracias por elegirnos! 💖`},{clave:"pago_confirmado",para:"clienta",titulo:"Pago recibido, cita confirmada",texto:`*{nombre_negocio} - Cita Confirmada*
 
@@ -118,8 +135,8 @@ Servicios y precios
 
 {lista}
 
-Reserva tu cita aquí: {enlace}`}],MUESTRA={cliente:"María",whatsapp:"5351234567",servicio:"Manicura",duracion:60,fecha:"viernes 27 de noviembre",hora:"10:00 AM",profesional:"Ana",direccion:"Calle 10 #25",total:"1500 CUP",calendario:"https://…",antes:"jueves 26 a las 9:00 AM",ahora:"viernes 27 a las 10:00 AM",limite:"11:30 AM",enlace:"https://…",premio:"tienes 10% de descuento en tu próxima cita.",frase:"",titulo:"Disponibilidad semanal",periodo:"",lista:"(aquí va la lista que arma la app)",datos_pago:"(aquí van el anticipo y tus datos de pago)",anticipo:"500 CUP"},limpia=clave=>clave.trim().normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase(),marcasDe=texto=>(String(texto).match(/\{[^{}]+\}/g)||[]).map(m=>limpia(m.slice(1,-1)));function rellenar(plantilla,datos){const valores=datos||{},tiene=k=>Object.prototype.hasOwnProperty.call(valores,k),vacio=k=>tiene(k)&&String(valores[k]??"").trim()==="";return String(plantilla||"").split(`
+Reserva tu cita aquí: {enlace}`}],MUESTRA={cliente:"María",whatsapp:"5351234567",servicio:"Manicura",duracion:60,fecha:"viernes 27 de noviembre",hora:"10:00 AM",profesional:"Ana",direccion:"Calle 10 #25",total:"1500 CUP",calendario:"https://…",antes:"jueves 26 a las 9:00 AM",ahora:"viernes 27 a las 10:00 AM",limite:"11:30 AM",enlace:"https://…",premio:"tienes 10% de descuento en tu próxima cita.",frase:"",titulo:"Disponibilidad semanal",periodo:"",lista:"(aquí va la lista que arma la app)",datos_pago:"(aquí van el anticipo y tus datos de pago)",anticipo:"500 CUP",nota:"French y pedrería en dos uñas"},limpia=clave=>clave.trim().normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase(),marcasDe=texto=>(String(texto).match(/\{[^{}]+\}/g)||[]).map(m=>limpia(m.slice(1,-1)));function rellenar(plantilla,datos){const valores=datos||{},tiene=k=>Object.prototype.hasOwnProperty.call(valores,k),vacio=k=>tiene(k)&&String(valores[k]??"").trim()==="";return String(plantilla||"").split(`
 `).filter(linea=>!marcasDe(linea).some(k=>SALTAN.includes(k)&&vacio(k))).map(linea=>linea.replace(/\{([^{}]+)\}/g,(marca,c)=>tiene(limpia(c))?String(valores[limpia(c)]??""):marca)).join(`
 `).replace(/[ \t]+(\n|$)/g,"$1").replace(/\n{3,}/g,`
 
-`).trim()}function propio(config,clave,datos){const texto=config?.mensajes_whatsapp?.[clave];if(typeof texto!="string"||!texto.trim())return"";const vacias=Object.fromEntries(Object.keys(MUESTRA).map(k=>[k,""]));return rellenar(texto,{...vacias,nombre_negocio:config?.nombre||"",direccion:config?.direccion||"",...datos})}function cambiar(mensajes,clave,texto){const copia={...mensajes||{}},original=MENSAJES.find(m=>m.clave===clave)?.texto||"";return texto==null||texto===original?delete copia[clave]:copia[clave]=String(texto).slice(0,1500),copia}const api={MENSAJES,MUESTRA,marcasDe,rellenar,propio,cambiar};typeof module<"u"&&module.exports&&(module.exports=api),root.mensajesWhatsapp=api})(typeof window<"u"?window:globalThis);
+`).trim()}function propio(config,clave,datos){const texto=config?.mensajes_whatsapp?.[clave];if(typeof texto!="string"||!texto.trim())return"";const vacias=Object.fromEntries(Object.keys(MUESTRA).map(k=>[k,""]));return rellenar(texto,{...vacias,nombre_negocio:config?.nombre||"",direccion:config?.direccion||"",...datos})}function armar(config,clave,datos){const original=MENSAJES.find(m=>m.clave===clave)?.texto||"";return propio(config,clave,datos)||propio({...config,mensajes_whatsapp:{[clave]:original}},clave,datos)}function cambiar(mensajes,clave,texto){const copia={...mensajes||{}},original=MENSAJES.find(m=>m.clave===clave)?.texto||"";return texto==null||texto===original?delete copia[clave]:copia[clave]=String(texto).slice(0,1500),copia}const api={MENSAJES,MUESTRA,marcasDe,rellenar,propio,armar,cambiar};typeof module<"u"&&module.exports&&(module.exports=api),root.mensajesWhatsapp=api})(typeof window<"u"?window:globalThis);
